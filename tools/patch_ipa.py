@@ -19,6 +19,7 @@ except ImportError:  # Direct execution from tools/patch_ipa.py.
 LOAD_PATH = "@rpath/Tweach.framework/Tweach"
 FRAMEWORK_NAME = "Tweach.framework"
 FRAMEWORK_BINARY_NAME = "Tweach"
+APP_DISPLAY_NAME = "Twitch VAFT"
 DONOR_DYLIB_NAMES = {"Tweach.dylib", "TwitchAdBlock.dylib"}
 DONOR_LOAD_PATHS = {
     "@rpath/Tweach.dylib",
@@ -43,6 +44,14 @@ def _app_info_entry(archive: zipfile.ZipFile) -> str:
 def _copy_entry(source: zipfile.ZipFile, destination: zipfile.ZipFile, info: zipfile.ZipInfo) -> None:
     with source.open(info, "r") as incoming, destination.open(info, "w") as outgoing:
         shutil.copyfileobj(incoming, outgoing, length=1024 * 1024)
+
+
+def update_app_info(data: bytes) -> bytes:
+    """Set the installed app name while preserving its other Info.plist keys."""
+    info = plistlib.loads(data)
+    info["CFBundleDisplayName"] = APP_DISPLAY_NAME
+    info["CFBundleName"] = APP_DISPLAY_NAME
+    return plistlib.dumps(info, fmt=plistlib.FMT_BINARY)
 
 
 def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
@@ -80,6 +89,7 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
             info_entry = _app_info_entry(source)
             app_root = str(PurePosixPath(info_entry).parent)
             info_plist = plistlib.loads(source.read(info_entry))
+            updated_info_plist = update_app_info(source.read(info_entry))
             executable_name = info_plist.get("CFBundleExecutable")
             if not isinstance(executable_name, str) or not executable_name:
                 raise ValueError("Info.plist has no CFBundleExecutable")
@@ -110,7 +120,9 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
 
             with zipfile.ZipFile(temp_path, "w", allowZip64=True) as destination:
                 for item in source.infolist():
-                    if item.filename == executable_entry:
+                    if item.filename == info_entry:
+                        destination.writestr(item, updated_info_plist)
+                    elif item.filename == executable_entry:
                         destination.writestr(item, executable)
                     elif item.filename in donor_entries or item.filename.startswith(framework_root + "/"):
                         continue

@@ -15,7 +15,7 @@ from tools.macho import (
     loaded_dylibs,
     remove_load_dylibs,
 )
-from tools.patch_ipa import LOAD_PATH, patch_ipa
+from tools.patch_ipa import APP_DISPLAY_NAME, LOAD_PATH, patch_ipa
 
 DONOR_LOAD_PATH = "@rpath/Tweach.dylib"
 
@@ -79,7 +79,11 @@ class IPAPatcherTests(unittest.TestCase):
             source = root / "input.ipa"
             output = root / "output.ipa"
             framework = self.make_framework(root)
-            info = plistlib.dumps({"CFBundleExecutable": "Twitch"})
+            info = plistlib.dumps({
+                "CFBundleExecutable": "Twitch",
+                "CFBundleDisplayName": "Twitch VAFT MENU R8",
+                "CFBundleName": "Twitch VAFT MENU R8",
+            })
             assets = b"synthetic asset catalog"
             with zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as archive:
                 archive.writestr("Payload/Twitch.app/Info.plist", info)
@@ -93,6 +97,9 @@ class IPAPatcherTests(unittest.TestCase):
             self.assertEqual(removed, [DONOR_LOAD_PATH])
             with zipfile.ZipFile(output) as archive:
                 self.assertEqual(archive.read("Payload/Twitch.app/Assets.car"), assets)
+                app_info = plistlib.loads(archive.read("Payload/Twitch.app/Info.plist"))
+                self.assertEqual(app_info["CFBundleDisplayName"], APP_DISPLAY_NAME)
+                self.assertEqual(app_info["CFBundleName"], APP_DISPLAY_NAME)
                 self.assertNotIn("Payload/Twitch.app/Frameworks/Tweach.dylib", archive.namelist())
                 self.assertEqual(
                     archive.read("Payload/Twitch.app/Frameworks/Tweach.framework/Tweach"),

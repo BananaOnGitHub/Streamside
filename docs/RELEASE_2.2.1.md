@@ -3,6 +3,8 @@
 **Sideload IPA for Twitch 30.4.2 (arm64).** Sign the IPA with your normal
 sideloading tool before installing it.
 
+The app display name and bundle name shown on the device are **Twitch VAFT**.
+
 This replacement is built from the source in this repository. The IPA embeds
 the same R5 diagnostics implementation used by the rootful and rootless
 jailbreak packages: opt-in process-local channel and resource labels, route
@@ -17,4 +19,4 @@ button guard currently recognizes the English `Settings` title.
 
 Asset: `Twitch_30.4.2_TAS-VAFT_2.2.1.ipa`
 
-SHA-256: `d6f0e11bebdcd0c749cce2723e6bf5545f0b05aa04ad526e3f046f28a2524605`
+SHA-256: `680749f6dfe9c0a28eecbdc4aca6a6a764ab62533e8401e6629f46f50a13dd75`

@@ -12,16 +12,20 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import plistlib
 import zipfile
 from pathlib import Path
 
 from reserve_codesign_space import refresh_adhoc_code_directories
 from macho import code_signature
+from patch_ipa import update_app_info
 
 
 R5_IPA_SHA256 = "191d041df0305e03356c3902a57cbc783371998bc15130e3ce46265cc8c1e4a8"
 R5_FRAMEWORK_SHA256 = "a9042bae32c0912652e30fbd24fbc92c299e18ceb5c69d345433eb9efda4f3a8"
 FRAMEWORK_ENTRY = "Payload/Twitch.app/Frameworks/Tweach.framework/Tweach"
+APP_INFO_ENTRY = "Payload/Twitch.app/Info.plist"
+APP_DISPLAY_NAME = "Twitch VAFT"
 
 # Executable padding after __eh_frame (ending at 0x122e4), inside the existing
 # 16 KiB-aligned __TEXT segment. This is ARM64 code assembled at 0x12300:
@@ -114,27 +118,35 @@ def stage(input_ipa: Path, output_ipa: Path) -> None:
 
     with zipfile.ZipFile(input_ipa, "r") as source, zipfile.ZipFile(output_ipa, "w") as target:
         names = source.namelist()
-        if names.count(FRAMEWORK_ENTRY) != 1:
-            raise ValueError("R5 IPA has an unexpected framework layout")
+        if names.count(FRAMEWORK_ENTRY) != 1 or names.count(APP_INFO_ENTRY) != 1:
+            raise ValueError("R5 IPA has an unexpected app layout")
         target.comment = source.comment
         for member in source.infolist():
             content = source.read(member.filename)
             if member.filename == FRAMEWORK_ENTRY:
                 content = patch_framework(content)
+            elif member.filename == APP_INFO_ENTRY:
+                content = update_app_info(content)
             target.writestr(member, content)
 
     with zipfile.ZipFile(input_ipa) as source, zipfile.ZipFile(output_ipa) as staged:
         if source.namelist() != staged.namelist():
             raise ValueError("packaged IPA changed its entry list")
         changes = [name for name in source.namelist() if source.read(name) != staged.read(name)]
-        if changes != [FRAMEWORK_ENTRY]:
+        if changes != [APP_INFO_ENTRY, FRAMEWORK_ENTRY]:
             raise ValueError(f"unexpected IPA entry changes: {changes}")
+        app_info = plistlib.loads(staged.read(APP_INFO_ENTRY))
+        if (
+            app_info.get("CFBundleDisplayName") != APP_DISPLAY_NAME
+            or app_info.get("CFBundleName") != APP_DISPLAY_NAME
+        ):
+            raise ValueError("IPA app display name was not updated")
         binary = staged.read(FRAMEWORK_ENTRY)
         if OLD_REPORT_LINE in binary or OLD_FOOTER in binary or OLD_BUILD_LABEL in binary:
             raise ValueError("old diagnostic wording remains")
         if b"Tweach.dylib" in "\n".join(staged.namelist()).encode():
             raise ValueError("obsolete standalone dylib returned")
-    print(f"Staged {output_ipa}; exactly one changed IPA entry: {FRAMEWORK_ENTRY}")
+    print(f"Staged {output_ipa}; changed the app name and framework binary")
     print(f"SHA-256: {sha256(output_ipa.read_bytes())}")
 
 

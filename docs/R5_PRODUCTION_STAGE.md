@@ -1,5 +1,8 @@
 # 2.2.1 sideload release staging
 
+This page records how the historical 2.2.1 binary was staged. Version 2.2.2
+reconstructs these diagnostics in `src/` and builds both formats from source.
+
 The source for the R5 privacy and route-history diagnostics was built for a
 device-tested IPA but was not committed to this repository. The native
 diagnostics implementation still derives from the August 21 `8c8b543`

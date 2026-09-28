@@ -21,6 +21,7 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.2.0 | 2026-08-21 | VAFT solution 24 | Surviving source | Added the in-app settings/diagnostics system and restored the proven framework-based sideload compatibility identity while retaining the clean jailbreak identity. |
 | 2.2.1 IPA | 2026-09-28 | VAFT solution 24 | Device-tested binary and exact-input patch script; newer diagnostics source unavailable | Adds R5 opt-in privacy and route diagnostics, clearer copy, and a main Settings button guard. |
 | 2.2.1-jb | 2026-09-28 | VAFT solution 24 | Current source, not device-tested | Packages the main Settings button fix for rootful/rootless jailbreaks. Retains 2.2.0 diagnostics, without R5 route history and labels. |
+| 2.2.2 / 2.2.2-jb | 2026-09-28 | VAFT solution 24 | Reconstructed, checked-in source; not device-tested | Builds both IPA framework and jailbreak DEBs from one source tree with R5 privacy labels, route history, and the Settings guard. |
 
 ## Binary evidence
 

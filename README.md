@@ -4,19 +4,18 @@ A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
-The 2.2.1 sideload release provides a Twitch 30.4.2 IPA. The separate
-2.2.1-jb prerelease provides rootful/rootless jailbreak packages built from
-source. The newer R5 diagnostics source was not retained; source-built
-packages have the main Settings button fix but lack the IPA's newer route and
-privacy diagnostics.
+The 2.2.2 sideload and jailbreak prereleases are both built from the same
+checked-in source. This restores the R5 privacy labels and route diagnostics
+that were absent from the earlier source-built jailbreak packages.
 
 ## Status
 
-- Sideload IPA version: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
+- Sideload IPA version: **2.2.2**; jailbreak prerelease: **2.2.2-jb**
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
-  - Tested on an iPhone 16 Pro on iOS 18.2
-- Tested installation paths: ESign and LiveContainer/ZSign
+  - The 2.2.1 IPA was tested on an iPhone 16 Pro on iOS 18.2;
+    the new source-built 2.2.2 IPA is not yet device-tested.
+- Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
 Amazon IVS behavior without notice.
@@ -32,7 +31,7 @@ Amazon IVS behavior without notice.
   available.
 - Maintains isolated state for simultaneous streams, including Twitch mobile's
   PiP player and muted profile previews.
-- Adds an Ad Block settings page with persistent, sanitized diagnostics.
+- Adds an Ad Block settings page with opt-in, sanitized diagnostics.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle
@@ -48,20 +47,24 @@ Open **Profile → Settings (cog) → Ad Block**. The diagnostics page provides:
 - One-tap report copying.
 - Log clearing.
 
-Diagnostics distinguish intercepted and missed HLS paths, master and variant
+Diagnostics distinguish intercepted and missed HLS requests, master and variant
 playlists, unmapped variants, known ad markers, access-token failures, VAFT
-candidate results, clean swaps, and segment suppression. URL query strings and
-fragments, request headers, access tokens, and manifest contents are never
-stored. The log is capped at 512 KiB and rotates automatically.
+candidate results, clean swaps, and segment suppression. Channel names and
+URLs are replaced by temporary process-local labels in the log. Route history
+records active and retired matches, generations, and ages for unmapped variants.
+Logging starts off; URL paths, request headers, access tokens, and manifest
+contents are not written to the diagnostic log. On first load, this version
+deletes the older path-bearing `diagnostics.log`. The new log is capped at
+512 KiB and rotates automatically. Labels reset after Twitch restarts, or
+sooner if the bounded label table fills.
 
 For a playback regression, enable logging, reproduce the failure, then copy the
 diagnostic report from the same page.
 
 ## Install from a release
 
-For 2.2.1, download its IPA and sign it with your sideloading tool. The manual
-patching instructions below use the source-built framework; that framework
-does not include the 2.2.1 IPA's newer diagnostic behavior.
+For 2.2.2, download its IPA and sign it with your sideloading tool. The manual
+patching instructions below use the same source-built framework as that IPA.
 
 Requirements:
 

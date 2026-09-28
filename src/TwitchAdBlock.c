@@ -34,6 +34,7 @@ typedef long NSInteger;
 #define TAS_MAX_AD_SEGMENTS 256
 #define TAS_MAX_STREAMS 8
 #define TAS_MAX_VARIANT_ROUTES 256
+#define TAS_RETIRED_ROUTES 64
 #define TAS_STREAM_TTL 1800
 #define TAS_MANIFEST_CAPACITY 262144
 #define TAS_URL_CAPACITY 8192
@@ -114,6 +115,7 @@ typedef struct {
     bool active;
     uint64_t generation;
     time_t last_seen;
+    time_t master_seen;
     char channel[512];
     char *master_url;
     char *master_manifest;
@@ -129,7 +131,25 @@ typedef struct {
     size_t stream_index;
     uint64_t generation;
     time_t last_seen;
+    time_t registered_at;
 } TASVariantRoute;
+
+typedef struct {
+    char url[TAS_URL_CAPACITY];
+    uint64_t generation;
+    time_t retired_at;
+    const char *reason;
+} TASRetiredRoute;
+
+typedef struct {
+    size_t active_streams;
+    size_t active_routes;
+    bool retired_match;
+    const char *retired_reason;
+    long long retired_age;
+    uint64_t retired_generation;
+    long long newest_master_age;
+} TASRouteMiss;
 
 typedef struct {
     size_t index;
@@ -144,10 +164,14 @@ typedef struct {
     char backup_variant_url[TAS_URL_CAPACITY];
     time_t backup_created;
     char *master_manifest;
+    long long route_age;
+    long long master_age;
 } TASStreamSnapshot;
 
 static TASStreamContext g_streams[TAS_MAX_STREAMS];
 static TASVariantRoute g_variant_routes[TAS_MAX_VARIANT_ROUTES];
+static TASRetiredRoute g_retired_routes[TAS_RETIRED_ROUTES];
+static size_t g_next_retired_route;
 static uint64_t g_next_stream_generation = 1;
 
 typedef struct {
@@ -199,10 +223,26 @@ static bool stream_ref_matches_locked(TASStreamRef ref) {
            g_streams[ref.index].generation == ref.generation;
 }
 
-static void clear_routes_for_stream_locked(size_t stream_index) {
+static void retire_route_locked(TASVariantRoute *route, const char *reason) {
+    if (!route->url[0]) return;
+    TASRetiredRoute *old = &g_retired_routes[g_next_retired_route++ % TAS_RETIRED_ROUTES];
+    copy_string(old->url, sizeof(old->url), route->url);
+    old->generation = route->generation;
+    old->retired_at = time(NULL);
+    old->reason = reason;
+    memset(route, 0, sizeof(*route));
+}
+
+static size_t active_routes_locked(void) {
+    size_t count = 0;
+    for (size_t i = 0; i < TAS_MAX_VARIANT_ROUTES; i++) count += g_variant_routes[i].url[0] != '\0';
+    return count;
+}
+
+static void clear_routes_for_stream_locked(size_t stream_index, const char *reason) {
     for (size_t i = 0; i < TAS_MAX_VARIANT_ROUTES; i++) {
         if (g_variant_routes[i].url[0] && g_variant_routes[i].stream_index == stream_index) {
-            memset(&g_variant_routes[i], 0, sizeof(g_variant_routes[i]));
+            retire_route_locked(&g_variant_routes[i], reason);
         }
     }
 }
@@ -214,9 +254,9 @@ static void clear_active_backup_locked(TASStreamContext *stream) {
     stream->backup_created = 0;
 }
 
-static void clear_stream_context_locked(size_t stream_index) {
+static void clear_stream_context_locked(size_t stream_index, const char *reason) {
     TASStreamContext *stream = &g_streams[stream_index];
-    clear_routes_for_stream_locked(stream_index);
+    clear_routes_for_stream_locked(stream_index, reason);
     free(stream->master_url);
     free(stream->master_manifest);
     free(stream->backup_variant_url);
@@ -230,7 +270,7 @@ static void clear_stream_context_locked(size_t stream_index) {
 static void prune_streams_locked(time_t now) {
     for (size_t i = 0; i < TAS_MAX_STREAMS; i++) {
         if (g_streams[i].active && now - g_streams[i].last_seen > TAS_STREAM_TTL) {
-            clear_stream_context_locked(i);
+            clear_stream_context_locked(i, "stream_expired");
         }
     }
 }
@@ -260,7 +300,7 @@ static TASStreamRef update_stream_master_locked(const char *channel, const char 
         for (size_t i = 1; i < TAS_MAX_STREAMS; i++) {
             if (g_streams[i].last_seen < g_streams[stream_index].last_seen) stream_index = i;
         }
-        clear_stream_context_locked(stream_index);
+        clear_stream_context_locked(stream_index, "stream_replaced");
     }
 
     TASStreamContext *stream = &g_streams[stream_index];
@@ -274,6 +314,7 @@ static TASStreamRef update_stream_master_locked(const char *channel, const char 
     replace_owned_string(&stream->master_manifest, playlist);
     clear_active_backup_locked(stream);
     stream->last_seen = now;
+    stream->master_seen = now;
 
     TASStreamRef ref = {stream_index, stream->generation, true};
     return ref;
@@ -716,33 +757,40 @@ static void add_variant_route_locked(TASStreamRef ref, const char *url, time_t n
     }
 
     TASVariantRoute *route = &g_variant_routes[route_index];
+    if (route->url[0] && (strcmp(route->url, url) != 0 || route->generation != ref.generation)) {
+        retire_route_locked(route, strcmp(route->url, url) == 0 ? "route_reassigned" : "route_capacity");
+    }
     copy_string(route->url, sizeof(route->url), url);
     route->stream_index = ref.index;
     route->generation = ref.generation;
     route->last_seen = now;
+    route->registered_at = now;
 }
 
-static void register_variant_routes_locked(TASStreamRef ref, const char *master_url,
-                                           const char *master) {
-    if (!stream_ref_matches_locked(ref)) return;
-    clear_routes_for_stream_locked(ref.index);
+static size_t register_variant_routes_locked(TASStreamRef ref, const char *master_url,
+                                              const char *master) {
+    if (!stream_ref_matches_locked(ref)) return 0;
+    clear_routes_for_stream_locked(ref.index, "master_refresh");
 
     char *copy = strdup(master);
-    if (!copy) return;
+    if (!copy) return 0;
     time_t now = time(NULL);
+    size_t registered = 0;
     char *save = NULL;
     for (char *line = strtok_r(copy, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
         trim_manifest_line(line);
         if (line[0] != '#' && contains(line, ".m3u8")) {
             char *absolute = absolute_url(master_url, line);
             add_variant_route_locked(ref, absolute, now);
+            registered++;
             free(absolute);
         }
     }
     free(copy);
+    return registered;
 }
 
-static TASStreamRef stream_for_variant_locked(const char *url) {
+static TASStreamRef stream_for_variant_locked(const char *url, long long *route_age) {
     TASStreamRef invalid = {0, 0, false};
     time_t now = time(NULL);
     for (size_t i = 0; i < TAS_MAX_VARIANT_ROUTES; i++) {
@@ -750,9 +798,10 @@ static TASStreamRef stream_for_variant_locked(const char *url) {
         if (!route->url[0] || strcmp(route->url, url) != 0) continue;
         TASStreamRef ref = {route->stream_index, route->generation, true};
         if (!stream_ref_matches_locked(ref)) {
-            memset(route, 0, sizeof(*route));
+            retire_route_locked(route, "stale_generation");
             continue;
         }
+        *route_age = (long long)(now - route->registered_at);
         route->last_seen = now;
         g_streams[ref.index].last_seen = now;
         return ref;
@@ -760,11 +809,36 @@ static TASStreamRef stream_for_variant_locked(const char *url) {
     return invalid;
 }
 
-static bool snapshot_stream_for_variant(const char *url, TASStreamSnapshot *snapshot) {
+static void collect_route_miss_locked(const char *url, TASRouteMiss *miss) {
+    memset(miss, 0, sizeof(*miss));
+    time_t now = time(NULL);
+    miss->active_routes = active_routes_locked();
+    for (size_t i = 0; i < TAS_MAX_STREAMS; i++) {
+        if (!g_streams[i].active) continue;
+        miss->active_streams++;
+        long long age = (long long)(now - g_streams[i].master_seen);
+        if (miss->active_streams == 1 || age < miss->newest_master_age) miss->newest_master_age = age;
+    }
+    for (size_t i = 0; i < TAS_RETIRED_ROUTES; i++) {
+        TASRetiredRoute *old = &g_retired_routes[i];
+        if (old->url[0] && strcmp(old->url, url) == 0 &&
+            (!miss->retired_match || old->retired_at > now - miss->retired_age)) {
+            miss->retired_match = true;
+            miss->retired_reason = old->reason;
+            miss->retired_age = (long long)(now - old->retired_at);
+            miss->retired_generation = old->generation;
+        }
+    }
+}
+
+static bool snapshot_stream_for_variant(const char *url, TASStreamSnapshot *snapshot,
+                                         TASRouteMiss *miss) {
     memset(snapshot, 0, sizeof(*snapshot));
     pthread_mutex_lock(&g_lock);
-    TASStreamRef ref = stream_for_variant_locked(url);
+    long long route_age = 0;
+    TASStreamRef ref = stream_for_variant_locked(url, &route_age);
     if (!stream_ref_matches_locked(ref)) {
+        collect_route_miss_locked(url, miss);
         pthread_mutex_unlock(&g_lock);
         return false;
     }
@@ -775,7 +849,10 @@ static bool snapshot_stream_for_variant(const char *url, TASStreamSnapshot *snap
     copy_string(snapshot->backup_variant_url, sizeof(snapshot->backup_variant_url),
                 stream->backup_variant_url);
     snapshot->backup_created = stream->backup_created;
+    snapshot->route_age = route_age;
+    snapshot->master_age = (long long)(time(NULL) - stream->master_seen);
     snapshot->master_manifest = stream->master_manifest ? strdup(stream->master_manifest) : NULL;
+    if (!snapshot->master_manifest) collect_route_miss_locked(url, miss);
     pthread_mutex_unlock(&g_lock);
     return snapshot->master_manifest != NULL;
 }
@@ -1181,7 +1258,7 @@ static char *fetch_vaft_variant(const char *original_master, const char *channel
                     stream->last_seen = stream->backup_created;
                 }
                 pthread_mutex_unlock(&g_lock);
-                fprintf(stderr, "[TAS] VAFT switched %s to clean %s HLS\n", channel, g_player_types[player_index]);
+                fprintf(stderr, "[TAS] VAFT switched to clean %s HLS\n", g_player_types[player_index]);
                 tas_diag_metric(TAS_DIAG_CLEAN_ALTERNATE, 1);
                 char detail[128];
                 snprintf(detail, sizeof(detail), "player=%s", g_player_types[player_index]);
@@ -1315,25 +1392,41 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
         char detail[768];
         format_manifest_stats(detail, sizeof(detail), &stats, strlen(playlist), true);
         tas_diag_metric(TAS_DIAG_MASTER_MANIFEST, 1);
-        tas_diag_log_url("MASTER_MANIFEST", url, detail);
         pthread_mutex_lock(&g_lock);
+        size_t previous_routes = active_routes_locked();
         TASStreamRef stream_ref = update_stream_master_locked(channel, url, playlist);
-        register_variant_routes_locked(stream_ref, url, playlist);
+        size_t registered_routes = register_variant_routes_locked(stream_ref, url, playlist);
+        size_t active_routes = active_routes_locked();
         pthread_mutex_unlock(&g_lock);
+        char route_detail[1024];
+        snprintf(route_detail, sizeof(route_detail),
+                 "%s stream_generation=%llu previous_routes=%zu registered_routes=%zu active_routes=%zu",
+                 detail, (unsigned long long)stream_ref.generation, previous_routes,
+                 registered_routes, active_routes);
+        tas_diag_log_stream("MASTER_MANIFEST", channel, url, route_detail);
         return rewrite_manifest_urls(playlist, url, custom_scheme);
     }
 
     char resolution[128] = "";
     char framerate[64] = "";
     TASStreamSnapshot stream;
-    if (!snapshot_stream_for_variant(url, &stream)) {
+    TASRouteMiss miss;
+    if (!snapshot_stream_for_variant(url, &stream, &miss)) {
         TASManifestStats stats = manifest_stats(playlist);
         char detail[768];
         format_manifest_stats(detail, sizeof(detail), &stats, strlen(playlist), false);
         tas_diag_metric(TAS_DIAG_VARIANT_MANIFEST, 1);
         tas_diag_metric(TAS_DIAG_UNMAPPED_VARIANT, 1);
         if (has_ad_markers(playlist)) tas_diag_metric(TAS_DIAG_AD_MANIFEST, 1);
-        tas_diag_log_url("VARIANT_UNMAPPED", url, detail);
+        char route_detail[1024];
+        snprintf(route_detail, sizeof(route_detail),
+                 "%s matched_route=no active_streams=%zu active_routes=%zu retired_match=%s "
+                 "retired_reason=%s retired_age=%lld retired_generation=%llu newest_master_age=%lld",
+                 detail, miss.active_streams, miss.active_routes, miss.retired_match ? "yes" : "no",
+                 miss.retired_reason ? miss.retired_reason : "none", miss.retired_age,
+                 (unsigned long long)miss.retired_generation, miss.newest_master_age);
+        tas_diag_log_url(has_ad_markers(playlist) ? "VARIANT_UNMAPPED_AD" : "VARIANT_UNMAPPED_CLEAN",
+                         url, route_detail);
         return rewrite_manifest_urls(playlist, url, custom_scheme);
     }
     TASManifestStats stats = manifest_stats(playlist);
@@ -1341,8 +1434,13 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
     format_manifest_stats(manifest_detail, sizeof(manifest_detail), &stats, strlen(playlist), true);
     tas_diag_metric(TAS_DIAG_VARIANT_MANIFEST, 1);
     if (has_ad_markers(playlist)) tas_diag_metric(TAS_DIAG_AD_MANIFEST, 1);
-    tas_diag_log_url(has_ad_markers(playlist) ? "VARIANT_AD_MARKED" : "VARIANT_MANIFEST",
-                     url, manifest_detail);
+    char route_detail[1024];
+    snprintf(route_detail, sizeof(route_detail),
+             "%s stream_generation=%llu route_age=%lld master_age=%lld",
+             manifest_detail, (unsigned long long)stream.ref.generation,
+             stream.route_age, stream.master_age);
+    tas_diag_log_stream(has_ad_markers(playlist) ? "VARIANT_AD_MARKED" : "VARIANT_MANIFEST",
+                        stream.channel, url, route_detail);
     variant_metadata(stream.master_manifest, stream.master_url, url,
                      resolution, sizeof(resolution), framerate, sizeof(framerate));
 

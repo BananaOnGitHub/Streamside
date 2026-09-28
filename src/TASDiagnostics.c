@@ -1,4 +1,5 @@
 #include "TASDiagnostics.h"
+#include "TASPrivacy.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -32,9 +33,9 @@ typedef struct {
 
 #define TAS_DIAGNOSTICS_KEY "TASDiagnosticsEnabled"
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
-#define TAS_DIAGNOSTICS_FILENAME "diagnostics.log"
+#define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.2.1"
+#define TAS_REPORT_VERSION "2.2.2"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 
 extern id objc_retain(id object);
@@ -141,6 +142,10 @@ static id diagnostics_path_locked(void) {
     ((BOOL (*)(id, SEL, id, BOOL, id, id *))objc_msgSend)(
         manager, sel_registerName("createDirectoryAtPath:withIntermediateDirectories:attributes:error:"),
         directory, YES, nil, NULL);
+    /* 2.2.0 wrote URL paths. Remove that file before showing a report. */
+    id legacy_path = msg1(directory, "stringByAppendingPathComponent:", nsstr("diagnostics.log"));
+    ((BOOL (*)(id, SEL, id, id *))objc_msgSend)(
+        manager, sel_registerName("removeItemAtPath:error:"), legacy_path, NULL);
     id path = msg1(directory, "stringByAppendingPathComponent:", nsstr(TAS_DIAGNOSTICS_FILENAME));
     g_diagnostics_path = objc_retain(path);
     return g_diagnostics_path;
@@ -194,26 +199,25 @@ void tas_diag_log(const char *event, const char *detail) {
     pthread_mutex_unlock(&g_diag_lock);
 }
 
-static void sanitized_url(const char *url, char *output, size_t capacity) {
-    if (!output || !capacity) return;
-    output[0] = '\0';
-    if (!url) return;
-    const char *end = strchr(url, '?');
-    const char *fragment = strchr(url, '#');
-    if (!end || (fragment && fragment < end)) end = fragment;
-    size_t length = end ? (size_t)(end - url) : strlen(url);
-    if (length >= capacity) length = capacity - 1;
-    memcpy(output, url, length);
-    output[length] = '\0';
-}
-
 void tas_diag_log_url(const char *event, const char *url, const char *detail) {
     if (!diagnostics_enabled()) return;
-    char safe_url[1024];
+    char label[64];
     char combined[1536];
-    sanitized_url(url, safe_url, sizeof(safe_url));
-    snprintf(combined, sizeof(combined), "url=%s%s%s", safe_url,
+    tas_label_url(url, label, sizeof(label));
+    snprintf(combined, sizeof(combined), "resource=%s%s%s", label,
              detail && detail[0] ? " " : "", detail ? detail : "");
+    tas_diag_log(event, combined);
+}
+
+void tas_diag_log_stream(const char *event, const char *channel, const char *url,
+                         const char *detail) {
+    if (!diagnostics_enabled()) return;
+    char channel_label[64], url_label[64], combined[1536];
+    tas_label_channel(channel, channel_label, sizeof(channel_label));
+    tas_label_url(url, url_label, sizeof(url_label));
+    snprintf(combined, sizeof(combined), "channel=%s resource=%s%s%s",
+             channel_label, url_label, detail && detail[0] ? " " : "",
+             detail ? detail : "");
     tas_diag_log(event, combined);
 }
 
@@ -242,7 +246,8 @@ static id diagnostic_report_create(void) {
         "Port build: %s\n"
         "Twitch: %s (%s)\n"
         "Diagnostic logging: %s\n"
-        "Privacy: URL query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
+        "Privacy: channel names, full URLs and paths, query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
+        "Labels stay with the same channel or playlist until Twitch restarts; then reset.\n"
         "Log limit: 512 KiB\n\n"
         "Session counters\n"
         "HLS intercepted: %llu\n"
@@ -377,7 +382,7 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 1) {
-        return nsstr("Records sanitized request paths, response status, manifest marker summaries, and VAFT decisions. Query strings, headers, access tokens, and manifest contents are never stored. The log is capped at 512 KiB.");
+        return nsstr("Logging is off by default. When enabled, channel names and playlist URLs appear as temporary labels (for example, channel-a1b2). Labels reset when Twitch restarts. The log holds up to 512 KiB.");
     }
     return nil;
 }
@@ -738,6 +743,9 @@ static bool register_log_class(void) {
 }
 
 void tas_diagnostics_initialize(void) {
+    pthread_mutex_lock(&g_diag_lock);
+    diagnostics_path_locked();
+    pthread_mutex_unlock(&g_diag_lock);
     bool settings_registered = register_settings_class();
     bool log_registered = register_log_class();
     bool fallback = install_view_controller_fallback();

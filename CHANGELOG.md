@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.2 (source-built IPA and jailbreak prerelease)
+
+- Reconstructed the R5 diagnostics in checked-in source. Both package formats
+  now use the same implementation of temporary channel and resource labels,
+  route registration history, and retired-route reasons for unmapped variants.
+- Logging remains off by default. The older 2.2.0 diagnostic log containing
+  request paths is removed on first initialization of this build.
+- Retains the device-confirmed main Settings button scope fix. These new
+  binaries have not yet been tested on a device.
+
 ## 2.2.1 (sideload IPA only)
 
 - Added opt-in diagnostics with temporary channel and playlist labels that

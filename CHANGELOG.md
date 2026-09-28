@@ -9,8 +9,15 @@
 - Limited the Ad Block button to the main Settings screen; fixed its absence
   in the R6 candidate and its appearance on Chat Identity in the R5 build.
 - Published the device-confirmed R7 behavior with a 2.2.1 build label.
-- Source-built framework and jailbreak packages remain at 2.2.0 until the
-  exact newer diagnostics source is restored.
+- The separately versioned 2.2.1-jb source build has the Settings entry fix,
+  but lacks the IPA's newer R5 privacy and route diagnostics.
+
+## 2.2.1-jb (jailbreak prerelease)
+
+- Built the standalone rootful and rootless packages from the checked-in
+  source with the main Settings button fix.
+- Kept the original 2.2.0 diagnostics implementation; R5's newer privacy
+  labels and route history are not present in these packages.
 
 ## 2.2.0
 

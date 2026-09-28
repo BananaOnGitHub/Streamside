@@ -34,7 +34,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.2.0"
+#define TAS_REPORT_VERSION "2.2.1"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 
 extern id objc_retain(id object);

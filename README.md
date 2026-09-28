@@ -4,17 +4,17 @@ A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
-The 2.2.2 sideload and jailbreak prereleases are both built from the same
+The 2.2.1 sideload and jailbreak builds are both built from the same
 checked-in source. This restores the R5 privacy labels and route diagnostics
 that were absent from the earlier source-built jailbreak packages.
 
 ## Status
 
-- Sideload IPA version: **2.2.2**; jailbreak prerelease: **2.2.2-jb**
+- Sideload IPA version: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
-  - The 2.2.1 IPA was tested on an iPhone 16 Pro on iOS 18.2;
-    the new source-built 2.2.2 IPA is not yet device-tested.
+  - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
+    its source-built replacement is not yet device-tested.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -63,7 +63,7 @@ diagnostic report from the same page.
 
 ## Install from a release
 
-For 2.2.2, download its IPA and sign it with your sideloading tool. The manual
+For 2.2.1, download its IPA and sign it with your sideloading tool. The manual
 patching instructions below use the same source-built framework as that IPA.
 
 Requirements:

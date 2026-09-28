@@ -4,15 +4,13 @@
 
 ## Changes
 
-- Restricts the Ad Block button to the main Profile → Settings screen, fixing
-  its appearance on Chat Identity and other settings pages.
-- Keeps the 2.2.0 source-built VAFT implementation and opt-in diagnostic report.
-- Sets the package and in-app diagnostic report versions to 2.2.1.
+- Rebuilds both packages from the checked-in source containing the R5 opt-in
+  diagnostic privacy labels and route history, shared with the sideload IPA.
+- Retains the main Profile → Settings button fix and VAFT implementation.
+- Removes the older diagnostic log containing request paths at initialization.
 
-These packages are built from the checked-in source and have **not** been
-tested on a jailbroken device. The newer R5 route history and temporary
-privacy labels in the separate 2.2.1 sideload IPA are not in these DEBs;
-that source was not retained.
+These packages passed build and layout checks. They have **not** been tested
+on a jailbroken device.
 
 ## Packages
 
@@ -22,6 +20,6 @@ that source was not retained.
 SHA-256:
 
 ```text
-3b055b844046afee71d553d9385cd412e97eeb1b21e2dafa5a068d62900e9ee5  dev.tas.twitchadblock_2.2.1_iphoneos-arm.deb
-dd3cfbbb883982347eacd180b9d0fb1388a4b655ff627d79da0ffd275c6aeb6d  dev.tas.twitchadblock_2.2.1_iphoneos-arm64.deb
+23349a3ab7c0edd72dbfe7f8fb5c9e6a2dea8b491f8340db9df4a00ce1e33d32  dev.tas.twitchadblock_2.2.1_iphoneos-arm.deb
+43a9a52198c378b990ce2a9eb1975763696de1d631353e7935fca877aa902255  dev.tas.twitchadblock_2.2.1_iphoneos-arm64.deb
 ```

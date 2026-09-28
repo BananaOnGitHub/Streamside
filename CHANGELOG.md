@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.2.2 (source-built IPA and jailbreak prerelease)
+## 2.2.1 source-backed replacement (IPA and jailbreak prerelease)
 
 - Reconstructed the R5 diagnostics in checked-in source. Both package formats
   now use the same implementation of temporary channel and resource labels,
@@ -8,9 +8,9 @@
 - Logging remains off by default. The older 2.2.0 diagnostic log containing
   request paths is removed on first initialization of this build.
 - Retains the device-confirmed main Settings button scope fix. These new
-  binaries have not yet been tested on a device.
+  replacement binaries have not yet been tested on a device.
 
-## 2.2.1 (sideload IPA only)
+## 2.2.1 original IPA (superseded)
 
 - Added opt-in diagnostics with temporary channel and playlist labels that
   reset when Twitch restarts, plus route history for investigating playback.
@@ -22,7 +22,7 @@
 - The separately versioned 2.2.1-jb source build has the Settings entry fix,
   but lacks the IPA's newer R5 privacy and route diagnostics.
 
-## 2.2.1-jb (jailbreak prerelease)
+## 2.2.1-jb original packages (superseded)
 
 - Built the standalone rootful and rootless packages from the checked-in
   source with the main Settings button fix.

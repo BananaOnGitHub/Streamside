@@ -29,7 +29,7 @@ button. R7 was confirmed on device to restore the Settings entry. The 2.2.1
 IPA uses the same code as R7 and changes its build label. The title guard
 currently recognizes the English `Settings` title.
 
-This release is **sideload IPA only**. The repository's source-built framework
-and jailbreak packages are still based on the older 2.2.0 diagnostics code;
-do not publish them as 2.2.1. The exact R5 diagnostics source is unavailable,
-and this staging script needs the specific R5 IPA above as input.
+The IPA release is **sideload only**. The separate 2.2.1-jb prerelease is built
+from the repository's older diagnostics source with the Settings button fix;
+it lacks the R5 privacy and route changes. The exact R5 diagnostics source is
+unavailable, and this staging script needs the specific R5 IPA above as input.

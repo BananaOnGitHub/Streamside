@@ -18,8 +18,8 @@ Asset: `Twitch_30.4.2_TAS-VAFT_2.2.1.ipa`
 SHA-256: `d564eaa9c705103b110709f6e631d2fd362d58f688423422ff122cc85ff0b1a4`
 
 This is an **IPA-only release**. The newer diagnostics source was not retained
-in the repository. The open-source framework and jailbreak packages built
-from `VERSION` remain at 2.2.0 and do not include these R5 diagnostic changes.
+in the repository. The separate source-built 2.2.1-jb prerelease has the
+Settings button fix but does not include these R5 diagnostic changes.
 The staging script in `tools/stage_r5_production.py` documents the exact R5
 input IPA and applies the small 2.2.1 UI and wording patch to its framework.
 The button guard recognizes the English `Settings` title.

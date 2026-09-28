@@ -59,3 +59,28 @@ def build_variant(version: str, scheme: str, prefix: Path, architecture: str) ->
         subprocess.run(
             ["dpkg-deb", "--root-owner-group", "-Zxz", "-z9", "--build", str(package_root), str(output)],
             check=True,
+            env=environment,
+        )
+    actual_architecture = subprocess.check_output(
+        ["dpkg-deb", "--field", str(output), "Architecture"], text=True
+    ).strip()
+    if actual_architecture != architecture:
+        raise SystemExit(f"unexpected DEB architecture: {actual_architecture}")
+    listing = subprocess.check_output(["dpkg-deb", "--contents", str(output)], text=True)
+    expected = f"./{prefix.as_posix() + '/' if prefix.parts else ''}{INSTALL_RELATIVE.as_posix()}/TwitchAdBlock.dylib"
+    if expected not in listing:
+        raise SystemExit(f"DEB is missing expected install path: {expected}")
+    return output
+def main() -> int:
+    if shutil.which("dpkg-deb") is None:
+        raise SystemExit("dpkg-deb is required to build jailbreak packages")
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    outputs = [
+        build_variant(version, "rootful", Path(), "iphoneos-arm"),
+        build_variant(version, "rootless", Path("var/jb"), "iphoneos-arm64"),
+    ]
+    for output in outputs:
+        print(output)
+    return 0
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -4,12 +4,14 @@ A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
-Releases contain the open-source jailbreak dylib, sideload framework, IPA
-releases, an IPA patcher, rootful/rootless jailbreak packages, and checksums.
+The 2.2.1 sideload release provides a Twitch 30.4.2 IPA. The source-built
+framework and jailbreak packages remain at 2.2.0 pending restoration of the
+newer diagnostics source. Earlier releases include a source-built framework,
+IPA patcher, and rootful/rootless jailbreak packages.
 
 ## Status
 
-- Port version: **2.2.0**
+- Sideload IPA version: **2.2.1** (source-built packages: **2.2.0**)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - Tested on an iPhone 16 Pro on iOS 18.2
@@ -55,6 +57,10 @@ For a playback regression, enable logging, reproduce the failure, then copy the
 diagnostic report from the same page.
 
 ## Install from a release
+
+For 2.2.1, download its IPA and sign it with your sideloading tool. The manual
+patching instructions below apply to the 2.2.0 source-built framework release;
+that framework does not include the 2.2.1 IPA's newer diagnostic behavior.
 
 Requirements:
 

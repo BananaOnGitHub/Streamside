@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.1 (sideload IPA only)
+
+- Added opt-in diagnostics with temporary channel and playlist labels that
+  reset when Twitch restarts, plus route history for investigating playback.
+- Clarified in the app that diagnostic logging starts off and explained the
+  lifetime of those labels.
+- Limited the Ad Block button to the main Settings screen; fixed its absence
+  in the R6 candidate and its appearance on Chat Identity in the R5 build.
+- Published the device-confirmed R7 behavior with a 2.2.1 build label.
+- Source-built framework and jailbreak packages remain at 2.2.0 until the
+  exact newer diagnostics source is restored.
+
 ## 2.2.0
 
 - Added an Ad Block entry to Twitch's profile settings screen.

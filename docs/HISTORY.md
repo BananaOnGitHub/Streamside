@@ -19,6 +19,7 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.0.3 | 2026-08-18 | VAFT solution 24 | Exact surviving archive | Isolated VAFT state per stream to fix PiP/profile-preview cross-talk. Added the local patcher and tests. |
 | 2.1.0 | 2026-08-18 | VAFT solution 24 | Current source | Renamed the dylib/load command and added standalone rootful/rootless DEBs. |
 | 2.2.0 | 2026-08-21 | VAFT solution 24 | Current source | Added the in-app settings/diagnostics system and restored the proven framework-based sideload compatibility identity while retaining the clean jailbreak identity. |
+| 2.2.1 IPA | 2026-09-28 | VAFT solution 24 | Device-tested binary and exact-input patch script; newer diagnostics source unavailable | Adds R5 opt-in privacy and route diagnostics, clearer copy, and a main Settings button guard. Source-built packages remain 2.2.0. |
 
 ## Binary evidence
 

@@ -554,11 +554,19 @@ static void add_ad_block_navigation_item(id controller) {
     objc_release(item);
 }
 
+static Class app_settings_class(void);
+
+static bool is_main_settings(id controller) {
+    return bmsg1(msg0(controller, "title"), "isEqualToString:", nsstr("Settings"));
+}
+
 static void app_settings_view_did_appear(id self, SEL command, BOOL animated) {
     if (g_app_settings_original_view_did_appear) {
         ((void (*)(id, SEL, BOOL))g_app_settings_original_view_did_appear)(self, command, animated);
     }
-    add_ad_block_navigation_item(self);
+    if (is_main_settings(self)) {
+        add_ad_block_navigation_item(self);
+    }
 }
 
 static Class app_settings_class(void) {
@@ -586,34 +594,16 @@ static bool install_app_settings_hook(void) {
     return true;
 }
 
-/*
- * AppSettingsViewController is implemented in Swift and may be registered
- * after this dylib's constructor. This base-class hook is a late-binding
- * fallback: it becomes active only when the real settings controller appears.
- */
+/* AppSettingsViewController can register after the constructor runs. */
 static void view_controller_view_did_appear(id self, SEL command, BOOL animated) {
     if (g_view_controller_original_view_did_appear) {
         ((void (*)(id, SEL, BOOL))g_view_controller_original_view_did_appear)(self, command, animated);
     }
-    if ((g_settings_class && ((BOOL (*)(id, SEL, Class))objc_msgSend)(
-             self, sel_registerName("isKindOfClass:"), g_settings_class)) ||
-        (g_log_class && ((BOOL (*)(id, SEL, Class))objc_msgSend)(
-             self, sel_registerName("isKindOfClass:"), g_log_class))) return;
+    if (!is_main_settings(self)) return;
     Class actual_class = object_getClass(self);
-    Class app_settings = app_settings_class();
-    BOOL is_settings = app_settings ? ((BOOL (*)(id, SEL, Class))objc_msgSend)(
-        self, sel_registerName("isKindOfClass:"), app_settings) : NO;
-    const char *class_name = actual_class ? utf8(msg0((id)actual_class, "description")) : NULL;
-    const char *title = utf8(msg0(self, "title"));
-    bool likely_settings = is_settings ||
-        (class_name && (strstr(class_name, "Settings") || strstr(class_name, "settings"))) ||
-        (title && strcmp(title, "Settings") == 0);
-    if (!likely_settings) return;
-    if (actual_class) {
-        class_addMethod(actual_class, sel_registerName("tas_openAdBlockSettings"),
-                        (IMP)open_ad_block_settings, "v@:");
-    }
-    if (app_settings) install_app_settings_hook();
+    class_addMethod(actual_class, sel_registerName("tas_openAdBlockSettings"),
+                    (IMP)open_ad_block_settings, "v@:");
+    if (app_settings_class()) install_app_settings_hook();
     add_ad_block_navigation_item(self);
 }
 

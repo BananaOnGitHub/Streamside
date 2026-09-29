@@ -17,7 +17,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore Zig 0.14.0
+        id: zig-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/zig
+          key: zig-0.14.0-linux-x86_64
+
       - name: Install Zig 0.14.0
+        if: steps.zig-cache.outputs.cache-hit != 'true'
         run: |
           curl --fail --location --silent --show-error \
             https://ziglang.org/download/0.14.0/zig-linux-x86_64-0.14.0.tar.xz \
@@ -25,6 +33,9 @@ jobs:
           echo "473ec26806133cf4d1918caf1a410f8403a13d979726a9045b421b685031a982  /tmp/zig.tar.xz" | sha256sum --check --strict
           mkdir -p /tmp/zig
           tar -xJf /tmp/zig.tar.xz -C /tmp/zig --strip-components=1
+
+      - name: Add Zig to PATH
+        run: |
           echo "/tmp/zig" >> "$GITHUB_PATH"
 
       - name: Verify version tag

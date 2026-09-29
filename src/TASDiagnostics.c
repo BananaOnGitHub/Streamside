@@ -1,5 +1,6 @@
 #include "TASDiagnostics.h"
 #include "TASPrivacy.h"
+#include "TASEmotes.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -35,8 +36,9 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.2.1"
+#define TAS_REPORT_VERSION "2.3.0-dev.1"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
+#define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
 extern id objc_retain(id object);
 extern void objc_release(id object);
@@ -55,6 +57,7 @@ static IMP g_log_super_view_did_load;
 static IMP g_log_super_view_will_appear;
 static IMP g_app_settings_original_view_did_appear;
 static IMP g_view_controller_original_view_did_appear;
+static IMP g_view_controller_original_present;
 static Class g_bootstrap_class;
 static id g_bootstrap_observer;
 static bool g_app_settings_hooked;
@@ -116,6 +119,10 @@ static id defaults(void) {
 
 static bool diagnostics_enabled(void) {
     return bmsg1(defaults(), "boolForKey:", nsstr(TAS_DIAGNOSTICS_KEY));
+}
+
+static bool emotes_preference(void) {
+    return bmsg1(defaults(), "boolForKey:", nsstr(TAS_EMOTES_KEY));
 }
 
 static void set_diagnostics_enabled(bool enabled) {
@@ -355,15 +362,16 @@ static NSInteger settings_number_of_sections(id self, SEL command, id table) {
     (void)self;
     (void)command;
     (void)table;
-    return 3;
+    return 4;
 }
 
 static NSInteger settings_rows_in_section(id self, SEL command, id table, NSInteger section) {
     (void)self;
     (void)command;
     (void)table;
-    if (section == 0 || section == 1) return 1;
-    if (section == 2) return 3;
+    if (section == 0 || section == 2) return 1;
+    if (section == 1) return 2;
+    if (section == 3) return 3;
     return 0;
 }
 
@@ -372,8 +380,9 @@ static id settings_header(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 0) return nsstr("Status");
-    if (section == 1) return nsstr("Diagnostics");
-    if (section == 2) return nsstr("Diagnostic Report");
+    if (section == 1) return nsstr("Third-Party Emotes");
+    if (section == 2) return nsstr("Diagnostics");
+    if (section == 3) return nsstr("Diagnostic Report");
     return nil;
 }
 
@@ -382,6 +391,9 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 1) {
+        return nsstr("7TV, BTTV and FFZ emotes in chat. Changes to the switch take effect after relaunching Twitch. The cache is bounded and old channel emotes expire.");
+    }
+    if (section == 2) {
         return nsstr("Logging is off by default. When enabled, channel names and playlist URLs appear as temporary labels (for example, channel-a1b2). Labels reset when Twitch restarts. The log holds up to 512 KiB.");
     }
     return nil;
@@ -397,7 +409,25 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
     if (section == 0) {
         set_cell_text(cell, "Ad Blocking", "Enabled · VAFT v24");
         vmsg_integer(cell, "setSelectionStyle:", 0);
-    } else if (section == 1) {
+    } else if (section == 1 && row == 0) {
+        bool saved = emotes_preference();
+        bool active = tas_emotes_enabled_this_launch();
+        set_cell_text(cell, "Show Third-Party Emotes",
+                      saved == active ? (active ? "Enabled" : "Disabled") :
+                      (saved ? "On after relaunch" : "Off after relaunch"));
+        id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
+        ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(
+            toggle, sel_registerName("setOn:animated:"), saved ? YES : NO, NO);
+        ((void (*)(id, SEL, id, SEL, NSUInteger))objc_msgSend)(
+            toggle, sel_registerName("addTarget:action:forControlEvents:"),
+            self, sel_registerName("tas_emotesSwitchChanged:"), (NSUInteger)(1UL << 12));
+        vmsg1(toggle, "setAccessibilityIdentifier:", nsstr("TASEmotesSwitch"));
+        vmsg1(cell, "setAccessoryView:", toggle);
+        vmsg_integer(cell, "setSelectionStyle:", 0);
+        objc_release(toggle);
+    } else if (section == 1 && row == 1) {
+        set_cell_text(cell, "Clear Emote Cache", "Clears stored third-party emote definitions");
+    } else if (section == 2) {
         set_cell_text(cell, "Diagnostic Logging", diagnostics_enabled() ? "Enabled" : "Disabled");
         id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
         ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(
@@ -409,10 +439,10 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
         vmsg1(cell, "setAccessoryView:", toggle);
         vmsg_integer(cell, "setSelectionStyle:", 0);
         objc_release(toggle);
-    } else if (section == 2 && row == 0) {
+    } else if (section == 3 && row == 0) {
         set_cell_text(cell, "View Diagnostic Report", "Session summary and sanitized event log");
         vmsg_integer(cell, "setAccessoryType:", 1);
-    } else if (section == 2 && row == 1) {
+    } else if (section == 3 && row == 1) {
         set_cell_text(cell, "Copy Diagnostic Report", "Copies the complete report to the clipboard");
     } else {
         set_cell_text(cell, "Clear Diagnostic Log", "Removes stored event entries");
@@ -425,6 +455,13 @@ static void settings_switch_changed(id self, SEL command, id sender) {
     bool enabled = bmsg0(sender, "isOn");
     set_diagnostics_enabled(enabled);
     if (enabled) tas_diag_log("LOGGING_ENABLED", "Diagnostic logging enabled from Twitch settings");
+    msg0(msg0(self, "tableView"), "reloadData");
+}
+
+static void emotes_switch_changed(id self, SEL command, id sender) {
+    (void)command;
+    ((void (*)(id, SEL, BOOL, id))objc_msgSend)(
+        defaults(), sel_registerName("setBool:forKey:"), bmsg0(sender, "isOn"), nsstr(TAS_EMOTES_KEY));
     msg0(msg0(self, "tableView"), "reloadData");
 }
 
@@ -487,7 +524,13 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
     NSInteger row = imsg0(index_path, "row");
     ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
         table, sel_registerName("deselectRowAtIndexPath:animated:"), index_path, YES);
-    if (section != 2) return;
+    if (section == 1 && row == 1) {
+        tas_emotes_clear_cache();
+        show_notice(self, "Emote Cache Cleared",
+                    "New chat messages will reload third-party emotes when you return to chat.");
+        return;
+    }
+    if (section != 3) return;
     if (row == 0) {
         id controller = msg0((id)g_log_class, "new");
         ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
@@ -612,6 +655,39 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
     add_ad_block_navigation_item(self);
 }
 
+static void present_controller(id self, SEL command, id presented, BOOL animated, id completion) {
+    /* Twitch's stream chat three-dot menu is an action sheet titled
+     * Chat Settings. Add the action just before UIKit presents it; leave
+     * unrelated sheets and menus untouched. */
+    if (tas_emotes_enabled_this_launch() &&
+        bmsg1(presented, "isKindOfClass:", (id)objc_getClass("UIAlertController")) &&
+        imsg0(presented, "preferredStyle") == 0 &&
+        bmsg1(msg0(presented, "title"), "isEqualToString:", nsstr("Chat Settings"))) {
+        id actions = msg0(presented, "actions");
+        bool present_already = false;
+        for (NSInteger i = 0; i < imsg0(actions, "count"); i++) {
+            id item = ((id (*)(id, SEL, NSUInteger))objc_msgSend)(
+                actions, sel_registerName("objectAtIndex:"), (NSUInteger)i);
+            if (bmsg1(msg0(item, "title"), "isEqualToString:", nsstr("Reload Emotes"))) {
+                present_already = true;
+                break;
+            }
+        }
+        if (!present_already) {
+            id action = ((id (*)(id, SEL, id, NSInteger, id))objc_msgSend)(
+                (id)objc_getClass("UIAlertAction"),
+                sel_registerName("actionWithTitle:style:handler:"),
+                nsstr("Reload Emotes"), (NSInteger)0, (id)^(id selected) {
+                    (void)selected;
+                    tas_emotes_reload();
+                });
+            vmsg1(presented, "addAction:", action);
+        }
+    }
+    ((void (*)(id, SEL, id, BOOL, id))g_view_controller_original_present)(
+        self, command, presented, animated, completion);
+}
+
 static bool install_view_controller_fallback(void) {
     Class view_controller = objc_getClass("UIViewController");
     if (!view_controller) return false;
@@ -619,6 +695,13 @@ static bool install_view_controller_fallback(void) {
     if (!method) return false;
     g_view_controller_original_view_did_appear = method_getImplementation(method);
     method_setImplementation(method, (IMP)view_controller_view_did_appear);
+    if (tas_emotes_enabled_this_launch()) {
+        method = class_getInstanceMethod(view_controller, sel_registerName("presentViewController:animated:completion:"));
+        if (method) {
+            g_view_controller_original_present = method_getImplementation(method);
+            method_setImplementation(method, (IMP)present_controller);
+        }
+    }
     return true;
 }
 
@@ -661,6 +744,7 @@ static void show_loaded_notice(id self, SEL command, id object) {
 static void retry_app_settings_hook(id self, SEL command, id notification) {
     (void)command;
     (void)notification;
+    tas_emotes_retry_hooks();
     if (install_app_settings_hook()) {
         fprintf(stderr, "[TAS] AppSettingsViewController hook installed after application launch\n");
     }
@@ -718,6 +802,7 @@ static bool register_settings_class(void) {
         class_addMethod(g_settings_class, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)settings_cell, "@@:@@");
         class_addMethod(g_settings_class, sel_registerName("tableView:didSelectRowAtIndexPath:"), (IMP)settings_did_select, "v@:@@");
         class_addMethod(g_settings_class, sel_registerName("tas_diagnosticsSwitchChanged:"), (IMP)settings_switch_changed, "v@:@");
+        class_addMethod(g_settings_class, sel_registerName("tas_emotesSwitchChanged:"), (IMP)emotes_switch_changed, "v@:@");
         objc_registerClassPair(g_settings_class);
     }
     return true;

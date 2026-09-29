@@ -4,13 +4,14 @@ A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
-The 2.2.1 sideload and jailbreak builds are both built from the same
-checked-in source. This restores the R5 privacy labels and route diagnostics
-that were absent from the earlier source-built jailbreak packages.
+The published 2.2.1 sideload and jailbreak builds came from the same
+checked-in R5 source. The current development source is 2.3.0-dev.1 and adds
+an optional third-party emote integration.
 
 ## Status
 
-- Sideload IPA version: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
+- Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
+- Development source: **2.3.0-dev.1** (emotes; not device-tested)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
@@ -32,6 +33,28 @@ Amazon IVS behavior without notice.
 - Maintains isolated state for simultaneous streams, including Twitch mobile's
   PiP player and muted profile previews.
 - Adds an Ad Block settings page with opt-in, sanitized diagnostics.
+
+### Third-party emotes (development source, not in the 2.2.1 release)
+
+The shared source now includes optional 7TV, BTTV, and FFZ global and channel
+emotes for incoming chat messages. Open **Profile → Settings → Ad Block** to
+enable them, then relaunch Twitch. They are off by default. Turning them off
+and relaunching skips the emote hooks and provider requests altogether.
+
+**Clear Emote Cache** is on the Ad Block page. It discards this module's
+in-memory emote definitions and image-ID mappings; the next incoming chat
+message refetches the current channel. It does not clear Twitch's unrelated
+image cache. **Reload Emotes** appears in the stream's Chat Settings action
+sheet and refreshes global and current channel definitions.
+
+The module retains at most six recently active channel registries, up to 1,500
+names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
+Evicted image IDs have a bounded 45-minute grace period to allow existing chat
+cells to redraw. It maintains no separate image files or decoded image cache.
+
+This integration has been built and statically checked, but has not been
+verified on a device running Twitch 30.4.2. Animated emotes may show only their
+first frame; the local sender's own outgoing messages may remain plain text.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle

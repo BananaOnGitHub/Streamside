@@ -23,6 +23,7 @@
 #include <time.h>
 
 #include "TASDiagnostics.h"
+#include "TASEmotes.h"
 
 typedef unsigned long NSUInteger;
 typedef long NSInteger;
@@ -1632,18 +1633,22 @@ static id session_with_configuration_delegate_queue(id self, SEL command, id con
 }
 
 static id data_task_with_request(id self, SEL command, id original) {
-    id replacement = normalized_graphql_request_copy(original);
+    id image = tas_emotes_rewrite_request_copy(original);
+    id replacement = normalized_graphql_request_copy(image ?: original);
     id task = ((id (*)(id, SEL, id))g_original_data_task_request)(
-        self, command, replacement ?: original);
+        self, command, replacement ?: image ?: original);
     if (replacement) objc_release(replacement);
+    if (image) objc_release(image);
     return task;
 }
 
 static id data_task_with_request_completion(id self, SEL command, id original, id completion) {
-    id replacement = normalized_graphql_request_copy(original);
+    id image = tas_emotes_rewrite_request_copy(original);
+    id replacement = normalized_graphql_request_copy(image ?: original);
     id task = ((id (*)(id, SEL, id, id))g_original_data_task_request_completion)(
-        self, command, replacement ?: original, completion);
+        self, command, replacement ?: image ?: original, completion);
     if (replacement) objc_release(replacement);
+    if (image) objc_release(image);
     return task;
 }
 
@@ -1697,6 +1702,7 @@ static void tas_initialize(void) {
     swizzle_method(session, "dataTaskWithRequest:completionHandler:",
                    (IMP)data_task_with_request_completion,
                    &g_original_data_task_request_completion, false);
+    tas_emotes_initialize();
     tas_diagnostics_initialize();
     fprintf(stderr, "[TAS] TwitchAdSolutions VAFT v24 iOS port loaded\n");
 }

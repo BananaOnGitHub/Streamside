@@ -66,6 +66,33 @@ Query strings, fragments, headers, access tokens, GraphQL bodies, and manifest
 contents are excluded. The file rotates at 512 KiB. Session counters remain in
 memory and are included in the in-app report.
 
+## Optional chat emotes
+
+The saved third-party emote preference is read once at launch. When off, the
+emote module installs no WebSocket or image-request hooks and makes no provider
+requests. The existing Ad Block settings page remains available to turn it on.
+
+When enabled, incoming IRC WebSocket text frames are scanned for known 7TV,
+BTTV, and FFZ codes in the message's room. Synthetic entries are appended to
+the IRC `emotes=` tag without replacing the message text or existing Twitch
+emote ranges. Image requests for those synthetic IDs are redirected to the
+provider CDN. The integration uses only three provider APIs and only loads
+channel sets when its room ID is observed in chat.
+
+Global and per-room name maps are distinct. Channel names win over global
+names, with 7TV, then BTTV, then FFZ breaking provider collisions. Six room
+maps are retained, with per-room and global entry caps. Inactive rooms expire
+after 20 minutes; evicted synthetic IDs are kept for at most 45 minutes and
+3,000 entries to let recently visible chat cells redraw. Failed fetches back
+off from 60 seconds to eight minutes. Reload invalidates pending responses and refetches
+global and recently observed channel sets. Clearing the cache discards all
+owned entries and refetches lazily from the next chat frame. The module stores
+no image files itself and does not clear Twitch's unrelated image cache.
+
+The stream Chat Settings action sheet receives a Reload Emotes action. The
+Ad Block page owns the enable switch and Clear Emote Cache action. UI and
+transport hooks still need device validation against the target Twitch build.
+
 ## Signing layout
 
 Both arm64 outputs contain 16 KiB of Mach-O header padding.

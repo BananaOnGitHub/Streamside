@@ -1,0 +1,15 @@
+#ifndef TAS_EMOTES_H
+#define TAS_EMOTES_H
+
+#include <objc/objc.h>
+#include <stdbool.h>
+
+/* The preference is read once at launch. A relaunch installs/removes the hooks. */
+bool tas_emotes_enabled_this_launch(void);
+void tas_emotes_initialize(void);
+void tas_emotes_retry_hooks(void);
+void tas_emotes_reload(void);
+void tas_emotes_clear_cache(void);
+id tas_emotes_rewrite_request_copy(id request);
+
+#endif

@@ -33,8 +33,8 @@ build_binary() {
       --entitlements entitlements.plist \
       --name "$binary_name" \
       -femit-bin="$output_path" \
-      -cflags -Wall -Wextra -Werror -fvisibility=hidden -- \
-      src/TwitchAdBlock.c src/TASDiagnostics.c src/TASPrivacy.c
+      -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden -- \
+      src/TwitchAdBlock.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature

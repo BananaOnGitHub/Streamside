@@ -36,7 +36,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.3.0-dev.1"
+#define TAS_REPORT_VERSION "2.3.0-dev.2"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -58,6 +58,13 @@ static IMP g_log_super_view_will_appear;
 static IMP g_app_settings_original_view_did_appear;
 static IMP g_view_controller_original_view_did_appear;
 static IMP g_view_controller_original_present;
+static IMP g_chat_settings_original_view_did_appear;
+static bool g_chat_settings_hooked;
+static uint64_t g_presented_sheets, g_chat_presenter_sheets;
+static uint64_t g_chat_titled_sheets, g_chat_controller_appear, g_chat_controller_presented;
+static uint64_t g_reload_actions_added;
+#define MENU_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
+#define MENU_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 static Class g_bootstrap_class;
 static id g_bootstrap_observer;
 static bool g_app_settings_hooked;
@@ -253,7 +260,7 @@ static id diagnostic_report_create(void) {
         "Port build: %s\n"
         "Twitch: %s (%s)\n"
         "Diagnostic logging: %s\n"
-        "Privacy: channel names, full URLs and paths, query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
+        "Privacy: channel names, room IDs, chat text, full URLs and paths, query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
         "Labels stay with the same channel or playlist until Twitch restarts; then reset.\n"
         "Log limit: 512 KiB\n\n"
         "Session counters\n"
@@ -268,7 +275,7 @@ static id diagnostic_report_create(void) {
         "Synthetic segment responses: %llu\n"
         "GraphQL rewrites: %llu\n"
         "HLS failures: %llu\n"
-        "Logged events this launch: %llu\n\n--- Log ---\n",
+        "Logged events this launch: %llu\n",
         TAS_REPORT_VERSION, app_version ? app_version : "unknown", app_build ? app_build : "unknown",
         diagnostics_enabled() ? "enabled" : "disabled",
         (unsigned long long)metrics[TAS_DIAG_HLS_INTERCEPTED],
@@ -285,6 +292,21 @@ static id diagnostic_report_create(void) {
         (unsigned long long)events);
 
     id report = msg1((id)objc_getClass("NSMutableString"), "stringWithString:", nsstr(header));
+    char emote_status[2048], menu_status[768];
+    tas_emotes_status(emote_status, sizeof(emote_status));
+    snprintf(menu_status, sizeof(menu_status),
+             "Chat menu (this launch)\n"
+             "Chat Settings controller seen/presented: %llu/%llu\n"
+             "Action sheets seen/from Chat Settings/titled Chat Settings: %llu/%llu/%llu\n"
+             "Reload actions inserted: %llu\n\n--- Log ---\n",
+             (unsigned long long)MENU_GET(g_chat_controller_appear),
+             (unsigned long long)MENU_GET(g_chat_controller_presented),
+             (unsigned long long)MENU_GET(g_presented_sheets),
+             (unsigned long long)MENU_GET(g_chat_presenter_sheets),
+             (unsigned long long)MENU_GET(g_chat_titled_sheets),
+             (unsigned long long)MENU_GET(g_reload_actions_added));
+    vmsg1(report, "appendString:", nsstr(emote_status));
+    vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
         id log_text = msg0((id)objc_getClass("NSString"), "alloc");
         log_text = ((id (*)(id, SEL, id, NSUInteger))objc_msgSend)(
@@ -656,13 +678,22 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
 }
 
 static void present_controller(id self, SEL command, id presented, BOOL animated, id completion) {
-    /* Twitch's stream chat three-dot menu is an action sheet titled
-     * Chat Settings. Add the action just before UIKit presents it; leave
-     * unrelated sheets and menus untouched. */
-    if (tas_emotes_enabled_this_launch() &&
-        bmsg1(presented, "isKindOfClass:", (id)objc_getClass("UIAlertController")) &&
-        imsg0(presented, "preferredStyle") == 0 &&
-        bmsg1(msg0(presented, "title"), "isEqualToString:", nsstr("Chat Settings"))) {
+    Class chat_settings = objc_getClass("_TtC6Twitch22ChatSettingsController");
+    bool from_chat_settings = chat_settings && bmsg1(self, "isKindOfClass:", (id)chat_settings);
+    if (chat_settings && bmsg1(presented, "isKindOfClass:", (id)chat_settings))
+        MENU_INC(g_chat_controller_presented);
+    bool sheet = bmsg1(presented, "isKindOfClass:", (id)objc_getClass("UIAlertController")) &&
+                 imsg0(presented, "preferredStyle") == 0;
+    if (sheet) MENU_INC(g_presented_sheets);
+    if (sheet && from_chat_settings) MENU_INC(g_chat_presenter_sheets);
+    id title = sheet ? msg0(presented, "title") : nil;
+    bool titled_chat_settings = title &&
+        bmsg1(title, "localizedCaseInsensitiveContainsString:", nsstr("Chat Settings"));
+    if (sheet && titled_chat_settings) MENU_INC(g_chat_titled_sheets);
+    /* ChatSettingsController also creates or updates its own sheet. Matching
+     * the presenter catches sheets whose title is absent or localized. */
+    if (tas_emotes_enabled_this_launch() && sheet &&
+        (from_chat_settings || titled_chat_settings)) {
         id actions = msg0(presented, "actions");
         bool present_already = false;
         for (NSInteger i = 0; i < imsg0(actions, "count"); i++) {
@@ -682,10 +713,30 @@ static void present_controller(id self, SEL command, id presented, BOOL animated
                     tas_emotes_reload();
                 });
             vmsg1(presented, "addAction:", action);
+            MENU_INC(g_reload_actions_added);
         }
     }
     ((void (*)(id, SEL, id, BOOL, id))g_view_controller_original_present)(
         self, command, presented, animated, completion);
+}
+
+static void chat_settings_view_did_appear(id self, SEL command, BOOL animated) {
+    ((void (*)(id, SEL, BOOL))g_chat_settings_original_view_did_appear)(self, command, animated);
+    MENU_INC(g_chat_controller_appear);
+}
+
+static void install_chat_settings_probe(void) {
+    if (g_chat_settings_hooked || !tas_emotes_enabled_this_launch()) return;
+    Class cls = objc_getClass("_TtC6Twitch22ChatSettingsController");
+    if (!cls) return;
+    SEL selector = sel_registerName("viewDidAppear:");
+    Method method = class_getInstanceMethod(cls, selector);
+    if (!method) return;
+    g_chat_settings_original_view_did_appear = method_getImplementation(method);
+    if (!class_addMethod(cls, selector, (IMP)chat_settings_view_did_appear,
+                         method_getTypeEncoding(method)))
+        method_setImplementation(method, (IMP)chat_settings_view_did_appear);
+    g_chat_settings_hooked = true;
 }
 
 static bool install_view_controller_fallback(void) {
@@ -745,6 +796,7 @@ static void retry_app_settings_hook(id self, SEL command, id notification) {
     (void)command;
     (void)notification;
     tas_emotes_retry_hooks();
+    install_chat_settings_probe();
     if (install_app_settings_hook()) {
         fprintf(stderr, "[TAS] AppSettingsViewController hook installed after application launch\n");
     }

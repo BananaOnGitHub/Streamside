@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.0-dev.2 (development; device retest pending)
+
+- Added privacy-safe emote and chat-menu counters to the diagnostic report.
+- Hooked inherited WebSocket receive implementations and recognized sheets
+  presented by Twitch's ChatSettingsController without an exact title match.
+- Kept the emote switch off by default and the published 2.2.1 assets unchanged.
+
 ## 2.3.0-dev.1 (development; device validation pending)
 
 - Added optional 7TV, BTTV, and FFZ global and channel emotes to incoming chat.

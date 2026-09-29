@@ -23,6 +23,7 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.2.1-jb | 2026-09-28 | VAFT solution 24 | Current source, not device-tested | Packages the main Settings button fix for rootful/rootless jailbreaks. Retains 2.2.0 diagnostics, without R5 route history and labels. |
 | 2.2.1 replacement | 2026-09-28 | VAFT solution 24 | Reconstructed, checked-in source; not device-tested | Replaces both release assets from one source tree with R5 privacy labels, route history, and the Settings guard. |
 | 2.3.0-dev.1 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; not device-tested | Adds bounded 7TV, BTTV, and FFZ chat emote support, a relaunch-gated switch, cache clearing, and chat-menu reload to the shared IPA/jailbreak source. |
+| 2.3.0-dev.2 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Adds emote transport/provider and chat-menu counters, hooks inherited WebSocket receive implementations, and recognizes ChatSettingsController sheets without relying on the exact title. |
 
 ## Binary evidence
 

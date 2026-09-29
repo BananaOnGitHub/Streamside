@@ -5,13 +5,13 @@ A native iOS port of the **VAFT** strategy from
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
 The published 2.2.1 sideload and jailbreak builds came from the same
-checked-in R5 source. The current development source is 2.3.0-dev.1 and adds
+checked-in R5 source. The current development source is 2.3.0-dev.2 and adds
 an optional third-party emote integration.
 
 ## Status
 
 - Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
-- Development source: **2.3.0-dev.1** (emotes; not device-tested)
+- Development source: **2.3.0-dev.2** (emote troubleshooting build)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
@@ -44,17 +44,20 @@ and relaunching skips the emote hooks and provider requests altogether.
 **Clear Emote Cache** is on the Ad Block page. It discards this module's
 in-memory emote definitions and image-ID mappings; the next incoming chat
 message refetches the current channel. It does not clear Twitch's unrelated
-image cache. **Reload Emotes** appears in the stream's Chat Settings action
-sheet and refreshes global and current channel definitions.
+image cache. **Reload Emotes** is intended to appear in the stream's Chat
+Settings sheet and refresh global and current channel definitions.
 
 The module retains at most six recently active channel registries, up to 1,500
 names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 
-This integration has been built and statically checked, but has not been
-verified on a device running Twitch 30.4.2. Animated emotes may show only their
-first frame; the local sender's own outgoing messages may remain plain text.
+The 2.3.0-dev.1 device test showed the settings controls but no third-party
+emotes or chat-menu reload action. This development revision broadens the
+WebSocket and menu hooks and adds privacy-safe session counters to locate the
+remaining break. It has not yet been verified on a device. Animated emotes may
+show only their first frame; the local sender's own outgoing messages may remain
+plain text.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle
@@ -75,6 +78,10 @@ playlists, unmapped variants, known ad markers, access-token failures, VAFT
 candidate results, clean swaps, and segment suppression. Channel names and
 URLs are replaced by temporary process-local labels in the log. Route history
 records active and retired matches, generations, and ages for unmapped variants.
+The report also lists emote hook installation, WebSocket frame stages, provider
+fetch outcomes, image rewrites, and chat-menu presentation counts. These
+aggregate counters appear even when event logging is off. They do not contain
+chat text or room IDs.
 Logging starts off; URL paths, request headers, access tokens, and manifest
 contents are not written to the diagnostic log. On first load, this version
 deletes the older path-bearing `diagnostics.log`. The new log is capped at

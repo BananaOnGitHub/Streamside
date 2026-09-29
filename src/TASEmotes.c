@@ -113,6 +113,12 @@ static bool g_enabled;
 static IMP g_public_receive, g_private_receive;
 static IMP g_private_request, g_private_request_completion;
 static char g_wrapped_key;
+/* Aggregate counters contain no room IDs, message text, or request URLs. */
+static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
+static uint64_t g_rewritten_frames, g_image_rewrites;
+static uint64_t g_fetch_started[3][2], g_fetch_loaded[3][2], g_fetch_failed[3][2];
+#define PROBE_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
+#define PROBE_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 
 static void drop_emote(Emote *e) {
     free(e->name);
@@ -364,6 +370,8 @@ static bool parse_provider_locked(Room *room, id root, unsigned char provider, b
 }
 
 static void fetch_provider(const char *room_id, uint64_t generation, unsigned char provider) {
+    int scope = room_id ? 1 : 0;
+    PROBE_INC(g_fetch_started[provider][scope]);
     char url[256];
     if (!room_id) {
         const char *globals[] = {"https://7tv.io/v3/emote-sets/global",
@@ -410,6 +418,8 @@ static void fetch_provider(const char *room_id, uint64_t generation, unsigned ch
                 room->pending[provider] = false;
                 room->loaded[provider] = absent ||
                     (okay && parse_provider_locked(room, parsed, provider, !room_copy));
+                if (room->loaded[provider]) PROBE_INC(g_fetch_loaded[provider][scope]);
+                else PROBE_INC(g_fetch_failed[provider][scope]);
                 if (room->loaded[provider]) room->failures[provider] = 0;
                 else if (room->failures[provider] < 5) room->failures[provider]++;
             }
@@ -417,6 +427,7 @@ static void fetch_provider(const char *room_id, uint64_t generation, unsigned ch
         });
     if (task) call0(task, "resume");
     else {
+        PROBE_INC(g_fetch_failed[provider][scope]);
         pthread_mutex_lock(&g_emote_lock);
         const char *room_copy = text(room_string);
         Room *room = room_copy ? NULL : &g_global;
@@ -521,6 +532,7 @@ static char *rewrite_line(const char *line, size_t length) {
     const char *privmsg = strstr(tags_end, " PRIVMSG #");
     bool message = privmsg && privmsg < end;
     if (!message && !strstr(tags_end, " ROOMSTATE #")) return NULL;
+    PROBE_INC(g_room_frames);
     pthread_mutex_lock(&g_emote_lock);
     snprintf(g_last_room, sizeof(g_last_room), "%s", room_id);
     pthread_mutex_unlock(&g_emote_lock);
@@ -587,12 +599,15 @@ static char *rewrite_line(const char *line, size_t length) {
 }
 
 static id rewrite_message(id message) {
+    PROBE_INC(g_receive_calls);
     if (!message || ((NSInteger (*)(id, SEL))objc_msgSend)(message, sel_registerName("type")) != 1)
         return nil;
+    PROBE_INC(g_text_frames);
     const char *input = text(call0(message, "string"));
     if (!input) return nil;
     size_t length = strnlen(input, MAX_FRAME + 1);
     if (length > MAX_FRAME || input[0] != '@') return nil;
+    PROBE_INC(g_tagged_frames);
     char *output = malloc(length * 2 + 4096);
     if (!output) return nil;
     size_t used = 0;
@@ -626,6 +641,7 @@ static id rewrite_message(id message) {
     }
     id rewritten = nil;
     if (changed && complete) {
+        PROBE_INC(g_rewritten_frames);
         output[used] = 0;
         id value = str(output);
         if (value) {
@@ -693,6 +709,7 @@ id tas_emotes_rewrite_request_copy(id request) {
     char *image = url_for_id_locked(fake_id, time(NULL));
     pthread_mutex_unlock(&g_emote_lock);
     if (!image) return nil;
+    PROBE_INC(g_image_rewrites);
     id destination = call1((id)objc_getClass("NSURL"), "URLWithString:", str(image));
     free(image);
     if (!destination) return nil;
@@ -730,6 +747,20 @@ static void hook_own_method(Class cls, const char *selector, IMP replacement, IM
         }
     }
     free(methods);
+}
+
+static void hook_method_including_inherited(Class cls, const char *selector,
+                                             IMP replacement, IMP *original) {
+    if (!cls || *original) return;
+    SEL target = sel_registerName(selector);
+    Method method = class_getInstanceMethod(cls, target);
+    if (!method) return;
+    IMP implementation = method_getImplementation(method);
+    if (class_addMethod(cls, target, replacement, method_getTypeEncoding(method))) {
+        *original = implementation;
+    } else {
+        hook_own_method(cls, selector, replacement, original);
+    }
 }
 
 void tas_emotes_reload(void) {
@@ -775,8 +806,9 @@ void tas_emotes_initialize(void) {
 void tas_emotes_retry_hooks(void) {
     if (!g_enabled) return;
     if (!g_public_receive)
-        hook_own_method(objc_getClass("NSURLSessionWebSocketTask"),
-                        "receiveMessageWithCompletionHandler:", (IMP)public_receive, &g_public_receive);
+        hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),
+                                        "receiveMessageWithCompletionHandler:",
+                                        (IMP)public_receive, &g_public_receive);
     if (!g_private_receive)
         hook_own_method(objc_getClass("__NSURLSessionWebSocketTask"),
                         "receiveMessageWithCompletionHandler:", (IMP)private_receive, &g_private_receive);
@@ -787,4 +819,46 @@ void tas_emotes_retry_hooks(void) {
         hook_own_method(objc_getClass("__NSURLSessionLocal"),
                         "dataTaskWithRequest:completionHandler:",
                         (IMP)private_task_completion, &g_private_request_completion);
+}
+
+void tas_emotes_status(char *buffer, size_t capacity) {
+    if (!buffer || !capacity) return;
+    snprintf(buffer, capacity,
+        "\nThird-party emotes (this launch)\n"
+        "Active: %s\n"
+        "WebSocket hooks (public/private): %s/%s\n"
+        "Image hooks (private task/completion): %s/%s\n"
+        "WebSocket callbacks/text/tagged/room: %llu/%llu/%llu/%llu\n"
+        "Rewritten frames/image requests: %llu/%llu\n"
+        "7TV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
+        "BTTV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
+        "FFZ fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n",
+        g_enabled ? "yes" : "no", g_public_receive ? "installed" : "missing",
+        g_private_receive ? "installed" : "missing",
+        g_private_request ? "installed" : "missing",
+        g_private_request_completion ? "installed" : "missing",
+        (unsigned long long)PROBE_GET(g_receive_calls),
+        (unsigned long long)PROBE_GET(g_text_frames),
+        (unsigned long long)PROBE_GET(g_tagged_frames),
+        (unsigned long long)PROBE_GET(g_room_frames),
+        (unsigned long long)PROBE_GET(g_rewritten_frames),
+        (unsigned long long)PROBE_GET(g_image_rewrites),
+        (unsigned long long)PROBE_GET(g_fetch_started[0][0]),
+        (unsigned long long)PROBE_GET(g_fetch_loaded[0][0]),
+        (unsigned long long)PROBE_GET(g_fetch_failed[0][0]),
+        (unsigned long long)PROBE_GET(g_fetch_started[0][1]),
+        (unsigned long long)PROBE_GET(g_fetch_loaded[0][1]),
+        (unsigned long long)PROBE_GET(g_fetch_failed[0][1]),
+        (unsigned long long)PROBE_GET(g_fetch_started[1][0]),
+        (unsigned long long)PROBE_GET(g_fetch_loaded[1][0]),
+        (unsigned long long)PROBE_GET(g_fetch_failed[1][0]),
+        (unsigned long long)PROBE_GET(g_fetch_started[1][1]),
+        (unsigned long long)PROBE_GET(g_fetch_loaded[1][1]),
+        (unsigned long long)PROBE_GET(g_fetch_failed[1][1]),
+        (unsigned long long)PROBE_GET(g_fetch_started[2][0]),
+        (unsigned long long)PROBE_GET(g_fetch_loaded[2][0]),
+        (unsigned long long)PROBE_GET(g_fetch_failed[2][0]),
+        (unsigned long long)PROBE_GET(g_fetch_started[2][1]),
+        (unsigned long long)PROBE_GET(g_fetch_loaded[2][1]),
+        (unsigned long long)PROBE_GET(g_fetch_failed[2][1]));
 }

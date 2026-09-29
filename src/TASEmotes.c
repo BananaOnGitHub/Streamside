@@ -116,6 +116,9 @@ static char g_wrapped_key;
 /* Aggregate counters contain no room IDs, message text, or request URLs. */
 static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
 static uint64_t g_rewritten_frames, g_image_rewrites;
+static uint64_t g_image_with_completion, g_image_without_completion;
+static uint64_t g_image_http_ok, g_image_http_error, g_image_transport_error;
+static uint64_t g_image_empty, g_image_gif, g_image_webp, g_image_other;
 static uint64_t g_fetch_started[3][2], g_fetch_loaded[3][2], g_fetch_failed[3][2];
 #define PROBE_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
 #define PROBE_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
@@ -718,16 +721,48 @@ id tas_emotes_rewrite_request_copy(id request) {
     return mutable;
 }
 
+void tas_emotes_image_request(bool has_completion) {
+    if (has_completion) PROBE_INC(g_image_with_completion);
+    else PROBE_INC(g_image_without_completion);
+}
+
+void tas_emotes_image_result(id data, id response, id error) {
+    if (error) PROBE_INC(g_image_transport_error);
+    else {
+        NSInteger status = response && ((BOOL (*)(id, SEL, SEL))objc_msgSend)(
+            response, sel_registerName("respondsToSelector:"), sel_registerName("statusCode"))
+            ? ((NSInteger (*)(id, SEL))objc_msgSend)(response, sel_registerName("statusCode")) : 0;
+        if (status >= 200 && status < 300) PROBE_INC(g_image_http_ok);
+        else PROBE_INC(g_image_http_error);
+    }
+    NSUInteger length = data ? ((NSUInteger (*)(id, SEL))objc_msgSend)(
+        data, sel_registerName("length")) : 0;
+    if (!length) PROBE_INC(g_image_empty);
+    const char *mime = text(call0(response, "MIMEType"));
+    if (mime && strcmp(mime, "image/gif") == 0) PROBE_INC(g_image_gif);
+    else if (mime && strcmp(mime, "image/webp") == 0) PROBE_INC(g_image_webp);
+    else PROBE_INC(g_image_other);
+}
+
 static id private_task(id self, SEL command, id request) {
     id replacement = tas_emotes_rewrite_request_copy(request);
+    if (replacement) tas_emotes_image_request(false);
     id result = ((id (*)(id, SEL, id))g_private_request)(self, command, replacement ?: request);
     if (replacement) objc_release(replacement);
     return result;
 }
 static id private_task_completion(id self, SEL command, id request, id completion) {
     id replacement = tas_emotes_rewrite_request_copy(request);
+    if (replacement) tas_emotes_image_request(true);
+    id handler = completion;
+    if (replacement && completion) {
+        handler = (id)^(id data, id response, id error) {
+            tas_emotes_image_result(data, response, error);
+            ((void (^)(id, id, id))completion)(data, response, error);
+        };
+    }
     id result = ((id (*)(id, SEL, id, id))g_private_request_completion)(
-        self, command, replacement ?: request, completion);
+        self, command, replacement ?: request, handler);
     if (replacement) objc_release(replacement);
     return result;
 }
@@ -830,6 +865,9 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "Image hooks (private task/completion): %s/%s\n"
         "WebSocket callbacks/text/tagged/room: %llu/%llu/%llu/%llu\n"
         "Rewritten frames/image requests: %llu/%llu\n"
+        "Image tasks (completion/delegate): %llu/%llu\n"
+        "Image responses (HTTP 2xx/other/transport error/empty): %llu/%llu/%llu/%llu\n"
+        "Image MIME (GIF/WebP/other): %llu/%llu/%llu\n"
         "7TV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
         "BTTV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
         "FFZ fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n",
@@ -843,6 +881,15 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_room_frames),
         (unsigned long long)PROBE_GET(g_rewritten_frames),
         (unsigned long long)PROBE_GET(g_image_rewrites),
+        (unsigned long long)PROBE_GET(g_image_with_completion),
+        (unsigned long long)PROBE_GET(g_image_without_completion),
+        (unsigned long long)PROBE_GET(g_image_http_ok),
+        (unsigned long long)PROBE_GET(g_image_http_error),
+        (unsigned long long)PROBE_GET(g_image_transport_error),
+        (unsigned long long)PROBE_GET(g_image_empty),
+        (unsigned long long)PROBE_GET(g_image_gif),
+        (unsigned long long)PROBE_GET(g_image_webp),
+        (unsigned long long)PROBE_GET(g_image_other),
         (unsigned long long)PROBE_GET(g_fetch_started[0][0]),
         (unsigned long long)PROBE_GET(g_fetch_loaded[0][0]),
         (unsigned long long)PROBE_GET(g_fetch_failed[0][0]),

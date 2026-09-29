@@ -36,7 +36,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.3.0-dev.2"
+#define TAS_REPORT_VERSION "2.3.0-dev.3"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -63,6 +63,11 @@ static bool g_chat_settings_hooked;
 static uint64_t g_presented_sheets, g_chat_presenter_sheets;
 static uint64_t g_chat_titled_sheets, g_chat_controller_appear, g_chat_controller_presented;
 static uint64_t g_reload_actions_added;
+static uint64_t g_chat_button_taps, g_presented_controllers;
+static IMP g_control_original_send_action;
+static time_t g_chat_button_last_tap;
+static char g_chat_button_target[96], g_chat_button_action[96];
+static char g_last_presented_class[96], g_last_appeared_after_tap[96];
 #define MENU_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
 #define MENU_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 static Class g_bootstrap_class;
@@ -292,19 +297,35 @@ static id diagnostic_report_create(void) {
         (unsigned long long)events);
 
     id report = msg1((id)objc_getClass("NSMutableString"), "stringWithString:", nsstr(header));
-    char emote_status[2048], menu_status[768];
+    char emote_status[2048], menu_status[1024];
+    char button_target[96], button_action[96], presented_class[96], appeared_class[96];
+    pthread_mutex_lock(&g_diag_lock);
+    snprintf(button_target, sizeof(button_target), "%s", g_chat_button_target);
+    snprintf(button_action, sizeof(button_action), "%s", g_chat_button_action);
+    snprintf(presented_class, sizeof(presented_class), "%s", g_last_presented_class);
+    snprintf(appeared_class, sizeof(appeared_class), "%s", g_last_appeared_after_tap);
+    pthread_mutex_unlock(&g_diag_lock);
     tas_emotes_status(emote_status, sizeof(emote_status));
     snprintf(menu_status, sizeof(menu_status),
              "Chat menu (this launch)\n"
              "Chat Settings controller seen/presented: %llu/%llu\n"
              "Action sheets seen/from Chat Settings/titled Chat Settings: %llu/%llu/%llu\n"
-             "Reload actions inserted: %llu\n\n--- Log ---\n",
+             "Reload actions inserted: %llu\n"
+             "Chat settings button taps/total presentations: %llu/%llu\n"
+             "Button target/action: %s/%s\n"
+             "Last presented/appeared after tap: %s/%s\n\n--- Log ---\n",
              (unsigned long long)MENU_GET(g_chat_controller_appear),
              (unsigned long long)MENU_GET(g_chat_controller_presented),
              (unsigned long long)MENU_GET(g_presented_sheets),
              (unsigned long long)MENU_GET(g_chat_presenter_sheets),
              (unsigned long long)MENU_GET(g_chat_titled_sheets),
-             (unsigned long long)MENU_GET(g_reload_actions_added));
+             (unsigned long long)MENU_GET(g_reload_actions_added),
+             (unsigned long long)MENU_GET(g_chat_button_taps),
+             (unsigned long long)MENU_GET(g_presented_controllers),
+             button_target[0] ? button_target : "none",
+             button_action[0] ? button_action : "none",
+             presented_class[0] ? presented_class : "none",
+             appeared_class[0] ? appeared_class : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
     vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
@@ -669,6 +690,13 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
     if (g_view_controller_original_view_did_appear) {
         ((void (*)(id, SEL, BOOL))g_view_controller_original_view_did_appear)(self, command, animated);
     }
+    if (tas_emotes_enabled_this_launch() &&
+        time(NULL) - g_chat_button_last_tap <= 5 && g_chat_button_last_tap) {
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_appeared_after_tap, sizeof(g_last_appeared_after_tap), "%s",
+                 class_getName(object_getClass(self)));
+        pthread_mutex_unlock(&g_diag_lock);
+    }
     if (!is_main_settings(self)) return;
     Class actual_class = object_getClass(self);
     class_addMethod(actual_class, sel_registerName("tas_openAdBlockSettings"),
@@ -678,6 +706,13 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
 }
 
 static void present_controller(id self, SEL command, id presented, BOOL animated, id completion) {
+    MENU_INC(g_presented_controllers);
+    if (presented) {
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_presented_class, sizeof(g_last_presented_class), "%s",
+                 class_getName(object_getClass(presented)));
+        pthread_mutex_unlock(&g_diag_lock);
+    }
     Class chat_settings = objc_getClass("_TtC6Twitch22ChatSettingsController");
     bool from_chat_settings = chat_settings && bmsg1(self, "isKindOfClass:", (id)chat_settings);
     if (chat_settings && bmsg1(presented, "isKindOfClass:", (id)chat_settings))
@@ -720,6 +755,25 @@ static void present_controller(id self, SEL command, id presented, BOOL animated
         self, command, presented, animated, completion);
 }
 
+static void control_send_action(id self, SEL command, SEL action, id target, id event) {
+    id identifier = msg0(self, "accessibilityIdentifier");
+    id label = msg0(self, "accessibilityLabel");
+    bool chat_button = bmsg1(identifier, "isEqualToString:", nsstr("chat_settings_button")) ||
+        bmsg1(label, "localizedCaseInsensitiveContainsString:", nsstr("Chat Settings"));
+    if (chat_button) {
+        MENU_INC(g_chat_button_taps);
+        g_chat_button_last_tap = time(NULL);
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_chat_button_target, sizeof(g_chat_button_target), "%s",
+                 target ? class_getName(object_getClass(target)) : "none");
+        snprintf(g_chat_button_action, sizeof(g_chat_button_action), "%s",
+                 action ? sel_getName(action) : "none");
+        pthread_mutex_unlock(&g_diag_lock);
+    }
+    ((void (*)(id, SEL, SEL, id, id))g_control_original_send_action)(
+        self, command, action, target, event);
+}
+
 static void chat_settings_view_did_appear(id self, SEL command, BOOL animated) {
     ((void (*)(id, SEL, BOOL))g_chat_settings_original_view_did_appear)(self, command, animated);
     MENU_INC(g_chat_controller_appear);
@@ -747,6 +801,12 @@ static bool install_view_controller_fallback(void) {
     g_view_controller_original_view_did_appear = method_getImplementation(method);
     method_setImplementation(method, (IMP)view_controller_view_did_appear);
     if (tas_emotes_enabled_this_launch()) {
+        Class control = objc_getClass("UIControl");
+        Method send_action = class_getInstanceMethod(control, sel_registerName("sendAction:to:forEvent:"));
+        if (send_action) {
+            g_control_original_send_action = method_getImplementation(send_action);
+            method_setImplementation(send_action, (IMP)control_send_action);
+        }
         method = class_getInstanceMethod(view_controller, sel_registerName("presentViewController:animated:completion:"));
         if (method) {
             g_view_controller_original_present = method_getImplementation(method);

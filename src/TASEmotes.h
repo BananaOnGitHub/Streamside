@@ -13,5 +13,7 @@ void tas_emotes_reload(void);
 void tas_emotes_clear_cache(void);
 id tas_emotes_rewrite_request_copy(id request);
 void tas_emotes_status(char *buffer, size_t capacity);
+void tas_emotes_image_request(bool has_completion);
+void tas_emotes_image_result(id data, id response, id error);
 
 #endif

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.0-dev.3 (development; image/menu diagnosis)
+
+- The dev.2 report confirmed provider fetches, incoming IRC rewrites, and
+  synthetic image redirects, while the previous chat-menu hooks saw no sheet.
+- Added aggregate image response status/MIME counters and a targeted chat
+  settings button and presentation probe. No chat text, room IDs, or image URLs
+  are recorded.
+
 ## 2.3.0-dev.2 (development; device retest pending)
 
 - Added privacy-safe emote and chat-menu counters to the diagnostic report.

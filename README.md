@@ -5,13 +5,13 @@ A native iOS port of the **VAFT** strategy from
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
 The published 2.2.1 sideload and jailbreak builds came from the same
-checked-in R5 source. The current development source is 2.3.0-dev.2 and adds
+checked-in R5 source. The current development source is 2.3.0-dev.3 and adds
 an optional third-party emote integration.
 
 ## Status
 
 - Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
-- Development source: **2.3.0-dev.2** (emote troubleshooting build)
+- Development source: **2.3.0-dev.3** (emote troubleshooting build)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
@@ -53,11 +53,13 @@ Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 
 The 2.3.0-dev.1 device test showed the settings controls but no third-party
-emotes or chat-menu reload action. This development revision broadens the
-WebSocket and menu hooks and adds privacy-safe session counters to locate the
-remaining break. It has not yet been verified on a device. Animated emotes may
-show only their first frame; the local sender's own outgoing messages may remain
-plain text.
+emotes or chat-menu reload action. The dev.2 report confirmed live provider
+fetches, two rewritten chat frames, and two image URL redirects, but saw no
+UIKit chat sheet. This revision records aggregate image response results and
+the chat settings button's runtime action target to locate the remaining
+breaks. It has not yet been verified on a device. Animated emotes may show only
+their first frame; the local sender's own outgoing messages may remain plain
+text.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle
@@ -79,7 +81,7 @@ candidate results, clean swaps, and segment suppression. Channel names and
 URLs are replaced by temporary process-local labels in the log. Route history
 records active and retired matches, generations, and ages for unmapped variants.
 The report also lists emote hook installation, WebSocket frame stages, provider
-fetch outcomes, image rewrites, and chat-menu presentation counts. These
+fetch outcomes, image response categories, and chat-menu presentation counts. These
 aggregate counters appear even when event logging is off. They do not contain
 chat text or room IDs.
 Logging starts off; URL paths, request headers, access tokens, and manifest

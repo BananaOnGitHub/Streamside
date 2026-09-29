@@ -1634,6 +1634,7 @@ static id session_with_configuration_delegate_queue(id self, SEL command, id con
 
 static id data_task_with_request(id self, SEL command, id original) {
     id image = tas_emotes_rewrite_request_copy(original);
+    if (image) tas_emotes_image_request(false);
     id replacement = normalized_graphql_request_copy(image ?: original);
     id task = ((id (*)(id, SEL, id))g_original_data_task_request)(
         self, command, replacement ?: image ?: original);
@@ -1644,9 +1645,17 @@ static id data_task_with_request(id self, SEL command, id original) {
 
 static id data_task_with_request_completion(id self, SEL command, id original, id completion) {
     id image = tas_emotes_rewrite_request_copy(original);
+    if (image) tas_emotes_image_request(true);
     id replacement = normalized_graphql_request_copy(image ?: original);
+    id handler = completion;
+    if (image && completion) {
+        handler = (id)^(id data, id response, id error) {
+            tas_emotes_image_result(data, response, error);
+            ((void (^)(id, id, id))completion)(data, response, error);
+        };
+    }
     id task = ((id (*)(id, SEL, id, id))g_original_data_task_request_completion)(
-        self, command, replacement ?: image ?: original, completion);
+        self, command, replacement ?: image ?: original, handler);
     if (replacement) objc_release(replacement);
     if (image) objc_release(image);
     return task;

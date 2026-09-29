@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0-dev.1 (development; device validation pending)
+
+- Added optional 7TV, BTTV, and FFZ global and channel emotes to incoming chat.
+- Added a relaunch-gated emote switch and Clear Emote Cache to Ad Block, plus
+  Reload Emotes in the stream Chat Settings action sheet.
+- Bounded per-room maps and image-ID history, with idle expiry and API retry
+  backoff. No separate emote image files are stored by the module.
+- Built the same source for the IPA framework and rootful/rootless jailbreak
+  packages. The emote hooks and menu placement still need on-device testing.
+
 ## 2.2.1 source-backed replacement (IPA and jailbreak prerelease)
 
 - Reconstructed the R5 diagnostics in checked-in source. Both package formats

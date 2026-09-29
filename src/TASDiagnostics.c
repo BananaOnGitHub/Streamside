@@ -36,7 +36,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.3.0-dev.3"
+#define TAS_REPORT_VERSION "2.3.0-dev.4"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -64,10 +64,12 @@ static uint64_t g_presented_sheets, g_chat_presenter_sheets;
 static uint64_t g_chat_titled_sheets, g_chat_controller_appear, g_chat_controller_presented;
 static uint64_t g_reload_actions_added;
 static uint64_t g_chat_button_taps, g_presented_controllers;
+static uint64_t g_presented_navigation;
 static IMP g_control_original_send_action;
 static time_t g_chat_button_last_tap;
 static char g_chat_button_target[96], g_chat_button_action[96];
 static char g_last_presented_class[96], g_last_appeared_after_tap[96];
+static char g_last_navigation_top[96], g_last_navigation_visible[96];
 #define MENU_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
 #define MENU_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 static Class g_bootstrap_class;
@@ -299,11 +301,14 @@ static id diagnostic_report_create(void) {
     id report = msg1((id)objc_getClass("NSMutableString"), "stringWithString:", nsstr(header));
     char emote_status[2048], menu_status[1024];
     char button_target[96], button_action[96], presented_class[96], appeared_class[96];
+    char navigation_top[96], navigation_visible[96];
     pthread_mutex_lock(&g_diag_lock);
     snprintf(button_target, sizeof(button_target), "%s", g_chat_button_target);
     snprintf(button_action, sizeof(button_action), "%s", g_chat_button_action);
     snprintf(presented_class, sizeof(presented_class), "%s", g_last_presented_class);
     snprintf(appeared_class, sizeof(appeared_class), "%s", g_last_appeared_after_tap);
+    snprintf(navigation_top, sizeof(navigation_top), "%s", g_last_navigation_top);
+    snprintf(navigation_visible, sizeof(navigation_visible), "%s", g_last_navigation_visible);
     pthread_mutex_unlock(&g_diag_lock);
     tas_emotes_status(emote_status, sizeof(emote_status));
     snprintf(menu_status, sizeof(menu_status),
@@ -313,7 +318,8 @@ static id diagnostic_report_create(void) {
              "Reload actions inserted: %llu\n"
              "Chat settings button taps/total presentations: %llu/%llu\n"
              "Button target/action: %s/%s\n"
-             "Last presented/appeared after tap: %s/%s\n\n--- Log ---\n",
+             "Last presented/appeared after tap: %s/%s\n"
+             "Navigation presentations/top/visible: %llu/%s/%s\n\n--- Log ---\n",
              (unsigned long long)MENU_GET(g_chat_controller_appear),
              (unsigned long long)MENU_GET(g_chat_controller_presented),
              (unsigned long long)MENU_GET(g_presented_sheets),
@@ -325,7 +331,10 @@ static id diagnostic_report_create(void) {
              button_target[0] ? button_target : "none",
              button_action[0] ? button_action : "none",
              presented_class[0] ? presented_class : "none",
-             appeared_class[0] ? appeared_class : "none");
+             appeared_class[0] ? appeared_class : "none",
+             (unsigned long long)MENU_GET(g_presented_navigation),
+             navigation_top[0] ? navigation_top : "none",
+             navigation_visible[0] ? navigation_visible : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
     vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
@@ -753,6 +762,18 @@ static void present_controller(id self, SEL command, id presented, BOOL animated
     }
     ((void (*)(id, SEL, id, BOOL, id))g_view_controller_original_present)(
         self, command, presented, animated, completion);
+    if (tas_emotes_enabled_this_launch() &&
+        bmsg1(presented, "isKindOfClass:", (id)objc_getClass("UINavigationController"))) {
+        id top = msg0(presented, "topViewController");
+        id visible = msg0(presented, "visibleViewController");
+        MENU_INC(g_presented_navigation);
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_navigation_top, sizeof(g_last_navigation_top), "%s",
+                 top ? class_getName(object_getClass(top)) : "none");
+        snprintf(g_last_navigation_visible, sizeof(g_last_navigation_visible), "%s",
+                 visible ? class_getName(object_getClass(visible)) : "none");
+        pthread_mutex_unlock(&g_diag_lock);
+    }
 }
 
 static void control_send_action(id self, SEL command, SEL action, id target, id event) {

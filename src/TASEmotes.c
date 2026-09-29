@@ -117,9 +117,11 @@ static char g_wrapped_key;
 static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
 static uint64_t g_rewritten_frames, g_image_rewrites;
 static uint64_t g_image_with_completion, g_image_without_completion;
+static uint64_t g_image_protocol_requests, g_match_words, g_native_overlaps;
 static uint64_t g_image_http_ok, g_image_http_error, g_image_transport_error;
 static uint64_t g_image_empty, g_image_gif, g_image_webp, g_image_other;
 static uint64_t g_fetch_started[3][2], g_fetch_loaded[3][2], g_fetch_failed[3][2];
+static uint64_t g_fetch_http_error[3][2], g_fetch_parse_error[3][2];
 #define PROBE_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
 #define PROBE_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 
@@ -208,6 +210,15 @@ static bool permitted_url(const char *url, unsigned char provider) {
                                          "https://cdn.frankerfacez.com/emote/";
     return url && strncmp(url, prefix, strlen(prefix)) == 0 && strlen(url) < 512;
 }
+
+bool tas_emotes_is_provider_image_url(const char *url) {
+    if (!g_enabled || !url) return false;
+    for (unsigned char provider = 0; provider < 3; provider++)
+        if (permitted_url(url, provider)) return true;
+    return false;
+}
+
+void tas_emotes_image_protocol_request(void) { PROBE_INC(g_image_protocol_requests); }
 
 /* API strings are copied while the JSON object is alive; only bounded entries
  * are retained. The fixed provider rank makes name collisions deterministic. */
@@ -422,7 +433,11 @@ static void fetch_provider(const char *room_id, uint64_t generation, unsigned ch
                 room->loaded[provider] = absent ||
                     (okay && parse_provider_locked(room, parsed, provider, !room_copy));
                 if (room->loaded[provider]) PROBE_INC(g_fetch_loaded[provider][scope]);
-                else PROBE_INC(g_fetch_failed[provider][scope]);
+                else {
+                    PROBE_INC(g_fetch_failed[provider][scope]);
+                    if (!okay) PROBE_INC(g_fetch_http_error[provider][scope]);
+                    else PROBE_INC(g_fetch_parse_error[provider][scope]);
+                }
                 if (room->loaded[provider]) room->failures[provider] = 0;
                 else if (room->failures[provider] < 5) room->failures[provider]++;
             }
@@ -563,12 +578,13 @@ static char *rewrite_line(const char *line, size_t length) {
             Emote *emote = room ? find_word(room, candidate) : NULL;
             if (!emote) emote = find_word(&g_global, candidate);
             if (emote && !overlaps_native(line + 1, tags_end, position, position + span - 1)) {
+                PROBE_INC(g_match_words);
                 int n = snprintf(additions + written, sizeof(additions) - written,
                                  "%s%llu:%zu-%zu", written ? "/" : "",
                                  (unsigned long long)emote->fake_id, position, position + span - 1);
                 if (n > 0 && (size_t)n < sizeof(additions) - written) written += (size_t)n;
                 else break;
-            }
+            } else if (emote) PROBE_INC(g_native_overlaps);
         }
         position += span;
     }
@@ -858,6 +874,10 @@ void tas_emotes_retry_hooks(void) {
 
 void tas_emotes_status(char *buffer, size_t capacity) {
     if (!buffer || !capacity) return;
+    pthread_mutex_lock(&g_emote_lock);
+    size_t global_count = g_global.size, room_count = 0;
+    for (size_t i = 0; i < MAX_ROOMS; i++) room_count += g_rooms[i].size;
+    pthread_mutex_unlock(&g_emote_lock);
     snprintf(buffer, capacity,
         "\nThird-party emotes (this launch)\n"
         "Active: %s\n"
@@ -866,11 +886,15 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "WebSocket callbacks/text/tagged/room: %llu/%llu/%llu/%llu\n"
         "Rewritten frames/image requests: %llu/%llu\n"
         "Image tasks (completion/delegate): %llu/%llu\n"
+        "Provider image protocol requests: %llu\n"
         "Image responses (HTTP 2xx/other/transport error/empty): %llu/%llu/%llu/%llu\n"
         "Image MIME (GIF/WebP/other): %llu/%llu/%llu\n"
+        "Matched emote words/native overlaps: %llu/%llu\n"
+        "Registry entries (global/active rooms): %zu/%zu\n"
         "7TV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
         "BTTV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
-        "FFZ fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n",
+        "FFZ fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
+        "Provider failures (HTTP/parse): %llu/%llu, %llu/%llu, %llu/%llu\n",
         g_enabled ? "yes" : "no", g_public_receive ? "installed" : "missing",
         g_private_receive ? "installed" : "missing",
         g_private_request ? "installed" : "missing",
@@ -883,6 +907,7 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_image_rewrites),
         (unsigned long long)PROBE_GET(g_image_with_completion),
         (unsigned long long)PROBE_GET(g_image_without_completion),
+        (unsigned long long)PROBE_GET(g_image_protocol_requests),
         (unsigned long long)PROBE_GET(g_image_http_ok),
         (unsigned long long)PROBE_GET(g_image_http_error),
         (unsigned long long)PROBE_GET(g_image_transport_error),
@@ -890,6 +915,9 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_image_gif),
         (unsigned long long)PROBE_GET(g_image_webp),
         (unsigned long long)PROBE_GET(g_image_other),
+        (unsigned long long)PROBE_GET(g_match_words),
+        (unsigned long long)PROBE_GET(g_native_overlaps),
+        global_count, room_count,
         (unsigned long long)PROBE_GET(g_fetch_started[0][0]),
         (unsigned long long)PROBE_GET(g_fetch_loaded[0][0]),
         (unsigned long long)PROBE_GET(g_fetch_failed[0][0]),
@@ -907,5 +935,11 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_fetch_failed[2][0]),
         (unsigned long long)PROBE_GET(g_fetch_started[2][1]),
         (unsigned long long)PROBE_GET(g_fetch_loaded[2][1]),
-        (unsigned long long)PROBE_GET(g_fetch_failed[2][1]));
+        (unsigned long long)PROBE_GET(g_fetch_failed[2][1]),
+        (unsigned long long)(PROBE_GET(g_fetch_http_error[0][0]) + PROBE_GET(g_fetch_http_error[0][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_parse_error[0][0]) + PROBE_GET(g_fetch_parse_error[0][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_http_error[1][0]) + PROBE_GET(g_fetch_http_error[1][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_parse_error[1][0]) + PROBE_GET(g_fetch_parse_error[1][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_http_error[2][0]) + PROBE_GET(g_fetch_http_error[2][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_parse_error[2][0]) + PROBE_GET(g_fetch_parse_error[2][1])));
 }

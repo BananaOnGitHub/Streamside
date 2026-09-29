@@ -603,7 +603,10 @@ static void protocol_start_loading(id self, SEL command) {
 
     id response = nil;
     id error = nil;
+    bool provider_image = original_url && tas_emotes_is_provider_image_url(original_url);
+    if (provider_image) tas_emotes_image_protocol_request();
     id data = synchronous_request(request, &response, &error);
+    if (provider_image) tas_emotes_image_result(data, response, error);
     id output_data = data;
     id output_response = response;
     id rewritten_response = nil;
@@ -654,7 +657,8 @@ static BOOL protocol_can_init(id self, SEL command, id request) {
     if (msg1(request, "valueForHTTPHeaderField:", nsstr(TAS_INTERNAL_HEADER))) return NO;
     id url = msg0(request, "URL");
     const char *absolute = utf8(msg0(url, "absoluteString"));
-    return is_twitch_hls_url(absolute) || is_cached_ad_segment(absolute);
+    return is_twitch_hls_url(absolute) || is_cached_ad_segment(absolute) ||
+           tas_emotes_is_provider_image_url(absolute);
 }
 
 static id protocol_canonical_request(id self, SEL command, id request) {

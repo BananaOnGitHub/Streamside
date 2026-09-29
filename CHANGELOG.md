@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.3.0-dev.4 (development; provider image and menu tracing)
+
+- The dev.3 report showed four rewritten chat frames and two delegate-based
+  image tasks, but no observable image responses or Chat Settings action sheet.
+- Observe only enabled third-party CDN image responses through the existing
+  URL protocol, including HTTP status and MIME type. Count registry entries,
+  matched emote words, and provider fetch failure categories without retaining
+  chat text, room IDs, or URLs.
+- Record the presented navigation controller's top and visible controller
+  classes to identify Twitch's actual three-dot chat menu implementation.
+  Reload Emotes placement is still pending device verification.
+
 ## 2.3.0-dev.3 (development; image/menu diagnosis)
 
 - The dev.2 report confirmed provider fetches, incoming IRC rewrites, and

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.3.0-dev.8 (development; image frames and sender ID correction)
+## 2.3.0 (third-party emotes and native chat integration)
 
 - Accept TWChatMessage.senderId's NSNumber bridge. Dev.7 rejected every
   local message before token matching because it required NSString.
@@ -10,9 +10,9 @@
 - Add a layer layout fallback and aggregate frame/ID/resize counters.
 - Regression coverage includes NSNumber sender IDs, non-square image frames,
   repeated adjustment, unchanged native frames, and unexpected tuple spans.
-- Device-confirmed in dev.7: provider details preview/menu works. TextKit
-  reserves proportional space, but image layers remain square and own sent
-  messages remain text. Dev.8 corrections still need an on-device retest.
+- Device-confirmed on Twitch 30.4.2: incoming static and animated emotes,
+  proportional image widths, own sent emotes, Reload Emotes in Chat Settings,
+  and provider detail sheets.
 
 ## 2.3.0-dev.7 (development; corrections from device diagnostics)
 

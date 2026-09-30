@@ -4,18 +4,16 @@ A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
-The published 2.2.1 sideload and jailbreak builds came from the same
-checked-in R5 source. The current development source is 2.3.0-dev.8 and adds
-an optional third-party emote integration.
+The 2.3.0 sideload and jailbreak builds come from the same checked-in source.
+This release adds optional third-party emotes and their native chat integration.
 
 ## Status
 
-- Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
-- Development source: **2.3.0-dev.8** (provider image frames and sender ID correction)
+- Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
+- Release source: **2.3.0** (third-party emotes and native chat integration)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
-  - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
-    its source-built replacement is not yet device-tested.
+  - Third-party emotes were device-confirmed on an iPhone 16 Pro running iOS 18.2 with dev.8; 2.3.0 contains that tested code with final version metadata.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -34,7 +32,7 @@ Amazon IVS behavior without notice.
   PiP player and muted profile previews.
 - Adds an Ad Block settings page with opt-in, sanitized diagnostics.
 
-### Third-party emotes (development source, not in the 2.2.1 release)
+### Third-party emotes (2.3.0)
 
 The shared source now includes optional 7TV, BTTV, and FFZ global and channel
 emotes for chat messages. Open **Profile → Settings → Ad Block** to
@@ -52,15 +50,12 @@ names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 
-Incoming static and animated emotes were device-confirmed in dev.5, the
-scrolling Reload Emotes row in dev.6, and provider tap details in dev.7.
-The detail sheet has a preview, provider/scope, available creator credit,
-Copy name, Copy image URL, and Open in browser. Dev.7 also reserves proportional
-text space, but its image layers remain square and own sent emotes remain text.
-Dev.8 corrects provider image-layer frames and accepts Twitch's NSNumber sender
-ID bridge before local token conversion. These two corrections still need
-an on-device retest on Twitch 30.4.2. Diagnostics record delivery, sizing,
-image-layer, and tap activity without retaining chat text or image URLs.
+Incoming static and animated emotes, the scrolling Reload Emotes row, provider
+tap details, proportional image widths, and emotes in your own sent messages
+were all device-confirmed on Twitch 30.4.2. The detail sheet has a preview,
+provider/scope, available creator credit, Copy name, Copy image URL, and Open in
+browser. Diagnostics record delivery, sizing, image-layer, and tap activity
+without retaining chat text or image URLs.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle
@@ -96,7 +91,7 @@ diagnostic report from the same page.
 
 ## Install from a release
 
-For 2.2.1, download its IPA and sign it with your sideloading tool. The manual
+Download the 2.3.0 IPA and sign it with your sideloading tool. The manual
 patching instructions below use the same source-built framework as that IPA.
 
 Requirements:

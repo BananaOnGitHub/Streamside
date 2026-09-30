@@ -23,10 +23,11 @@ extern id objc_retain(id);
 extern void objc_release(id);
 extern id objc_getAssociatedObject(id, const void *);
 extern void objc_setAssociatedObject(id, const void *, id, uintptr_t);
-static IMP g_send, g_size, g_base_size, g_bounds, g_set_bounds, g_tap;
+static IMP g_receive, g_size, g_base_size, g_bounds, g_set_bounds, g_textkit_bounds, g_chat_textkit_bounds, g_tap;
 static Class g_details_class;
-static char g_metadata_key;
-static uint64_t g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
+static char g_metadata_key, g_snapshot_message_key;
+static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
+static uint64_t g_size_calls, g_bounds_calls, g_textkit_calls, g_resolved_ids;
 #define INC(x) ((void)__atomic_add_fetch(&(x), 1, __ATOMIC_RELAXED))
 #define GET(x) __atomic_load_n(&(x), __ATOMIC_RELAXED)
 static id m0(id o, const char *s) { return ((id (*)(id,SEL))objc_msgSend)(o, sel_registerName(s)); }
@@ -46,6 +47,9 @@ static id object_ivar(id o, const char *name) {
     return result;
 }
 static uint64_t synthetic_id(id value) {
+    /* Twitch stores TWMessageEmoteToken objects in emoteLocationsMap. Read
+     * their exported getter; their ivars contain Swift strings, not objects. */
+    if (responds(value,"emoteId")) value = m0(value,"emoteId");
     if (!kind(value,"NSString") && !kind(value,"NSNumber")) return 0;
     const char *s = ((const char *(*)(id,SEL))objc_msgSend)(m0(value,"description"),sel_registerName("UTF8String"));
     if (!s || *s != '9') return 0;
@@ -76,70 +80,132 @@ static Size proportional(Size size, uint64_t number) {
 static uint64_t message_id_at(id message, NSInteger index) {
     if (!responds(message,"emoteLocationsMap")) return 0;
     id number = ((id (*)(id,SEL,NSInteger))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithInteger:"),index);
-    return synthetic_id(m1(m0(message,"emoteLocationsMap"),"objectForKey:",number));
+    uint64_t result = synthetic_id(m1(m0(message,"emoteLocationsMap"),"objectForKey:",number));
+    if (result) INC(g_resolved_ids);
+    return result;
 }
 static Size message_size(id self, SEL sel, NSInteger index) {
+    INC(g_size_calls);
     Size size = ((Size (*)(id,SEL,NSInteger))g_size)(self,sel,index);
     return proportional(size,message_id_at(self,index));
 }
 static Size base_message_size(id self, SEL sel, NSInteger index) {
+    INC(g_size_calls);
     Size size = ((Size (*)(id,SEL,NSInteger))g_base_size)(self,sel,index);
     return proportional(size,message_id_at(self,index));
 }
 static Rect attachment_bounds(id self, SEL sel) {
+    INC(g_bounds_calls);
     Rect rect = ((Rect (*)(id,SEL))g_bounds)(self,sel);
     rect.size = proportional(rect.size,attachment_id(self)); return rect;
 }
 static void attachment_set_bounds(id self, SEL sel, Rect rect) {
+    INC(g_bounds_calls);
     rect.size = proportional(rect.size,attachment_id(self));
     ((void (*)(id,SEL,Rect))g_set_bounds)(self,sel,rect);
 }
-/* Only append names actually used in this outgoing message, and never replace
- * Twitch's existing emote definitions. The message content is passed unchanged. */
-static BOOL native_name(id sets, id name) {
-    for (NSUInteger s = 0; s < count(sets); s++) {
-        id set = at(sets,s); if (!responds(set,"emotes")) continue;
-        id emotes = m0(set,"emotes"); if (!kind(emotes,"NSArray")) continue;
-        for (NSUInteger i = 0; i < count(emotes); i++) {
-            id emote = at(emotes,i); if (!responds(emote,"token")) continue;
-            id token = m0(emote,"token");
-            if (responds(token,"exact") && ((BOOL (*)(id,SEL,id))objc_msgSend)(m0(token,"exact"),sel_registerName("isEqualToString:"),name)) return YES;
-            if (responds(token,"regex")) {
-                id pattern = m0(token,"regex");
-                if (kind(pattern,"NSString")) {
-                    id regex = ((id (*)(id,SEL,id,NSUInteger,id))objc_msgSend)((id)objc_getClass("NSRegularExpression"),sel_registerName("regularExpressionWithPattern:options:error:"),pattern,(NSUInteger)0,nil);
-                    NSUInteger length = ((NSUInteger (*)(id,SEL))objc_msgSend)(name,sel_registerName("length"));
-                    Range range = ((Range (*)(id,SEL,id,NSUInteger,Range))objc_msgSend)(regex,sel_registerName("rangeOfFirstMatchInString:options:range:"),name,(NSUInteger)0,(Range){0,length});
-                    if (range.location == 0 && range.length == length) return YES;
+/* Swift calls its sizing routines directly, bypassing their ObjC bridges.
+ * TextKit dispatches this attachment callback through Objective-C. Scope the
+ * fallback to Twitch's layout manager (and our independent tap snapshot). */
+static Rect textkit_bounds_with(IMP original, id self, SEL sel, id container, Rect fragment, Point position, NSUInteger index) {
+    Rect rect = ((Rect (*)(id,SEL,id,Rect,Point,NSUInteger))original)(self,sel,container,fragment,position,index);
+    id manager = responds(container,"layoutManager") ? m0(container,"layoutManager") : nil;
+    id message = objc_getAssociatedObject(manager,&g_snapshot_message_key);
+    if (!message && kind(manager,"_TtC6Twitch26MessageStringLayoutManager"))
+        message = object_ivar(manager,"messageString");
+    if (!message) return rect;
+    INC(g_textkit_calls);
+    uint64_t number = message_id_at(message,(NSInteger)index);
+    if (number) rect.size = proportional(rect.size,number);
+    return rect;
+}
+
+static Rect textkit_bounds(id self, SEL sel, id container, Rect fragment, Point position, NSUInteger index) {
+    return textkit_bounds_with(g_textkit_bounds,self,sel,container,fragment,position,index);
+}
+static Rect chat_textkit_bounds(id self, SEL sel, id container, Rect fragment, Point position, NSUInteger index) {
+    return textkit_bounds_with(g_chat_textkit_bounds,self,sel,container,fragment,position,index);
+}
+
+/* The chat manager delivers its locally generated messages through this
+ * native delegate callback. Kotlin's constructor bridge is never used by
+ * Kotlin itself. Build new tokens without changing the content sent to IRC. */
+typedef struct { uint32_t a, b, c, d; } AutoModFlags;
+static id substring(id value, Range range) {
+    return ((id (*)(id,SEL,Range))objc_msgSend)(value,sel_registerName("substringWithRange:"),range);
+}
+static void append_text(id output, id original, id text, Range range) {
+    if (!range.length) return;
+    AutoModFlags flags = ((AutoModFlags (*)(id,SEL))objc_msgSend)(original,sel_registerName("autoModFlags"));
+    id token = ((id (*)(id,SEL,id,AutoModFlags))objc_msgSend)(m0((id)object_getClass(original),"alloc"),sel_registerName("initWithText:autoModFlags:"),substring(text,range),flags);
+    if (token) { v1(output,"addObject:",token); objc_release(token); }
+}
+static id rewrite_local_message(id message, id room, uint32_t user) {
+    if (!kind(message,"_TtC9TwitchKit13TWChatMessage") || !responds(message,"senderId")) return nil;
+    id sender = m0(message,"senderId");
+    if (!kind(sender,"NSString") || ((uint64_t (*)(id,SEL))objc_msgSend)(sender,sel_registerName("longLongValue")) != user) return nil;
+    INC(g_sent_calls);
+    id tokens = m0(message,"messageTokens"); if (!kind(tokens,"NSArray")) return nil;
+    id output = m0((id)objc_getClass("NSMutableArray"),"array");
+    Class text_class = objc_getClass("_TtC9TwitchKit18TWMessageTextToken");
+    id whitespace = m0((id)objc_getClass("NSCharacterSet"),"whitespaceAndNewlineCharacterSet");
+    NSUInteger hits = 0;
+    for (NSUInteger i = 0; i < count(tokens); i++) {
+        id token = at(tokens,i);
+        /* Preserve native emote/mention/URL/censored token objects unchanged. */
+        if (object_getClass(token) != text_class) { v1(output,"addObject:",token); continue; }
+        id text = m0(token,"text"), matches = tas_emotes_local_matches_copy(room,text);
+        if (!matches || !count(matches)) { v1(output,"addObject:",token); if (matches) objc_release(matches); continue; }
+        NSUInteger length = ((NSUInteger (*)(id,SEL))objc_msgSend)(text,sel_registerName("length"));
+        NSUInteger start = 0, pending = 0;
+        while (start < length) {
+            Range separator = ((Range (*)(id,SEL,id,NSUInteger,Range))objc_msgSend)(text,sel_registerName("rangeOfCharacterFromSet:options:range:"),whitespace,(NSUInteger)0,(Range){start,length-start});
+            NSUInteger end = separator.location < length ? separator.location : length;
+            if (end > start) {
+                id name = substring(text,(Range){start,end-start}), number = m1(matches,"objectForKey:",name);
+                if (synthetic_id(number)) {
+                    append_text(output,token,text,(Range){pending,start-pending});
+                    id emote = ((id (*)(id,SEL,id,id))objc_msgSend)(m0((id)objc_getClass("_TtC9TwitchKit19TWMessageEmoteToken"),"alloc"),sel_registerName("initWithEmoteId:emoteText:"),number,name);
+                    if (emote) { v1(output,"addObject:",emote); objc_release(emote); hits++; pending = end; }
                 }
             }
+            start = end < length ? end + 1 : length;
         }
+        append_text(output,token,text,(Range){pending,length-pending}); objc_release(matches);
     }
-    return NO;
-}
-static id send_message(id self, SEL sel, id user, id username, id channel, id content,
-                        id sets, id badges, id reply, id info, id message, id nonce) {
-    INC(g_sent_calls);
-    id matches = tas_emotes_local_matches_copy(channel,content), augmented = nil;
-    if (matches && kind(sets,"NSArray") && count(matches)) {
-        id emotes = m0((id)objc_getClass("NSMutableArray"),"array");
-        id names = m0(matches,"allKeys"), empty = m0((id)objc_getClass("NSArray"),"array");
-        for (NSUInteger i = 0; i < count(names); i++) {
-            id name = at(names,i); if (native_name(sets,name)) continue;
-            id token = m1(m0((id)objc_getClass("KMPMCEmoteTokenExact"),"alloc"),"initWithExact:",name);
-            id emote = ((id (*)(id,SEL,id,id,id))objc_msgSend)(m0((id)objc_getClass("KMPMCEmote"),"alloc"),sel_registerName("initWithId:token:modifiers:"),m1(matches,"objectForKey:",name),token,empty);
-            if (emote) { v1(emotes,"addObject:",emote); INC(g_sent_matches); objc_release(emote); }
-            if (token) objc_release(token);
-        }
-        if (count(emotes)) {
-            id set = ((id (*)(id,SEL,id,id,id))objc_msgSend)(m0((id)objc_getClass("KMPMCEmoteSet"),"alloc"),sel_registerName("initWithId:emotes:ownerDisplayName:"),string("tas-third-party"),emotes,nil);
-            if (set) { augmented = m0(sets,"mutableCopy"); v1(augmented,"addObject:",set); objc_release(set); }
-        }
+    if (!hits) return nil;
+    /* TKIdentity is the ObjC name of Swift_Deprecated_Identity. Construct it
+     * through its bridge instead of interpreting the message's Swift struct. */
+    id identity = ((id (*)(id,SEL,uint32_t,id,id))objc_msgSend)(m0((id)objc_getClass("TKIdentity"),"alloc"),sel_registerName("initWithId:name:synthesizedDisplayName:"),user,m0(message,"senderName"),m0(message,"senderDisplayName"));
+    if (!identity) return nil;
+    uint64_t flags = ((uint64_t (*)(id,SEL))objc_msgSend)(message,sel_registerName("flags"));
+    NSInteger kind_value = ((NSInteger (*)(id,SEL))objc_msgSend)(message,sel_registerName("kind"));
+    uint64_t modes = ((uint64_t (*)(id,SEL))objc_msgSend)(message,sel_registerName("userModes"));
+    id result = ((id (*)(id,SEL,id,id,id,id,id,id,id,uint64_t,NSInteger,uint64_t,id,id))objc_msgSend)(m0((id)object_getClass(message),"alloc"),sel_registerName("initWithTokens:senderIdentity:badges:date:messageID:liveMessageID:color:flags:kind:userModes:messageType:messageTags:"),output,identity,m0(message,"badges"),m0(message,"date"),m0(message,"messageID"),m0(message,"liveMessageID"),m0(message,"color"),flags,kind_value,modes,m0(message,"messageType"),m0(message,"messageTags"));
+    objc_release(identity);
+    if (result) {
+        BOOL historical = ((BOOL (*)(id,SEL))objc_msgSend)(message,sel_registerName("isHistoricalMessage"));
+        ((void (*)(id,SEL,BOOL))objc_msgSend)(result,sel_registerName("setIsHistoricalMessage:"),historical);
+        __atomic_add_fetch(&g_sent_matches,hits,__ATOMIC_RELAXED);
     }
-    id result = ((id (*)(id,SEL,id,id,id,id,id,id,id,id,id,id))g_send)(self,sel,user,username,channel,content,augmented ?: sets,badges,reply,info,message,nonce);
-    if (augmented) objc_release(augmented);
-    if (matches) objc_release(matches);
     return result;
+}
+static void receive_messages(id self, SEL sel, id manager, id messages, uint32_t user, uint32_t channel) {
+    INC(g_receive_calls);
+    id rewritten = nil;
+    if (user && kind(messages,"NSArray")) {
+        char room_number[16]; snprintf(room_number,sizeof(room_number),"%u",channel);
+        id room = string(room_number);
+        for (NSUInteger i = 0; i < count(messages); i++) {
+            id replacement = rewrite_local_message(at(messages,i),room,user);
+            if (!replacement) continue;
+            if (!rewritten) rewritten = m0(messages,"mutableCopy");
+            ((void (*)(id,SEL,NSUInteger,id))objc_msgSend)(rewritten,sel_registerName("replaceObjectAtIndex:withObject:"),i,replacement);
+            objc_release(replacement);
+        }
+    }
+    ((void (*)(id,SEL,id,id,uint32_t,uint32_t))g_receive)(self,sel,manager,rewritten ?: messages,user,channel);
+    if (rewritten) objc_release(rewritten);
 }
 
 static IMP g_details_load;
@@ -290,6 +356,7 @@ static uint64_t tapped_emote(id self, id gesture) {
     if (point.x < 0 || point.y < 0 || point.x >= bounds.size.width || point.y >= bounds.size.height) return 0;
     id storage = m1(m0((id)objc_getClass("NSTextStorage"),"alloc"),"initWithAttributedString:",attributed);
     id manager = m0((id)objc_getClass("NSLayoutManager"),"new");
+    objc_setAssociatedObject(manager,&g_snapshot_message_key,message,1);
     id container = ((id (*)(id,SEL,Size))objc_msgSend)(m0((id)objc_getClass("NSTextContainer"),"alloc"),sel_registerName("initWithSize:"),bounds.size);
     ((void (*)(id,SEL,CGFloat))objc_msgSend)(container,sel_registerName("setLineFragmentPadding:"),(CGFloat)0);
     v1(manager,"addTextContainer:",container); v1(storage,"addLayoutManager:",manager);
@@ -322,12 +389,12 @@ static BOOL hook(Class cls, const char *name, unsigned int arguments, IMP replac
 }
 void tas_emote_ui_retry_hooks(void) {
     if (!tas_emotes_enabled_this_launch()) return;
-    /* KMP classes export these selectors dynamically at framework startup. */
-    Class emote = objc_getClass("KMPMCEmote"), token = objc_getClass("KMPMCEmoteTokenExact"), set = objc_getClass("KMPMCEmoteSet");
-    if (class_getInstanceMethod(emote,sel_registerName("initWithId:token:modifiers:")) &&
-        class_getInstanceMethod(token,sel_registerName("initWithExact:")) &&
-        class_getInstanceMethod(set,sel_registerName("initWithId:emotes:ownerDisplayName:")))
-        hook(objc_getClass("KMPMCIrcSendMessageChannel"),"initWithUserId:username:channel:content:userEmoteSets:badgesTag:reply:chatUserInfo:messageId:clientNonce:",12,(IMP)send_message,&g_send);
+    Class identity = objc_getClass("TKIdentity"), text_token = objc_getClass("_TtC9TwitchKit18TWMessageTextToken");
+    if (class_getInstanceMethod(identity,sel_registerName("initWithId:name:synthesizedDisplayName:")) &&
+        class_getInstanceMethod(text_token,sel_registerName("initWithText:autoModFlags:")))
+        hook(objc_getClass("_TtC6Twitch20TwitchChatController"),"chatManager:receivedMessages:for:on:",6,(IMP)receive_messages,&g_receive);
+    hook(objc_getClass("_TtC6Twitch19ChatEmoteAttachment"),"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:",6,(IMP)chat_textkit_bounds,&g_chat_textkit_bounds);
+    hook(objc_getClass("NSTextAttachment"),"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:",6,(IMP)textkit_bounds,&g_textkit_bounds);
     hook(objc_getClass("_TtC6Twitch17ChatMessageString"),"sizeOfImageAttachmentAtCharacterIndex:",3,(IMP)message_size,&g_size);
     hook(objc_getClass("_TtC6Twitch13MessageString"),"sizeOfImageAttachmentAtCharacterIndex:",3,(IMP)base_message_size,&g_base_size);
     hook(objc_getClass("_TtC6Twitch32MessageStringImageDataAttachment"),"bounds",2,(IMP)attachment_bounds,&g_bounds);
@@ -338,10 +405,13 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
     if (!buffer || !capacity) return;
     snprintf(buffer,capacity,
         "\nEmote UI (this launch)\n"
-        "Hooks (sent/chat size/base size/bounds/tap): %s/%s/%s/%s/%s\n"
-        "Local message calls/matched emotes: %llu/%llu\n"
+        "Hooks (local delivery/chat size/base size/bounds/TextKit/tap): %s/%s/%s/%s/%s/%s\n"
+        "Native delivery callbacks/local messages/matched emotes: %llu/%llu/%llu\n"
+        "Sizing calls (message/attachment/TextKit)/resolved IDs: %llu/%llu/%llu/%llu\n"
         "Proportional sizes/taps/provider sheets: %llu/%llu/%llu\n"
         "Tap snapshots/provider hits: %llu/%llu\n",
-        g_send ? "installed" : "missing",g_size ? "installed" : "missing",g_base_size ? "installed" : "missing",g_bounds && g_set_bounds ? "installed" : "missing",g_tap ? "installed" : "missing",
-        (unsigned long long)GET(g_sent_calls),(unsigned long long)GET(g_sent_matches),(unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits));
+        g_receive ? "installed" : "missing",g_size ? "installed" : "missing",g_base_size ? "installed" : "missing",g_bounds && g_set_bounds ? "installed" : "missing",g_textkit_bounds && g_chat_textkit_bounds ? "installed" : "missing",g_tap ? "installed" : "missing",
+        (unsigned long long)GET(g_receive_calls),(unsigned long long)GET(g_sent_calls),(unsigned long long)GET(g_sent_matches),
+        (unsigned long long)GET(g_size_calls),(unsigned long long)GET(g_bounds_calls),(unsigned long long)GET(g_textkit_calls),(unsigned long long)GET(g_resolved_ids),
+        (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits));
 }

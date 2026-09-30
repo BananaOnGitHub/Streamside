@@ -26,6 +26,11 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.3.0-dev.2 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Adds emote transport/provider and chat-menu counters, hooks inherited WebSocket receive implementations, and recognizes ChatSettingsController sheets without relying on the exact title. |
 | 2.3.0-dev.3 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Instruments image response outcomes and the chat settings button/presentation path after dev.2 confirmed frame and URL rewriting but no menu hook activity. |
 
+| 2.3.0-dev.4 | 2026-09-29 | VAFT solution 24 plus optional emotes | Exact development source | Added provider image outcomes and native chat-menu tracing. |
+| 2.3.0-dev.5 | 2026-09-29 | VAFT solution 24 plus optional emotes | Incoming emotes device-confirmed | Added punctuation matching and an initial chat-menu reload button. |
+| 2.3.0-dev.6 | 2026-09-29 | VAFT solution 24 plus optional emotes | Menu row device-confirmed; new emote UI failed | Added proportions, local tokenizer hook, and provider detail sheets. Diagnostics showed zero local calls, sizing adjustments, and tap hits. |
+| 2.3.0-dev.7 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact development source; device retest pending | Corrects token-object lookup, covers TextKit attachment callbacks, and rewrites local messages at native delivery. |
+
 ## Binary evidence
 
 All historical test IPAs used the same Twitch 30.4.2 main executable. Only the

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.3.0-dev.7 (development; corrections from device diagnostics)
+
+- Resolve emote-map values through TWMessageEmoteToken.emoteId, fixing the
+  shared lookup used by proportional sizing and provider tap details.
+- Cover native and base TextKit attachment callbacks; Swift can bypass
+  Objective-C sizing bridges. Keep this fallback scoped to Twitch chat.
+- Replace the uncalled Kotlin send-constructor hook with the native chat
+  delivery callback. Convert provider words in the current user's text tokens
+  while preserving native tokens, message IDs, tags, replies, and badges.
+- Separate delivery and sizing invocation counters from successful matches.
+- Device-confirmed in dev.6: scrolling Reload Emotes row works. Incoming
+  provider fetches and images succeeded; own sends, proportions, and taps
+  failed. The dev.7 corrections still need an on-device retest.
+
 ## 2.3.0-dev.6 (development; emote UI and local messages)
 
 - Preserve provider emote proportions in message sizing and native attachments.

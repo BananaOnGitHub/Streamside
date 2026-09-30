@@ -9,6 +9,8 @@
  */
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
+#include "TASEmoteFetch.h"
+#include "TASDiagnostics.h"
 
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -25,13 +27,12 @@ typedef long NSInteger;
 #define EMOTE_KEY "TASThirdPartyEmotesEnabled"
 #define MAX_ROOMS 6
 #define MAX_GLOBAL 2500
-#define MAX_ROOM 1500
+#define MAX_ROOM TAS_EMOTE_MAX_ROOM
 #define MAX_HISTORY 3000
 #define ROOM_IDLE_SECONDS 1200
 #define HISTORY_SECONDS 2700
 #define RETRY_SECONDS 60
 #define MAX_FRAME 65536
-#define MAX_API_BYTES (2 * 1024 * 1024)
 #define FAKE_ID_START 9000000000ULL
 
 extern id objc_retain(id object);
@@ -127,6 +128,8 @@ static uint64_t g_image_http_ok, g_image_http_error, g_image_transport_error;
 static uint64_t g_image_empty, g_image_gif, g_image_webp, g_image_other;
 static uint64_t g_fetch_started[3][2], g_fetch_loaded[3][2], g_fetch_failed[3][2];
 static uint64_t g_fetch_http_error[3][2], g_fetch_parse_error[3][2];
+static uint64_t g_fetch_transport_error[3][2], g_fetch_body_error[3][2], g_fetch_absent[3][2];
+static char g_fetch_last[3][2][160]; /* Status/counts only; never identifiers or URLs. */
 #define PROBE_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
 #define PROBE_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 
@@ -407,6 +410,56 @@ static bool parse_provider_locked(Room *room, id root, unsigned char provider, b
     return true;
 }
 
+/* All exits release pending state, including an unavailable session/task. */
+static void finish_provider(id room_string, uint64_t generation, unsigned char provider,
+                            NSInteger status, NSUInteger bytes, NSInteger error_code,
+                            TASEmoteFetchResult result, id parsed) {
+    int scope = room_string ? 1 : 0;
+    char detail[256];
+    bool current = false;
+    pthread_mutex_lock(&g_emote_lock);
+    const char *room_copy = text(room_string);
+    Room *room = room_copy ? NULL : &g_global;
+    if (room_copy) for (size_t i = 0; i < MAX_ROOMS; i++)
+        if (g_rooms[i].occupied && strcmp(g_rooms[i].id, room_copy) == 0) room = &g_rooms[i];
+    if (room && room->generation == generation) {
+        current = true;
+        room->pending[provider] = false;
+        if (result == TAS_FETCH_READY) {
+            if (!parsed) result = TAS_FETCH_JSON;
+            else if (!parse_provider_locked(room, parsed, provider, !scope)) result = TAS_FETCH_SCHEMA;
+        }
+        room->loaded[provider] = result == TAS_FETCH_READY || result == TAS_FETCH_ABSENT;
+        if (room->loaded[provider]) {
+            PROBE_INC(g_fetch_loaded[provider][scope]);
+            if (result == TAS_FETCH_ABSENT) PROBE_INC(g_fetch_absent[provider][scope]);
+            room->failures[provider] = 0;
+        } else {
+            PROBE_INC(g_fetch_failed[provider][scope]);
+            if (result == TAS_FETCH_HTTP) PROBE_INC(g_fetch_http_error[provider][scope]);
+            else if (result == TAS_FETCH_JSON || result == TAS_FETCH_SCHEMA)
+                PROBE_INC(g_fetch_parse_error[provider][scope]);
+            else if (result == TAS_FETCH_TRANSPORT || result == TAS_FETCH_UNAVAILABLE)
+                PROBE_INC(g_fetch_transport_error[provider][scope]);
+            else PROBE_INC(g_fetch_body_error[provider][scope]);
+            if (room->failures[provider] < 5) room->failures[provider]++;
+        }
+        size_t entries = 0;
+        for (size_t i = 0; i < room->size; i++)
+            if (room->items[i].provider == provider) entries++;
+        snprintf(g_fetch_last[provider][scope], sizeof(g_fetch_last[provider][scope]),
+                 "status=%ld bytes=%lu error=%ld result=%s entries=%zu",
+                 (long)status, (unsigned long)bytes, (long)error_code,
+                 tas_emote_fetch_result_name(result), entries);
+        const char *providers[] = {"7TV", "BTTV", "FFZ"};
+        snprintf(detail, sizeof(detail), "provider=%s scope=%s %s", providers[provider],
+                 scope ? "channel" : "global", g_fetch_last[provider][scope]);
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    /* Log after unlocking: diagnostics never sees API bodies or room IDs. */
+    if (current) tas_diag_log("EMOTE_FETCH", detail);
+}
+
 static void fetch_provider(const char *room_id, uint64_t generation, unsigned char provider) {
     int scope = room_id ? 1 : 0;
     PROBE_INC(g_fetch_started[provider][scope]);
@@ -425,62 +478,28 @@ static void fetch_provider(const char *room_id, uint64_t generation, unsigned ch
     id room_string = room_id ? str(room_id) : nil;
     id session = call0((id)objc_getClass("NSURLSession"), "sharedSession");
     id endpoint = call1((id)objc_getClass("NSURL"), "URLWithString:", str(url));
-    if (!session || !endpoint) return;
+    if (!session || !endpoint) {
+        finish_provider(room_string, generation, provider, 0, 0, 0, TAS_FETCH_UNAVAILABLE, nil);
+        return;
+    }
     id task = ((id (*)(id, SEL, id, id))objc_msgSend)(
         session, sel_registerName("dataTaskWithURL:completionHandler:"), endpoint,
         (id)^(id data, id response, id error) {
             id parsed = nil;
-            NSInteger status = response ? ((NSInteger (*)(id, SEL))objc_msgSend)(
-                response, sel_registerName("statusCode")) : 0;
-            bool absent = !error && status == 404;
-            bool okay = !error && data &&
-                ((NSUInteger (*)(id, SEL))objc_msgSend)(data, sel_registerName("length")) <= MAX_API_BYTES &&
-                status == 200;
-            if (okay) {
+            NSInteger status = kind(response, "NSHTTPURLResponse")
+                ? ((NSInteger (*)(id, SEL))objc_msgSend)(response, sel_registerName("statusCode")) : 0;
+            NSUInteger bytes = kind(data, "NSData")
+                ? ((NSUInteger (*)(id, SEL))objc_msgSend)(data, sel_registerName("length")) : 0;
+            NSInteger code = error ? ((NSInteger (*)(id, SEL))objc_msgSend)(error, sel_registerName("code")) : 0;
+            TASEmoteFetchResult result = tas_emote_fetch_result(status, bytes, error != nil, !scope);
+            if (result == TAS_FETCH_READY)
                 parsed = ((id (*)(id, SEL, id, NSUInteger, id *))objc_msgSend)(
                     (id)objc_getClass("NSJSONSerialization"), sel_registerName("JSONObjectWithData:options:error:"),
                     data, (NSUInteger)0, NULL);
-                okay = parsed != nil;
-            }
-            pthread_mutex_lock(&g_emote_lock);
-            const char *room_copy = text(room_string);
-            Room *room = room_copy ? NULL : &g_global;
-            if (room_copy) {
-                for (size_t i = 0; i < MAX_ROOMS; i++)
-                    if (g_rooms[i].occupied && strcmp(g_rooms[i].id, room_copy) == 0) {
-                        room = &g_rooms[i];
-                        break;
-                    }
-            }
-            if (room && room->generation == generation) {
-                room->pending[provider] = false;
-                room->loaded[provider] = absent ||
-                    (okay && parse_provider_locked(room, parsed, provider, !room_copy));
-                if (room->loaded[provider]) PROBE_INC(g_fetch_loaded[provider][scope]);
-                else {
-                    PROBE_INC(g_fetch_failed[provider][scope]);
-                    if (!okay) PROBE_INC(g_fetch_http_error[provider][scope]);
-                    else PROBE_INC(g_fetch_parse_error[provider][scope]);
-                }
-                if (room->loaded[provider]) room->failures[provider] = 0;
-                else if (room->failures[provider] < 5) room->failures[provider]++;
-            }
-            pthread_mutex_unlock(&g_emote_lock);
+            finish_provider(room_string, generation, provider, status, bytes, code, result, parsed);
         });
     if (task) call0(task, "resume");
-    else {
-        PROBE_INC(g_fetch_failed[provider][scope]);
-        pthread_mutex_lock(&g_emote_lock);
-        const char *room_copy = text(room_string);
-        Room *room = room_copy ? NULL : &g_global;
-        if (room_copy) for (size_t i = 0; i < MAX_ROOMS; i++)
-            if (g_rooms[i].occupied && strcmp(g_rooms[i].id, room_copy) == 0) room = &g_rooms[i];
-        if (room && room->generation == generation) {
-            room->pending[provider] = false;
-            if (room->failures[provider] < 5) room->failures[provider]++;
-        }
-        pthread_mutex_unlock(&g_emote_lock);
-    }
+    else finish_provider(room_string, generation, provider, 0, 0, 0, TAS_FETCH_UNAVAILABLE, nil);
 }
 
 static void ensure_loaded(const char *room_id, bool force) {
@@ -1034,6 +1053,8 @@ void tas_emotes_status(char *buffer, size_t capacity) {
     if (!buffer || !capacity) return;
     pthread_mutex_lock(&g_emote_lock);
     size_t global_count = g_global.size, room_count = 0;
+    char last[3][2][160];
+    memcpy(last, g_fetch_last, sizeof(last));
     for (size_t i = 0; i < MAX_ROOMS; i++) room_count += g_rooms[i].size;
     pthread_mutex_unlock(&g_emote_lock);
     snprintf(buffer, capacity,
@@ -1053,7 +1074,12 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "7TV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
         "BTTV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
         "FFZ fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
-        "Provider failures (HTTP/parse): %llu/%llu, %llu/%llu, %llu/%llu\n",
+        "Provider failures (HTTP/parse): %llu/%llu, %llu/%llu, %llu/%llu\n"
+        "Provider failures (transport/body): %llu/%llu, %llu/%llu, %llu/%llu\n"
+        "Absent channels (7TV/BTTV/FFZ): %llu/%llu/%llu\n"
+        "7TV last global/channel: %s; %s\n"
+        "BTTV last global/channel: %s; %s\n"
+        "FFZ last global/channel: %s; %s\n",
         g_enabled ? "yes" : "no", g_public_receive ? "installed" : "missing",
         g_private_receive ? "installed" : "missing",
         g_private_request ? "installed" : "missing",
@@ -1102,5 +1128,17 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)(PROBE_GET(g_fetch_http_error[1][0]) + PROBE_GET(g_fetch_http_error[1][1])),
         (unsigned long long)(PROBE_GET(g_fetch_parse_error[1][0]) + PROBE_GET(g_fetch_parse_error[1][1])),
         (unsigned long long)(PROBE_GET(g_fetch_http_error[2][0]) + PROBE_GET(g_fetch_http_error[2][1])),
-        (unsigned long long)(PROBE_GET(g_fetch_parse_error[2][0]) + PROBE_GET(g_fetch_parse_error[2][1])));
+        (unsigned long long)(PROBE_GET(g_fetch_parse_error[2][0]) + PROBE_GET(g_fetch_parse_error[2][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_transport_error[0][0]) + PROBE_GET(g_fetch_transport_error[0][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_body_error[0][0]) + PROBE_GET(g_fetch_body_error[0][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_transport_error[1][0]) + PROBE_GET(g_fetch_transport_error[1][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_body_error[1][0]) + PROBE_GET(g_fetch_body_error[1][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_transport_error[2][0]) + PROBE_GET(g_fetch_transport_error[2][1])),
+        (unsigned long long)(PROBE_GET(g_fetch_body_error[2][0]) + PROBE_GET(g_fetch_body_error[2][1])),
+        (unsigned long long)PROBE_GET(g_fetch_absent[0][1]),
+        (unsigned long long)PROBE_GET(g_fetch_absent[1][1]),
+        (unsigned long long)PROBE_GET(g_fetch_absent[2][1]),
+        last[0][0][0] ? last[0][0] : "none", last[0][1][0] ? last[0][1] : "none",
+        last[1][0][0] ? last[1][0] : "none", last[1][1][0] ? last[1][1] : "none",
+        last[2][0][0] ? last[2][0] : "none", last[2][1][0] ? last[2][1] : "none");
 }

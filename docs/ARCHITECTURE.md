@@ -81,7 +81,11 @@ channel sets when its room ID is observed in chat.
 
 Global and per-room name maps are distinct. Channel names win over global
 names, with 7TV, then BTTV, then FFZ breaking provider collisions. Six room
-maps are retained, with per-room and global entry caps. Inactive rooms expire
+maps are retained, with up to 4,000 names per room and 2,500 globally. Provider
+JSON is parsed only for nonempty HTTP 200 responses up to 8 MiB. Diagnostics
+separate HTTP, transport, empty/oversized body, JSON and schema failures, and
+normal channel 404 responses; only status, byte and entry counts are recorded.
+Inactive rooms expire
 after 20 minutes; evicted synthetic IDs are kept for at most 45 minutes and
 3,000 entries to let recently visible chat cells redraw. Failed fetches back
 off from 60 seconds to eight minutes. Reload invalidates pending responses and refetches

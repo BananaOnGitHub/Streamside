@@ -2,6 +2,14 @@
 
 ## 2.3.1 (prepared; not published)
 
+- Accept bounded provider responses up to 8 MiB and retain up to 4,000 emotes
+  per channel. Live 7TV channel sets exceeded the old 2 MiB response limit;
+  valid HTTP 200 responses were discarded before parsing. Separate HTTP,
+  transport, body-size/empty, JSON/schema failures, and absent channels in
+  diagnostics, with status/byte/entry counts and no channel IDs or API bodies.
+- Clear pending fetch state even when session or task creation fails, so the
+  existing retry path can recover. Test both large channel responses and
+  response-limit/error boundaries. Candidate bundle build is `2.3.1.2`.
 - Replace the active sideload loader, install name, signing identifier, and
   bundle metadata with `Streamside.framework/Streamside`. Initialization still
   uses the native C constructor; no donor runtime or filename is required.

@@ -32,7 +32,7 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.3.0-dev.7 | 2026-09-30 | VAFT solution 24 plus optional emotes | Provider tap details device-confirmed; spacing corrected but images stay square | Corrects token-object lookup and TextKit spacing. Local-message filtering rejects NSNumber sender IDs, so own messages remain text. |
 | 2.3.0-dev.8 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact development source; device-confirmed | Accepts NSNumber sender IDs and corrects separate provider image-layer frames, with scoped layout recovery and counters. |
 | 2.3.0 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact checked-in source; final IPA packaging differs from working dev.8 | Finalizes emotes; later loader investigation found lost segment normalization in the packaged framework, despite the same main executable. |
-| 2.3.1 prepared | 2026-09-30 | VAFT solution 24 plus optional emotes | Source-built candidate; publication held for approval | Removes the active donor identity in favor of Streamside; enforces 16 KiB geometry, signing metadata, and build-to-package fingerprints. Corrected loader trial launches; newly compiled version requires its own device verification. |
+| 2.3.1 prepared | 2026-09-30 | VAFT solution 24 plus optional emotes | Source-built loader device-confirmed; publication held for approval | Removes the active donor identity in favor of Streamside; enforces 16 KiB geometry, signing metadata, and build-to-package fingerprints. Launches on device. Candidate build 2 raises the provider response/registry limits after live 7TV sets exposed the old 2 MiB rejection; emote fix awaits device verification. |
 
 ## Binary evidence
 

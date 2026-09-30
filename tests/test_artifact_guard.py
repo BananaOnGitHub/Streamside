@@ -272,7 +272,9 @@ class VersionContractTests(unittest.TestCase):
         version = (root / "VERSION").read_text().strip()
         info = plistlib.loads((root / "packaging/StreamsideFramework-Info.plist").read_bytes())
         self.assertEqual(info["CFBundleShortVersionString"], version)
-        self.assertEqual(info["CFBundleVersion"], version + ".1")
+        self.assertTrue(info["CFBundleVersion"].startswith(version + "."))
+        build = info["CFBundleVersion"][len(version) + 1:]
+        self.assertTrue(build.isdecimal() and int(build) > 0)
         self.assertIn(f'#define TAS_REPORT_VERSION "{version}"', (root / "src/TASDiagnostics.c").read_text())
 
 

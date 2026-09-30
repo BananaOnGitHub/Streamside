@@ -46,8 +46,9 @@ message refetches the current channel. It does not clear Twitch's unrelated
 image cache. **Reload Emotes** is intended to appear in the stream's Chat
 Settings sheet and refresh global and current channel definitions.
 
-The module retains at most six recently active channel registries, up to 1,500
+The module retains at most six recently active channel registries, up to 4,000
 names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
+Provider JSON responses are accepted up to 8 MiB, including large 7TV sets.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 

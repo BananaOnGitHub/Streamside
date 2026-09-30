@@ -23,6 +23,7 @@
 #include <time.h>
 
 #include "TASDiagnostics.h"
+#include "TASEmotes.h"
 
 typedef unsigned long NSUInteger;
 typedef long NSInteger;
@@ -602,7 +603,10 @@ static void protocol_start_loading(id self, SEL command) {
 
     id response = nil;
     id error = nil;
+    bool provider_image = original_url && tas_emotes_is_provider_image_url(original_url);
+    if (provider_image) tas_emotes_image_protocol_request();
     id data = synchronous_request(request, &response, &error);
+    if (provider_image) tas_emotes_image_result(data, response, error);
     id output_data = data;
     id output_response = response;
     id rewritten_response = nil;
@@ -653,7 +657,8 @@ static BOOL protocol_can_init(id self, SEL command, id request) {
     if (msg1(request, "valueForHTTPHeaderField:", nsstr(TAS_INTERNAL_HEADER))) return NO;
     id url = msg0(request, "URL");
     const char *absolute = utf8(msg0(url, "absoluteString"));
-    return is_twitch_hls_url(absolute) || is_cached_ad_segment(absolute);
+    return is_twitch_hls_url(absolute) || is_cached_ad_segment(absolute) ||
+           tas_emotes_is_provider_image_url(absolute);
 }
 
 static id protocol_canonical_request(id self, SEL command, id request) {
@@ -1632,18 +1637,31 @@ static id session_with_configuration_delegate_queue(id self, SEL command, id con
 }
 
 static id data_task_with_request(id self, SEL command, id original) {
-    id replacement = normalized_graphql_request_copy(original);
+    id image = tas_emotes_rewrite_request_copy(original);
+    if (image) tas_emotes_image_request(false);
+    id replacement = normalized_graphql_request_copy(image ?: original);
     id task = ((id (*)(id, SEL, id))g_original_data_task_request)(
-        self, command, replacement ?: original);
+        self, command, replacement ?: image ?: original);
     if (replacement) objc_release(replacement);
+    if (image) objc_release(image);
     return task;
 }
 
 static id data_task_with_request_completion(id self, SEL command, id original, id completion) {
-    id replacement = normalized_graphql_request_copy(original);
+    id image = tas_emotes_rewrite_request_copy(original);
+    if (image) tas_emotes_image_request(true);
+    id replacement = normalized_graphql_request_copy(image ?: original);
+    id handler = completion;
+    if (image && completion) {
+        handler = (id)^(id data, id response, id error) {
+            tas_emotes_image_result(data, response, error);
+            ((void (^)(id, id, id))completion)(data, response, error);
+        };
+    }
     id task = ((id (*)(id, SEL, id, id))g_original_data_task_request_completion)(
-        self, command, replacement ?: original, completion);
+        self, command, replacement ?: image ?: original, handler);
     if (replacement) objc_release(replacement);
+    if (image) objc_release(image);
     return task;
 }
 
@@ -1697,6 +1715,7 @@ static void tas_initialize(void) {
     swizzle_method(session, "dataTaskWithRequest:completionHandler:",
                    (IMP)data_task_with_request_completion,
                    &g_original_data_task_request_completion, false);
+    tas_emotes_initialize();
     tas_diagnostics_initialize();
     fprintf(stderr, "[TAS] TwitchAdSolutions VAFT v24 iOS port loaded\n");
 }

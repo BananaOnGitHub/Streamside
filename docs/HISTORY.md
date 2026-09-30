@@ -22,6 +22,16 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.2.1 IPA | 2026-09-28 | VAFT solution 24 | Device-tested binary and exact-input patch script; newer diagnostics source unavailable | Adds R5 opt-in privacy and route diagnostics, clearer copy, and a main Settings button guard. |
 | 2.2.1-jb | 2026-09-28 | VAFT solution 24 | Current source, not device-tested | Packages the main Settings button fix for rootful/rootless jailbreaks. Retains 2.2.0 diagnostics, without R5 route history and labels. |
 | 2.2.1 replacement | 2026-09-28 | VAFT solution 24 | Reconstructed, checked-in source; not device-tested | Replaces both release assets from one source tree with R5 privacy labels, route history, and the Settings guard. |
+| 2.3.0-dev.1 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; not device-tested | Adds bounded 7TV, BTTV, and FFZ chat emote support, a relaunch-gated switch, cache clearing, and chat-menu reload to the shared IPA/jailbreak source. |
+| 2.3.0-dev.2 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Adds emote transport/provider and chat-menu counters, hooks inherited WebSocket receive implementations, and recognizes ChatSettingsController sheets without relying on the exact title. |
+| 2.3.0-dev.3 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Instruments image response outcomes and the chat settings button/presentation path after dev.2 confirmed frame and URL rewriting but no menu hook activity. |
+
+| 2.3.0-dev.4 | 2026-09-29 | VAFT solution 24 plus optional emotes | Exact development source | Added provider image outcomes and native chat-menu tracing. |
+| 2.3.0-dev.5 | 2026-09-29 | VAFT solution 24 plus optional emotes | Incoming emotes device-confirmed | Added punctuation matching and an initial chat-menu reload button. |
+| 2.3.0-dev.6 | 2026-09-30 | VAFT solution 24 plus optional emotes | Menu row device-confirmed; new emote UI failed | Added proportions, local tokenizer hook, and provider detail sheets. Diagnostics showed zero local calls, sizing adjustments, and tap hits. |
+| 2.3.0-dev.7 | 2026-09-30 | VAFT solution 24 plus optional emotes | Provider tap details device-confirmed; spacing corrected but images stay square | Corrects token-object lookup and TextKit spacing. Local-message filtering rejects NSNumber sender IDs, so own messages remain text. |
+| 2.3.0-dev.8 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact development source; fixes confirmed in 2.3.0 device test | Accepts NSNumber sender IDs and corrects separate provider image-layer frames, with scoped layout recovery and counters. |
+| 2.3.0 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact checked-in source; device-confirmed on Twitch 30.4.2 | Finalizes third-party emotes, proportional image widths, own sent-message rendering, reload menu, and provider details. |
 
 ## Binary evidence
 

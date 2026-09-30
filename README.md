@@ -4,17 +4,16 @@ A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
-The 2.2.1 sideload and jailbreak builds are both built from the same
-checked-in source. This restores the R5 privacy labels and route diagnostics
-that were absent from the earlier source-built jailbreak packages.
+The 2.3.0 sideload and jailbreak builds come from the same checked-in source.
+This release adds optional third-party emotes and their native chat integration.
 
 ## Status
 
-- Sideload IPA version: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
+- Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
+- Release source: **2.3.0** (third-party emotes and native chat integration)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
-  - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
-    its source-built replacement is not yet device-tested.
+  - Third-party emotes were device-confirmed on an iPhone 16 Pro running iOS 18.2 with dev.8; 2.3.0 contains that tested code with final version metadata.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -32,6 +31,31 @@ Amazon IVS behavior without notice.
 - Maintains isolated state for simultaneous streams, including Twitch mobile's
   PiP player and muted profile previews.
 - Adds an Ad Block settings page with opt-in, sanitized diagnostics.
+
+### Third-party emotes (2.3.0)
+
+The shared source now includes optional 7TV, BTTV, and FFZ global and channel
+emotes for chat messages. Open **Profile → Settings → Ad Block** to
+enable them, then relaunch Twitch. They are off by default. Turning them off
+and relaunching skips the emote hooks and provider requests altogether.
+
+**Clear Emote Cache** is on the Ad Block page. It discards this module's
+in-memory emote definitions and image-ID mappings; the next incoming chat
+message refetches the current channel. It does not clear Twitch's unrelated
+image cache. **Reload Emotes** is intended to appear in the stream's Chat
+Settings sheet and refresh global and current channel definitions.
+
+The module retains at most six recently active channel registries, up to 1,500
+names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
+Evicted image IDs have a bounded 45-minute grace period to allow existing chat
+cells to redraw. It maintains no separate image files or decoded image cache.
+
+Incoming static and animated emotes, the scrolling Reload Emotes row, provider
+tap details, proportional image widths, and emotes in your own sent messages
+were all device-confirmed on Twitch 30.4.2. The detail sheet has a preview,
+provider/scope, available creator credit, Copy name, Copy image URL, and Open in
+browser. Diagnostics record delivery, sizing, image-layer, and tap activity
+without retaining chat text or image URLs.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle
@@ -52,6 +76,10 @@ playlists, unmapped variants, known ad markers, access-token failures, VAFT
 candidate results, clean swaps, and segment suppression. Channel names and
 URLs are replaced by temporary process-local labels in the log. Route history
 records active and retired matches, generations, and ages for unmapped variants.
+The report also lists emote hook installation, WebSocket frame stages, provider
+fetch outcomes, image response categories, and chat-menu presentation counts. These
+aggregate counters appear even when event logging is off. They do not contain
+chat text or room IDs.
 Logging starts off; URL paths, request headers, access tokens, and manifest
 contents are not written to the diagnostic log. On first load, this version
 deletes the older path-bearing `diagnostics.log`. The new log is capped at
@@ -63,7 +91,7 @@ diagnostic report from the same page.
 
 ## Install from a release
 
-For 2.2.1, download its IPA and sign it with your sideloading tool. The manual
+Download the 2.3.0 IPA and sign it with your sideloading tool. The manual
 patching instructions below use the same source-built framework as that IPA.
 
 Requirements:

@@ -1,5 +1,93 @@
 # Changelog
 
+## 2.3.0 (third-party emotes and native chat integration)
+
+- Accept TWChatMessage.senderId's NSNumber bridge. Dev.7 rejected every
+  local message before token matching because it required NSString.
+- Correct provider ImageAttachmentLayer frames as well as TextKit spacing.
+  Resolve the strong image-data field only after validating the runtime tuple
+  span; scope frame changes to registered synthetic provider image IDs.
+- Add a layer layout fallback and aggregate frame/ID/resize counters.
+- Regression coverage includes NSNumber sender IDs, non-square image frames,
+  repeated adjustment, unchanged native frames, and unexpected tuple spans.
+- Device-confirmed on Twitch 30.4.2: incoming static and animated emotes,
+  proportional image widths, own sent emotes, Reload Emotes in Chat Settings,
+  and provider detail sheets.
+
+## 2.3.0-dev.7 (development; corrections from device diagnostics)
+
+- Resolve emote-map values through TWMessageEmoteToken.emoteId, fixing the
+  shared lookup used by proportional sizing and provider tap details.
+- Cover native and base TextKit attachment callbacks; Swift can bypass
+  Objective-C sizing bridges. Keep this fallback scoped to Twitch chat.
+- Replace the uncalled Kotlin send-constructor hook with the native chat
+  delivery callback. Convert provider words in the current user's text tokens
+  while preserving native tokens, message IDs, tags, replies, and badges.
+- Separate delivery and sizing invocation counters from successful matches.
+- Device-confirmed in dev.6: scrolling Reload Emotes row works. Incoming
+  provider fetches and images succeeded; own sends, proportions, and taps
+  failed. The dev.7 corrections still need an on-device retest.
+
+## 2.3.0-dev.6 (development; emote UI and local messages)
+
+- Preserve provider emote proportions in message sizing and native attachments.
+  Learn dimensions from provider APIs or bounded GIF/PNG/WebP headers.
+- Add channel/global third-party definitions to the local outgoing-message
+  tokenizer while preserving native Twitch emotes and the original message text.
+- Replace the chat settings overlay button with a scrolling Reload Emotes row.
+- Intercept third-party emote taps with a provider sheet: animated preview,
+  name, provider/scope, creator credit when supplied, Copy name, Copy image URL,
+  and Open in browser. Native emote taps continue through Twitch.
+- Add aggregate hook, local-message, sizing, hit-test, and popup diagnostics.
+- Device verification is pending; private hooks target decrypted Twitch 30.4.2.
+
+## 2.3.0-dev.5 (development; emote matching and chat-menu fix)
+
+- Match third-party emote names at the start or end of punctuation-delimited
+  chat words, and report scanned words and punctuation matches.
+- Hook Twitch's native `TwitchCoreUI.ActionSheetViewController` and add a
+  Reload Emotes button to the stream chat action sheet.
+- Register the button action and retry hook installation after Twitch launches;
+  report hook installation, sheet appearances, button insertions, and taps.
+- Requires device verification for both emote rendering and menu placement.
+
+## 2.3.0-dev.4 (development; provider image and menu tracing)
+
+- The dev.3 report showed four rewritten chat frames and two delegate-based
+  image tasks, but no observable image responses or Chat Settings action sheet.
+- Observe only enabled third-party CDN image responses through the existing
+  URL protocol, including HTTP status and MIME type. Count registry entries,
+  matched emote words, and provider fetch failure categories without retaining
+  chat text, room IDs, or URLs.
+- Record the presented navigation controller's top and visible controller
+  classes to identify Twitch's actual three-dot chat menu implementation.
+  Reload Emotes placement is still pending device verification.
+
+## 2.3.0-dev.3 (development; image/menu diagnosis)
+
+- The dev.2 report confirmed provider fetches, incoming IRC rewrites, and
+  synthetic image redirects, while the previous chat-menu hooks saw no sheet.
+- Added aggregate image response status/MIME counters and a targeted chat
+  settings button and presentation probe. No chat text, room IDs, or image URLs
+  are recorded.
+
+## 2.3.0-dev.2 (development; device retest pending)
+
+- Added privacy-safe emote and chat-menu counters to the diagnostic report.
+- Hooked inherited WebSocket receive implementations and recognized sheets
+  presented by Twitch's ChatSettingsController without an exact title match.
+- Kept the emote switch off by default and the published 2.2.1 assets unchanged.
+
+## 2.3.0-dev.1 (development; device validation pending)
+
+- Added optional 7TV, BTTV, and FFZ global and channel emotes to incoming chat.
+- Added a relaunch-gated emote switch and Clear Emote Cache to Ad Block, plus
+  Reload Emotes in the stream Chat Settings action sheet.
+- Bounded per-room maps and image-ID history, with idle expiry and API retry
+  backoff. No separate emote image files are stored by the module.
+- Built the same source for the IPA framework and rootful/rootless jailbreak
+  packages. The emote hooks and menu placement still need on-device testing.
+
 ## 2.2.1 source-backed replacement (IPA and jailbreak prerelease)
 
 - Reconstructed the R5 diagnostics in checked-in source. Both package formats

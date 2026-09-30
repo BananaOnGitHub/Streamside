@@ -1,5 +1,7 @@
 #include "TASDiagnostics.h"
 #include "TASPrivacy.h"
+#include "TASEmotes.h"
+#include "TASEmoteUI.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -35,8 +37,9 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.2.1"
+#define TAS_REPORT_VERSION "2.3.0"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
+#define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
 extern id objc_retain(id object);
 extern void objc_release(id object);
@@ -55,10 +58,32 @@ static IMP g_log_super_view_did_load;
 static IMP g_log_super_view_will_appear;
 static IMP g_app_settings_original_view_did_appear;
 static IMP g_view_controller_original_view_did_appear;
+static IMP g_view_controller_original_present;
+static IMP g_chat_settings_original_view_did_appear;
+static bool g_chat_settings_hooked;
+static IMP g_native_action_sheet_original_view_did_appear;
+static bool g_native_action_sheet_hooked;
+static IMP g_sheet_sections, g_sheet_rows, g_sheet_cell, g_sheet_select, g_sheet_header;
+static char g_reload_sheet_key;
+static uint64_t g_presented_sheets, g_chat_presenter_sheets;
+static uint64_t g_chat_titled_sheets, g_chat_controller_appear, g_chat_controller_presented;
+static uint64_t g_reload_actions_added;
+static uint64_t g_native_action_sheets_seen, g_native_reload_buttons_added, g_native_reload_button_taps;
+static uint64_t g_chat_button_taps, g_presented_controllers;
+static uint64_t g_presented_navigation;
+static IMP g_control_original_send_action;
+static time_t g_chat_button_last_tap;
+static char g_chat_button_target[96], g_chat_button_action[96];
+static char g_last_presented_class[96], g_last_appeared_after_tap[96];
+static char g_last_navigation_top[96], g_last_navigation_visible[96];
+#define MENU_INC(value) ((void)__atomic_add_fetch(&(value), 1, __ATOMIC_RELAXED))
+#define MENU_GET(value) __atomic_load_n(&(value), __ATOMIC_RELAXED)
 static Class g_bootstrap_class;
 static id g_bootstrap_observer;
 static bool g_app_settings_hooked;
 static char g_log_text_view_key;
+
+static bool install_native_action_sheet_probe(void);
 
 static id msg0(id object, const char *selector) {
     return ((id (*)(id, SEL))objc_msgSend)(object, sel_registerName(selector));
@@ -116,6 +141,10 @@ static id defaults(void) {
 
 static bool diagnostics_enabled(void) {
     return bmsg1(defaults(), "boolForKey:", nsstr(TAS_DIAGNOSTICS_KEY));
+}
+
+static bool emotes_preference(void) {
+    return bmsg1(defaults(), "boolForKey:", nsstr(TAS_EMOTES_KEY));
 }
 
 static void set_diagnostics_enabled(bool enabled) {
@@ -246,7 +275,7 @@ static id diagnostic_report_create(void) {
         "Port build: %s\n"
         "Twitch: %s (%s)\n"
         "Diagnostic logging: %s\n"
-        "Privacy: channel names, full URLs and paths, query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
+        "Privacy: channel names, room IDs, chat text, full URLs and paths, query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
         "Labels stay with the same channel or playlist until Twitch restarts; then reset.\n"
         "Log limit: 512 KiB\n\n"
         "Session counters\n"
@@ -261,7 +290,7 @@ static id diagnostic_report_create(void) {
         "Synthetic segment responses: %llu\n"
         "GraphQL rewrites: %llu\n"
         "HLS failures: %llu\n"
-        "Logged events this launch: %llu\n\n--- Log ---\n",
+        "Logged events this launch: %llu\n",
         TAS_REPORT_VERSION, app_version ? app_version : "unknown", app_build ? app_build : "unknown",
         diagnostics_enabled() ? "enabled" : "disabled",
         (unsigned long long)metrics[TAS_DIAG_HLS_INTERCEPTED],
@@ -278,6 +307,52 @@ static id diagnostic_report_create(void) {
         (unsigned long long)events);
 
     id report = msg1((id)objc_getClass("NSMutableString"), "stringWithString:", nsstr(header));
+    char emote_status[2048], menu_status[1536];
+    char button_target[96], button_action[96], presented_class[96], appeared_class[96];
+    char navigation_top[96], navigation_visible[96];
+    pthread_mutex_lock(&g_diag_lock);
+    snprintf(button_target, sizeof(button_target), "%s", g_chat_button_target);
+    snprintf(button_action, sizeof(button_action), "%s", g_chat_button_action);
+    snprintf(presented_class, sizeof(presented_class), "%s", g_last_presented_class);
+    snprintf(appeared_class, sizeof(appeared_class), "%s", g_last_appeared_after_tap);
+    snprintf(navigation_top, sizeof(navigation_top), "%s", g_last_navigation_top);
+    snprintf(navigation_visible, sizeof(navigation_visible), "%s", g_last_navigation_visible);
+    pthread_mutex_unlock(&g_diag_lock);
+    tas_emotes_status(emote_status, sizeof(emote_status));
+    snprintf(menu_status, sizeof(menu_status),
+             "Chat menu (this launch)\n"
+             "Chat Settings controller seen/presented: %llu/%llu\n"
+             "Action sheets seen/from Chat Settings/titled Chat Settings: %llu/%llu/%llu\n"
+             "Reload actions inserted: %llu\n"
+             "Native action-sheet hook/seen/reload rows/row taps: %s/%llu/%llu/%llu\n"
+             "Chat settings button taps/total presentations: %llu/%llu\n"
+             "Button target/action: %s/%s\n"
+             "Last presented/appeared after tap: %s/%s\n"
+             "Navigation presentations/top/visible: %llu/%s/%s\n\n--- Log ---\n",
+             (unsigned long long)MENU_GET(g_chat_controller_appear),
+             (unsigned long long)MENU_GET(g_chat_controller_presented),
+             (unsigned long long)MENU_GET(g_presented_sheets),
+             (unsigned long long)MENU_GET(g_chat_presenter_sheets),
+             (unsigned long long)MENU_GET(g_chat_titled_sheets),
+             (unsigned long long)MENU_GET(g_reload_actions_added),
+             g_native_action_sheet_hooked ? "installed" : "missing",
+             (unsigned long long)MENU_GET(g_native_action_sheets_seen),
+             (unsigned long long)MENU_GET(g_native_reload_buttons_added),
+             (unsigned long long)MENU_GET(g_native_reload_button_taps),
+             (unsigned long long)MENU_GET(g_chat_button_taps),
+             (unsigned long long)MENU_GET(g_presented_controllers),
+             button_target[0] ? button_target : "none",
+             button_action[0] ? button_action : "none",
+             presented_class[0] ? presented_class : "none",
+             appeared_class[0] ? appeared_class : "none",
+             (unsigned long long)MENU_GET(g_presented_navigation),
+             navigation_top[0] ? navigation_top : "none",
+             navigation_visible[0] ? navigation_visible : "none");
+    vmsg1(report, "appendString:", nsstr(emote_status));
+    char ui_status[1024];
+    tas_emote_ui_status(ui_status, sizeof(ui_status));
+    vmsg1(report, "appendString:", nsstr(ui_status));
+    vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
         id log_text = msg0((id)objc_getClass("NSString"), "alloc");
         log_text = ((id (*)(id, SEL, id, NSUInteger))objc_msgSend)(
@@ -355,15 +430,16 @@ static NSInteger settings_number_of_sections(id self, SEL command, id table) {
     (void)self;
     (void)command;
     (void)table;
-    return 3;
+    return 4;
 }
 
 static NSInteger settings_rows_in_section(id self, SEL command, id table, NSInteger section) {
     (void)self;
     (void)command;
     (void)table;
-    if (section == 0 || section == 1) return 1;
-    if (section == 2) return 3;
+    if (section == 0 || section == 2) return 1;
+    if (section == 1) return 2;
+    if (section == 3) return 3;
     return 0;
 }
 
@@ -372,8 +448,9 @@ static id settings_header(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 0) return nsstr("Status");
-    if (section == 1) return nsstr("Diagnostics");
-    if (section == 2) return nsstr("Diagnostic Report");
+    if (section == 1) return nsstr("Third-Party Emotes");
+    if (section == 2) return nsstr("Diagnostics");
+    if (section == 3) return nsstr("Diagnostic Report");
     return nil;
 }
 
@@ -382,6 +459,9 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 1) {
+        return nsstr("7TV, BTTV and FFZ emotes in chat. Changes to the switch take effect after relaunching Twitch. The cache is bounded and old channel emotes expire.");
+    }
+    if (section == 2) {
         return nsstr("Logging is off by default. When enabled, channel names and playlist URLs appear as temporary labels (for example, channel-a1b2). Labels reset when Twitch restarts. The log holds up to 512 KiB.");
     }
     return nil;
@@ -397,7 +477,25 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
     if (section == 0) {
         set_cell_text(cell, "Ad Blocking", "Enabled · VAFT v24");
         vmsg_integer(cell, "setSelectionStyle:", 0);
-    } else if (section == 1) {
+    } else if (section == 1 && row == 0) {
+        bool saved = emotes_preference();
+        bool active = tas_emotes_enabled_this_launch();
+        set_cell_text(cell, "Show Third-Party Emotes",
+                      saved == active ? (active ? "Enabled" : "Disabled") :
+                      (saved ? "On after relaunch" : "Off after relaunch"));
+        id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
+        ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(
+            toggle, sel_registerName("setOn:animated:"), saved ? YES : NO, NO);
+        ((void (*)(id, SEL, id, SEL, NSUInteger))objc_msgSend)(
+            toggle, sel_registerName("addTarget:action:forControlEvents:"),
+            self, sel_registerName("tas_emotesSwitchChanged:"), (NSUInteger)(1UL << 12));
+        vmsg1(toggle, "setAccessibilityIdentifier:", nsstr("TASEmotesSwitch"));
+        vmsg1(cell, "setAccessoryView:", toggle);
+        vmsg_integer(cell, "setSelectionStyle:", 0);
+        objc_release(toggle);
+    } else if (section == 1 && row == 1) {
+        set_cell_text(cell, "Clear Emote Cache", "Clears stored third-party emote definitions");
+    } else if (section == 2) {
         set_cell_text(cell, "Diagnostic Logging", diagnostics_enabled() ? "Enabled" : "Disabled");
         id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
         ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(
@@ -409,10 +507,10 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
         vmsg1(cell, "setAccessoryView:", toggle);
         vmsg_integer(cell, "setSelectionStyle:", 0);
         objc_release(toggle);
-    } else if (section == 2 && row == 0) {
+    } else if (section == 3 && row == 0) {
         set_cell_text(cell, "View Diagnostic Report", "Session summary and sanitized event log");
         vmsg_integer(cell, "setAccessoryType:", 1);
-    } else if (section == 2 && row == 1) {
+    } else if (section == 3 && row == 1) {
         set_cell_text(cell, "Copy Diagnostic Report", "Copies the complete report to the clipboard");
     } else {
         set_cell_text(cell, "Clear Diagnostic Log", "Removes stored event entries");
@@ -425,6 +523,13 @@ static void settings_switch_changed(id self, SEL command, id sender) {
     bool enabled = bmsg0(sender, "isOn");
     set_diagnostics_enabled(enabled);
     if (enabled) tas_diag_log("LOGGING_ENABLED", "Diagnostic logging enabled from Twitch settings");
+    msg0(msg0(self, "tableView"), "reloadData");
+}
+
+static void emotes_switch_changed(id self, SEL command, id sender) {
+    (void)command;
+    ((void (*)(id, SEL, BOOL, id))objc_msgSend)(
+        defaults(), sel_registerName("setBool:forKey:"), bmsg0(sender, "isOn"), nsstr(TAS_EMOTES_KEY));
     msg0(msg0(self, "tableView"), "reloadData");
 }
 
@@ -487,7 +592,13 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
     NSInteger row = imsg0(index_path, "row");
     ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
         table, sel_registerName("deselectRowAtIndexPath:animated:"), index_path, YES);
-    if (section != 2) return;
+    if (section == 1 && row == 1) {
+        tas_emotes_clear_cache();
+        show_notice(self, "Emote Cache Cleared",
+                    "New chat messages will reload third-party emotes when you return to chat.");
+        return;
+    }
+    if (section != 3) return;
     if (row == 0) {
         id controller = msg0((id)g_log_class, "new");
         ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
@@ -604,12 +715,246 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
     if (g_view_controller_original_view_did_appear) {
         ((void (*)(id, SEL, BOOL))g_view_controller_original_view_did_appear)(self, command, animated);
     }
+    if (tas_emotes_enabled_this_launch() &&
+        time(NULL) - g_chat_button_last_tap <= 5 && g_chat_button_last_tap) {
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_appeared_after_tap, sizeof(g_last_appeared_after_tap), "%s",
+                 class_getName(object_getClass(self)));
+        pthread_mutex_unlock(&g_diag_lock);
+    }
     if (!is_main_settings(self)) return;
     Class actual_class = object_getClass(self);
     class_addMethod(actual_class, sel_registerName("tas_openAdBlockSettings"),
                     (IMP)open_ad_block_settings, "v@:");
     if (app_settings_class()) install_app_settings_hook();
     add_ad_block_navigation_item(self);
+}
+
+static void present_controller(id self, SEL command, id presented, BOOL animated, id completion) {
+    MENU_INC(g_presented_controllers);
+    if (presented) {
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_presented_class, sizeof(g_last_presented_class), "%s",
+                 class_getName(object_getClass(presented)));
+        pthread_mutex_unlock(&g_diag_lock);
+    }
+    Class chat_settings = objc_getClass("_TtC6Twitch22ChatSettingsController");
+    bool from_chat_settings = chat_settings && bmsg1(self, "isKindOfClass:", (id)chat_settings);
+    if (chat_settings && bmsg1(presented, "isKindOfClass:", (id)chat_settings))
+        MENU_INC(g_chat_controller_presented);
+    bool sheet = bmsg1(presented, "isKindOfClass:", (id)objc_getClass("UIAlertController")) &&
+                 imsg0(presented, "preferredStyle") == 0;
+    if (sheet) MENU_INC(g_presented_sheets);
+    if (sheet && from_chat_settings) MENU_INC(g_chat_presenter_sheets);
+    id title = sheet ? msg0(presented, "title") : nil;
+    bool titled_chat_settings = title &&
+        bmsg1(title, "localizedCaseInsensitiveContainsString:", nsstr("Chat Settings"));
+    if (sheet && titled_chat_settings) MENU_INC(g_chat_titled_sheets);
+    /* ChatSettingsController also creates or updates its own sheet. Matching
+     * the presenter catches sheets whose title is absent or localized. */
+    if (tas_emotes_enabled_this_launch() && sheet &&
+        (from_chat_settings || titled_chat_settings)) {
+        id actions = msg0(presented, "actions");
+        bool present_already = false;
+        for (NSInteger i = 0; i < imsg0(actions, "count"); i++) {
+            id item = ((id (*)(id, SEL, NSUInteger))objc_msgSend)(
+                actions, sel_registerName("objectAtIndex:"), (NSUInteger)i);
+            if (bmsg1(msg0(item, "title"), "isEqualToString:", nsstr("Reload Emotes"))) {
+                present_already = true;
+                break;
+            }
+        }
+        if (!present_already) {
+            id action = ((id (*)(id, SEL, id, NSInteger, id))objc_msgSend)(
+                (id)objc_getClass("UIAlertAction"),
+                sel_registerName("actionWithTitle:style:handler:"),
+                nsstr("Reload Emotes"), (NSInteger)0, (id)^(id selected) {
+                    (void)selected;
+                    tas_emotes_reload();
+                });
+            vmsg1(presented, "addAction:", action);
+            MENU_INC(g_reload_actions_added);
+        }
+    }
+    ((void (*)(id, SEL, id, BOOL, id))g_view_controller_original_present)(
+        self, command, presented, animated, completion);
+    if (tas_emotes_enabled_this_launch() &&
+        bmsg1(presented, "isKindOfClass:", (id)objc_getClass("UINavigationController"))) {
+        id top = msg0(presented, "topViewController");
+        id visible = msg0(presented, "visibleViewController");
+        MENU_INC(g_presented_navigation);
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_navigation_top, sizeof(g_last_navigation_top), "%s",
+                 top ? class_getName(object_getClass(top)) : "none");
+        snprintf(g_last_navigation_visible, sizeof(g_last_navigation_visible), "%s",
+                 visible ? class_getName(object_getClass(visible)) : "none");
+        pthread_mutex_unlock(&g_diag_lock);
+    }
+}
+
+static void control_send_action(id self, SEL command, SEL action, id target, id event) {
+    id identifier = msg0(self, "accessibilityIdentifier");
+    id label = msg0(self, "accessibilityLabel");
+    bool chat_button = bmsg1(identifier, "isEqualToString:", nsstr("chat_settings_button")) ||
+        bmsg1(label, "localizedCaseInsensitiveContainsString:", nsstr("Chat Settings"));
+    if (chat_button) {
+        MENU_INC(g_chat_button_taps);
+        g_chat_button_last_tap = time(NULL);
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_chat_button_target, sizeof(g_chat_button_target), "%s",
+                 target ? class_getName(object_getClass(target)) : "none");
+        snprintf(g_chat_button_action, sizeof(g_chat_button_action), "%s",
+                 action ? sel_getName(action) : "none");
+        pthread_mutex_unlock(&g_diag_lock);
+    }
+    ((void (*)(id, SEL, SEL, id, id))g_control_original_send_action)(
+        self, command, action, target, event);
+}
+
+static void reload_emotes_button_tapped(id self, SEL command, id sender) {
+    (void)self;
+    (void)command;
+    (void)sender;
+    if (!tas_emotes_enabled_this_launch()) return;
+    MENU_INC(g_native_reload_button_taps);
+    tas_emotes_reload();
+}
+
+/* Append a real section to the native table. Existing section/row indices are
+ * unchanged, and the table includes our row in its scrolling/content height. */
+static bool reload_sheet(id self) {
+    return objc_getAssociatedObject(self, &g_reload_sheet_key) != nil;
+}
+static NSInteger native_sections(id self, id table) {
+    return ((NSInteger (*)(id, SEL, id))g_sheet_sections)(self,
+        sel_registerName("numberOfSectionsInTableView:"), table);
+}
+static bool reload_section(id self, id table, NSInteger section) {
+    return reload_sheet(self) && section == native_sections(self, table);
+}
+static NSInteger sheet_sections(id self, SEL sel, id table) {
+    return ((NSInteger (*)(id, SEL, id))g_sheet_sections)(self, sel, table) + (reload_sheet(self) ? 1 : 0);
+}
+static NSInteger sheet_rows(id self, SEL sel, id table, NSInteger section) {
+    if (reload_section(self, table, section)) return 1;
+    return ((NSInteger (*)(id, SEL, id, NSInteger))g_sheet_rows)(self, sel, table, section);
+}
+static id sheet_header(id self, SEL sel, id table, NSInteger section) {
+    if (reload_section(self, table, section)) return nil;
+    return ((id (*)(id, SEL, id, NSInteger))g_sheet_header)(self, sel, table, section);
+}
+static id sheet_cell(id self, SEL sel, id table, id path) {
+    if (!reload_section(self, table, imsg0(path, "section")))
+        return ((id (*)(id, SEL, id, id))g_sheet_cell)(self, sel, table, path);
+    id cell = msg1(table, "dequeueReusableCellWithIdentifier:", nsstr("TASReloadEmotesRow"));
+    if (!cell) {
+        cell = ((id (*)(id, SEL, NSInteger, id))objc_msgSend)(
+            msg0((id)objc_getClass("UITableViewCell"), "alloc"),
+            sel_registerName("initWithStyle:reuseIdentifier:"), (NSInteger)0, nsstr("TASReloadEmotesRow"));
+        msg0(cell, "autorelease");
+    }
+    vmsg1(msg0(cell, "textLabel"), "setText:", nsstr("Reload Emotes"));
+    vmsg1(msg0(cell, "textLabel"), "setTextColor:", msg0((id)objc_getClass("UIColor"), "labelColor"));
+    vmsg1(cell, "setBackgroundColor:", msg0((id)objc_getClass("UIColor"), "secondarySystemBackgroundColor"));
+    vmsg1(msg0(cell, "imageView"), "setImage:", msg1((id)objc_getClass("UIImage"), "systemImageNamed:", nsstr("arrow.clockwise")));
+    vmsg1(cell, "setAccessibilityIdentifier:", nsstr("TASReloadEmotesChatMenuRow"));
+    return cell;
+}
+static void sheet_select(id self, SEL sel, id table, id path) {
+    if (!reload_section(self, table, imsg0(path, "section"))) {
+        ((void (*)(id, SEL, id, id))g_sheet_select)(self, sel, table, path); return;
+    }
+    ((void (*)(id, SEL, id, BOOL))objc_msgSend)(table, sel_registerName("deselectRowAtIndexPath:animated:"), path, YES);
+    MENU_INC(g_native_reload_button_taps);
+    tas_emotes_reload();
+    msg0(self, "close");
+}
+static id find_table(id view) {
+    if (bmsg1(view, "isKindOfClass:", (id)objc_getClass("UITableView"))) return view;
+    id children = msg0(view, "subviews");
+    for (NSInteger i = 0; i < imsg0(children, "count"); i++) {
+        id child = ((id (*)(id, SEL, NSUInteger))objc_msgSend)(children, sel_registerName("objectAtIndex:"), (NSUInteger)i);
+        id table = find_table(child); if (table) return table;
+    }
+    return nil;
+}
+static bool add_native_reload_row(id controller) {
+    if (reload_sheet(controller)) return true;
+    id table = find_table(msg0(controller, "view"));
+    if (!table) return false;
+    objc_setAssociatedObject(controller, &g_reload_sheet_key, nsstr("reload"), 1);
+    msg0(table, "reloadData");
+    msg0(table, "layoutIfNeeded");
+    msg0(msg0(controller, "view"), "setNeedsLayout");
+    MENU_INC(g_native_reload_buttons_added);
+    return true;
+}
+
+static void native_action_sheet_view_did_appear(id self, SEL command, BOOL animated) {
+    if (g_native_action_sheet_original_view_did_appear)
+        ((void (*)(id, SEL, BOOL))g_native_action_sheet_original_view_did_appear)(self, command, animated);
+    MENU_INC(g_native_action_sheets_seen);
+    if (tas_emotes_enabled_this_launch() && g_chat_button_last_tap &&
+        time(NULL) - g_chat_button_last_tap <= 10) {
+        pthread_mutex_lock(&g_diag_lock);
+        snprintf(g_last_appeared_after_tap, sizeof(g_last_appeared_after_tap), "%s",
+                 class_getName(object_getClass(self)));
+        pthread_mutex_unlock(&g_diag_lock);
+        add_native_reload_row(self);
+        g_chat_button_last_tap = 0;
+    }
+}
+
+static bool install_native_action_sheet_probe(void) {
+    if (g_native_action_sheet_hooked || !tas_emotes_enabled_this_launch())
+        return g_native_action_sheet_hooked;
+    Class cls = objc_getClass("_TtC12TwitchCoreUI25ActionSheetViewController");
+    if (!cls) return false;
+    SEL selector = sel_registerName("viewDidAppear:");
+    Method method = class_getInstanceMethod(cls, selector);
+    if (!method) return false;
+    struct { const char *selector; IMP replacement; IMP *original; } hooks[] = {
+        {"numberOfSectionsInTableView:", (IMP)sheet_sections, &g_sheet_sections},
+        {"tableView:numberOfRowsInSection:", (IMP)sheet_rows, &g_sheet_rows},
+        {"tableView:cellForRowAtIndexPath:", (IMP)sheet_cell, &g_sheet_cell},
+        {"tableView:didSelectRowAtIndexPath:", (IMP)sheet_select, &g_sheet_select},
+        {"tableView:viewForHeaderInSection:", (IMP)sheet_header, &g_sheet_header},
+    };
+    /* Validate the complete table surface before replacing any implementation. */
+    for (size_t i = 0; i < sizeof(hooks)/sizeof(hooks[0]); i++)
+        if (!class_getInstanceMethod(cls, sel_registerName(hooks[i].selector))) return false;
+    g_native_action_sheet_original_view_did_appear = method_getImplementation(method);
+    if (!class_addMethod(cls, selector, (IMP)native_action_sheet_view_did_appear,
+                         method_getTypeEncoding(method)))
+        method_setImplementation(method, (IMP)native_action_sheet_view_did_appear);
+    for (size_t i = 0; i < sizeof(hooks)/sizeof(hooks[0]); i++) {
+        SEL sel = sel_registerName(hooks[i].selector);
+        Method m = class_getInstanceMethod(cls, sel);
+        *hooks[i].original = method_getImplementation(m);
+        if (!class_addMethod(cls, sel, hooks[i].replacement, method_getTypeEncoding(m)))
+            method_setImplementation(m, hooks[i].replacement);
+    }
+    g_native_action_sheet_hooked = true;
+    return true;
+}
+
+static void chat_settings_view_did_appear(id self, SEL command, BOOL animated) {
+    ((void (*)(id, SEL, BOOL))g_chat_settings_original_view_did_appear)(self, command, animated);
+    MENU_INC(g_chat_controller_appear);
+}
+
+static void install_chat_settings_probe(void) {
+    if (g_chat_settings_hooked || !tas_emotes_enabled_this_launch()) return;
+    Class cls = objc_getClass("_TtC6Twitch22ChatSettingsController");
+    if (!cls) return;
+    SEL selector = sel_registerName("viewDidAppear:");
+    Method method = class_getInstanceMethod(cls, selector);
+    if (!method) return;
+    g_chat_settings_original_view_did_appear = method_getImplementation(method);
+    if (!class_addMethod(cls, selector, (IMP)chat_settings_view_did_appear,
+                         method_getTypeEncoding(method)))
+        method_setImplementation(method, (IMP)chat_settings_view_did_appear);
+    g_chat_settings_hooked = true;
 }
 
 static bool install_view_controller_fallback(void) {
@@ -619,6 +964,19 @@ static bool install_view_controller_fallback(void) {
     if (!method) return false;
     g_view_controller_original_view_did_appear = method_getImplementation(method);
     method_setImplementation(method, (IMP)view_controller_view_did_appear);
+    if (tas_emotes_enabled_this_launch()) {
+        Class control = objc_getClass("UIControl");
+        Method send_action = class_getInstanceMethod(control, sel_registerName("sendAction:to:forEvent:"));
+        if (send_action) {
+            g_control_original_send_action = method_getImplementation(send_action);
+            method_setImplementation(send_action, (IMP)control_send_action);
+        }
+        method = class_getInstanceMethod(view_controller, sel_registerName("presentViewController:animated:completion:"));
+        if (method) {
+            g_view_controller_original_present = method_getImplementation(method);
+            method_setImplementation(method, (IMP)present_controller);
+        }
+    }
     return true;
 }
 
@@ -661,6 +1019,10 @@ static void show_loaded_notice(id self, SEL command, id object) {
 static void retry_app_settings_hook(id self, SEL command, id notification) {
     (void)command;
     (void)notification;
+    tas_emotes_retry_hooks();
+    tas_emote_ui_retry_hooks();
+    install_chat_settings_probe();
+    install_native_action_sheet_probe();
     if (install_app_settings_hook()) {
         fprintf(stderr, "[TAS] AppSettingsViewController hook installed after application launch\n");
     }
@@ -682,6 +1044,8 @@ static bool register_hook_retry_observer(void) {
                         (IMP)retry_app_settings_hook, "v@:@");
         class_addMethod(g_bootstrap_class, sel_registerName("tas_showLoadedNotice:"),
                         (IMP)show_loaded_notice, "v@:@");
+        class_addMethod(g_bootstrap_class, sel_registerName("tas_reloadEmotesFromChatMenu:"),
+                        (IMP)reload_emotes_button_tapped, "v@:@");
         objc_registerClassPair(g_bootstrap_class);
     }
     g_bootstrap_observer = msg0((id)g_bootstrap_class, "new");
@@ -718,6 +1082,7 @@ static bool register_settings_class(void) {
         class_addMethod(g_settings_class, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)settings_cell, "@@:@@");
         class_addMethod(g_settings_class, sel_registerName("tableView:didSelectRowAtIndexPath:"), (IMP)settings_did_select, "v@:@@");
         class_addMethod(g_settings_class, sel_registerName("tas_diagnosticsSwitchChanged:"), (IMP)settings_switch_changed, "v@:@");
+        class_addMethod(g_settings_class, sel_registerName("tas_emotesSwitchChanged:"), (IMP)emotes_switch_changed, "v@:@");
         objc_registerClassPair(g_settings_class);
     }
     return true;
@@ -750,6 +1115,8 @@ void tas_diagnostics_initialize(void) {
     bool log_registered = register_log_class();
     bool fallback = install_view_controller_fallback();
     bool retry_registered = register_hook_retry_observer();
+    install_native_action_sheet_probe();
+    tas_emote_ui_retry_hooks();
     bool hooked = settings_registered && log_registered && install_app_settings_hook();
     fprintf(stderr, "[TAS] diagnostics UI %s (AppSettings hook %s; fallback %s; retry %s)\n",
             settings_registered && log_registered ? "registered" : "unavailable",

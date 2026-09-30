@@ -2,6 +2,7 @@
 #include "TASPrivacy.h"
 #include "TASEmotes.h"
 #include "TASEmoteUI.h"
+#include "SSComposer.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -34,10 +35,10 @@ typedef struct {
 } TASRect;
 
 #define TAS_DIAGNOSTICS_KEY "TASDiagnosticsEnabled"
-#define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
+#define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.3.1"
+#define TAS_REPORT_VERSION "3.0.0"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -271,7 +272,7 @@ static id diagnostic_report_create(void) {
     const char *app_build = utf8(msg1(bundle, "objectForInfoDictionaryKey:", nsstr("CFBundleVersion")));
     char header[4096];
     snprintf(header, sizeof(header),
-        "TwitchAdBlock VAFT iOS diagnostic report\n"
+        "Streamside iOS diagnostic report\n"
         "Port build: %s\n"
         "Twitch: %s (%s)\n"
         "Diagnostic logging: %s\n"
@@ -352,6 +353,9 @@ static id diagnostic_report_create(void) {
     char ui_status[1024];
     tas_emote_ui_status(ui_status, sizeof(ui_status));
     vmsg1(report, "appendString:", nsstr(ui_status));
+    char composer_status[1024];
+    ss_composer_status(composer_status, sizeof(composer_status));
+    vmsg1(report, "appendString:", nsstr(composer_status));
     vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
         id log_text = msg0((id)objc_getClass("NSString"), "alloc");
@@ -416,7 +420,7 @@ static void settings_view_did_load(id self, SEL command) {
     if (g_settings_super_view_did_load) {
         ((void (*)(id, SEL))g_settings_super_view_did_load)(self, command);
     }
-    vmsg1(self, "setTitle:", nsstr("Ad Block"));
+    vmsg1(self, "setTitle:", nsstr("Streamside"));
 }
 
 static void settings_view_will_appear(id self, SEL command, BOOL animated) {
@@ -438,7 +442,7 @@ static NSInteger settings_rows_in_section(id self, SEL command, id table, NSInte
     (void)command;
     (void)table;
     if (section == 0 || section == 2) return 1;
-    if (section == 1) return 2;
+    if (section == 1) return 3;
     if (section == 3) return 3;
     return 0;
 }
@@ -459,7 +463,7 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 1) {
-        return nsstr("7TV, BTTV and FFZ emotes in chat. Changes to the switch take effect after relaunching Twitch. The cache is bounded and old channel emotes expire.");
+        return nsstr("7TV, BTTV and FFZ emotes in chat. The emote keyboard includes a third-party tab and recents. Suggestions can be automatic, colon-triggered, or off. Changes to the enable switch take effect after relaunching Twitch.");
     }
     if (section == 2) {
         return nsstr("Logging is off by default. When enabled, channel names and playlist URLs appear as temporary labels (for example, channel-a1b2). Labels reset when Twitch restarts. The log holds up to 512 KiB.");
@@ -495,6 +499,19 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
         objc_release(toggle);
     } else if (section == 1 && row == 1) {
         set_cell_text(cell, "Clear Emote Cache", "Clears stored third-party emote definitions");
+    } else if (section == 1 && row == 2) {
+        set_cell_text(cell, "Suggestions", "Emote names as you type");
+        id items = msg0((id)objc_getClass("NSMutableArray"), "array");
+        const char *labels[] = {"Auto", ":name", "Off"};
+        for (int i = 0; i < 3; i++) vmsg1(items, "addObject:", nsstr(labels[i]));
+        id control = msg1(msg0((id)objc_getClass("UISegmentedControl"), "alloc"), "initWithItems:", items);
+        vmsg_integer(control, "setSelectedSegmentIndex:", ss_composer_suggestion_mode());
+        ((void (*)(id, SEL, id, SEL, NSUInteger))objc_msgSend)(control,
+            sel_registerName("addTarget:action:forControlEvents:"), self,
+            sel_registerName("ss_suggestionsChanged:"), (NSUInteger)(1UL << 12));
+        vmsg1(control, "setAccessibilityLabel:", nsstr("Emote suggestion mode"));
+        vmsg1(cell, "setAccessoryView:", control); vmsg_integer(cell, "setSelectionStyle:", 0);
+        objc_release(control);
     } else if (section == 2) {
         set_cell_text(cell, "Diagnostic Logging", diagnostics_enabled() ? "Enabled" : "Disabled");
         id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
@@ -531,6 +548,11 @@ static void emotes_switch_changed(id self, SEL command, id sender) {
     ((void (*)(id, SEL, BOOL, id))objc_msgSend)(
         defaults(), sel_registerName("setBool:forKey:"), bmsg0(sender, "isOn"), nsstr(TAS_EMOTES_KEY));
     msg0(msg0(self, "tableView"), "reloadData");
+}
+
+static void suggestions_changed(id self, SEL command, id sender) {
+    (void)self; (void)command;
+    ss_composer_set_suggestion_mode((int)imsg0(sender, "selectedSegmentIndex"));
 }
 
 static void update_log_text(id self) {
@@ -659,7 +681,7 @@ static bool navigation_has_ad_block_item(id navigation_item) {
 static void add_ad_block_navigation_item(id controller) {
     id navigation_item = msg0(controller, "navigationItem");
     if (!navigation_item || navigation_has_ad_block_item(navigation_item)) return;
-    id item = make_bar_button("Ad Block", controller, "tas_openAdBlockSettings");
+    id item = make_bar_button("Streamside", controller, "tas_openAdBlockSettings");
     vmsg1(item, "setAccessibilityIdentifier:", nsstr("TASAdBlockSettingsButton"));
     id existing = msg0(navigation_item, "rightBarButtonItems");
     id items = existing ? msg0(existing, "mutableCopy") : msg0((id)objc_getClass("NSMutableArray"), "array");
@@ -1013,7 +1035,7 @@ static void show_loaded_notice(id self, SEL command, id object) {
     ((void (*)(id, SEL, BOOL, id))objc_msgSend)(
         defaults(), sel_registerName("setBool:forKey:"), YES, nsstr(TAS_LOADED_NOTICE_KEY));
     show_notice(controller, "VAFT loaded",
-                "The VAFT module initialized. Open Profile → Settings, then tap Ad Block.");
+                "The VAFT module initialized. Open Profile → Settings, then tap Streamside.");
 }
 
 static void retry_app_settings_hook(id self, SEL command, id notification) {
@@ -1021,6 +1043,7 @@ static void retry_app_settings_hook(id self, SEL command, id notification) {
     (void)notification;
     tas_emotes_retry_hooks();
     tas_emote_ui_retry_hooks();
+    ss_composer_retry_hooks();
     install_chat_settings_probe();
     install_native_action_sheet_probe();
     if (install_app_settings_hook()) {
@@ -1082,6 +1105,7 @@ static bool register_settings_class(void) {
         class_addMethod(g_settings_class, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)settings_cell, "@@:@@");
         class_addMethod(g_settings_class, sel_registerName("tableView:didSelectRowAtIndexPath:"), (IMP)settings_did_select, "v@:@@");
         class_addMethod(g_settings_class, sel_registerName("tas_diagnosticsSwitchChanged:"), (IMP)settings_switch_changed, "v@:@");
+        class_addMethod(g_settings_class, sel_registerName("ss_suggestionsChanged:"), (IMP)suggestions_changed, "v@:@");
         class_addMethod(g_settings_class, sel_registerName("tas_emotesSwitchChanged:"), (IMP)emotes_switch_changed, "v@:@");
         objc_registerClassPair(g_settings_class);
     }
@@ -1117,6 +1141,7 @@ void tas_diagnostics_initialize(void) {
     bool retry_registered = register_hook_retry_observer();
     install_native_action_sheet_probe();
     tas_emote_ui_retry_hooks();
+    ss_composer_retry_hooks();
     bool hooked = settings_registered && log_registered && install_app_settings_hook();
     fprintf(stderr, "[TAS] diagnostics UI %s (AppSettings hook %s; fallback %s; retry %s)\n",
             settings_registered && log_registered ? "registered" : "unavailable",

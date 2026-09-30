@@ -267,6 +267,10 @@ class PackagingContractTests(unittest.TestCase):
 
 
 class VersionContractTests(unittest.TestCase):
+    def test_streamside_app_name_is_the_distribution_contract(self):
+        from tools.artifact_guard import APP_DISPLAY_NAME
+        self.assertEqual(APP_DISPLAY_NAME, "Twitch Streamside")
+
     def test_version_metadata_is_synchronized(self):
         root = Path(__file__).resolve().parent.parent
         version = (root / "VERSION").read_text().strip()

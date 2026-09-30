@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replace donor tweaks with the VAFT framework in a decrypted Twitch IPA."""
+"""Replace donor tweaks with the Streamside framework in a decrypted Twitch IPA."""
 
 from __future__ import annotations
 
@@ -13,19 +13,18 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
-    from .artifact_guard import BINARY_NAME, FRAMEWORK_NAME, checked_artifact
+    from .artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from .macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
     from .verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
     from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:  # Direct execution from tools/patch_ipa.py.
-    from artifact_guard import BINARY_NAME, FRAMEWORK_NAME, checked_artifact
+    from artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
     from verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
     from verify_macho import FRAMEWORK_IDENTITY
 
 LOAD_PATH = FRAMEWORK_IDENTITY
 FRAMEWORK_BINARY_NAME = BINARY_NAME
-APP_DISPLAY_NAME = "Twitch VAFT"
 DONOR_DYLIB_NAMES = LEGACY_FILES
 DONOR_FRAMEWORK_NAMES = LEGACY_FRAMEWORKS | {FRAMEWORK_NAME}
 DONOR_RELATIVE_PATHS = DONOR_DYLIB_NAMES | {
@@ -174,7 +173,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
-    output = args.output or args.input.with_name(f"{args.input.stem}_VAFT-patched.ipa")
+    output = args.output or args.input.with_name(f"{args.input.stem}_Streamside-patched.ipa")
     try:
         injected, removed = patch_ipa(args.input, args.framework, output, args.force)
     except (OSError, ValueError, MachOError, zipfile.BadZipFile) as error:

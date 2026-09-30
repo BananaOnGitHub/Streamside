@@ -8,11 +8,11 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
-    from .artifact_guard import BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
+    from .artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
     from .macho import LC_LOAD_DYLIB, dylib_loads, encryption_ids
     from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:
-    from artifact_guard import BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
+    from artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
     from macho import LC_LOAD_DYLIB, dylib_loads, encryption_ids
     from verify_macho import FRAMEWORK_IDENTITY
 
@@ -50,6 +50,8 @@ def verify_archive(archive: zipfile.ZipFile, expected_binary: bytes,
         raise ValueError("main executable must have exactly one required Streamside load and no donor loads")
     if any((LEGACY_FILES | LEGACY_FRAMEWORKS) & set(PurePosixPath(name).parts) for name in names):
         raise ValueError("obsolete donor component remains in the IPA")
+    if info.get("CFBundleDisplayName") != APP_DISPLAY_NAME or info.get("CFBundleName") != APP_DISPLAY_NAME:
+        raise ValueError("app display/bundle name must be Twitch Streamside")
     binary_entry = f"{root}/Frameworks/{FRAMEWORK_NAME}/{BINARY_NAME}"
     info_entry = f"{root}/Frameworks/{FRAMEWORK_NAME}/Info.plist"
     compare_packaged(archive.read(binary_entry), expected_binary)

@@ -18,6 +18,7 @@ try:
 except ImportError:
     from verify_macho import DYLIB_IDENTITY, FRAMEWORK_IDENTITY, verify_bytes
 
+APP_DISPLAY_NAME = "Twitch Streamside"
 FRAMEWORK_NAME = "Streamside.framework"
 BINARY_NAME = "Streamside"
 BUNDLE_ID = "io.github.bananaongithub.tas.streamside"
@@ -33,7 +34,7 @@ def inspect_artifact(path: Path, framework: bool) -> tuple[dict, bytes, bytes | 
     data = binary_path.read_bytes()
     record = verify_bytes(data, FRAMEWORK_IDENTITY if framework else DYLIB_IDENTITY,
                           0 if framework else 65536, True, framework,
-                          BINARY_NAME if framework else "TwitchAdBlock.dylib")
+                          BINARY_NAME if framework else "Streamside.dylib")
     info_data = None
     if framework:
         info_data = (path / "Info.plist").read_bytes()
@@ -69,7 +70,7 @@ def compare_packaged(data: bytes, expected: bytes, framework: bool = True) -> No
     # raw linker output. Exact bytes additionally catch re-signing or code edits.
     verify_bytes(data, FRAMEWORK_IDENTITY if framework else DYLIB_IDENTITY,
                  0 if framework else 65536, True, framework,
-                 BINARY_NAME if framework else "TwitchAdBlock.dylib")
+                 BINARY_NAME if framework else "Streamside.dylib")
     if hashlib.sha256(data).digest() != hashlib.sha256(expected).digest() or data != expected:
         raise ValueError("packaged Mach-O differs from the validated build binary")
 

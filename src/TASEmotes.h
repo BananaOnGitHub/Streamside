@@ -21,6 +21,10 @@ void tas_emotes_image_protocol_request(void);
 /* Retained snapshots; callers release them. No chat text is retained. */
 id tas_emotes_metadata_copy(uint64_t synthetic_id);
 id tas_emotes_local_matches_copy(id channel, id content);
+/* Provider: 0 All, 1 7TV, 2 BTTV, 3 FFZ. Scope: -1 suggestions, 0 channel, 1 global.
+ * Channel must be the composer's identity; no background-chat fallback. */
+id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t limit);
+id tas_emotes_named_copy(id channel, id name);
 double tas_emotes_aspect(uint64_t synthetic_id);
 
 #endif

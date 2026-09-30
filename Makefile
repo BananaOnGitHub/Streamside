@@ -9,7 +9,7 @@ test:
 	python3 -m unittest discover -s tests -v
 
 verify: build
-	python3 tools/artifact_guard.py check build/TwitchAdBlock.dylib
+	python3 tools/artifact_guard.py check build/Streamside.dylib
 	python3 tools/artifact_guard.py check build/Streamside.framework --framework
 
 deb: verify

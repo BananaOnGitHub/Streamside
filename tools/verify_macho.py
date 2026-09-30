@@ -22,7 +22,7 @@ except ImportError:
 
 PAGE_SIZE = 0x4000
 FRAMEWORK_IDENTITY = "@rpath/Streamside.framework/Streamside"
-DYLIB_IDENTITY = "@rpath/TwitchAdBlock.dylib"
+DYLIB_IDENTITY = "@rpath/Streamside.dylib"
 
 
 def align(value: int, size: int = PAGE_SIZE) -> int:

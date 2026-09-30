@@ -1,5 +1,5 @@
 /*
- * TwitchAdBlock for iOS
+ * Streamside for Twitch iOS
  *
  * Native iOS adaptation of pixeltris/TwitchAdSolutions VAFT v24.
  *

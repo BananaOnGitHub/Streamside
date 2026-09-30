@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.0 (Streamside; prepared, not published)
+
+- Rename the project and current documentation to Streamside; the sideload app
+  and package display name are Twitch Streamside. Both native artifacts now use
+  Streamside identities. Keep the jailbreak package ID for upgrade continuity.
+- Add a compact emote suggestion strip with Automatic, Colon (:name), and Off
+  modes, plus provider-image previews in the composer that serialize back to
+  emote names for editing, clipboard operations, undo/redo and sending.
+- Add a third-party library inside Twitch’s existing emote keyboard: All / 7TV /
+  BTTV / FFZ, then Channel / Global. Provider changes reset Channel.
+- Integrate up to 40 provider-emote recents into Twitch’s native Recent tab.
+- Bound thumbnail requests/cache and validate native bridge signatures; add
+  UTF-16 selection/deletion, native-attachment preservation and identity-layout
+  regression tests. Keep every existing Mach-O and packaging guard mandatory.
+- Preserve the existing icon. The forthcoming logo must support UIKit dynamic
+  background/appearance and tint; logo work and release publication remain pending.
+- Candidate bundle build: `3.0.0.1`; composer/keyboard require device verification.
+
 ## 2.3.1 (prepared; not published)
 
 - Accept bounded provider responses up to 8 MiB and retain up to 4,000 emotes

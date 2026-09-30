@@ -1,1 +1,1 @@
-"""Build and packaging helpers for TwitchAdBlock-VAFT-iOS."""
+"""Build and packaging helpers for Streamside."""

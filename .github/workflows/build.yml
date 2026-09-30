@@ -50,11 +50,11 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TwitchAdBlock-VAFT-iOS-${{ github.sha }}
+          name: Streamside-${{ github.sha }}
           path: |
             build/Streamside.framework/
             build/Streamside.framework.macho.json
-            build/TwitchAdBlock.dylib
-            build/TwitchAdBlock.dylib.macho.json
+            build/Streamside.dylib
+            build/Streamside.dylib.macho.json
             dist/*.deb
           if-no-files-found: error

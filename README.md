@@ -1,20 +1,22 @@
-# TwitchAdBlock-VAFT-iOS
+# Streamside
 
 A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
 The sideload and jailbreak builds come from the same checked-in source.
-Version 2.3.1 is prepared, not published: it removes the donor loader identity
-and makes the 16 KiB Mach-O layout a checked build-to-package contract.
+Version **3.0.0** is in preparation. The installed sideload app is named
+**Twitch Streamside**. This update adds a third-party emote composer and keyboard
+library while retaining the enforced 16 KiB Mach-O build-to-package contract.
+Publication is on hold for device testing and the forthcoming logo.
 
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **2.3.1** (Streamside loader and enforced packaging checks)
+- Prepared source: **3.0.0** (candidate bundle build `3.0.0.1`)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
-  - Emotes were device-confirmed on an iPhone 16 Pro running iOS 18.2 with dev.8. The corrected loader trial launches; newly compiled 2.3.1 still needs its own device test.
+  - Emotes were device-confirmed on an iPhone 16 Pro running iOS 18.2 with dev.8. The 2.3.1 loader was confirmed to launch. The 3.0.0 composer and picker still need device testing.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -31,16 +33,16 @@ Amazon IVS behavior without notice.
   available.
 - Maintains isolated state for simultaneous streams, including Twitch mobile's
   PiP player and muted profile previews.
-- Adds an Ad Block settings page with opt-in, sanitized diagnostics.
+- Adds an Streamside settings page with opt-in, sanitized diagnostics.
 
-### Third-party emotes (2.3.0)
+### Third-party emotes
 
 The shared source now includes optional 7TV, BTTV, and FFZ global and channel
-emotes for chat messages. Open **Profile → Settings → Ad Block** to
+emotes for chat messages. Open **Profile → Settings → Streamside** to
 enable them, then relaunch Twitch. They are off by default. Turning them off
 and relaunching skips the emote hooks and provider requests altogether.
 
-**Clear Emote Cache** is on the Ad Block page. It discards this module's
+**Clear Emote Cache** is on the Streamside page. It discards this module's
 in-memory emote definitions and image-ID mappings; the next incoming chat
 message refetches the current channel. It does not clear Twitch's unrelated
 image cache. **Reload Emotes** is intended to appear in the stream's Chat
@@ -50,7 +52,9 @@ The module retains at most six recently active channel registries, up to 4,000
 names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
 Provider JSON responses are accepted up to 8 MiB, including large 7TV sets.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
-cells to redraw. It maintains no separate image files or decoded image cache.
+cells to redraw. It maintains no separate image files. The composer keeps a bounded, in-memory
+thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
+image requests. It does not clear Twitch’s own image cache.
 
 Incoming static and animated emotes, the scrolling Reload Emotes row, provider
 tap details, proportional image widths, and emotes in your own sent messages
@@ -62,11 +66,36 @@ without retaining chat text or image URLs.
 The sideload build uses `Streamside.framework/Streamside` with the required
 `@rpath/Streamside.framework/Streamside` dependency. Its binary is this project's
 native C dylib; initialization does not depend on a donor runtime. Jailbreak
-packages retain `TwitchAdBlock.dylib` and the package ID for upgrades.
+packages use `Streamside.dylib`; the existing package ID is retained for upgrades.
+
+### Composer and picker (3.0.0 candidate)
+
+- A compact horizontal suggestion strip appears above the chat box. Choose
+  **Automatic**, **Colon (:name)**, or **Off** in Streamside settings. Automatic
+  completion starts after two characters; colon completion opens on `:`.
+- Tap a suggestion to replace the current prefix with the emote name and a space.
+  Recognized third-party names become proportional image previews in the editor;
+  Twitch receives the original names when editing or sending. Native Twitch
+  attachments remain intact. Composer previews use a still image; GIF thumbnails
+  animate when Twitch's `FLAnimatedImageView` is available.
+- Open Twitch's smiley keyboard and select the additional **Third-party emotes**
+  footer button. Its provider selector has **All / 7TV / BTTV / FFZ**, followed
+  by **Channel / Global**. Changing the provider resets the scope to Channel.
+- The native **Recent** tab includes a provider-emote row above Twitch's own
+  entries. Up to 40 recent names persist locally and are resolved against the
+  current channel; unavailable names are omitted. Twitch's native history is
+  preserved.
+- The integration resolves the channel from the input view, not the last
+  background-chat frame. It checks native method encodings and the inspected
+  identity layout; unsupported bridges report missing hooks in diagnostics.
+
+The logo is pending. The current icon and `Assets.car` are preserved. The future
+logo must support UIKit's dynamic appearance/background and tint behavior; that
+requirement is for the logo.
 
 ## Diagnostics
 
-Open **Profile → Settings (cog) → Ad Block**. The diagnostics page provides:
+Open **Profile → Settings (cog) → Streamside**. The diagnostics page provides:
 
 - A persistent logging toggle.
 - A live session summary and sanitized event log.
@@ -94,7 +123,7 @@ diagnostic report from the same page.
 ## Install from a release
 
 Published standard releases contain the IPA only; sign it with your sideloading
-tool. Version 2.3.1 has not been published. To prepare the current source locally,
+tool. Version 3.0.0 has not been published. To prepare the current source locally,
 build the framework as described below and patch a decrypted IPA.
 
 Requirements:
@@ -108,10 +137,10 @@ After `make verify`, run:
 ```bash
 python3 tools/patch_ipa.py Twitch.ipa \
   --framework build/Streamside.framework \
-  --output Twitch-VAFT.ipa
+  --output Twitch-Streamside.ipa
 ```
 
-The resulting IPA is unsigned. Sign `Twitch-VAFT.ipa` with your normal
+The resulting IPA is unsigned. Sign `Twitch-Streamside.ipa` with your normal
 sideloading tool before installing it.
 
 The patcher:
@@ -133,7 +162,7 @@ never regenerates a missing fingerprint or silently normalizes its input.
 For a separate unsigned final-package check:
 
 ```bash
-python3 tools/verify_ipa.py Twitch-VAFT.ipa --framework build/Streamside.framework
+python3 tools/verify_ipa.py Twitch-Streamside.ipa --framework build/Streamside.framework
 ```
 
 ## Install on a jailbroken device
@@ -161,12 +190,12 @@ make test
 To use a Zig binary outside `PATH`:
 
 ```bash
-ZIG=/path/to/zig make verify
+ZIG=/path/to/zig make verify test
 ```
 
 The build produces both identities:
 
-- `build/TwitchAdBlock.dylib` for rootful/rootless jailbreak packages.
+- `build/Streamside.dylib` for rootful/rootless jailbreak packages.
 - `build/Streamside.framework` for sideload IPA patching.
 - Adjacent `.macho.json` fingerprints required by the packagers.
 

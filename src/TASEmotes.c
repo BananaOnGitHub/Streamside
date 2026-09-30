@@ -8,6 +8,7 @@
  * this module does not keep its own image files or decoded bitmaps.
  */
 #include "TASEmotes.h"
+#include "SSComposerModel.h"
 #include "TASEmoteGeometry.h"
 #include "TASEmoteFetch.h"
 #include "TASDiagnostics.h"
@@ -808,24 +809,80 @@ double tas_emotes_aspect(uint64_t synthetic_id) {
     return aspect;
 }
 
+/* Immutable value snapshots: no pointers into the mutable provider registry. */
+static id metadata_locked(const Emote *e) {
+    id metadata = call0((id)objc_getClass("NSMutableDictionary"), "new");
+    const char *keys[] = {"name", "url", "subtitle"};
+    const char *providers[] = {"7TV", "BTTV", "FFZ"};
+    char subtitle[200];
+    snprintf(subtitle,sizeof(subtitle),"%s %s emote%s%s",providers[e->provider],
+             e->global ? "global" : "channel",e->owner ? "\nby " : "",e->owner ?: "");
+    id values[] = {str(e->name),str(e->url),str(subtitle)};
+    for (size_t i=0;i<3;i++) ((void (*)(id,SEL,id,id))objc_msgSend)(metadata,sel_registerName("setObject:forKey:"),values[i],str(keys[i]));
+    id number = ((id (*)(id,SEL,uint64_t))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedLongLong:"),e->fake_id);
+    ((void (*)(id,SEL,id,id))objc_msgSend)(metadata,sel_registerName("setObject:forKey:"),number,str("id"));
+    number = ((id (*)(id,SEL,double))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithDouble:"),e->aspect);
+    ((void (*)(id,SEL,id,id))objc_msgSend)(metadata,sel_registerName("setObject:forKey:"),number,str("aspect"));
+    number = ((id (*)(id,SEL,int))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithInt:"),e->provider);
+    ((void (*)(id,SEL,id,id))objc_msgSend)(metadata,sel_registerName("setObject:forKey:"),number,str("provider"));
+    id result = call0(metadata,"copy"); objc_release(metadata); return result;
+}
+
 id tas_emotes_metadata_copy(uint64_t synthetic_id) {
     if (!g_enabled || synthetic_id < FAKE_ID_START) return nil;
     pthread_mutex_lock(&g_emote_lock);
     Emote *e = emote_for_id_locked(synthetic_id);
-    id metadata = nil;
-    if (e) {
-        metadata = call0((id)objc_getClass("NSMutableDictionary"), "new");
-        ((void (*)(id, SEL, id, id))objc_msgSend)(metadata, sel_registerName("setObject:forKey:"), str(e->name), str("name"));
-        ((void (*)(id, SEL, id, id))objc_msgSend)(metadata, sel_registerName("setObject:forKey:"), str(e->url), str("url"));
-        const char *providers[] = {"7TV", "BTTV", "FFZ"};
-        char subtitle[200];
-        snprintf(subtitle, sizeof(subtitle), "%s %s emote%s%s", providers[e->provider],
-                 e->global ? "global" : "channel", e->owner ? "\nby " : "", e->owner ? e->owner : "");
-        ((void (*)(id, SEL, id, id))objc_msgSend)(metadata, sel_registerName("setObject:forKey:"), str(subtitle), str("subtitle"));
-    }
-    pthread_mutex_unlock(&g_emote_lock);
-    return metadata;
+    id metadata = e ? metadata_locked(e) : nil;
+    pthread_mutex_unlock(&g_emote_lock); return metadata;
 }
+
+static Room *picker_room_locked(id channel) {
+    if (!kind(channel,"NSString")) return NULL;
+    const char *value = text(channel);
+    if (!value) return NULL;
+    for (size_t i=0;i<MAX_ROOMS;i++)
+        if (g_rooms[i].occupied && (!strcmp(value,g_rooms[i].id) || !strcmp(value,g_rooms[i].login)))
+            return &g_rooms[i];
+    return NULL;
+}
+
+id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t limit) {
+    if (!g_enabled || provider < 0 || provider > 3 || scope < -1 || scope > 1) return nil;
+    const char *prefix = kind(query,"NSString") ? text(query) : "";
+    if (!prefix || strlen(prefix) > 96) return nil;
+    if (limit > MAX_ROOM + MAX_GLOBAL) limit = MAX_ROOM + MAX_GLOBAL;
+    id result = call0((id)objc_getClass("NSMutableArray"),"new");
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room = picker_room_locked(channel);
+    Room *libraries[] = {room, &g_global};
+    size_t added = 0;
+    for (int library=0;library<2 && added<limit;library++) {
+        Room *r=libraries[library];
+        if (!r || (scope >= 0 && scope != library)) continue;
+        for (size_t i=0;i<r->size && added<limit;i++) {
+            Emote *e=&r->items[i];
+            if (!ss_provider_matches(e->provider,provider) || !ss_ascii_prefix(e->name,prefix)) continue;
+            /* Suggestions use the same channel-over-global precedence as chat. */
+            if (scope == -1 && library && room && find_word(room,e->name)) continue;
+            id metadata=metadata_locked(e); ((void (*)(id,SEL,id))objc_msgSend)(result,sel_registerName("addObject:"),metadata);
+            objc_release(metadata); added++;
+        }
+    }
+    pthread_mutex_unlock(&g_emote_lock); return result;
+}
+
+id tas_emotes_named_copy(id channel, id name) {
+    if (!g_enabled || !kind(name,"NSString")) return nil;
+    const char *word=text(name);
+    if (!word || !*word || strlen(word)>96) return nil;
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room=picker_room_locked(channel);
+    Emote *e=room ? find_word(room,word) : NULL;
+    if (!e) e=find_word(&g_global,word);
+    id result=e ? metadata_locked(e) : nil;
+    pthread_mutex_unlock(&g_emote_lock); return result;
+}
+
 
 id tas_emotes_local_matches_copy(id channel, id content) {
     if (!g_enabled || !kind(channel, "NSString") || !kind(content, "NSString")) return nil;

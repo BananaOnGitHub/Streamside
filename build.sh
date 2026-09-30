@@ -34,15 +34,15 @@ build_binary() {
       --name "$binary_name" \
       -femit-bin="$output_path" \
       -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden -- \
-      src/TwitchAdBlock.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c
+      src/Streamside.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/SSComposer.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature
 # reservation for injection frameworks that replace the ad-hoc signature.
-build_binary build/TwitchAdBlock.dylib @rpath/TwitchAdBlock.dylib TwitchAdBlock
-python3 tools/align_macho_segments.py build/TwitchAdBlock.dylib
-python3 tools/reserve_codesign_space.py build/TwitchAdBlock.dylib --size 65536
-python3 tools/artifact_guard.py record build/TwitchAdBlock.dylib
+build_binary build/Streamside.dylib @rpath/Streamside.dylib Streamside
+python3 tools/align_macho_segments.py build/Streamside.dylib
+python3 tools/reserve_codesign_space.py build/Streamside.dylib --size 65536
+python3 tools/artifact_guard.py record build/Streamside.dylib
 
 # Sideload package: clean identity, same normalized layout as the working build.
 # Record a fingerprint ONLY after normalization, compaction and validation.

@@ -45,12 +45,12 @@ def checked_zip(output: Path, files: list[tuple[Path, str]],
 
 def main() -> int:
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    dylib = ROOT / "build" / "TwitchAdBlock.dylib"
+    dylib = ROOT / "build" / "Streamside.dylib"
     framework = ROOT / "build" / FRAMEWORK_NAME
     framework_binary = framework / BINARY_NAME
     framework_info = framework / "Info.plist"
     if not dylib.is_file():
-        raise SystemExit("build/TwitchAdBlock.dylib is missing; run make build first")
+        raise SystemExit("build/Streamside.dylib is missing; run make build first")
     if not framework_binary.is_file() or not framework_info.is_file():
         raise SystemExit("build/Streamside.framework is incomplete; run make build first")
     verified_dylib, _info = checked_artifact(dylib, False)
@@ -60,7 +60,7 @@ def main() -> int:
 
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)
-    release_dylib = dist / "TwitchAdBlock.dylib"
+    release_dylib = dist / "Streamside.dylib"
     shutil.copy2(dylib, release_dylib)
     compare_packaged(release_dylib.read_bytes(), verified_dylib, False)
     shutil.copy2(receipt_path(dylib), receipt_path(release_dylib))
@@ -74,9 +74,9 @@ def main() -> int:
     debs = sorted(dist.glob(f"dev.tas.twitchadblock_{version}_*.deb"))
     if len(debs) != 2:
         raise SystemExit("expected rootful and rootless DEBs; run make deb first")
-    bundle = dist / f"TwitchAdBlock-VAFT-iOS-{version}.zip"
+    bundle = dist / f"Streamside-{version}.zip"
     files = [
-        (dylib, "TwitchAdBlock.dylib"),
+        (dylib, "Streamside.dylib"),
         (framework_binary, framework_entry),
         (framework_info, f"{FRAMEWORK_NAME}/Info.plist"),
         (receipt_path(framework), receipt_path(framework).name),
@@ -94,9 +94,9 @@ def main() -> int:
         (ROOT / "UPSTREAM.md", "UPSTREAM.md"),
     ]
     files.extend((deb, deb.name) for deb in debs)
-    prefix = f"TwitchAdBlock-VAFT-iOS-{version}/"
+    prefix = f"Streamside-{version}/"
     checked_zip(bundle, [(source, prefix + destination) for source, destination in files], {
-        prefix + "TwitchAdBlock.dylib": (verified_dylib, False),
+        prefix + "Streamside.dylib": (verified_dylib, False),
         prefix + framework_entry: (verified_framework, True),
     })
     # Recheck receipts after packaging as well; a staging race must fail closed.

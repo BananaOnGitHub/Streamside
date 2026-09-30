@@ -16,7 +16,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_ID = "dev.tas.twitchadblock"
-PACKAGE_NAME = "Twitch VAFT"
+PACKAGE_NAME = "Twitch Streamside"
 INSTALL_RELATIVE = Path("Library/MobileSubstrate/DynamicLibraries")
 REPRODUCIBLE_TIMESTAMP = 946684800
 
@@ -28,8 +28,8 @@ def control(version: str, architecture: str) -> str:
             f"Version: {version}",
             f"Architecture: {architecture}",
             "Description: Native VAFT-based video ad filtering for the Twitch iOS app.",
-            "Author: TwitchAdBlock-VAFT-iOS contributors",
-            "Maintainer: TwitchAdBlock-VAFT-iOS contributors",
+            "Author: Streamside contributors",
+            "Maintainer: Streamside contributors",
             "Section: Tweaks",
             "Depends: mobilesubstrate",
             "Conflicts: com.level3tjg.twitchadblock",
@@ -38,10 +38,10 @@ def control(version: str, architecture: str) -> str:
     )
 
 def build_variant(version: str, scheme: str, prefix: Path, architecture: str) -> Path:
-    dylib = ROOT / "build" / "TwitchAdBlock.dylib"
-    filter_plist = ROOT / "packaging" / "TwitchAdBlock.plist"
+    dylib = ROOT / "build" / "Streamside.dylib"
+    filter_plist = ROOT / "packaging" / "Streamside.plist"
     if not dylib.is_file():
-        raise SystemExit("build/TwitchAdBlock.dylib is missing; run make build first")
+        raise SystemExit("build/Streamside.dylib is missing; run make build first")
     verified_binary, _info = checked_artifact(dylib, False)
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)
@@ -54,11 +54,11 @@ def build_variant(version: str, scheme: str, prefix: Path, architecture: str) ->
         metadata.mkdir(parents=True)
         install.mkdir(parents=True)
         (metadata / "control").write_text(control(version, architecture), encoding="utf-8")
-        shutil.copy2(dylib, install / "TwitchAdBlock.dylib")
-        compare_packaged((install / "TwitchAdBlock.dylib").read_bytes(), verified_binary, False)
-        shutil.copy2(filter_plist, install / "TwitchAdBlock.plist")
-        os.chmod(install / "TwitchAdBlock.dylib", 0o755)
-        os.chmod(install / "TwitchAdBlock.plist", 0o644)
+        shutil.copy2(dylib, install / "Streamside.dylib")
+        compare_packaged((install / "Streamside.dylib").read_bytes(), verified_binary, False)
+        shutil.copy2(filter_plist, install / "Streamside.plist")
+        os.chmod(install / "Streamside.dylib", 0o755)
+        os.chmod(install / "Streamside.plist", 0o644)
         for path in sorted(package_root.rglob("*"), reverse=True):
             os.utime(path, (REPRODUCIBLE_TIMESTAMP, REPRODUCIBLE_TIMESTAMP), follow_symlinks=False)
         os.utime(package_root, (REPRODUCIBLE_TIMESTAMP, REPRODUCIBLE_TIMESTAMP))
@@ -75,7 +75,7 @@ def build_variant(version: str, scheme: str, prefix: Path, architecture: str) ->
     if actual_architecture != architecture:
         raise SystemExit(f"unexpected DEB architecture: {actual_architecture}")
     listing = subprocess.check_output(["dpkg-deb", "--contents", str(output)], text=True)
-    expected = f"./{prefix.as_posix() + '/' if prefix.parts else ''}{INSTALL_RELATIVE.as_posix()}/TwitchAdBlock.dylib"
+    expected = f"./{prefix.as_posix() + '/' if prefix.parts else ''}{INSTALL_RELATIVE.as_posix()}/Streamside.dylib"
     if expected not in listing:
         raise SystemExit(f"DEB is missing expected install path: {expected}")
     # Inspect the bytes inside the actual finished DEB, not just the staging copy.

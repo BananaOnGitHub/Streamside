@@ -33,7 +33,7 @@ Amazon IVS behavior without notice.
   available.
 - Maintains isolated state for simultaneous streams, including Twitch mobile's
   PiP player and muted profile previews.
-- Adds an Streamside settings page with opt-in, sanitized diagnostics.
+- Adds a Streamside settings page with opt-in, sanitized diagnostics.
 
 ### Third-party emotes
 

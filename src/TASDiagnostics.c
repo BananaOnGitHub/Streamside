@@ -1,6 +1,7 @@
 #include "TASDiagnostics.h"
 #include "TASPrivacy.h"
 #include "TASEmotes.h"
+#include "TASEmoteUI.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -36,7 +37,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.3.0-dev.5"
+#define TAS_REPORT_VERSION "2.3.0-dev.6"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -62,6 +63,8 @@ static IMP g_chat_settings_original_view_did_appear;
 static bool g_chat_settings_hooked;
 static IMP g_native_action_sheet_original_view_did_appear;
 static bool g_native_action_sheet_hooked;
+static IMP g_sheet_sections, g_sheet_rows, g_sheet_cell, g_sheet_select, g_sheet_header;
+static char g_reload_sheet_key;
 static uint64_t g_presented_sheets, g_chat_presenter_sheets;
 static uint64_t g_chat_titled_sheets, g_chat_controller_appear, g_chat_controller_presented;
 static uint64_t g_reload_actions_added;
@@ -321,7 +324,7 @@ static id diagnostic_report_create(void) {
              "Chat Settings controller seen/presented: %llu/%llu\n"
              "Action sheets seen/from Chat Settings/titled Chat Settings: %llu/%llu/%llu\n"
              "Reload actions inserted: %llu\n"
-             "Native action-sheet hook/seen/reload buttons/button taps: %s/%llu/%llu/%llu\n"
+             "Native action-sheet hook/seen/reload rows/row taps: %s/%llu/%llu/%llu\n"
              "Chat settings button taps/total presentations: %llu/%llu\n"
              "Button target/action: %s/%s\n"
              "Last presented/appeared after tap: %s/%s\n"
@@ -346,6 +349,9 @@ static id diagnostic_report_create(void) {
              navigation_top[0] ? navigation_top : "none",
              navigation_visible[0] ? navigation_visible : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
+    char ui_status[768];
+    tas_emote_ui_status(ui_status, sizeof(ui_status));
+    vmsg1(report, "appendString:", nsstr(ui_status));
     vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
         id log_text = msg0((id)objc_getClass("NSString"), "alloc");
@@ -814,61 +820,72 @@ static void reload_emotes_button_tapped(id self, SEL command, id sender) {
     tas_emotes_reload();
 }
 
-static bool add_native_reload_button(id controller) {
-    id view = msg0(controller, "view");
-    if (!view || !g_bootstrap_observer) return false;
-    const NSInteger button_tag = 0x544153;
-    if (((id (*)(id, SEL, NSInteger))objc_msgSend)(
-            view, sel_registerName("viewWithTag:"), button_tag)) return true;
-
-    id button = ((id (*)(id, SEL, NSInteger))objc_msgSend)(
-        (id)objc_getClass("UIButton"), sel_registerName("buttonWithType:"), (NSInteger)1);
-    if (!button) return false;
-    ((void (*)(id, SEL, id, NSUInteger))objc_msgSend)(
-        button, sel_registerName("setTitle:forState:"), nsstr("Reload Emotes"), (NSUInteger)0);
-    ((void (*)(id, SEL, id, NSUInteger))objc_msgSend)(
-        button, sel_registerName("setTitleColor:forState:"),
-        msg0((id)objc_getClass("UIColor"), "systemBlueColor"), (NSUInteger)0);
-    vmsg1(button, "setBackgroundColor:",
-          msg0((id)objc_getClass("UIColor"), "secondarySystemBackgroundColor"));
-    vmsg1(button, "setAccessibilityIdentifier:", nsstr("TASReloadEmotesChatMenuButton"));
-    vmsg_integer(button, "setTag:", button_tag);
-    ((void (*)(id, SEL, id, SEL, NSUInteger))objc_msgSend)(
-        button, sel_registerName("addTarget:action:forControlEvents:"), g_bootstrap_observer,
-        sel_registerName("tas_reloadEmotesFromChatMenu:"), (NSUInteger)(1U << 6));
-    vmsg_bool(button, "setTranslatesAutoresizingMaskIntoConstraints:", NO);
-    vmsg1(view, "addSubview:", button);
-
-    id guide = msg0(view, "safeAreaLayoutGuide");
-    id leading = msg0(guide, "leadingAnchor");
-    id trailing = msg0(guide, "trailingAnchor");
-    id bottom = msg0(guide, "bottomAnchor");
-    id button_leading = msg0(button, "leadingAnchor");
-    id button_trailing = msg0(button, "trailingAnchor");
-    id button_bottom = msg0(button, "bottomAnchor");
-    id button_height = msg0(button, "heightAnchor");
-    if (!guide || !leading || !trailing || !bottom || !button_leading || !button_trailing ||
-        !button_bottom || !button_height) {
-        ((void (*)(id, SEL))objc_msgSend)(button, sel_registerName("removeFromSuperview"));
-        return false;
+/* Append a real section to the native table. Existing section/row indices are
+ * unchanged, and the table includes our row in its scrolling/content height. */
+static bool reload_sheet(id self) {
+    return objc_getAssociatedObject(self, &g_reload_sheet_key) != nil;
+}
+static NSInteger native_sections(id self, id table) {
+    return ((NSInteger (*)(id, SEL, id))g_sheet_sections)(self,
+        sel_registerName("numberOfSectionsInTableView:"), table);
+}
+static bool reload_section(id self, id table, NSInteger section) {
+    return reload_sheet(self) && section == native_sections(self, table);
+}
+static NSInteger sheet_sections(id self, SEL sel, id table) {
+    return ((NSInteger (*)(id, SEL, id))g_sheet_sections)(self, sel, table) + (reload_sheet(self) ? 1 : 0);
+}
+static NSInteger sheet_rows(id self, SEL sel, id table, NSInteger section) {
+    if (reload_section(self, table, section)) return 1;
+    return ((NSInteger (*)(id, SEL, id, NSInteger))g_sheet_rows)(self, sel, table, section);
+}
+static id sheet_header(id self, SEL sel, id table, NSInteger section) {
+    if (reload_section(self, table, section)) return nil;
+    return ((id (*)(id, SEL, id, NSInteger))g_sheet_header)(self, sel, table, section);
+}
+static id sheet_cell(id self, SEL sel, id table, id path) {
+    if (!reload_section(self, table, imsg0(path, "section")))
+        return ((id (*)(id, SEL, id, id))g_sheet_cell)(self, sel, table, path);
+    id cell = msg1(table, "dequeueReusableCellWithIdentifier:", nsstr("TASReloadEmotesRow"));
+    if (!cell) {
+        cell = ((id (*)(id, SEL, NSInteger, id))objc_msgSend)(
+            msg0((id)objc_getClass("UITableViewCell"), "alloc"),
+            sel_registerName("initWithStyle:reuseIdentifier:"), (NSInteger)0, nsstr("TASReloadEmotesRow"));
+        msg0(cell, "autorelease");
     }
-    id constraints = msg0((id)objc_getClass("NSMutableArray"), "array");
-    id constraint = ((id (*)(id, SEL, id, CGFloat))objc_msgSend)(
-        button_leading, sel_registerName("constraintEqualToAnchor:constant:"), leading, (CGFloat)16.0);
-    vmsg1(constraints, "addObject:", constraint);
-    constraint = ((id (*)(id, SEL, id, CGFloat))objc_msgSend)(
-        button_trailing, sel_registerName("constraintEqualToAnchor:constant:"), trailing, (CGFloat)-16.0);
-    vmsg1(constraints, "addObject:", constraint);
-    constraint = ((id (*)(id, SEL, id, CGFloat))objc_msgSend)(
-        button_bottom, sel_registerName("constraintEqualToAnchor:constant:"), bottom, (CGFloat)-10.0);
-    vmsg1(constraints, "addObject:", constraint);
-    constraint = ((id (*)(id, SEL, CGFloat))objc_msgSend)(
-        button_height, sel_registerName("constraintEqualToConstant:"), (CGFloat)44.0);
-    vmsg1(constraints, "addObject:", constraint);
-    ((void (*)(id, SEL, id))objc_msgSend)(
-        (id)objc_getClass("NSLayoutConstraint"), sel_registerName("activateConstraints:"), constraints);
-    id layer = msg0(button, "layer");
-    ((void (*)(id, SEL, CGFloat))objc_msgSend)(layer, sel_registerName("setCornerRadius:"), (CGFloat)8.0);
+    vmsg1(msg0(cell, "textLabel"), "setText:", nsstr("Reload Emotes"));
+    vmsg1(msg0(cell, "textLabel"), "setTextColor:", msg0((id)objc_getClass("UIColor"), "labelColor"));
+    vmsg1(cell, "setBackgroundColor:", msg0((id)objc_getClass("UIColor"), "secondarySystemBackgroundColor"));
+    vmsg1(msg0(cell, "imageView"), "setImage:", msg1((id)objc_getClass("UIImage"), "systemImageNamed:", nsstr("arrow.clockwise")));
+    vmsg1(cell, "setAccessibilityIdentifier:", nsstr("TASReloadEmotesChatMenuRow"));
+    return cell;
+}
+static void sheet_select(id self, SEL sel, id table, id path) {
+    if (!reload_section(self, table, imsg0(path, "section"))) {
+        ((void (*)(id, SEL, id, id))g_sheet_select)(self, sel, table, path); return;
+    }
+    ((void (*)(id, SEL, id, BOOL))objc_msgSend)(table, sel_registerName("deselectRowAtIndexPath:animated:"), path, YES);
+    MENU_INC(g_native_reload_button_taps);
+    tas_emotes_reload();
+    msg0(self, "close");
+}
+static id find_table(id view) {
+    if (bmsg1(view, "isKindOfClass:", (id)objc_getClass("UITableView"))) return view;
+    id children = msg0(view, "subviews");
+    for (NSInteger i = 0; i < imsg0(children, "count"); i++) {
+        id child = ((id (*)(id, SEL, NSUInteger))objc_msgSend)(children, sel_registerName("objectAtIndex:"), (NSUInteger)i);
+        id table = find_table(child); if (table) return table;
+    }
+    return nil;
+}
+static bool add_native_reload_row(id controller) {
+    if (reload_sheet(controller)) return true;
+    id table = find_table(msg0(controller, "view"));
+    if (!table) return false;
+    objc_setAssociatedObject(controller, &g_reload_sheet_key, nsstr("reload"), 1);
+    msg0(table, "reloadData");
+    msg0(table, "layoutIfNeeded");
+    msg0(msg0(controller, "view"), "setNeedsLayout");
     MENU_INC(g_native_reload_buttons_added);
     return true;
 }
@@ -883,7 +900,8 @@ static void native_action_sheet_view_did_appear(id self, SEL command, BOOL anima
         snprintf(g_last_appeared_after_tap, sizeof(g_last_appeared_after_tap), "%s",
                  class_getName(object_getClass(self)));
         pthread_mutex_unlock(&g_diag_lock);
-        add_native_reload_button(self);
+        add_native_reload_row(self);
+        g_chat_button_last_tap = 0;
     }
 }
 
@@ -895,10 +913,27 @@ static bool install_native_action_sheet_probe(void) {
     SEL selector = sel_registerName("viewDidAppear:");
     Method method = class_getInstanceMethod(cls, selector);
     if (!method) return false;
+    struct { const char *selector; IMP replacement; IMP *original; } hooks[] = {
+        {"numberOfSectionsInTableView:", (IMP)sheet_sections, &g_sheet_sections},
+        {"tableView:numberOfRowsInSection:", (IMP)sheet_rows, &g_sheet_rows},
+        {"tableView:cellForRowAtIndexPath:", (IMP)sheet_cell, &g_sheet_cell},
+        {"tableView:didSelectRowAtIndexPath:", (IMP)sheet_select, &g_sheet_select},
+        {"tableView:viewForHeaderInSection:", (IMP)sheet_header, &g_sheet_header},
+    };
+    /* Validate the complete table surface before replacing any implementation. */
+    for (size_t i = 0; i < sizeof(hooks)/sizeof(hooks[0]); i++)
+        if (!class_getInstanceMethod(cls, sel_registerName(hooks[i].selector))) return false;
     g_native_action_sheet_original_view_did_appear = method_getImplementation(method);
     if (!class_addMethod(cls, selector, (IMP)native_action_sheet_view_did_appear,
                          method_getTypeEncoding(method)))
         method_setImplementation(method, (IMP)native_action_sheet_view_did_appear);
+    for (size_t i = 0; i < sizeof(hooks)/sizeof(hooks[0]); i++) {
+        SEL sel = sel_registerName(hooks[i].selector);
+        Method m = class_getInstanceMethod(cls, sel);
+        *hooks[i].original = method_getImplementation(m);
+        if (!class_addMethod(cls, sel, hooks[i].replacement, method_getTypeEncoding(m)))
+            method_setImplementation(m, hooks[i].replacement);
+    }
     g_native_action_sheet_hooked = true;
     return true;
 }
@@ -985,6 +1020,7 @@ static void retry_app_settings_hook(id self, SEL command, id notification) {
     (void)command;
     (void)notification;
     tas_emotes_retry_hooks();
+    tas_emote_ui_retry_hooks();
     install_chat_settings_probe();
     install_native_action_sheet_probe();
     if (install_app_settings_hook()) {
@@ -1080,6 +1116,7 @@ void tas_diagnostics_initialize(void) {
     bool fallback = install_view_controller_fallback();
     bool retry_registered = register_hook_retry_observer();
     install_native_action_sheet_probe();
+    tas_emote_ui_retry_hooks();
     bool hooked = settings_registered && log_registered && install_app_settings_hook();
     fprintf(stderr, "[TAS] diagnostics UI %s (AppSettings hook %s; fallback %s; retry %s)\n",
             settings_registered && log_registered ? "registered" : "unavailable",

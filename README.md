@@ -11,7 +11,7 @@ an optional third-party emote integration.
 ## Status
 
 - Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
-- Development source: **2.3.0-dev.5** (emote and chat-menu troubleshooting build)
+- Development source: **2.3.0-dev.6** (emote UI and local-message development build)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
@@ -37,7 +37,7 @@ Amazon IVS behavior without notice.
 ### Third-party emotes (development source, not in the 2.2.1 release)
 
 The shared source now includes optional 7TV, BTTV, and FFZ global and channel
-emotes for incoming chat messages. Open **Profile → Settings → Ad Block** to
+emotes for chat messages. Open **Profile → Settings → Ad Block** to
 enable them, then relaunch Twitch. They are off by default. Turning them off
 and relaunching skips the emote hooks and provider requests altogether.
 
@@ -52,13 +52,13 @@ names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 
-The dev.4 report showed that provider data loaded, but no messages matched an
-emote name; it also identified Twitch's custom `ActionSheetViewController` as
-the stream chat menu. This revision matches emote names next to punctuation and
-adds Reload Emotes to that native sheet, with counters for words scanned and
-the sheet hook. It still needs device verification. Animated emotes may show only
-their first frame; the local sender's own outgoing messages may remain plain
-text.
+Dev.5 was device-confirmed to render incoming static and animated emotes.
+Dev.6 adds proportional attachment sizing, third-party definitions for the
+local sender's message tokenizer, and a scrolling Reload Emotes row in Chat
+Settings. Third-party emote taps open a sheet with a preview, provider/scope,
+creator credit when available, Copy name, Copy image URL, and Open in browser.
+These new private hooks still require device verification on Twitch 30.4.2.
+The diagnostic report includes their installation and aggregate activity.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle

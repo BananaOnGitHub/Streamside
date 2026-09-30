@@ -8,6 +8,7 @@
  * this module does not keep its own image files or decoded bitmaps.
  */
 #include "TASEmotes.h"
+#include "TASEmoteGeometry.h"
 
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -79,12 +80,16 @@ static char *duplicate(const char *s, size_t max) {
 typedef struct {
     char *name;
     char *url;
+    char *owner;
+    double aspect;
     uint64_t fake_id;
     unsigned char provider; /* 0: 7TV; 1: BTTV; 2: FFZ */
+    bool global;
 } Emote;
 typedef struct {
     bool occupied;
     char id[32];
+    char login[97];
     time_t last_used;
     time_t attempted[3];
     unsigned char failures[3];
@@ -95,8 +100,7 @@ typedef struct {
     uint64_t generation;
 } Room;
 typedef struct {
-    uint64_t fake_id;
-    char *url;
+    Emote emote;
     time_t retired_at;
 } OldImage;
 
@@ -129,17 +133,17 @@ static uint64_t g_fetch_http_error[3][2], g_fetch_parse_error[3][2];
 static void drop_emote(Emote *e) {
     free(e->name);
     free(e->url);
+    free(e->owner);
     memset(e, 0, sizeof(*e));
 }
 
 static void retire_emote_locked(Emote *e, time_t now) {
     if (e->fake_id && e->url) {
         OldImage *old = &g_old[g_old_next++ % MAX_HISTORY];
-        free(old->url);
-        old->fake_id = e->fake_id;
-        old->url = e->url;
+        drop_emote(&old->emote);
+        old->emote = *e;
         old->retired_at = now;
-        e->url = NULL;
+        memset(e, 0, sizeof(*e));
     }
     drop_emote(e);
 }
@@ -164,8 +168,8 @@ static void expire_locked(time_t now) {
     }
     for (size_t i = 0; i < MAX_HISTORY; i++) {
         OldImage *old = &g_old[i];
-        if (old->url && now - old->retired_at > HISTORY_SECONDS) {
-            free(old->url);
+        if (old->emote.url && now - old->retired_at > HISTORY_SECONDS) {
+            drop_emote(&old->emote);
             memset(old, 0, sizeof(*old));
         }
     }
@@ -224,7 +228,8 @@ void tas_emotes_image_protocol_request(void) { PROBE_INC(g_image_protocol_reques
 /* API strings are copied while the JSON object is alive; only bounded entries
  * are retained. The fixed provider rank makes name collisions deterministic. */
 static void add_emote_locked(Room *room, size_t max, const char *name,
-                             const char *url, unsigned char provider) {
+                             const char *url, unsigned char provider,
+                             bool global, const char *owner, double aspect) {
     if (!permitted_url(url, provider)) return;
     char *word = duplicate(name, 96);
     char *image = duplicate(url, 511);
@@ -242,6 +247,9 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
             existing->url = image;
             existing->fake_id = g_next_id++;
             existing->provider = provider;
+            existing->global = global;
+            existing->owner = duplicate(owner, 128);
+            existing->aspect = aspect;
         } else {
             free(word);
             free(image);
@@ -276,7 +284,9 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
     while (insert < room->size && strcmp(room->items[insert].name, word) < 0) insert++;
     memmove(&room->items[insert + 1], &room->items[insert],
             (room->size - insert) * sizeof(*room->items));
-    room->items[insert] = (Emote){word, image, g_next_id++, provider};
+    room->items[insert] = (Emote){.name = word, .url = image,
+        .owner = duplicate(owner, 128), .aspect = aspect,
+        .fake_id = g_next_id++, .provider = provider, .global = global};
     room->size++;
 }
 
@@ -306,9 +316,13 @@ static void parse_list_locked(Room *room, id array, unsigned char provider, bool
         const char *name = json_string(dict(emote, provider == 1 ? "code" : "name"));
         const char *id_text = json_id(dict(emote, "id"));
         char url[512];
+        id dimensions = emote, owner = dict(emote, provider == 1 ? "user" : "owner");
         if (!name || !id_text || strlen(id_text) > 96) continue;
         if (provider == 0) {
             id data = dict(emote, "data");
+            owner = dict(data, "owner");
+            id files = dict(dict(data, "host"), "files");
+            dimensions = kind(files, "NSArray") && count(files) ? at(files, 0) : nil;
             id animated = dict(data, "animated");
             bool gif = animated && ((BOOL (*)(id, SEL))objc_msgSend)(animated, sel_registerName("boolValue"));
             const char *formats[] = {"2x.gif", "2x.webp", "2x.png",
@@ -337,7 +351,16 @@ static void parse_list_locked(Room *room, id array, unsigned char provider, bool
                 snprintf(url, sizeof(url), "https:%s", provided);
             else snprintf(url, sizeof(url), "%s", provided);
         }
-        add_emote_locked(room, global ? MAX_GLOBAL : MAX_ROOM, name, url, provider);
+        const char *credit = json_string(dict(owner, "display_name"));
+        if (!credit) credit = json_string(dict(owner, "displayName"));
+        if (!credit) credit = json_string(dict(owner, "username"));
+        if (!credit) credit = json_string(dict(owner, "name"));
+        id width = dict(dimensions, "width"), height = dict(dimensions, "height");
+        double w = kind(width, "NSNumber") ? ((double (*)(id, SEL))objc_msgSend)(width, sel_registerName("doubleValue")) : 0;
+        double h = kind(height, "NSNumber") ? ((double (*)(id, SEL))objc_msgSend)(height, sel_registerName("doubleValue")) : 0;
+        double aspect = w > 0 && h > 0 && w <= 4096 && h <= 4096 ? w / h : 1;
+        add_emote_locked(room, global ? MAX_GLOBAL : MAX_ROOM, name, url, provider,
+                         global, credit, aspect);
     }
 }
 
@@ -563,6 +586,19 @@ static char *rewrite_line(const char *line, size_t length) {
     pthread_mutex_unlock(&g_emote_lock);
     ensure_loaded(NULL, false);
     ensure_loaded(room_id, false);
+    const char *channel_start = strstr(tags_end, message ? " PRIVMSG #" : " ROOMSTATE #");
+    channel_start = channel_start ? strchr(channel_start, '#') + 1 : NULL;
+    const char *channel_end = channel_start ? strchr(channel_start, ' ') : NULL;
+    if (channel_end && channel_end - channel_start <= 96) {
+        pthread_mutex_lock(&g_emote_lock);
+        for (size_t i = 0; i < MAX_ROOMS; i++)
+            if (g_rooms[i].occupied && !strcmp(g_rooms[i].id, room_id)) {
+                size_t n = (size_t)(channel_end - channel_start);
+                memcpy(g_rooms[i].login, channel_start, n);
+                g_rooms[i].login[n] = 0;
+            }
+        pthread_mutex_unlock(&g_emote_lock);
+    }
     if (!message) return NULL;
     const char *separator = strstr(privmsg, " :");
     if (!separator || separator >= end) return NULL;
@@ -731,6 +767,79 @@ static void private_receive(id self, SEL command, ReceiveHandler handler) {
 
 bool tas_emotes_enabled_this_launch(void) { return g_enabled; }
 
+static Emote *emote_for_id_locked(uint64_t synthetic_id) {
+    if (synthetic_id < FAKE_ID_START) return NULL;
+    for (size_t i = 0; i < g_global.size; i++)
+        if (g_global.items[i].fake_id == synthetic_id) return &g_global.items[i];
+    for (size_t r = 0; r < MAX_ROOMS; r++)
+        for (size_t i = 0; i < g_rooms[r].size; i++)
+            if (g_rooms[r].items[i].fake_id == synthetic_id) return &g_rooms[r].items[i];
+    for (size_t i = 0; i < MAX_HISTORY; i++)
+        if (g_old[i].emote.fake_id == synthetic_id && g_old[i].emote.url &&
+            time(NULL) - g_old[i].retired_at < HISTORY_SECONDS) return &g_old[i].emote;
+    return NULL;
+}
+
+double tas_emotes_aspect(uint64_t synthetic_id) {
+    if (!g_enabled || synthetic_id < FAKE_ID_START) return 0;
+    pthread_mutex_lock(&g_emote_lock);
+    Emote *e = emote_for_id_locked(synthetic_id);
+    double aspect = e ? e->aspect : 0;
+    pthread_mutex_unlock(&g_emote_lock);
+    return aspect;
+}
+
+id tas_emotes_metadata_copy(uint64_t synthetic_id) {
+    if (!g_enabled || synthetic_id < FAKE_ID_START) return nil;
+    pthread_mutex_lock(&g_emote_lock);
+    Emote *e = emote_for_id_locked(synthetic_id);
+    id metadata = nil;
+    if (e) {
+        metadata = call0((id)objc_getClass("NSMutableDictionary"), "new");
+        ((void (*)(id, SEL, id, id))objc_msgSend)(metadata, sel_registerName("setObject:forKey:"), str(e->name), str("name"));
+        ((void (*)(id, SEL, id, id))objc_msgSend)(metadata, sel_registerName("setObject:forKey:"), str(e->url), str("url"));
+        const char *providers[] = {"7TV", "BTTV", "FFZ"};
+        char subtitle[200];
+        snprintf(subtitle, sizeof(subtitle), "%s %s emote%s%s", providers[e->provider],
+                 e->global ? "global" : "channel", e->owner ? "\nby " : "", e->owner ? e->owner : "");
+        ((void (*)(id, SEL, id, id))objc_msgSend)(metadata, sel_registerName("setObject:forKey:"), str(subtitle), str("subtitle"));
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    return metadata;
+}
+
+id tas_emotes_local_matches_copy(id channel, id content) {
+    if (!g_enabled || !kind(channel, "NSString") || !kind(content, "NSString")) return nil;
+    const char *login = text(channel), *body = text(content);
+    if (!login || !body || strlen(login) > 96 || strnlen(body, MAX_FRAME + 1) > MAX_FRAME) return nil;
+    if (*login == '#') login++;
+    id matches = call0((id)objc_getClass("NSMutableDictionary"), "new");
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room = NULL;
+    for (size_t i = 0; i < MAX_ROOMS; i++)
+        if (g_rooms[i].occupied && (!strcmp(g_rooms[i].login, login) || !strcmp(g_rooms[i].id, login))) {
+            room = &g_rooms[i];
+            room->last_used = time(NULL);
+            break;
+        }
+    for (const char *p = body; *p;) {
+        if (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') { p++; continue; }
+        const char *start = p;
+        while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n') p++;
+        size_t n = (size_t)(p - start);
+        if (!n || n > 96) continue;
+        char word[97]; memcpy(word, start, n); word[n] = 0;
+        Emote *e = room ? find_word(room, word) : NULL;
+        if (!e) e = find_word(&g_global, word);
+        if (e) {
+            char number[32]; snprintf(number, sizeof(number), "%llu", (unsigned long long)e->fake_id);
+            ((void (*)(id, SEL, id, id))objc_msgSend)(matches, sel_registerName("setObject:forKey:"), str(number), str(e->name));
+        }
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    return matches;
+}
+
 static char *url_for_id_locked(uint64_t id, time_t now) {
     for (size_t i = 0; i < g_global.size; i++)
         if (g_global.items[i].fake_id == id) return strdup(g_global.items[i].url);
@@ -738,8 +847,8 @@ static char *url_for_id_locked(uint64_t id, time_t now) {
         for (size_t i = 0; i < g_rooms[r].size; i++)
             if (g_rooms[r].items[i].fake_id == id) return strdup(g_rooms[r].items[i].url);
     for (size_t i = 0; i < MAX_HISTORY; i++)
-        if (g_old[i].fake_id == id && g_old[i].url &&
-            now - g_old[i].retired_at < HISTORY_SECONDS) return strdup(g_old[i].url);
+        if (g_old[i].emote.fake_id == id && g_old[i].emote.url &&
+            now - g_old[i].retired_at < HISTORY_SECONDS) return strdup(g_old[i].emote.url);
     return NULL;
 }
 
@@ -774,13 +883,30 @@ void tas_emotes_image_request(bool has_completion) {
     else PROBE_INC(g_image_without_completion);
 }
 
+static void update_image_aspect(id data, id response) {
+    const char *url = text(call0(call0(response, "URL"), "absoluteString"));
+    if (!tas_emotes_is_provider_image_url(url) || !kind(data, "NSData")) return;
+    const unsigned char *bytes = ((const unsigned char *(*)(id, SEL))objc_msgSend)(data, sel_registerName("bytes"));
+    double aspect = tas_emote_image_aspect(bytes, ((NSUInteger (*)(id, SEL))objc_msgSend)(data, sel_registerName("length")));
+    if (!aspect) return;
+    pthread_mutex_lock(&g_emote_lock);
+    for (size_t r = 0; r <= MAX_ROOMS; r++) {
+        Room *room = r == MAX_ROOMS ? &g_global : &g_rooms[r];
+        for (size_t i = 0; i < room->size; i++)
+            if (!strcmp(room->items[i].url, url)) room->items[i].aspect = aspect;
+    }
+    for (size_t i = 0; i < MAX_HISTORY; i++)
+        if (g_old[i].emote.url && !strcmp(g_old[i].emote.url, url)) g_old[i].emote.aspect = aspect;
+    pthread_mutex_unlock(&g_emote_lock);
+}
+
 void tas_emotes_image_result(id data, id response, id error) {
     if (error) PROBE_INC(g_image_transport_error);
     else {
         NSInteger status = response && ((BOOL (*)(id, SEL, SEL))objc_msgSend)(
             response, sel_registerName("respondsToSelector:"), sel_registerName("statusCode"))
             ? ((NSInteger (*)(id, SEL))objc_msgSend)(response, sel_registerName("statusCode")) : 0;
-        if (status >= 200 && status < 300) PROBE_INC(g_image_http_ok);
+        if (status >= 200 && status < 300) { PROBE_INC(g_image_http_ok); update_image_aspect(data, response); }
         else PROBE_INC(g_image_http_error);
     }
     NSUInteger length = data ? ((NSUInteger (*)(id, SEL))objc_msgSend)(
@@ -867,7 +993,7 @@ void tas_emotes_clear_cache(void) {
     g_global.generation = ++g_generation;
     for (size_t i = 0; i < MAX_ROOMS; i++) reset_room_locked(&g_rooms[i], false, now);
     for (size_t i = 0; i < MAX_HISTORY; i++) {
-        free(g_old[i].url);
+        drop_emote(&g_old[i].emote);
         memset(&g_old[i], 0, sizeof(g_old[i]));
     }
     g_last_room[0] = 0;

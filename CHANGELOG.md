@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.3.0-dev.6 (development; emote UI and local messages)
+
+- Preserve provider emote proportions in message sizing and native attachments.
+  Learn dimensions from provider APIs or bounded GIF/PNG/WebP headers.
+- Add channel/global third-party definitions to the local outgoing-message
+  tokenizer while preserving native Twitch emotes and the original message text.
+- Replace the chat settings overlay button with a scrolling Reload Emotes row.
+- Intercept third-party emote taps with a provider sheet: animated preview,
+  name, provider/scope, creator credit when supplied, Copy name, Copy image URL,
+  and Open in browser. Native emote taps continue through Twitch.
+- Add aggregate hook, local-message, sizing, hit-test, and popup diagnostics.
+- Device verification is pending; private hooks target decrypted Twitch 30.4.2.
+
 ## 2.3.0-dev.5 (development; emote matching and chat-menu fix)
 
 - Match third-party emote names at the start or end of punctuation-delimited

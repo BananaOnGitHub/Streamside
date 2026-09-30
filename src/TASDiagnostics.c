@@ -37,7 +37,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "TwitchAdBlock-VAFT"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "2.3.0-dev.7"
+#define TAS_REPORT_VERSION "2.3.0-dev.8"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -349,7 +349,7 @@ static id diagnostic_report_create(void) {
              navigation_top[0] ? navigation_top : "none",
              navigation_visible[0] ? navigation_visible : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
-    char ui_status[768];
+    char ui_status[1024];
     tas_emote_ui_status(ui_status, sizeof(ui_status));
     vmsg1(report, "appendString:", nsstr(ui_status));
     vmsg1(report, "appendString:", nsstr(menu_status));

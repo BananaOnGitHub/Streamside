@@ -44,10 +44,12 @@ HARNESS = r'''
 #include <assert.h>
 #include "TASEmoteUI.c"
 struct Fake { const char *class_name, *value; id inner; };
-static struct Fake classes[] = {{"NSString",0,0},{"NSNumber",0,0}};
+struct LayerFake { struct Fake base; Rect content_frame; id image_data; id requester; };
+static struct Fake classes[] = {{"NSString",0,0},{"NSNumber",0,0},
+    {"_TtC6Twitch20ImageAttachmentLayer",0,0},{"_TtC6Twitch22MessageStringImageData",0,0}};
 static struct Fake location = {"NSNumber","12",0};
 Class objc_getClass(const char *name) {
-    for (int i=0;i<2;i++) if (!strcmp(name,classes[i].class_name)) return &classes[i];
+    for (size_t i=0;i<sizeof(classes)/sizeof(classes[0]);i++) if (!strcmp(name,classes[i].class_name)) return &classes[i];
     return nil;
 }
 SEL sel_registerName(const char *name) { return name; }
@@ -61,8 +63,14 @@ static id dispatch(id o,SEL sel,...) {
         SEL probe = va_arg(args,SEL);
         result = (id)(uintptr_t)((!strcmp(probe,"emoteId") && !strcmp(o->class_name,"TWMessageEmoteToken")) ||
                                 (!strcmp(probe,"emoteLocationsMap") && !strcmp(o->class_name,"MessageString")) ||
-                                (!strcmp(probe,"layoutManager") && !strcmp(o->class_name,"NSTextContainer")));
-    } else if (!strcmp(sel,"emoteId") || !strcmp(sel,"emoteLocationsMap") || !strcmp(sel,"layoutManager")) result = o->inner;
+                                (!strcmp(probe,"layoutManager") && !strcmp(o->class_name,"NSTextContainer")) ||
+                                (!strcmp(probe,"staticURL") && !strcmp(o->class_name,"_TtC6Twitch22MessageStringImageData")) ||
+                                ((!strcmp(probe,"host") || !strcmp(probe,"path")) && !strcmp(o->class_name,"NSURL")));
+    } else if (!strcmp(sel,"emoteId") || !strcmp(sel,"emoteLocationsMap") || !strcmp(sel,"layoutManager") || !strcmp(sel,"staticURL") || !strcmp(sel,"host")) result = o->inner;
+    else if (!strcmp(sel,"path")) { static struct Fake path = {"NSString",0,0}; path.value = o->value; result = &path; }
+    else if (!strcmp(sel,"isEqualToString:")) { id other = va_arg(args,id); result = (id)(uintptr_t)(other && !strcmp(o->value,other->value)); }
+    else if (!strcmp(sel,"stringWithUTF8String:")) { static struct Fake text = {"NSString",0,0}; text.value = va_arg(args,const char *); result = &text; }
+    else if (!strcmp(sel,"longLongValue")) result = (id)(uintptr_t)strtoll(o->value,NULL,10);
     else if (!strcmp(sel,"description")) result = o;
     else if (!strcmp(sel,"UTF8String")) result = (id)o->value;
     else if (!strcmp(sel,"numberWithInteger:")) { (void)va_arg(args,long); result = &location; }
@@ -72,8 +80,18 @@ static id dispatch(id o,SEL sel,...) {
 }
 id (*objc_msgSend)(id,SEL,...) = dispatch;
 Class object_getClass(id o) { return o; }
-Ivar class_getInstanceVariable(Class cls,const char *name) { (void)cls; (void)name; return NULL; }
-ptrdiff_t ivar_getOffset(Ivar ivar) { (void)ivar; return 0; }
+static ptrdiff_t content_offset = offsetof(struct LayerFake,content_frame);
+static ptrdiff_t requester_offset = offsetof(struct LayerFake,requester), wrong_offset;
+Ivar class_getInstanceVariable(Class cls,const char *name) {
+    if (strcmp(cls->class_name,"_TtC6Twitch20ImageAttachmentLayer")) return NULL;
+    if (!strcmp(name,"content")) return &content_offset;
+    if (!strcmp(name,"networkImageRequester")) {
+        if (cls->value) { wrong_offset = requester_offset + 8; return &wrong_offset; }
+        return &requester_offset;
+    }
+    return NULL;
+}
+ptrdiff_t ivar_getOffset(Ivar ivar) { return *(ptrdiff_t *)ivar; }
 id objc_getAssociatedObject(id o,const void *key_value) { (void)key_value; return o ? o->inner : nil; }
 double tas_emotes_aspect(uint64_t number) { return number == 9000000001ULL ? 4 : 0; }
 static Size native_size(id self,SEL sel,NSInteger index) {
@@ -83,6 +101,8 @@ static Rect native_attachment(id self,SEL sel,id container,Rect fragment,Point p
     (void)self; (void)sel; (void)container; (void)fragment; (void)position; (void)index;
     return (Rect){{0,-7},{28,28}};
 }
+static Rect painted;
+static void native_frame(id self,SEL sel,Rect frame) { (void)self; (void)sel; painted = frame; }
 int main(void) {
     struct Fake provider = {"NSString","9000000001",nil};
     struct Fake native = {"NSString","25",nil};
@@ -109,13 +129,35 @@ int main(void) {
     size = message_size(&message,"sizeOfImageAttachmentAtCharacterIndex:",12);
     assert(size.width == 28 && size.height == 28);
     token.inner = nil; assert(!synthetic_id(&token));
+    struct Fake numeric_sender = {"NSNumber","123456",nil};
+    struct Fake text_sender = {"NSString","123456",nil};
+    struct Fake negative_sender = {"NSNumber","-1",nil};
+    struct Fake large_sender = {"NSNumber","4294967296",nil};
+    assert(sender_id(&numeric_sender) == 123456 && sender_id(&text_sender) == 123456);
+    assert(!sender_id(nil) && !sender_id(&negative_sender) && !sender_id(&large_sender));
+    struct Fake host = {"NSString","static-cdn.jtvnw.net",nil};
+    struct Fake url = {"NSURL","/emoticons/v2/9000000001/default/dark/1.0",&host};
+    struct Fake data = {"_TtC6Twitch22MessageStringImageData",0,&url};
+    struct LayerFake layer = {{"_TtC6Twitch20ImageAttachmentLayer",0,0},{{10,20},{28,28}},&data,nil};
+    assert(image_layer_id((id)&layer) == 9000000001ULL);
+    g_layer_frame = (IMP)native_frame;
+    layer_set_frame((id)&layer,"setFrame:",layer.content_frame);
+    assert(painted.size.width == 112 && painted.size.height == 28 && painted.origin.x == 10 && painted.origin.y == 20);
+    layer_set_frame((id)&layer,"setFrame:",painted); assert(painted.size.width == 112);
+    url.value = "/emoticons/v2/25/default/dark/1.0";
+    layer_set_frame((id)&layer,"setFrame:",layer.content_frame); assert(painted.size.width == 28);
+    url.value = "/emoticons/v2/9000000001/default/dark/1.0";
+    host.value = "example.com"; assert(!image_layer_id((id)&layer));
+    host.value = "static-cdn.jtvnw.net";
+    layer.base.value = "unexpected tuple span"; layer.image_data = (id)(uintptr_t)1;
+    assert(!image_layer_id((id)&layer));
     return 0;
 }
 '''
 
 
 class EmoteUITests(unittest.TestCase):
-    def test_token_map_resolves_provider_ids_and_preserves_native_size(self) -> None:
+    def test_token_map_sender_bridge_and_scoped_image_frames(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "objc").mkdir()

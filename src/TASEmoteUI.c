@@ -23,11 +23,12 @@ extern id objc_retain(id);
 extern void objc_release(id);
 extern id objc_getAssociatedObject(id, const void *);
 extern void objc_setAssociatedObject(id, const void *, id, uintptr_t);
-static IMP g_receive, g_size, g_base_size, g_bounds, g_set_bounds, g_textkit_bounds, g_chat_textkit_bounds, g_tap;
+static IMP g_receive, g_size, g_base_size, g_bounds, g_set_bounds, g_textkit_bounds, g_chat_textkit_bounds, g_layer_frame, g_layer_layout, g_tap;
 static Class g_details_class;
 static char g_metadata_key, g_snapshot_message_key;
 static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
 static uint64_t g_size_calls, g_bounds_calls, g_textkit_calls, g_resolved_ids;
+static uint64_t g_layer_calls, g_layer_ids, g_layer_resizes, g_layer_layouts;
 #define INC(x) ((void)__atomic_add_fetch(&(x), 1, __ATOMIC_RELAXED))
 #define GET(x) __atomic_load_n(&(x), __ATOMIC_RELAXED)
 static id m0(id o, const char *s) { return ((id (*)(id,SEL))objc_msgSend)(o, sel_registerName(s)); }
@@ -71,12 +72,58 @@ static uint64_t attachment_id(id attachment) {
     id data = m0(attachment,"imageData");
     return responds(data,"staticURL") ? url_id(m0(data,"staticURL")) : 0;
 }
+/* Twitch 30.4.2 stores ImageAttachmentLayer.content as (CGRect,
+ * MessageStringImageData). Its native description and frame setter confirm
+ * the strong object field after CGRect. Resolve both ivars at runtime and
+ * require their complete tuple span before reading the object field. */
+static uint64_t image_layer_id(id layer) {
+    if (!kind(layer,"_TtC6Twitch20ImageAttachmentLayer")) return 0;
+    Class cls = object_getClass(layer);
+    Ivar content = class_getInstanceVariable(cls,"content");
+    Ivar next = class_getInstanceVariable(cls,"networkImageRequester");
+    if (!content || !next || ivar_getOffset(next) - ivar_getOffset(content) != (ptrdiff_t)(sizeof(Rect) + sizeof(id))) return 0;
+    id data = nil;
+    memcpy(&data,(char *)layer + ivar_getOffset(content) + sizeof(Rect),sizeof(data));
+    if (!kind(data,"_TtC6Twitch22MessageStringImageData") || !responds(data,"staticURL")) return 0;
+    uint64_t number = url_id(m0(data,"staticURL"));
+    if (!number && responds(data,"animatedURL")) number = url_id(m0(data,"animatedURL"));
+    return number;
+}
+
 static Size proportional(Size size, uint64_t number) {
     double aspect = tas_emotes_aspect(number);
     if (aspect <= 0 || size.height <= 0) return size;
     tas_emote_proportions(&size.width, &size.height, aspect);
     INC(g_sized); return size;
 }
+static Rect proportional_layer_frame(Rect rect, uint64_t number) {
+    if (!number) return rect;
+    INC(g_layer_ids);
+    Size before = rect.size;
+    rect.size = proportional(rect.size,number);
+    if (before.width != rect.size.width || before.height != rect.size.height) INC(g_layer_resizes);
+    return rect;
+}
+/* Swift also sends setFrame: to CALayer's implementation using super calls.
+ * Hook that boundary, filtering all work to identified provider image layers. */
+static void layer_set_frame(id self, SEL sel, Rect rect) {
+    if (kind(self,"_TtC6Twitch20ImageAttachmentLayer")) {
+        INC(g_layer_calls);
+        rect = proportional_layer_frame(rect,image_layer_id(self));
+    }
+    ((void (*)(id,SEL,Rect))g_layer_frame)(self,sel,rect);
+}
+static void image_layer_layout(id self, SEL sel) {
+    ((void (*)(id,SEL))g_layer_layout)(self,sel);
+    INC(g_layer_layouts);
+    uint64_t number = image_layer_id(self);
+    if (!number) return;
+    Rect frame = ((Rect (*)(id,SEL))objc_msgSend)(self,sel_registerName("frame"));
+    Rect adjusted = proportional_layer_frame(frame,number);
+    if (frame.size.width != adjusted.size.width || frame.size.height != adjusted.size.height)
+        ((void (*)(id,SEL,Rect))objc_msgSend)(self,sel_registerName("setFrame:"),adjusted);
+}
+
 static uint64_t message_id_at(id message, NSInteger index) {
     if (!responds(message,"emoteLocationsMap")) return 0;
     id number = ((id (*)(id,SEL,NSInteger))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithInteger:"),index);
@@ -140,10 +187,18 @@ static void append_text(id output, id original, id text, Range range) {
     id token = ((id (*)(id,SEL,id,AutoModFlags))objc_msgSend)(m0((id)object_getClass(original),"alloc"),sel_registerName("initWithText:autoModFlags:"),substring(text,range),flags);
     if (token) { v1(output,"addObject:",token); objc_release(token); }
 }
+static uint32_t sender_id(id value) {
+    /* The UInt32? getter bridges to NSNumber, not NSString. Accept the
+     * textual representation as a compatibility fallback, never a Swift ivar. */
+    if (!kind(value,"NSNumber") && !kind(value,"NSString")) return 0;
+    int64_t number = ((int64_t (*)(id,SEL))objc_msgSend)(value,sel_registerName("longLongValue"));
+    return number > 0 && number <= UINT32_MAX ? (uint32_t)number : 0;
+}
+
 static id rewrite_local_message(id message, id room, uint32_t user) {
     if (!kind(message,"_TtC9TwitchKit13TWChatMessage") || !responds(message,"senderId")) return nil;
     id sender = m0(message,"senderId");
-    if (!kind(sender,"NSString") || ((uint64_t (*)(id,SEL))objc_msgSend)(sender,sel_registerName("longLongValue")) != user) return nil;
+    if (!user || sender_id(sender) != user) return nil;
     INC(g_sent_calls);
     id tokens = m0(message,"messageTokens"); if (!kind(tokens,"NSArray")) return nil;
     id output = m0((id)objc_getClass("NSMutableArray"),"array");
@@ -164,9 +219,11 @@ static id rewrite_local_message(id message, id room, uint32_t user) {
             if (end > start) {
                 id name = substring(text,(Range){start,end-start}), number = m1(matches,"objectForKey:",name);
                 if (synthetic_id(number)) {
-                    append_text(output,token,text,(Range){pending,start-pending});
                     id emote = ((id (*)(id,SEL,id,id))objc_msgSend)(m0((id)objc_getClass("_TtC9TwitchKit19TWMessageEmoteToken"),"alloc"),sel_registerName("initWithEmoteId:emoteText:"),number,name);
-                    if (emote) { v1(output,"addObject:",emote); objc_release(emote); hits++; pending = end; }
+                    if (emote) {
+                        append_text(output,token,text,(Range){pending,start-pending});
+                        v1(output,"addObject:",emote); objc_release(emote); hits++; pending = end;
+                    }
                 }
             }
             start = end < length ? end + 1 : length;
@@ -399,6 +456,8 @@ void tas_emote_ui_retry_hooks(void) {
     hook(objc_getClass("_TtC6Twitch13MessageString"),"sizeOfImageAttachmentAtCharacterIndex:",3,(IMP)base_message_size,&g_base_size);
     hook(objc_getClass("_TtC6Twitch32MessageStringImageDataAttachment"),"bounds",2,(IMP)attachment_bounds,&g_bounds);
     hook(objc_getClass("_TtC6Twitch32MessageStringImageDataAttachment"),"setBounds:",3,(IMP)attachment_set_bounds,&g_set_bounds);
+    hook(objc_getClass("CALayer"),"setFrame:",3,(IMP)layer_set_frame,&g_layer_frame);
+    hook(objc_getClass("_TtC6Twitch20ImageAttachmentLayer"),"layoutSublayers",2,(IMP)image_layer_layout,&g_layer_layout);
     hook(objc_getClass("_TtC6Twitch17MessageStringView"),"handleTapGesture:",3,(IMP)tap_gesture,&g_tap);
 }
 void tas_emote_ui_status(char *buffer, size_t capacity) {
@@ -409,9 +468,13 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         "Native delivery callbacks/local messages/matched emotes: %llu/%llu/%llu\n"
         "Sizing calls (message/attachment/TextKit)/resolved IDs: %llu/%llu/%llu/%llu\n"
         "Proportional sizes/taps/provider sheets: %llu/%llu/%llu\n"
-        "Tap snapshots/provider hits: %llu/%llu\n",
+        "Tap snapshots/provider hits: %llu/%llu\n"
+        "Image layer hooks (frame/layout): %s/%s\n"
+        "Image layer frame calls/layouts/provider IDs/resizes: %llu/%llu/%llu/%llu\n",
         g_receive ? "installed" : "missing",g_size ? "installed" : "missing",g_base_size ? "installed" : "missing",g_bounds && g_set_bounds ? "installed" : "missing",g_textkit_bounds && g_chat_textkit_bounds ? "installed" : "missing",g_tap ? "installed" : "missing",
         (unsigned long long)GET(g_receive_calls),(unsigned long long)GET(g_sent_calls),(unsigned long long)GET(g_sent_matches),
         (unsigned long long)GET(g_size_calls),(unsigned long long)GET(g_bounds_calls),(unsigned long long)GET(g_textkit_calls),(unsigned long long)GET(g_resolved_ids),
-        (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits));
+        (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits),
+        g_layer_frame ? "installed" : "missing",g_layer_layout ? "installed" : "missing",
+        (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes));
 }

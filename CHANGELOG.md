@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.3.0-dev.8 (development; image frames and sender ID correction)
+
+- Accept TWChatMessage.senderId's NSNumber bridge. Dev.7 rejected every
+  local message before token matching because it required NSString.
+- Correct provider ImageAttachmentLayer frames as well as TextKit spacing.
+  Resolve the strong image-data field only after validating the runtime tuple
+  span; scope frame changes to registered synthetic provider image IDs.
+- Add a layer layout fallback and aggregate frame/ID/resize counters.
+- Regression coverage includes NSNumber sender IDs, non-square image frames,
+  repeated adjustment, unchanged native frames, and unexpected tuple spans.
+- Device-confirmed in dev.7: provider details preview/menu works. TextKit
+  reserves proportional space, but image layers remain square and own sent
+  messages remain text. Dev.8 corrections still need an on-device retest.
+
 ## 2.3.0-dev.7 (development; corrections from device diagnostics)
 
 - Resolve emote-map values through TWMessageEmoteToken.emoteId, fixing the

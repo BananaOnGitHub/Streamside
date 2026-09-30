@@ -5,13 +5,13 @@ A native iOS port of the **VAFT** strategy from
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
 The published 2.2.1 sideload and jailbreak builds came from the same
-checked-in R5 source. The current development source is 2.3.0-dev.7 and adds
+checked-in R5 source. The current development source is 2.3.0-dev.8 and adds
 an optional third-party emote integration.
 
 ## Status
 
 - Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
-- Development source: **2.3.0-dev.7** (emote UI and local-message corrections)
+- Development source: **2.3.0-dev.8** (provider image frames and sender ID correction)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
@@ -52,15 +52,15 @@ names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 
-Dev.5 was device-confirmed to render incoming static and animated emotes.
-Dev.6's scrolling Reload Emotes row was also confirmed, but its proportions,
-local sender emotes, and provider tap details did not work on device. Dev.7
-corrects token-object ID lookup, adds TextKit attachment sizing, and moves
-local-message conversion to the native chat delivery callback. Provider tap
-sheets contain a preview, provider/scope, creator credit when available,
-Copy name, Copy image URL, and Open in browser. These corrections require
-an on-device retest on Twitch 30.4.2. The diagnostic report records both hook
-installation and actual delivery, sizing, and tap activity.
+Incoming static and animated emotes were device-confirmed in dev.5, the
+scrolling Reload Emotes row in dev.6, and provider tap details in dev.7.
+The detail sheet has a preview, provider/scope, available creator credit,
+Copy name, Copy image URL, and Open in browser. Dev.7 also reserves proportional
+text space, but its image layers remain square and own sent emotes remain text.
+Dev.8 corrects provider image-layer frames and accepts Twitch's NSNumber sender
+ID bridge before local token conversion. These two corrections still need
+an on-device retest on Twitch 30.4.2. Diagnostics record delivery, sizing,
+image-layer, and tap activity without retaining chat text or image URLs.
 
 The sideload build uses the physical framework and load path
 `Tweach.framework/Tweach` for signer compatibility. The binary in that bundle

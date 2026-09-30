@@ -152,9 +152,13 @@ def stage(input_ipa: Path, output_ipa: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--historical-reproduction", action="store_true",
+                        help="explicitly reproduce the archived 2.2.1 binary, never a current release")
     parser.add_argument("r5_ipa", type=Path)
     parser.add_argument("output_ipa", type=Path)
     args = parser.parse_args()
+    if not args.historical_reproduction:
+        parser.error("archived R5 reproducer; use patch_ipa.py for current builds")
     stage(args.r5_ipa, args.output_ipa)
 
 

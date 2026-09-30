@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import plistlib
 import shutil
@@ -12,22 +13,26 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
+    from .artifact_guard import BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from .macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
+    from .verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
+    from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:  # Direct execution from tools/patch_ipa.py.
+    from artifact_guard import BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
+    from verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
+    from verify_macho import FRAMEWORK_IDENTITY
 
-LOAD_PATH = "@rpath/Tweach.framework/Tweach"
-FRAMEWORK_NAME = "Tweach.framework"
-FRAMEWORK_BINARY_NAME = "Tweach"
+LOAD_PATH = FRAMEWORK_IDENTITY
+FRAMEWORK_BINARY_NAME = BINARY_NAME
 APP_DISPLAY_NAME = "Twitch VAFT"
-DONOR_DYLIB_NAMES = {"Tweach.dylib", "TwitchAdBlock.dylib"}
-DONOR_LOAD_PATHS = {
-    "@rpath/Tweach.dylib",
-    "@executable_path/Frameworks/Tweach.dylib",
-    "@rpath/TwitchAdBlock.dylib",
-    "@executable_path/Frameworks/TwitchAdBlock.dylib",
-    LOAD_PATH,
+DONOR_DYLIB_NAMES = LEGACY_FILES
+DONOR_FRAMEWORK_NAMES = LEGACY_FRAMEWORKS | {FRAMEWORK_NAME}
+DONOR_RELATIVE_PATHS = DONOR_DYLIB_NAMES | {
+    f"{name}/{name.removesuffix('.framework')}" for name in DONOR_FRAMEWORK_NAMES
 }
+DONOR_LOAD_PATHS = {prefix + name for name in DONOR_RELATIVE_PATHS
+                    for prefix in ("@rpath/", "@executable_path/Frameworks/", "@loader_path/Frameworks/")}
 
 
 def _app_info_entry(archive: zipfile.ZipFile) -> str:
@@ -58,6 +63,9 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
               force: bool = False) -> tuple[bool, list[str]]:
     if not input_path.is_file():
         raise FileNotFoundError(f"input IPA not found: {input_path}")
+    # Mandatory even when this script is called directly instead of via make.
+    # Never repair an unnormalized or changed binary silently at packaging time.
+    framework_binary, framework_info_bytes = checked_artifact(framework_path, True)
     framework_binary_path = framework_path / FRAMEWORK_BINARY_NAME
     framework_info_path = framework_path / "Info.plist"
     if not framework_binary_path.is_file():
@@ -82,6 +90,8 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
     injected = False
     try:
         with zipfile.ZipFile(input_path, "r") as source:
+            if len(source.namelist()) != len(set(source.namelist())):
+                raise ValueError("duplicate input IPA entries are forbidden")
             bad_entry = source.testzip()
             if bad_entry:
                 raise zipfile.BadZipFile(f"CRC failure in {bad_entry}")
@@ -93,6 +103,8 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
             executable_name = info_plist.get("CFBundleExecutable")
             if not isinstance(executable_name, str) or not executable_name:
                 raise ValueError("Info.plist has no CFBundleExecutable")
+            if PurePosixPath(executable_name).name != executable_name:
+                raise ValueError("invalid CFBundleExecutable path")
             executable_entry = f"{app_root}/{executable_name}"
             framework_root = f"{app_root}/Frameworks/{FRAMEWORK_NAME}"
             framework_binary_entry = f"{framework_root}/{FRAMEWORK_BINARY_NAME}"
@@ -104,19 +116,18 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
                 raise ValueError(f"app executable is missing: {executable_entry}")
             if asset_entry not in names:
                 raise ValueError("Assets.car is missing; refusing to create a known-broken package")
-            asset_crc = source.getinfo(asset_entry).CRC
+            asset_hash = hashlib.sha256(source.read(asset_entry)).digest()
 
             executable = source.read(executable_entry)
             if any(value != 0 for value in encryption_ids(executable)):
                 raise ValueError("the app executable is still encrypted; provide a decrypted IPA")
             executable, removed_load_paths = remove_load_dylibs(executable, DONOR_LOAD_PATHS)
             executable, injected = inject_load_dylib(executable, LOAD_PATH)
-            framework_binary = framework_binary_path.read_bytes()
-            framework_info_bytes = framework_info_path.read_bytes()
 
             donor_entries = {
                 f"{app_root}/Frameworks/{name}" for name in DONOR_DYLIB_NAMES
             }
+            donor_roots = {f"{app_root}/Frameworks/{name}" for name in DONOR_FRAMEWORK_NAMES}
 
             with zipfile.ZipFile(temp_path, "w", allowZip64=True) as destination:
                 for item in source.infolist():
@@ -124,7 +135,10 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
                         destination.writestr(item, updated_info_plist)
                     elif item.filename == executable_entry:
                         destination.writestr(item, executable)
-                    elif item.filename in donor_entries or item.filename.startswith(framework_root + "/"):
+                    elif item.filename in donor_entries or any(
+                        item.filename.rstrip("/") == root or item.filename.startswith(root + "/")
+                        for root in donor_roots
+                    ):
                         continue
                     else:
                         _copy_entry(source, destination, item)
@@ -139,14 +153,10 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
                 destination.writestr(info_item, framework_info_bytes)
 
         with zipfile.ZipFile(temp_path, "r") as result:
-            bad_entry = result.testzip()
-            if bad_entry:
-                raise zipfile.BadZipFile(f"output CRC failure in {bad_entry}")
-            if result.getinfo(asset_entry).CRC != asset_crc:
+            verify_archive(result, framework_binary, framework_info_bytes)
+            if hashlib.sha256(result.read(asset_entry)).digest() != asset_hash:
                 raise ValueError("Assets.car changed while repackaging")
 
-        if output_path.exists():
-            output_path.unlink()
         os.replace(temp_path, output_path)
         return injected, removed_load_paths
     except Exception:
@@ -157,9 +167,9 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="decrypted Twitch IPA supplied by the user")
-    default_framework = Path("Tweach.framework")
-    if not default_framework.is_dir() and Path("build/Tweach.framework").is_dir():
-        default_framework = Path("build/Tweach.framework")
+    default_framework = Path(FRAMEWORK_NAME)
+    if not default_framework.is_dir() and (Path("build") / FRAMEWORK_NAME).is_dir():
+        default_framework = Path("build") / FRAMEWORK_NAME
     parser.add_argument("--framework", type=Path, default=default_framework)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--force", action="store_true")

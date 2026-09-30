@@ -40,13 +40,15 @@ build_binary() {
 # Jailbreak package: keep the clean identity and a large in-place signature
 # reservation for injection frameworks that replace the ad-hoc signature.
 build_binary build/TwitchAdBlock.dylib @rpath/TwitchAdBlock.dylib TwitchAdBlock
+python3 tools/align_macho_segments.py build/TwitchAdBlock.dylib
 python3 tools/reserve_codesign_space.py build/TwitchAdBlock.dylib --size 65536
+python3 tools/artifact_guard.py record build/TwitchAdBlock.dylib
 
-# Sideload package: preserve the donor framework identity. Tested iOS signers
-# require every file-backed segment to fill its existing 16 KiB-aligned range,
-# and handle the compact trailing ad-hoc signature reliably.
-mkdir -p build/Tweach.framework
-build_binary build/Tweach.framework/Tweach @rpath/Tweach.framework/Tweach Tweach
-python3 tools/align_macho_segments.py build/Tweach.framework/Tweach
-python3 tools/shrink_adhoc_signature.py build/Tweach.framework/Tweach
-cp packaging/TweachFramework-Info.plist build/Tweach.framework/Info.plist
+# Sideload package: clean identity, same normalized layout as the working build.
+# Record a fingerprint ONLY after normalization, compaction and validation.
+mkdir -p build/Streamside.framework
+build_binary build/Streamside.framework/Streamside @rpath/Streamside.framework/Streamside Streamside
+python3 tools/align_macho_segments.py build/Streamside.framework/Streamside
+python3 tools/shrink_adhoc_signature.py build/Streamside.framework/Streamside
+cp packaging/StreamsideFramework-Info.plist build/Streamside.framework/Info.plist
+python3 tools/artifact_guard.py record build/Streamside.framework --framework

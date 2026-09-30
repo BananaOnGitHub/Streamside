@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches: ["**"]
-    tags: ["v*"]
+    tags: ["[0-9]*"]
   pull_request:
   workflow_dispatch:
 
@@ -40,14 +40,21 @@ jobs:
 
       - name: Verify version tag
         if: startsWith(github.ref, 'refs/tags/')
-        run: test "v$(cat VERSION)" = "$GITHUB_REF_NAME"
+        run: |
+          version="$(cat VERSION)"
+          test "$version" = "$GITHUB_REF_NAME" || test "$version-jb" = "$GITHUB_REF_NAME"
 
-      - name: Build and test
-        run: make release
+      - name: Build, enforce Mach-O contracts, and test
+        run: make verify test deb
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TwitchAdBlock-VAFT-iOS-${{ github.sha }}
-          path: dist/*
+          path: |
+            build/Streamside.framework/
+            build/Streamside.framework.macho.json
+            build/TwitchAdBlock.dylib
+            build/TwitchAdBlock.dylib.macho.json
+            dist/*.deb
           if-no-files-found: error

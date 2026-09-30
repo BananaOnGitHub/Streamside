@@ -30,8 +30,9 @@ the Git history does not pretend to have evidence that no longer exists.
 | 2.3.0-dev.5 | 2026-09-29 | VAFT solution 24 plus optional emotes | Incoming emotes device-confirmed | Added punctuation matching and an initial chat-menu reload button. |
 | 2.3.0-dev.6 | 2026-09-30 | VAFT solution 24 plus optional emotes | Menu row device-confirmed; new emote UI failed | Added proportions, local tokenizer hook, and provider detail sheets. Diagnostics showed zero local calls, sizing adjustments, and tap hits. |
 | 2.3.0-dev.7 | 2026-09-30 | VAFT solution 24 plus optional emotes | Provider tap details device-confirmed; spacing corrected but images stay square | Corrects token-object lookup and TextKit spacing. Local-message filtering rejects NSNumber sender IDs, so own messages remain text. |
-| 2.3.0-dev.8 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact development source; fixes confirmed in 2.3.0 device test | Accepts NSNumber sender IDs and corrects separate provider image-layer frames, with scoped layout recovery and counters. |
-| 2.3.0 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact checked-in source; device-confirmed on Twitch 30.4.2 | Finalizes third-party emotes, proportional image widths, own sent-message rendering, reload menu, and provider details. |
+| 2.3.0-dev.8 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact development source; device-confirmed | Accepts NSNumber sender IDs and corrects separate provider image-layer frames, with scoped layout recovery and counters. |
+| 2.3.0 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact checked-in source; final IPA packaging differs from working dev.8 | Finalizes emotes; later loader investigation found lost segment normalization in the packaged framework, despite the same main executable. |
+| 2.3.1 prepared | 2026-09-30 | VAFT solution 24 plus optional emotes | Source-built candidate; publication held for approval | Removes the active donor identity in favor of Streamside; enforces 16 KiB geometry, signing metadata, and build-to-package fingerprints. Corrected loader trial launches; newly compiled version requires its own device verification. |
 
 ## Binary evidence
 
@@ -70,3 +71,13 @@ filename/load-command change and also rejected the initial replacement dylib's
 Mach-O layout. Version 2.2.0 keeps the clean identity for jailbreaks and uses
 the donor-compatible `Tweach.framework/Tweach` identity with 16 KiB-aligned
 segments for sideloaded IPAs.
+
+The 2.3.0 loader investigation corrected that earlier inference: all three
+failed rename/path trials inherited the final IPA's unnormalized framework.
+Working dev.8 used rounded segment ranges, while the final IPA had `__TEXT`
+size 123528 instead of 131072 and `__DATA_CONST` size 40 instead of 16384.
+Restoring the build's normalizer and compact signature reproduced the aligned
+source-built 2.3.0 framework exactly. The corrected migration trial launches.
+The current build uses Streamside and binds normalization to each package's
+actual bytes; historical names below and the archived R5 reproducer are retained
+only for provenance and migration of old inputs, never as an active loader.

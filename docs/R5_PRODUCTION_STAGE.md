@@ -1,5 +1,9 @@
 # 2.2.1 sideload release staging
 
+Historical reproduction only: the script requires `--historical-reproduction`.
+It is not a current release path. Use the fingerprint-checked `patch_ipa.py`
+with `Streamside.framework` for current builds.
+
 This page records how the earlier 2.2.1 binary was staged. The source-backed
 replacement reconstructs these diagnostics in `src/` and builds both formats
 from source.

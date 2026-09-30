@@ -99,20 +99,37 @@ Both arm64 outputs contain 16 KiB of Mach-O header padding.
 
 - `TwitchAdBlock.dylib` uses `@rpath/TwitchAdBlock.dylib` and is packaged for
   jailbreak injection.
-- `Tweach.framework/Tweach` uses `@rpath/Tweach.framework/Tweach` and is
+- `Streamside.framework/Streamside` uses `@rpath/Streamside.framework/Streamside` and is
   packaged for sideloading. Its file-backed segments fill their existing 16 KiB
   ranges, and its compact ad-hoc signature ends at EOF so iOS signers can
   replace it cleanly.
 
-The sideload compatibility identity is required because the tested resigning
-path correctly rescans the donor filename while rejecting an otherwise
-byte-equivalent dylib at a new physical path.
+Earlier rename trials inherited an unnormalized final 2.3.0 IPA. Comparing its
+actual Mach-O bytes against working dev.8 exposed the segment-size regression;
+the donor name itself is not an initialization requirement. Restoring the
+normalized layout produced a launching migration candidate. This does not
+prove compatibility with every signer or Twitch/iOS version.
+
+`artifact_guard.py` records exact SHA-256, segment geometry, install/signing
+identities, signature offsets/reservations, and framework metadata after the
+build's normalization and signature update. Both binaries are normalized; the
+jailbreak binary reserves at least 64 KiB and the framework uses the exact
+16-byte-rounded compact signature size. Every CodeDirectory must cover the
+entire unsigned code region, have the normalized executable range, and pass
+all code-page hashes.
+
+Receipts live alongside (not inside) the framework. Packaging requires the
+receipt and independently validates the supplied bytes; it never silently
+repairs them. Finished IPA/framework ZIP/source bundle/DEB native entries are
+read back and compared byte-for-byte with their validated build inputs. A
+layout or fingerprint mismatch aborts the packaging step. This verifies build
+integrity, not certificate trust or on-device launch behavior after signing.
 
 ## Installation paths
 
 For sideloading, the patcher removes obsolete dylib/framework commands, places
-the release `Tweach.framework` in the app's Frameworks directory, and injects
-its compatibility load command. For a jailbroken install,
+the verified `Streamside.framework` in the app's Frameworks directory, and injects
+exactly one required Streamside load command. For a jailbroken install,
 `TwitchAdBlock.dylib` is loaded into the `tv.twitch` process by a
 Substrate-compatible filter. Rootful packages install under `/Library`;
 rootless packages install beneath `/var/jb/Library`.

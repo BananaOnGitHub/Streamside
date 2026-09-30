@@ -87,8 +87,14 @@ def _command_string(data: bytes | bytearray, item: LoadCommand) -> str:
 
 
 def loaded_dylibs(data: bytes | bytearray) -> list[str]:
+    return [name for _kind, name in dylib_loads(data)]
+
+
+def dylib_loads(data: bytes | bytearray) -> list[tuple[int, str]]:
+    """Retain command kind so required dependencies cannot become weak loads."""
     kinds = {LC_LOAD_DYLIB, LC_LOAD_WEAK_DYLIB, LC_REEXPORT_DYLIB}
-    return [_command_string(data, item) for item in load_commands(data) if item.command in kinds]
+    return [(item.command, _command_string(data, item))
+            for item in load_commands(data) if item.command in kinds]
 
 
 def dylib_id(data: bytes | bytearray) -> str | None:

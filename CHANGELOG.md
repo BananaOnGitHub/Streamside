@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.3.1 (prepared; not published)
+
+- Replace the active sideload loader, install name, signing identifier, and
+  bundle metadata with `Streamside.framework/Streamside`. Initialization still
+  uses the native C constructor; no donor runtime or filename is required.
+- Normalize both native build outputs to their 16 KiB segment ranges and reject
+  incorrect offsets, sizes, gaps, overlaps, sections, or trailing linkedit ranges.
+- Validate exact required load commands, code-signature placement/reservations,
+  CodeDirectory identity/executable range, and every code-page hash.
+- Record a build fingerprint after normalization. IPA, DEB, and distribution
+  packagers require it and compare actual packaged binary bytes, failing closed
+  instead of normalizing a different binary silently. IPA output is verified
+  before atomic replacement and old injected frameworks/loads are removed.
+- Add corruption and normalization-regression tests to ordinary build CI.
+  Release publication still requires separate user approval; none is performed.
+
 ## 2.3.0 (third-party emotes and native chat integration)
 
 - Accept TWChatMessage.senderId's NSNumber bridge. Dev.7 rejected every

@@ -16,6 +16,8 @@ from tools.macho import (
     remove_load_dylibs,
 )
 from tools.patch_ipa import APP_DISPLAY_NAME, LOAD_PATH, patch_ipa
+from tools.artifact_guard import BINARY_NAME, BUNDLE_ID, FRAMEWORK_NAME, write_receipt
+from macho_fixture import synthetic_dylib
 
 DONOR_LOAD_PATH = "@rpath/Tweach.dylib"
 
@@ -63,14 +65,16 @@ class MachOTests(unittest.TestCase):
 class IPAPatcherTests(unittest.TestCase):
     @staticmethod
     def make_framework(root: Path) -> Path:
-        framework = root / "Tweach.framework"
+        framework = root / FRAMEWORK_NAME
         framework.mkdir()
-        (framework / "Tweach").write_bytes(b"synthetic framework binary")
+        (framework / BINARY_NAME).write_bytes(synthetic_dylib())
         (framework / "Info.plist").write_bytes(plistlib.dumps({
-            "CFBundleExecutable": "Tweach",
-            "CFBundleIdentifier": "io.github.bananaongithub.tas.tweach",
+            "CFBundleExecutable": BINARY_NAME,
+            "CFBundleName": BINARY_NAME,
+            "CFBundleIdentifier": BUNDLE_ID,
             "CFBundlePackageType": "FMWK",
         }))
+        write_receipt(framework, True)
         return framework
 
     def test_patches_synthetic_ipa_without_touching_assets(self) -> None:
@@ -102,13 +106,13 @@ class IPAPatcherTests(unittest.TestCase):
                 self.assertEqual(app_info["CFBundleName"], APP_DISPLAY_NAME)
                 self.assertNotIn("Payload/Twitch.app/Frameworks/Tweach.dylib", archive.namelist())
                 self.assertEqual(
-                    archive.read("Payload/Twitch.app/Frameworks/Tweach.framework/Tweach"),
-                    b"synthetic framework binary",
+                    archive.read(f"Payload/Twitch.app/Frameworks/{FRAMEWORK_NAME}/{BINARY_NAME}"),
+                    synthetic_dylib(),
                 )
                 framework_info = plistlib.loads(
-                    archive.read("Payload/Twitch.app/Frameworks/Tweach.framework/Info.plist")
+                    archive.read(f"Payload/Twitch.app/Frameworks/{FRAMEWORK_NAME}/Info.plist")
                 )
-                self.assertEqual(framework_info["CFBundleExecutable"], "Tweach")
+                self.assertEqual(framework_info["CFBundleExecutable"], BINARY_NAME)
                 executable = archive.read("Payload/Twitch.app/Twitch")
                 self.assertIn(LOAD_PATH, loaded_dylibs(executable))
                 self.assertNotIn(DONOR_LOAD_PATH, loaded_dylibs(executable))

@@ -5,8 +5,14 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
+
+try:
+    from .artifact_guard import checked_artifact, compare_packaged
+except ImportError:
+    from artifact_guard import checked_artifact, compare_packaged
 
 ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_ID = "dev.tas.twitchadblock"
@@ -36,6 +42,7 @@ def build_variant(version: str, scheme: str, prefix: Path, architecture: str) ->
     filter_plist = ROOT / "packaging" / "TwitchAdBlock.plist"
     if not dylib.is_file():
         raise SystemExit("build/TwitchAdBlock.dylib is missing; run make build first")
+    verified_binary, _info = checked_artifact(dylib, False)
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)
     output = dist / f"{PACKAGE_ID}_{version}_{architecture}.deb"
@@ -48,6 +55,7 @@ def build_variant(version: str, scheme: str, prefix: Path, architecture: str) ->
         install.mkdir(parents=True)
         (metadata / "control").write_text(control(version, architecture), encoding="utf-8")
         shutil.copy2(dylib, install / "TwitchAdBlock.dylib")
+        compare_packaged((install / "TwitchAdBlock.dylib").read_bytes(), verified_binary, False)
         shutil.copy2(filter_plist, install / "TwitchAdBlock.plist")
         os.chmod(install / "TwitchAdBlock.dylib", 0o755)
         os.chmod(install / "TwitchAdBlock.plist", 0o644)
@@ -70,6 +78,26 @@ def build_variant(version: str, scheme: str, prefix: Path, architecture: str) ->
     expected = f"./{prefix.as_posix() + '/' if prefix.parts else ''}{INSTALL_RELATIVE.as_posix()}/TwitchAdBlock.dylib"
     if expected not in listing:
         raise SystemExit(f"DEB is missing expected install path: {expected}")
+    # Inspect the bytes inside the actual finished DEB, not just the staging copy.
+    process = subprocess.Popen(["dpkg-deb", "--fsys-tarfile", str(output)], stdout=subprocess.PIPE)
+    try:
+        with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
+            found = False
+            for member in archive:
+                if member.name == expected:
+                    if found or not member.isfile():
+                        raise ValueError("invalid/duplicate native binary in DEB")
+                    compare_packaged(archive.extractfile(member).read(), verified_binary, False)
+                    found = True
+            if not found:
+                raise ValueError("verified binary is missing from DEB data archive")
+        if process.wait():
+            raise ValueError("failed to read DEB data archive")
+    finally:
+        process.stdout.close()
+        if process.poll() is None:
+            process.terminate()
+        process.wait()
     return output
 def main() -> int:
     if shutil.which("dpkg-deb") is None:

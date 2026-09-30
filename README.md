@@ -5,13 +5,13 @@ A native iOS port of the **VAFT** strategy from
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
 
 The published 2.2.1 sideload and jailbreak builds came from the same
-checked-in R5 source. The current development source is 2.3.0-dev.4 and adds
+checked-in R5 source. The current development source is 2.3.0-dev.5 and adds
 an optional third-party emote integration.
 
 ## Status
 
 - Published sideload IPA: **2.2.1**; jailbreak prerelease: **2.2.1-jb**
-- Development source: **2.3.0-dev.4** (emote troubleshooting build)
+- Development source: **2.3.0-dev.5** (emote and chat-menu troubleshooting build)
 - Upstream strategy: **VAFT solution 24**
 - Tested app version: **Twitch 30.4.2, arm64**
   - The earlier 2.2.1 staged IPA was tested on an iPhone 16 Pro on iOS 18.2;
@@ -52,13 +52,11 @@ names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
 Evicted image IDs have a bounded 45-minute grace period to allow existing chat
 cells to redraw. It maintains no separate image files or decoded image cache.
 
-The 2.3.0-dev.1 device test showed the settings controls but no third-party
-emotes or chat-menu reload action. The dev.3 report confirmed live provider
-fetches, four rewritten chat frames, and two image URL redirects, but the image
-tasks used delegates and the menu was presented in a navigation controller.
-This revision traces provider image responses and records the navigation
-controller's child class to locate the remaining breaks. It has not yet been
-verified on a device. Animated emotes may show only
+The dev.4 report showed that provider data loaded, but no messages matched an
+emote name; it also identified Twitch's custom `ActionSheetViewController` as
+the stream chat menu. This revision matches emote names next to punctuation and
+adds Reload Emotes to that native sheet, with counters for words scanned and
+the sheet hook. It still needs device verification. Animated emotes may show only
 their first frame; the local sender's own outgoing messages may remain plain
 text.
 

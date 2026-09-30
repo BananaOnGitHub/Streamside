@@ -118,6 +118,7 @@ static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
 static uint64_t g_rewritten_frames, g_image_rewrites;
 static uint64_t g_image_with_completion, g_image_without_completion;
 static uint64_t g_image_protocol_requests, g_match_words, g_native_overlaps;
+static uint64_t g_words_scanned, g_punctuation_matches;
 static uint64_t g_image_http_ok, g_image_http_error, g_image_transport_error;
 static uint64_t g_image_empty, g_image_gif, g_image_webp, g_image_other;
 static uint64_t g_fetch_started[3][2], g_fetch_loaded[3][2], g_fetch_failed[3][2];
@@ -538,6 +539,12 @@ static bool overlaps_native(const char *tags, const char *end, size_t first, siz
     return false;
 }
 
+static bool boundary_punctuation(unsigned char c) {
+    return c == '.' || c == ',' || c == '!' || c == '?' || c == ';' || c == ':' ||
+           c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' ||
+           c == '\'' || c == '"' || c == '<' || c == '>';
+}
+
 /* Returns a replacement for one IRC line, or NULL if it is unchanged. */
 static char *rewrite_line(const char *line, size_t length) {
     if (length < 3 || line[0] != '@') return NULL;
@@ -571,20 +578,45 @@ static char *rewrite_line(const char *line, size_t length) {
         const char *word = p;
         while (p < end && *p != ' ' && *p != '\t') p++;
         size_t bytes = (size_t)(p - word), span = codepoints(word, bytes);
+        if (bytes) PROBE_INC(g_words_scanned);
+        size_t trim_start = 0, trim_end = bytes;
+        Emote *emote = NULL;
         if (bytes && bytes <= 96 && span && span <= 96) {
             char candidate[97];
             memcpy(candidate, word, bytes);
             candidate[bytes] = 0;
-            Emote *emote = room ? find_word(room, candidate) : NULL;
+            emote = room ? find_word(room, candidate) : NULL;
             if (!emote) emote = find_word(&g_global, candidate);
-            if (emote && !overlaps_native(line + 1, tags_end, position, position + span - 1)) {
+            if (!emote) {
+                while (trim_start < trim_end && boundary_punctuation((unsigned char)word[trim_start]))
+                    trim_start++;
+                while (trim_end > trim_start && boundary_punctuation((unsigned char)word[trim_end - 1]))
+                    trim_end--;
+                size_t candidate_bytes = trim_end - trim_start;
+                size_t candidate_span = codepoints(word + trim_start, candidate_bytes);
+                if (candidate_bytes && candidate_bytes <= 96 && candidate_span <= 96) {
+                    memcpy(candidate, word + trim_start, candidate_bytes);
+                    candidate[candidate_bytes] = 0;
+                    emote = room ? find_word(room, candidate) : NULL;
+                    if (!emote) emote = find_word(&g_global, candidate);
+                    if (emote) PROBE_INC(g_punctuation_matches);
+                }
+            }
+            if (emote) {
+                size_t first = position + codepoints(word, trim_start);
+                size_t matched_span = codepoints(word + trim_start, trim_end - trim_start);
+                if (overlaps_native(line + 1, tags_end, first, first + matched_span - 1)) {
+                    PROBE_INC(g_native_overlaps);
+                    position += span;
+                    continue;
+                }
                 PROBE_INC(g_match_words);
                 int n = snprintf(additions + written, sizeof(additions) - written,
                                  "%s%llu:%zu-%zu", written ? "/" : "",
-                                 (unsigned long long)emote->fake_id, position, position + span - 1);
+                                 (unsigned long long)emote->fake_id, first, first + matched_span - 1);
                 if (n > 0 && (size_t)n < sizeof(additions) - written) written += (size_t)n;
                 else break;
-            } else if (emote) PROBE_INC(g_native_overlaps);
+            }
         }
         position += span;
     }
@@ -890,6 +922,7 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "Image responses (HTTP 2xx/other/transport error/empty): %llu/%llu/%llu/%llu\n"
         "Image MIME (GIF/WebP/other): %llu/%llu/%llu\n"
         "Matched emote words/native overlaps: %llu/%llu\n"
+        "Message words scanned/punctuation matches: %llu/%llu\n"
         "Registry entries (global/active rooms): %zu/%zu\n"
         "7TV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
         "BTTV fetches global/channel (started/loaded/failed): %llu/%llu/%llu, %llu/%llu/%llu\n"
@@ -917,6 +950,8 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_image_other),
         (unsigned long long)PROBE_GET(g_match_words),
         (unsigned long long)PROBE_GET(g_native_overlaps),
+        (unsigned long long)PROBE_GET(g_words_scanned),
+        (unsigned long long)PROBE_GET(g_punctuation_matches),
         global_count, room_count,
         (unsigned long long)PROBE_GET(g_fetch_started[0][0]),
         (unsigned long long)PROBE_GET(g_fetch_loaded[0][0]),

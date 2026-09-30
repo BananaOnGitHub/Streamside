@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0-dev.5 (development; emote matching and chat-menu fix)
+
+- Match third-party emote names at the start or end of punctuation-delimited
+  chat words, and report scanned words and punctuation matches.
+- Hook Twitch's native `TwitchCoreUI.ActionSheetViewController` and add a
+  Reload Emotes button to the stream chat action sheet.
+- Register the button action and retry hook installation after Twitch launches;
+  report hook installation, sheet appearances, button insertions, and taps.
+- Requires device verification for both emote rendering and menu placement.
+
 ## 2.3.0-dev.4 (development; provider image and menu tracing)
 
 - The dev.3 report showed four rewritten chat frames and two delegate-based

@@ -482,16 +482,30 @@ static void restore_native(State *s) {
         objc_release(s->native_content); s->native_content=nil;
     }
 }
+static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rect bounds) {
+    if (!s->strip) return;
+    id window=m0(owner,"window");
+    if (!window) { m0(s->strip,"removeFromSuperview"); return; }
+    Rect strip={{position.origin.x,position.origin.y-48},{position.size.width,48}};
+    BOOL contained=strip.size.width>0 && strip.origin.x>=bounds.origin.x && strip.origin.y>=bounds.origin.y &&
+        strip.origin.x+strip.size.width<=bounds.origin.x+bounds.size.width &&
+        strip.origin.y+strip.size.height<=bounds.origin.y+bounds.size.height;
+    /* A visible child outside the chat parent's bounds never participates in
+     * UIKit hit testing, even with clipping disabled. Attach only this narrow
+     * strip to the owner's scene window: its full touch area is inside its
+     * parent, and chat's tap-to-dismiss recognizers are no longer ancestors. */
+    frame(s->strip,strip);
+    if (m0(s->strip,"superview")!=window) v1(window,"addSubview:",s->strip);
+    vb(s->strip,"setHidden:",!contained || !yes(editor,"isFirstResponder") || !number(s->suggestions,"count"));
+    v1(window,"bringSubviewToFront:",s->strip);
+}
 static void layout(id delegate) {
     State *s=state(delegate); if (!s) return;
-    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),parent=m0(owner,"superview");
-    if (!owner || !m0(owner,"window")) { m0(s->strip,"removeFromSuperview"); restore_native(s); objc_release(owner); return; }
-    if (s->strip && parent) {
-        Rect bounds=rect(owner,"bounds"),position=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(owner,sel_registerName("convertRect:toView:"),bounds,parent);
-        frame(s->strip,(Rect){{position.origin.x,position.origin.y-48},{position.size.width,48}});
-        if (m0(s->strip,"superview")!=parent) v1(parent,"addSubview:",s->strip);
-        vb(s->strip,"setHidden:",!yes(editor,"isFirstResponder") || !number(s->suggestions,"count"));
-        v1(parent,"bringSubviewToFront:",s->strip);
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),window=m0(owner,"window");
+    if (!owner || !window) { m0(s->strip,"removeFromSuperview"); restore_native(s); objc_release(owner); return; }
+    if (s->strip) {
+        Rect position=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(owner,sel_registerName("convertRect:toView:"),rect(owner,"bounds"),window);
+        place_suggestion_strip(s,owner,editor,position,rect(window,"bounds"));
     }
     id container=container_for(s,owner),footer=objc_loadWeakRetained(&s->footer);
     if (s->tab && container && footer && m0(container,"window")) {
@@ -564,7 +578,7 @@ static void refresh(id delegate) {
         }
         if (!equal(matches,s->suggestions)) {
             objc_release(s->suggestions); s->suggestions=matches;
-            if (!s->strip) { s->strip=view("UIScrollView",(Rect){{0,0},{320,48}}); vb(s->strip,"setShowsHorizontalScrollIndicator:",NO); v1(s->strip,"setBackgroundColor:",color("secondarySystemBackgroundColor")); }
+            if (!s->strip) { s->strip=view("UIScrollView",(Rect){{0,0},{320,48}}); vb(s->strip,"setShowsHorizontalScrollIndicator:",NO); vb(s->strip,"setDelaysContentTouches:",NO); v1(s->strip,"setBackgroundColor:",color("secondarySystemBackgroundColor")); }
             fill_strip(s->strip,delegate,matches);
         } else { if (matches) objc_release(matches); refresh_strip_images(s->strip); }
         objc_release(plain);

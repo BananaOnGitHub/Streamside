@@ -414,6 +414,142 @@ int main(void) {
 }
 '''
 
+RECENTS = r'''
+#include <stdarg.h>
+#include <assert.h>
+#include "SSComposer.c"
+struct Fake {
+    const char *cls;
+    id parent,host,views[6],children[4],tint,background;
+    State *context;
+    Rect frame,bounds;
+    Insets inset,adjusted;
+    Point offset;
+    U count;
+    BOOL hidden;
+};
+static struct Fake classes[8]; static U class_count;
+static unsigned inset_sets,offset_sets,original_layouts;
+static State *current;
+Class objc_getClass(const char *name) {
+    for(U i=0;i<class_count;i++)if(!strcmp(classes[i].cls,name))return &classes[i];
+    assert(class_count<8);classes[class_count].cls=name;return &classes[class_count++];
+}
+Class object_getClass(id o) { return o; }
+SEL sel_registerName(const char *s) { return s; }
+Ivar class_getInstanceVariable(Class c,const char *name) {
+    (void)c;
+    if(!strcmp(name,"_state"))return (Ivar)(uintptr_t)offsetof(struct Fake,context);
+    const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
+        "$__lazy_storage_$_allEmotesButton","recentEmotesHighlight","channelEmotesHighlight","allEmotesHighlight"};
+    for(U i=0;i<6;i++)if(!strcmp(name,names[i]))return (Ivar)(uintptr_t)(offsetof(struct Fake,views)+i*sizeof(id));
+    return NULL;
+}
+ptrdiff_t ivar_getOffset(Ivar iv) { return (ptrdiff_t)(uintptr_t)iv; }
+size_t class_getInstanceSize(Class c) { (void)c;return sizeof(struct Fake); }
+id objc_retain(id o) { return o; }
+void objc_release(id o) { (void)o; }
+id objc_loadWeakRetained(id *p) { return *p; }
+id objc_initWeak(id *p,id o) { *p=o;return o; }
+void objc_destroyWeak(id *p) { *p=nil; }
+id objc_getAssociatedObject(id o,const void *key) { return o && key==&recent_host_key ? o->host : nil; }
+void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) { assert(key==&recent_host_key && policy==1);o->host=value; }
+void *ss_test_field(id o,const char *name) {
+    assert(o);
+    if(!strcmp(name,"frame"))return &o->frame;
+    if(!strcmp(name,"bounds"))return &o->bounds;
+    if(!strcmp(name,"contentInset"))return &o->inset;
+    if(!strcmp(name,"adjustedContentInset"))return &o->adjusted;
+    if(!strcmp(name,"contentOffset"))return &o->offset;
+    assert(!"unexpected geometry getter");return NULL;
+}
+static id dispatch(id o,SEL sel,...) {
+    if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
+    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls) || (!strcmp(c->cls,"UIView") && !strcmp(o->cls,"UIButton"))); }
+    else if(!strcmp(sel,"respondsToSelector:")) { (void)va_arg(args,SEL);result=(id)1; }
+    else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
+    else if(!strcmp(sel,"subviews"))result=o;
+    else if(!strcmp(sel,"objectAtIndex:")) { U i=va_arg(args,U);assert(i<o->count);result=o->children[i]; }
+    else if(!strcmp(sel,"superview"))result=o->parent;
+    else if(!strcmp(sel,"addSubview:"))va_arg(args,id)->parent=o;
+    else if(!strcmp(sel,"removeFromSuperview"))o->parent=nil;
+    else if(!strcmp(sel,"bringSubviewToFront:"))assert(va_arg(args,id)->parent==o);
+    else if(!strcmp(sel,"setFrame:"))o->frame=va_arg(args,Rect);
+    else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
+    else if(!strcmp(sel,"tintColor"))result=o->tint;
+    else if(!strcmp(sel,"backgroundColor"))result=o->background;
+    else if(!strcmp(sel,"setTintColor:"))o->tint=va_arg(args,id);
+    else if(!strcmp(sel,"setBackgroundColor:"))o->background=va_arg(args,id);
+    else if(!strcmp(sel,"setContentInset:")) {
+        Insets value=va_arg(args,Insets);double safe=o->adjusted.top-o->inset.top;
+        o->inset=value;o->adjusted=value;o->adjusted.top+=safe;inset_sets++;
+        if(o->host) place_recent_strip(current,o); /* UIKit can reenter during mutation. */
+    } else if(!strcmp(sel,"setContentOffset:") || !strcmp(sel,"setContentOffset:animated:")) {
+        o->offset=va_arg(args,Point);o->bounds.origin=o->offset;offset_sets++;
+        if(!strcmp(sel,"setContentOffset:animated:"))assert(!va_arg(args,int));
+    } else assert(!"unexpected recent selector");
+    va_end(args);return result;
+}
+id (*objc_msgSend)(id,SEL,...)=dispatch;
+static void native_layout(id o,SEL sel) { (void)o;(void)sel;original_layouts++; }
+int main(void) {
+    struct Fake ordinary={.cls="UIColor"},active={.cls="UIColor"};
+    struct Fake buttons[6]={0},footer={.cls="UIView"};
+    for(U i=0;i<6;i++) { buttons[i].cls=i<3 ? "UIButton":"UIView";buttons[i].tint=&ordinary;footer.views[i]=&buttons[i]; }
+    buttons[1].tint=&active;buttons[4].background=&active; /* native Channel selected; native Recent empty */
+    struct Fake items={.count=3},row={.cls="UIScrollView"};
+    struct Fake native={.cls="UICollectionView",.bounds={{0,-20},{390,220}},.inset={8,2,4,6},.adjusted={20,2,4,6},.offset={0,-20}};
+    State s={.recent_strip=&row,.recent_entries=&items,.footer=&footer};current=&s;
+    struct Fake delegate={.context=&s},container={.cls="UIView",.children={&native},.count=1};delegate_class=&delegate;
+    original_collection_layout=(IMP)native_layout;
+    /* No Recent button press: tab remains the default native library. */
+    bind_recents(&delegate,&container);
+    assert(!s.tab && row.parent==&native && s.recent_content==&native && native.host==&delegate);
+    assert(native.inset.top==56 && native.inset.bottom==4 && native.offset.y==-68);
+    assert(row.frame.origin.y==-48 && row.frame.size.width==390 && row.frame.size.height==48);
+    assert(s.recent_highlight_active && buttons[3].background==&active && !buttons[4].background);
+    assert(buttons[0].tint==&active && buttons[1].tint==&ordinary);
+    unsigned offsets=offset_sets,insets=inset_sets;
+    row.offset.x=192;
+    bind_recents(&delegate,&container);collection_layout(&native,"layoutSubviews");
+    assert(offset_sets==offsets && inset_sets==insets && row.offset.x==192 && original_layouts==1);
+    /* Native vertical scrolling moves the row with content, never pins it. */
+    native.offset.y=100;native.bounds.origin.y=100;collection_layout(&native,"layoutSubviews");
+    assert(row.frame.origin.y-native.bounds.origin.y==-148 && offset_sets==offsets);
+    assert(!s.recent_highlight_active && !buttons[3].background && buttons[4].background==&active);
+    assert(buttons[1].tint==&active && buttons[0].tint==&ordinary);
+    struct Fake unrelated={.cls="UICollectionView"};collection_layout(&unrelated,"layoutSubviews");
+    assert(!unrelated.inset.top && !unrelated.host && original_layouts==3);
+    /* Recent navigation includes the provider row; provider overlay retains
+     * it inside the hidden native collection, rather than over the grid. */
+    scroll_to_recents(&s);assert(native.offset.y==-68);
+    s.tab=1;native.hidden=YES;place_recent_strip(&s,&native);
+    assert(row.parent==&native && !s.recent_highlight_active);
+    s.tab=0;native.hidden=NO;
+    /* Rotation changes width without moving the user's scroll position. */
+    native.bounds.size.width=844;native.bounds.origin.y=300;native.offset.y=300;
+    offsets=offset_sets;place_recent_strip(&s,&native);
+    assert(row.frame.size.width==844 && native.offset.y==300 && offset_sets==offsets);
+    /* Empty history removes exactly the owned height, preserving native
+     * bottom/side insets and independent changes to the top inset. */
+    native.inset.top+=7;native.adjusted.top+=7;items.count=0;
+    place_recent_strip(&s,&native);
+    assert(!row.parent && native.inset.top==15 && native.inset.bottom==4 && native.offset.y==300);
+    items.count=3;place_recent_strip(&s,&native);assert(native.inset.top==63 && native.offset.y==300);
+    struct Fake replacement={.cls="UICollectionView",.bounds={{0,0},{320,200}}};container.children[0]=&replacement;
+    bind_recents(&delegate,&container);
+    assert(native.inset.top==15 && !native.host && replacement.inset.top==48 && replacement.offset.y==-48);
+    assert(row.parent==&replacement && s.recent_content==&replacement);
+    detach_recents(&s);assert(!replacement.inset.top && !replacement.host && !row.parent && !s.recent_content);
+    /* Some opening layouts still report y=0 before safe-area adjustment. */
+    replacement.inset.top=8;replacement.adjusted.top=20;replacement.offset.y=0;replacement.bounds.origin.y=0;
+    bind_recents(&delegate,&container);assert(replacement.inset.top==56 && replacement.offset.y==-68);
+    detach_recents(&s);
+    return 0;
+}
+'''
+
+
 class ComposerTests(unittest.TestCase):
     def test_utf16_edits_and_completion_boundaries(self):
         self.compile_run(MODEL, ["cc", "-std=c11", "-fsanitize=address,undefined"])
@@ -442,6 +578,19 @@ class ComposerTests(unittest.TestCase):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig, "Zig is required for the production composer harness")
         self.compile_run(SCROLL, [zig, "cc", "-fblocks"], runtime=True)
+
+    def test_native_library_recents_scroll_by_default_and_preserve_section_navigation(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig, "Zig is required for the production composer harness")
+        # Host mocks return UIKit structs through typed field getters; all
+        # production placement/binding/navigation/highlight logic is unchanged.
+        source = (ROOT / "src" / "SSComposer.c").read_text()
+        source = source.replace('static Rect rect(id o,const char *s) { return ((Rect (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }',
+            'extern void *ss_test_field(id,const char *);\nstatic Rect rect(id o,const char *s) { return *(Rect *)ss_test_field(o,s); }')
+        for name, typ in (("contentInset", "Insets"), ("adjustedContentInset", "Insets"), ("contentOffset", "Point")):
+            source = source.replace(f'(({typ} (*)(id,SEL))objc_msgSend)(content,sel_registerName("{name}"))',
+                f'*( {typ} *)ss_test_field(content,"{name}")')
+        self.compile_run(RECENTS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):
         with tempfile.TemporaryDirectory() as d:

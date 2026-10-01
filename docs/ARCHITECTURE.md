@@ -130,7 +130,12 @@ Recent provider names occupy a horizontal row prepended to the native library's
 collection view, populated on every opening without requiring a Recent button
 press. The row scrolls vertically with native sections and horizontally within
 itself. Additional top inset reserves its space; native section navigation and
-scroll-driven highlights remain intact. While the provider row leads the viewport,
+scroll-driven highlights remain intact. Scoped flow-layout hooks exclude the
+owned inset from sticky-header pinning, retaining the native section start and
+push-off boundary. Both element-array and direct header queries return copied
+attributes; cached headers, cells, footers and other libraries remain untouched.
+Per-section inset callbacks require their complete inspected Objective-C encoding.
+While the provider row leads the viewport,
 the native Recent indicator uses the existing selected colors, even with empty
 native history; leaving the row restores Twitch’s current appearance. No native
 section model or selected enum is edited. The Recent button includes the provider

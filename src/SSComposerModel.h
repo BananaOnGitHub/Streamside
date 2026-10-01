@@ -29,6 +29,14 @@ static inline bool ss_space(uint16_t c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == 0xa0 ||
            (c >= 0x2000 && c <= 0x200a) || c == 0x2028 || c == 0x2029 || c == 0x3000;
 }
+/* Selection endpoints are expanded UTF-16 offsets. A caret at a word's end
+ * still belongs to that word; only moving past it commits its preview. */
+static inline bool ss_preview_token_safe(size_t start, size_t end, size_t length,
+                                         size_t caret, size_t selected) {
+    if (start>=end || end>length || caret>length || selected>length-caret) return false;
+    if (!selected) return caret<start || caret>end;
+    return caret+selected<=start || caret>=end;
+}
 /* Verified optional Identity layout: nil uses the name's +16 spare word;
  * no assumptions about padding bytes next to UInt32 or object pointers. */
 static inline uint32_t ss_identity_room(const void *bytes, size_t span) {

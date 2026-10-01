@@ -189,6 +189,59 @@ int main(void) {
 }
 '''
 
+TOUCHES = r'''
+#include <stdarg.h>
+#include <assert.h>
+#include "SSComposer.c"
+struct Fake { id parent,window; Rect frame; BOOL hidden,responder; U count; };
+static unsigned adds,fronts;
+SEL sel_registerName(const char *s) { return s; }
+static id dispatch(id o,SEL sel,...) {
+    if(!o)return nil;
+    va_list args; va_start(args,sel); id result=nil;
+    if(!strcmp(sel,"window"))result=o->window;
+    else if(!strcmp(sel,"superview"))result=o->parent;
+    else if(!strcmp(sel,"setFrame:"))o->frame=va_arg(args,Rect);
+    else if(!strcmp(sel,"addSubview:")) { id child=va_arg(args,id);child->parent=o;adds++; }
+    else if(!strcmp(sel,"bringSubviewToFront:")) { id child=va_arg(args,id);assert(child->parent==o);fronts++; }
+    else if(!strcmp(sel,"setHidden:"))o->hidden=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"isFirstResponder"))result=(id)(uintptr_t)o->responder;
+    else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
+    else if(!strcmp(sel,"removeFromSuperview"))o->parent=nil;
+    else assert(!"unexpected touch layout selector");
+    va_end(args);return result;
+}
+id (*objc_msgSend)(id,SEL,...)=dispatch;
+static BOOL contains(Rect r,Point p) {
+    return p.x>=r.origin.x && p.y>=r.origin.y && p.x<r.origin.x+r.size.width && p.y<r.origin.y+r.size.height;
+}
+int main(void) {
+    /* Reproduce a visible strip above a 44pt chat parent. UIKit rejects
+     * touches outside that ancestor, regardless of clipsToBounds. Exercise
+     * production placement with window coordinates, then scene replacement. */
+    struct Fake window={.frame={{0,0},{390,844}}},parent={.frame={{0,600},{390,44}}};
+    struct Fake owner={.parent=&parent,.window=&window},input={.responder=YES};
+    struct Fake strip={.parent=&parent},items={.count=5};
+    State s={.strip=&strip,.suggestions=&items};
+    Rect position={{8,600},{374,44}},bounds=window.frame;
+    Point tap={40,570};assert(!contains(parent.frame,tap));
+    place_suggestion_strip(&s,&owner,&input,position,bounds);
+    assert(strip.parent==&window && !strip.hidden && adds==1 && fronts==1);
+    assert(strip.frame.origin.x==8 && strip.frame.origin.y==552 && strip.frame.size.width==374 && strip.frame.size.height==48);
+    assert(contains(window.frame,tap) && contains(strip.frame,tap));
+    assert(!contains(strip.frame,(Point){40,610})); /* input remains outside overlay */
+    place_suggestion_strip(&s,&owner,&input,position,bounds);assert(adds==1);
+    input.responder=NO;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden);
+    input.responder=YES;items.count=0;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden);
+    items.count=5;position.origin.y=20;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden);
+    struct Fake second={.frame={{0,0},{844,390}}};owner.window=&second;
+    position=(Rect){{100,280},{644,44}};place_suggestion_strip(&s,&owner,&input,position,second.frame);
+    assert(strip.parent==&second && !strip.hidden && adds==2 && strip.frame.origin.y==232);
+    owner.window=nil;place_suggestion_strip(&s,&owner,&input,position,second.frame);assert(!strip.parent);
+    return 0;
+}
+'''
+
 class ComposerTests(unittest.TestCase):
     def test_utf16_edits_and_completion_boundaries(self):
         self.compile_run(MODEL, ["cc", "-std=c11", "-fsanitize=address,undefined"])
@@ -202,6 +255,11 @@ class ComposerTests(unittest.TestCase):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig, "Zig is required for the production composer harness")
         self.compile_run(CONTROLS, [zig, "cc", "-fblocks"], runtime=True)
+
+    def test_suggestions_move_out_of_chat_bounds_into_the_owning_scene(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig, "Zig is required for the production composer harness")
+        self.compile_run(TOUCHES, [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):
         with tempfile.TemporaryDirectory() as d:

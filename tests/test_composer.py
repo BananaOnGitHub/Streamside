@@ -169,6 +169,8 @@ Method class_getInstanceMethod(Class c,SEL sel) { (void)sel; return c ? &method 
 const char *method_getTypeEncoding(Method m) { return ((struct MockMethod *)m)->encoding; }
 IMP method_getImplementation(Method m) { (void)m; return marker; }
 BOOL class_addMethod(Class c,SEL s,IMP f,const char *types) { (void)c;(void)s;(void)f;(void)types;return NO; }
+Class objc_allocateClassPair(Class c,const char *name,size_t bytes) { (void)c;(void)name;(void)bytes;return nil; }
+void objc_registerClassPair(Class c) { (void)c; }
 IMP method_setImplementation(Method m,IMP f) { (void)m;(void)f;mutations++;return marker; }
 id objc_loadWeakRetained(id *p) { return *p; }
 id objc_initWeak(id *p,id o) { *p=o;return o; }
@@ -353,6 +355,65 @@ int main(void) {
 }
 '''
 
+SCROLL = r'''
+#include <stdarg.h>
+#include <assert.h>
+#include "SSComposer.c"
+struct Fake { Rect frame; Size content; Point offset; BOOL options[8]; I dismiss; };
+static struct Fake base,owned,palette,scroll,button,background;
+static unsigned allocated,registered;
+static IMP cancellation;
+Class objc_getClass(const char *name) {
+    if(!strcmp(name,"UIScrollView"))return &base;
+    if(!strcmp(name,"UIColor"))return &palette;
+    assert(!"unexpected scroll class");return nil;
+}
+SEL sel_registerName(const char *s) { return s; }
+Method class_getInstanceMethod(Class c,SEL sel) { assert(c==&base && !strcmp(sel,"touchesShouldCancelInContentView:"));return (Method)1; }
+const char *method_getTypeEncoding(Method m) { assert(m);return "B24@0:8@16"; }
+Class objc_allocateClassPair(Class c,const char *name,size_t bytes) { assert(c==&base && !strcmp(name,"SSComposerScrollView") && !bytes);allocated++;return &owned; }
+BOOL class_addMethod(Class c,SEL sel,IMP imp,const char *types) {
+    assert(c==&owned && !strcmp(sel,"touchesShouldCancelInContentView:") && !strcmp(types,"B24@0:8@16"));cancellation=imp;return YES;
+}
+void objc_registerClassPair(Class c) { assert(c==&owned && cancellation);registered++; }
+static id dispatch(id o,SEL sel,...) {
+    assert(o);va_list args;va_start(args,sel);id result=nil;
+    const char *names[]={"setScrollEnabled:","setCanCancelContentTouches:","setDelaysContentTouches:",
+        "setAlwaysBounceHorizontal:","setAlwaysBounceVertical:","setDirectionalLockEnabled:",
+        "setShowsHorizontalScrollIndicator:","setShowsVerticalScrollIndicator:"};
+    unsigned option=0;for(;option<8;option++)if(!strcmp(sel,names[option]))break;
+    if(option<8)o->options[option]=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"alloc")) { assert(o==&owned);result=&scroll; }
+    else if(!strcmp(sel,"initWithFrame:")) { o->frame=va_arg(args,Rect);result=o; }
+    else if(!strcmp(sel,"secondarySystemBackgroundColor"))result=&background;
+    else if(!strcmp(sel,"setBackgroundColor:"))assert(va_arg(args,id)==&background);
+    else if(!strcmp(sel,"setKeyboardDismissMode:"))o->dismiss=va_arg(args,I);
+    else if(!strcmp(sel,"setContentSize:"))o->content=va_arg(args,Size);
+    else if(!strcmp(sel,"setContentOffset:"))o->offset=va_arg(args,Point);
+    else assert(!"unexpected scroll selector");
+    va_end(args);return result;
+}
+id (*objc_msgSend)(id,SEL,...)=dispatch;
+int main(void) {
+    /* The real factory registers an isolated subclass. Swipes starting on
+     * UIButton tiles may cancel tracking; ordinary touch-up selection stays
+     * on the button. Twitch's own scroll views are never changed. */
+    id row=make_strip();assert(row==&scroll && allocated==1 && registered==1);
+    assert(scroll.options[0] && scroll.options[1] && !scroll.options[2]);
+    assert(scroll.options[3] && !scroll.options[4] && scroll.options[5]);
+    assert(scroll.options[6] && !scroll.options[7] && scroll.dismiss==0);
+    assert(((BOOL (*)(id,SEL,id))cancellation)(row,"touchesShouldCancelInContentView:",&button));
+    assert(((BOOL (*)(id,SEL,id))cancellation)(row,"touchesShouldCancelInContentView:",&background));
+    assert(!GET(strip_taps) && !GET(insertions)); /* requesting drag cancellation is not an emote tap */
+    set_strip_extent(row,24);assert(scroll.content.width==1536 && scroll.content.height==48);
+    assert(scroll.content.width>scroll.frame.size.width && scroll.content.height==scroll.frame.size.height);
+    scroll.offset=(Point){1216,0};set_strip_extent(row,2);
+    assert(scroll.content.width==128 && scroll.offset.x==0 && scroll.offset.y==0); /* new search resets stale offset */
+    assert(make_strip()==row && allocated==1 && registered==1);
+    return 0;
+}
+'''
+
 class ComposerTests(unittest.TestCase):
     def test_utf16_edits_and_completion_boundaries(self):
         self.compile_run(MODEL, ["cc", "-std=c11", "-fsanitize=address,undefined"])
@@ -376,6 +437,11 @@ class ComposerTests(unittest.TestCase):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig, "Zig is required for the production composer harness")
         self.compile_run(AUTOCORRECT, [zig, "cc", "-fblocks"], runtime=True)
+
+    def test_button_drags_can_scroll_the_suggestion_strip(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig, "Zig is required for the production composer harness")
+        self.compile_run(SCROLL, [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):
         with tempfile.TemporaryDirectory() as d:

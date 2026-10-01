@@ -9,7 +9,7 @@ exports:
                        __Block_object_assign, __Block_object_dispose, __NSConcreteStackBlock,
                        __NSConcreteGlobalBlock,
                        _arc4random_uniform, _bzero,
-                       _calloc, _dlopen, _dispatch_queue_create, _fprintf, _free,
+                       _calloc, _dlopen, _dlsym, _dispatch_queue_create, _fprintf, _free,
                        _fwrite, _malloc, _memchr, _memcpy, _memmove,
                        _pthread_mutex_lock, _pthread_mutex_unlock, _realloc,
                        _snprintf, _strcat, _strchr, _strcmp, _strdup, _strlen,

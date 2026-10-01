@@ -430,7 +430,7 @@ static void choose(id delegate,id metadata,BOOL suggestion) {
 static void target(id control,id delegate,const char *action,U events) {
     ((void (*)(id,SEL,id,SEL,U))objc_msgSend)(control,sel_registerName("addTarget:action:forControlEvents:"),delegate,sel_registerName(action),events);
 }
-static id thumbnail_button(id delegate,id metadata,Rect r) {
+static id thumbnail_button(id delegate,id metadata,Rect r,const char *action) {
     id button=view("UIButton",r); associate(button,&button_key,metadata);
     id image=view(objc_getClass("FLAnimatedImageView") ? "FLAnimatedImageView" : "UIImageView",(Rect){{6,3},{r.size.width-12,30}});
     vi(image,"setContentMode:",1); vb(image,"setUserInteractionEnabled:",NO); set_thumbnail(image,metadata);
@@ -439,7 +439,7 @@ static id thumbnail_button(id delegate,id metadata,Rect r) {
     v1(label,"setText:",key(metadata,"name")); vi(label,"setTextAlignment:",1);
     v1(label,"setFont:",((id (*)(id,SEL,double))objc_msgSend)((id)objc_getClass("UIFont"),sel_registerName("systemFontOfSize:"),10.0));
     v1(label,"setTextColor:",color("secondaryLabelColor")); v1(button,"addSubview:",label); objc_release(label);
-    v1(button,"setAccessibilityLabel:",key(metadata,"name")); target(button,delegate,"ssPick:",1UL<<6); return button;
+    v1(button,"setAccessibilityLabel:",key(metadata,"name")); target(button,delegate,action,1UL<<6); return button;
 }
 static BOOL strip_cancel_touch(id self,SEL sel,id content) {
     (void)self;(void)sel;(void)content;
@@ -478,11 +478,13 @@ static void set_strip_extent(id scroll,U count) {
      * not refill the strip, so they preserve dragging/deceleration/offset. */
     ((void (*)(id,SEL,Point))objc_msgSend)(scroll,sel_registerName("setContentOffset:"),(Point){0,0});
 }
-static void fill_strip(id scroll,id delegate,id items) {
+static void fill_strip(id scroll,id delegate,id items,const char *action) {
     id children=m0(m0(scroll,"subviews"),"copy");
     for (U i=0;i<number(children,"count");i++) if (objc_getAssociatedObject(at(children,i),&button_key)) m0(at(children,i),"removeFromSuperview"); objc_release(children);
     for (U i=0;i<number(items,"count");i++) {
-        id button=thumbnail_button(delegate,at(items,i),(Rect){{(double)i*64,0},{64,48}});
+        /* Wire only the UIButton we create. UIScrollView also owns indicator
+         * subviews, which are not UIControls and cannot receive target APIs. */
+        id button=thumbnail_button(delegate,at(items,i),(Rect){{(double)i*64,0},{64,48}},action);
         v1(scroll,"addSubview:",button); objc_release(button);
     }
     set_strip_extent(scroll,number(items,"count"));
@@ -685,13 +687,7 @@ static void refresh_recents(id delegate) {
         objc_release(s->recent_entries); s->recent_entries=items;
         if (!s->recent_strip && number(items,"count")) s->recent_strip=make_strip();
         if (s->recent_strip) {
-            fill_strip(s->recent_strip,delegate,items);
-            id buttons=m0(s->recent_strip,"subviews");
-            for (U i=0;i<number(buttons,"count");i++) {
-                id b=at(buttons,i);
-                ((void (*)(id,SEL,id,SEL,U))objc_msgSend)(b,sel_registerName("removeTarget:action:forControlEvents:"),delegate,sel_registerName("ssPick:"),(U)(1UL<<6));
-                target(b,delegate,"ssRecent:",1UL<<6);
-            }
+            fill_strip(s->recent_strip,delegate,items,"ssRecent:");
         }
     } else { objc_release(items); refresh_strip_images(s->recent_strip); }
 }
@@ -788,7 +784,7 @@ static void refresh(id delegate) {
         if (!equal(matches,s->suggestions)) {
             objc_release(s->suggestions); s->suggestions=matches;
             if (!s->strip) s->strip=make_strip();
-            fill_strip(s->strip,delegate,matches);
+            fill_strip(s->strip,delegate,matches,"ssPick:");
         } else { if (matches) objc_release(matches); refresh_strip_images(s->strip); }
         objc_release(plain);
     } else if (s->suggestions) { objc_release(s->suggestions); s->suggestions=nil; vb(s->strip,"setHidden:",YES); }

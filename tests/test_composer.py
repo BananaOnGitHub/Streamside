@@ -624,6 +624,71 @@ int main(void) {
 '''
 
 
+# Exercise the real strip/button builders with UIKit-owned indicator subviews.
+# Image decoding/networking are stubbed; target/action and hierarchy are real.
+RECENT_ACTIONS = RECENTS.split('int main(void) {')[0]
+RECENT_ACTIONS = RECENT_ACTIONS.replace('BOOL hidden;', 'BOOL hidden; id metadata; const char *text,*action; unsigned targets;')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('classes[8]', 'classes[16]').replace('class_count<8', 'class_count<16')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('static State *current;', '''static State *current;
+static struct Fake objects[96];static U object_count;
+static id fresh(const char *name) { assert(object_count<96);id result=&objects[object_count++];result->cls=name;return result; }
+''')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('return o && key==&recent_host_key ? o->host : nil;',
+    'return !o ? nil : key==&recent_host_key ? o->host : key==&button_key ? o->metadata : nil;')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('assert(key==&recent_host_key && policy==1);o->host=value;',
+    'assert(policy==1);if(key==&button_key)o->metadata=value;else { assert(key==&recent_host_key);o->host=value; }')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('else if(!strcmp(sel,"count"))', '''else if(!strcmp(sel,"stringWithUTF8String:")) { result=fresh("NSString");result->text=va_arg(args,const char *); }
+    else if(!strcmp(sel,"objectForKey:")) { id key=va_arg(args,id);result=!strcmp(key->text,"name") ? o->tint : nil; }
+    else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
+    else if(!strcmp(sel,"initWithFrame:")) { o->frame=va_arg(args,Rect);result=o; }
+    else if(!strcmp(sel,"copy")) { result=fresh(o->cls);*result=*o; }
+    else if(!strcmp(sel,"systemFontOfSize:") || !strcmp(sel,"secondaryLabelColor"))result=o;
+    else if(!strcmp(sel,"setContentMode:") || !strcmp(sel,"setTextAlignment:")) (void)va_arg(args,I);
+    else if(!strcmp(sel,"setUserInteractionEnabled:"))assert(!va_arg(args,int));
+    else if(!strcmp(sel,"setFont:") || !strcmp(sel,"setTextColor:") || !strcmp(sel,"setText:") || !strcmp(sel,"setAccessibilityLabel:"))assert(va_arg(args,id));
+    else if(!strcmp(sel,"setImage:"))assert(!va_arg(args,id));
+    else if(!strcmp(sel,"addTarget:action:forControlEvents:")) {
+        assert(!strcmp(o->cls,"UIButton"));assert(va_arg(args,id));o->action=va_arg(args,SEL);
+        assert(va_arg(args,U)==(1UL<<6));o->targets++;
+    } else if(!strcmp(sel,"removeTarget:action:forControlEvents:"))assert(!"UIKit indicator cannot receive target APIs");
+    else if(!strcmp(sel,"setContentSize:")) { Size size=va_arg(args,Size);assert(size.width==128 && size.height==48); }
+    else if(!strcmp(sel,"count"))''')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('else if(!strcmp(sel,"addSubview:"))va_arg(args,id)->parent=o;',
+    'else if(!strcmp(sel,"addSubview:")) { id child=va_arg(args,id);assert(o->count<4);o->children[o->count++]=child;child->parent=o; }')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('else if(!strcmp(sel,"removeFromSuperview"))o->parent=nil;', '''else if(!strcmp(sel,"removeFromSuperview")) {
+        id parent=o->parent;assert(parent);U i=0;while(i<parent->count && parent->children[i]!=o)i++;
+        assert(i<parent->count);memmove(parent->children+i,parent->children+i+1,(parent->count-i-1)*sizeof(id));parent->count--;o->parent=nil;
+    }''')
+RECENT_ACTIONS += r'''
+int main(void) {
+    struct Fake horizontal={.cls="_UIScrollViewScrollIndicator"},vertical={.cls="_UIScrollViewScrollIndicator"};
+    struct Fake name_a={.cls="NSString",.text="First"},name_b={.cls="NSString",.text="Second"};
+    struct Fake metadata_a={.cls="NSDictionary",.tint=&name_a},metadata_b={.cls="NSDictionary",.tint=&name_b};
+    struct Fake items={.count=2,.children={&metadata_a,&metadata_b}},delegate={.cls="SSComposerDelegate"};
+    struct Fake row={.cls="UIScrollView",.count=2,.children={&horizontal,&vertical}};
+    horizontal.parent=&row;vertical.parent=&row;original_collection_layout=(IMP)native_layout;
+    fill_strip(&row,&delegate,&items,"ssRecent:");
+    assert(row.count==4 && row.children[0]==&horizontal && row.children[1]==&vertical);
+    id first=row.children[2],second=row.children[3];
+    assert(first->metadata==&metadata_a && second->metadata==&metadata_b);
+    assert(first->targets==1 && second->targets==1 && !strcmp(first->action,"ssRecent:") && !strcmp(second->action,"ssRecent:"));
+    /* Selecting Second moves it to the front. The subsequent history refresh
+     * replaces only owned buttons while both UIKit indicators remain alive. */
+    items.children[0]=&metadata_b;items.children[1]=&metadata_a;
+    fill_strip(&row,&delegate,&items,"ssRecent:");
+    assert(row.count==4 && !first->parent && !second->parent);
+    assert(row.children[2]->metadata==&metadata_b && row.children[2]->targets==1);
+    assert(!strcmp(row.children[2]->action,"ssRecent:") && !strcmp(row.children[3]->action,"ssRecent:"));
+    assert(horizontal.parent==&row && vertical.parent==&row && !horizontal.targets && !vertical.targets);
+    /* Suggestions retain their distinct completion-replacement action. */
+    fill_strip(&row,&delegate,&items,"ssPick:");
+    assert(!strcmp(row.children[2]->action,"ssPick:") && row.children[2]->targets==1);
+    assert(row.children[0]==&horizontal && row.children[1]==&vertical && row.count==4);
+    return 0;
+}
+'''
+
+
 class ComposerTests(unittest.TestCase):
     def test_utf16_edits_and_completion_boundaries(self):
         self.compile_run(MODEL, ["cc", "-std=c11", "-fsanitize=address,undefined"])
@@ -678,6 +743,15 @@ class ComposerTests(unittest.TestCase):
         source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section)',
             'ss_test_section(native_delegate)')
         self.compile_run(HEADERS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
+
+    def test_recent_history_refresh_never_wires_uikit_scroll_indicators(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig, "Zig is required for the production composer harness")
+        source = (ROOT / "src" / "SSComposer.c").read_text()
+        start = source.index('static void set_thumbnail(')
+        end = source.index('\n}', start) + 2
+        source = source[:start] + 'static void set_thumbnail(id image,id metadata) { (void)metadata;v1(image,"setImage:",nil); }' + source[end:]
+        self.compile_run(RECENT_ACTIONS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):
         with tempfile.TemporaryDirectory() as d:

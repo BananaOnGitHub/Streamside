@@ -35,11 +35,11 @@ extern void objc_destroyWeak(id *);
 #define ATTACHMENT_KEY "StreamsideEmoteCode"
 #define MAX_TOKENS 512
 #define IMAGE_NOTICE "StreamsideEmoteImagesChanged"
-static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key;
+static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key;
 static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
-static IMP original_footer_apply,original_footer_move,original_container_layout;
+static IMP original_footer_apply,original_footer_move,original_container_layout,original_collection_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
 static id images,pending,failed,image_session;
@@ -99,10 +99,13 @@ static id room_for(id owner) {
 
 typedef struct {
     id owner; /* objc weak storage */
-    id room,strip,suggestions,panel,grid,provider,scope,entries,empty,recent_strip;
+    id room,strip,suggestions,panel,grid,provider,scope,entries,empty,recent_strip,recent_entries;
     id footer; /* objc weak storage: the emote keyboard may be recreated */
     id native_content; /* retained only while an overlay uses it */
-    Insets native_inset;
+    id recent_content; /* objc weak storage: follows the native scroll view */
+    double recent_height;
+    BOOL placing_recents,recent_highlight_active;
+    id recent_colors[6]; /* retained native footer appearance while overridden */
     Range completion;
     int library,library_scope,tab;
     BOOL busy,scheduled,preview_scheduled,native_was_hidden;
@@ -567,14 +570,129 @@ static void make_panel(id delegate) {
     s->empty=view("UILabel",(Rect){{16,88},{288,60}}); vi(s->empty,"setTextAlignment:",1); vi(s->empty,"setNumberOfLines:",2);
     v1(s->empty,"setTextColor:",color("secondaryLabelColor")); v1(s->panel,"addSubview:",s->empty);
 }
+static void restore_recent_highlight(State *s);
 static void restore_native(State *s) {
-    m0(s->panel,"removeFromSuperview"); m0(s->recent_strip,"removeFromSuperview");
+    restore_recent_highlight(s);
+    m0(s->panel,"removeFromSuperview");
     id footer=objc_loadWeakRetained(&s->footer); vb(objc_getAssociatedObject(footer,&button_key),"setSelected:",NO); objc_release(footer);
     if (s->native_content) {
         vb(s->native_content,"setHidden:",s->native_was_hidden);
-        if (kind(s->native_content,"UIScrollView")) ((void (*)(id,SEL,Insets))objc_msgSend)(s->native_content,sel_registerName("setContentInset:"),s->native_inset);
         objc_release(s->native_content); s->native_content=nil;
     }
+}
+/* The provider Recent row belongs to the native library's scroll content,
+ * not the container/footer overlay. It precedes native Recent cells without
+ * adding fake Swift sections or changing the collection's data source. Native
+ * section anchors already account for contentInset (Twitch 30.4.2). */
+static id recent_footer_view(id footer,U index) {
+    const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
+        "$__lazy_storage_$_allEmotesButton","recentEmotesHighlight","channelEmotesHighlight","allEmotesHighlight"};
+    return index<6 ? object_field(footer,names[index],index<3 ? "UIButton":"UIView") : nil;
+}
+static void restore_recent_highlight(State *s) {
+    if (!s->recent_highlight_active) return;
+    id footer=objc_loadWeakRetained(&s->footer);
+    for (U i=0;i<6;i++) {
+        v1(recent_footer_view(footer,i),i<3 ? "setTintColor:":"setBackgroundColor:",s->recent_colors[i]);
+        objc_release(s->recent_colors[i]); s->recent_colors[i]=nil;
+    }
+    s->recent_highlight_active=NO; objc_release(footer);
+}
+static void update_recent_highlight(State *s,id content) {
+    /* Native scroll callbacks continue to own every native section. The added
+     * row also counts as Recent, including when Twitch has no native recents.
+     * Override only UIKit colors while that row leads the visible content;
+     * never change the Swift model/selected byte used by native navigation. */
+    BOOL visible=content && s->recent_height && s->tab!=1 && !yes(content,"isHidden") && rect(content,"bounds").origin.y<0;
+    if (!visible) { restore_recent_highlight(s); return; }
+    if (s->recent_highlight_active) return;
+    id footer=objc_loadWeakRetained(&s->footer);
+    id buttons[6]; BOOL complete=YES;
+    for (U i=0;i<6;i++) { buttons[i]=recent_footer_view(footer,i); if (!buttons[i]) complete=NO; }
+    id native_recent=complete ? m0(buttons[3],"backgroundColor") : nil;
+    id active=complete ? m0(buttons[4],"backgroundColor") : nil;
+    if (!active && complete) active=m0(buttons[5],"backgroundColor");
+    if (complete && !native_recent && active) {
+        for (U i=0;i<6;i++) s->recent_colors[i]=objc_retain(m0(buttons[i],i<3 ? "tintColor":"backgroundColor"));
+        s->recent_highlight_active=YES;
+        v1(buttons[0],"setTintColor:",active);
+        v1(buttons[1],"setTintColor:",s->recent_colors[0]); v1(buttons[2],"setTintColor:",s->recent_colors[0]);
+        v1(buttons[3],"setBackgroundColor:",active); v1(buttons[4],"setBackgroundColor:",nil); v1(buttons[5],"setBackgroundColor:",nil);
+    }
+    objc_release(footer);
+}
+static void place_recent_strip(State *s,id content) {
+    if (!s || !content || s->placing_recents) return;
+    s->placing_recents=YES;
+    double height=number(s->recent_entries,"count") && s->recent_strip ? 48 : 0;
+    if (height!=s->recent_height) {
+        Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
+        Insets adjusted=responds(content,"adjustedContentInset") ?
+            ((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("adjustedContentInset")) : inset;
+        Point offset=((Point (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentOffset"));
+        BOOL at_top=offset.y<=-adjusted.top+1 || (!s->recent_height && offset.y<=1);
+        inset.top+=height-s->recent_height;
+        s->recent_height=height; /* Set before UIKit's synchronous callbacks. */
+        ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
+        /* Initial opening includes recents. Changes while browsing preserve
+         * the existing offset; repeated layouts never stop a user swipe. */
+        if (at_top) {
+            adjusted=responds(content,"adjustedContentInset") ?
+                ((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("adjustedContentInset")) : inset;
+            offset.y=-adjusted.top;
+            ((void (*)(id,SEL,Point))objc_msgSend)(content,sel_registerName("setContentOffset:"),offset);
+        }
+    }
+    if (height) {
+        Rect bounds=rect(content,"bounds"),position={{bounds.origin.x,-height},{bounds.size.width,height}};
+        if (m0(s->recent_strip,"superview")!=content) v1(content,"addSubview:",s->recent_strip);
+        Rect old=rect(s->recent_strip,"frame");
+        if (memcmp(&old,&position,sizeof(position))) frame(s->recent_strip,position);
+        v1(content,"bringSubviewToFront:",s->recent_strip);
+    } else m0(s->recent_strip,"removeFromSuperview");
+    s->placing_recents=NO; update_recent_highlight(s,content);
+}
+static void detach_recents(State *s) {
+    restore_recent_highlight(s);
+    id content=objc_loadWeakRetained(&s->recent_content);
+    if (content) {
+        associate(content,&recent_host_key,nil);
+        if (s->recent_height) {
+            Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
+            inset.top-=s->recent_height; s->recent_height=0;
+            ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
+        }
+    }
+    s->recent_height=0; m0(s->recent_strip,"removeFromSuperview");
+    objc_destroyWeak(&s->recent_content); objc_initWeak(&s->recent_content,nil); objc_release(content);
+}
+static void bind_recents(id delegate,id container) {
+    State *s=state(delegate); if (!s || s->placing_recents) return;
+    id content=find_class(container,"UICollectionView",0);
+    if (content==s->grid) content=nil;
+    id previous=objc_loadWeakRetained(&s->recent_content);
+    if (previous!=content) {
+        detach_recents(s);
+        objc_destroyWeak(&s->recent_content); objc_initWeak(&s->recent_content,content);
+        if (content) associate(content,&recent_host_key,delegate);
+    }
+    objc_release(previous); place_recent_strip(s,content);
+}
+static void refresh_recents(id delegate) {
+    State *s=state(delegate); id items=recents(s);
+    if (!equal(items,s->recent_entries)) {
+        objc_release(s->recent_entries); s->recent_entries=items;
+        if (!s->recent_strip && number(items,"count")) s->recent_strip=make_strip();
+        if (s->recent_strip) {
+            fill_strip(s->recent_strip,delegate,items);
+            id buttons=m0(s->recent_strip,"subviews");
+            for (U i=0;i<number(buttons,"count");i++) {
+                id b=at(buttons,i);
+                ((void (*)(id,SEL,id,SEL,U))objc_msgSend)(b,sel_registerName("removeTarget:action:forControlEvents:"),delegate,sel_registerName("ssPick:"),(U)(1UL<<6));
+                target(b,delegate,"ssRecent:",1UL<<6);
+            }
+        }
+    } else { objc_release(items); refresh_strip_images(s->recent_strip); }
 }
 static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rect bounds) {
     if (!s->strip) return;
@@ -602,25 +720,21 @@ static void layout(id delegate) {
         place_suggestion_strip(s,owner,editor,position,rect(window,"bounds"));
     }
     id container=container_for(s,owner),footer=objc_loadWeakRetained(&s->footer);
-    if (s->tab && container && footer && m0(container,"window")) {
+    if (container && m0(container,"window")) bind_recents(delegate,container);
+    if (s->tab==1 && container && footer && m0(container,"window")) {
         Rect bounds=rect(container,"bounds"),foot=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(footer,sel_registerName("convertRect:toView:"),rect(footer,"bounds"),container);
         double height=foot.origin.y>0 && foot.origin.y<bounds.size.height ? foot.origin.y : bounds.size.height-48;
         if (height<0) height=0;
-        if (s->tab==1) {
-            if (m0(s->panel,"superview")!=container) v1(container,"addSubview:",s->panel);
-            frame(s->panel,(Rect){{0,0},{bounds.size.width,height}});
-            frame(s->provider,(Rect){{8,6},{bounds.size.width-16,28}}); frame(s->scope,(Rect){{8,40},{bounds.size.width-16,28}});
-            frame(s->grid,(Rect){{4,76},{bounds.size.width-8,height>76 ? height-76 : 0}});
-            frame(s->empty,(Rect){{12,80},{bounds.size.width-24,50}});
-            /* The footer can have a full-height transparent hit-test region.
-             * Keeping it above the panel makes visible emotes untappable and
-             * forwards their touches to Twitch's keyboard-dismiss action.
-             * The panel stops above the actual footer row. */
-            v1(container,"bringSubviewToFront:",s->panel);
-        } else if (s->tab==2 && s->recent_strip && number(s->entries,"count")) {
-            if (m0(s->recent_strip,"superview")!=container) v1(container,"addSubview:",s->recent_strip);
-            frame(s->recent_strip,(Rect){{0,0},{bounds.size.width,48}}); v1(container,"bringSubviewToFront:",s->recent_strip);
-        }
+        if (m0(s->panel,"superview")!=container) v1(container,"addSubview:",s->panel);
+        frame(s->panel,(Rect){{0,0},{bounds.size.width,height}});
+        frame(s->provider,(Rect){{8,6},{bounds.size.width-16,28}}); frame(s->scope,(Rect){{8,40},{bounds.size.width-16,28}});
+        frame(s->grid,(Rect){{4,76},{bounds.size.width-8,height>76 ? height-76 : 0}});
+        frame(s->empty,(Rect){{12,80},{bounds.size.width-24,50}});
+        /* The footer can have a full-height transparent hit-test region.
+         * Keeping it above the panel makes visible emotes untappable and
+         * forwards their touches to Twitch's keyboard-dismiss action.
+         * The panel stops above the actual footer row. */
+        v1(container,"bringSubviewToFront:",s->panel);
     }
     objc_release(footer); objc_release(owner);
 }
@@ -677,41 +791,37 @@ static void refresh(id delegate) {
         } else { if (matches) objc_release(matches); refresh_strip_images(s->strip); }
         objc_release(plain);
     } else if (s->suggestions) { objc_release(s->suggestions); s->suggestions=nil; vb(s->strip,"setHidden:",YES); }
-    if (s->tab) {
-        id items=s->tab==1 ? tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500) : recents(s);
+    refresh_recents(delegate);
+    if (s->tab==1) {
+        id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
         if (!equal(items,s->entries)) {
-            objc_release(s->entries); s->entries=items;
-            if (s->tab==1) m0(s->grid,"reloadData");
-            else {
-                if (!s->recent_strip) s->recent_strip=make_strip();
-                fill_strip(s->recent_strip,delegate,items);
-                id buttons=m0(s->recent_strip,"subviews"); for (U i=0;i<number(buttons,"count");i++) {
-                    id b=at(buttons,i);
-                    ((void (*)(id,SEL,id,SEL,U))objc_msgSend)(b,sel_registerName("removeTarget:action:forControlEvents:"),delegate,sel_registerName("ssPick:"),(U)(1UL<<6));
-                    target(b,delegate,"ssRecent:",1UL<<6);
-                }
-            }
+            objc_release(s->entries); s->entries=items; m0(s->grid,"reloadData");
         } else if (items) objc_release(items);
-        if (s->tab==1) {
-            vb(s->empty,"setHidden:",number(s->entries,"count")!=0);
-            v1(s->empty,"setText:",str(s->library_scope ? "No global emotes available." : "No channel emotes available yet.\nUse Reload Emotes to refresh."));
-            id cells=m0(s->grid,"visibleCells"); for (U i=0;i<number(cells,"count");i++) {
-                id c=at(cells,i),path=m1(s->grid,"indexPathForCell:",c); U index=number(path,"item");
-                if (path && index<number(s->entries,"count")) set_thumbnail(objc_getAssociatedObject(c,&cell_key),at(s->entries,index));
-            }
-        } else refresh_strip_images(s->recent_strip);
+        vb(s->empty,"setHidden:",number(s->entries,"count")!=0);
+        v1(s->empty,"setText:",str(s->library_scope ? "No global emotes available." : "No channel emotes available yet.\nUse Reload Emotes to refresh."));
+        id cells=m0(s->grid,"visibleCells"); for (U i=0;i<number(cells,"count");i++) {
+            id c=at(cells,i),path=m1(s->grid,"indexPathForCell:",c); U index=number(path,"item");
+            if (path && index<number(s->entries,"count")) set_thumbnail(objc_getAssociatedObject(c,&cell_key),at(s->entries,index));
+        }
     }
     layout(delegate); objc_release(owner);
+}
+static BOOL visible_in_window(id view) {
+    if (!m0(view,"window")) return NO;
+    for (unsigned i=0;view && i<24;i++,view=m0(view,"superview")) if (yes(view,"isHidden")) return NO;
+    return YES;
 }
 static void tick(id self,SEL sel,id notification) {
     (void)sel;(void)notification; State *s=state(self); if (!s) return;
     s->scheduled=NO; refresh(self);
     id owner=objc_loadWeakRetained(&s->owner);
-    if (owner && m0(owner,"window") && (s->tab || yes(editor_for(owner),"isFirstResponder"))) {
+    id content=objc_loadWeakRetained(&s->recent_content);
+    BOOL native_open=content && visible_in_window(content);
+    if (owner && m0(owner,"window") && (s->tab || native_open || yes(editor_for(owner),"isFirstResponder"))) {
         s->scheduled=YES;
         ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(self,sel_registerName("performSelector:withObject:afterDelay:"),sel_registerName("ssTick:"),nil,1.0);
     }
-    objc_release(owner);
+    objc_release(content); objc_release(owner);
 }
 static void image_changed(id self,SEL sel,id notification) {
     (void)sel;(void)notification; State *s=state(self); if (!s) return;
@@ -737,10 +847,10 @@ static void delegate_dealloc(id self,SEL sel) {
     ((void (*)(id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:"),self);
     v1(m0((id)objc_getClass("NSNotificationCenter"),"defaultCenter"),"removeObserver:",self);
     if (s) {
-        restore_native(s); m0(s->strip,"removeFromSuperview");
-        id values[]={s->room,s->strip,s->suggestions,s->panel,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip};
+        restore_native(s); detach_recents(s); m0(s->strip,"removeFromSuperview");
+        id values[]={s->room,s->strip,s->suggestions,s->panel,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_entries};
         for (size_t i=0;i<sizeof(values)/sizeof(values[0]);i++) if (values[i]) objc_release(values[i]);
-        objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); free(s);
+        objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); objc_destroyWeak(&s->recent_content); free(s);
     }
     ((void (*)(id,SEL))original_dealloc)(self,sel);
 }
@@ -748,7 +858,7 @@ static id delegate_for(id owner) {
     id existing=objc_getAssociatedObject(owner,&state_key); if (existing || !delegate_class) return existing;
     id delegate=m0((id)delegate_class,"new"); State *s=calloc(1,sizeof(*s));
     if (!s) { objc_release(delegate); return nil; }
-    objc_initWeak(&s->owner,owner); objc_initWeak(&s->footer,nil);
+    objc_initWeak(&s->owner,owner); objc_initWeak(&s->footer,nil); objc_initWeak(&s->recent_content,nil);
     Ivar iv=class_getInstanceVariable(delegate_class,"_state"); memcpy((char *)delegate+ivar_getOffset(iv),&s,sizeof(s));
     associate(owner,&state_key,delegate);
     id undo=m0(editor_for(owner),"undoManager"); associate(undo,&undo_key,delegate);
@@ -817,18 +927,36 @@ static id owner_above(id child) {
     return nil;
 }
 static void footer_apply(id footer,SEL sel,id model) {
+    State *s=state(objc_getAssociatedObject(footer,&footer_key));
+    if (s) restore_recent_highlight(s);
     ((void (*)(id,SEL,id))original_footer_apply)(footer,sel,model);
     install_footer(footer,owner_above(footer));
+    if (s) { id content=objc_loadWeakRetained(&s->recent_content); update_recent_highlight(s,content); objc_release(content); }
 }
 static void footer_moved(id footer,SEL sel) {
     ((void (*)(id,SEL))original_footer_move)(footer,sel);
     install_footer(footer,owner_above(footer));
+}
+static void collection_layout(id content,SEL sel) {
+    ((void (*)(id,SEL))original_collection_layout)(content,sel);
+    id delegate=objc_getAssociatedObject(content,&recent_host_key);
+    if (delegate) place_recent_strip(state(delegate),content);
 }
 static void container_layout(id container,SEL sel) {
     ((void (*)(id,SEL))original_container_layout)(container,sel);
     id footer=find_class(container,FOOTER,0),owner=owner_above(container);
     if (owner) install_footer(footer,owner);
     id delegate=objc_getAssociatedObject(footer,&footer_key); if (delegate) layout(delegate);
+}
+static void scroll_to_recents(State *s) {
+    if (s->recent_height) {
+        id content=objc_loadWeakRetained(&s->recent_content);
+        if (content) {
+            Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("adjustedContentInset"));
+            ((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),(Point){0,-inset.top},NO);
+        }
+        objc_release(content);
+    }
 }
 static void footer_action(id footer,SEL sel) {
     const char *names[]={"keyboardButtonPressed","recentEmotesButtonPressed","channelEmotesButtonPressed","allEmotesButtonPressed","backspaceButtonPressed"};
@@ -838,20 +966,9 @@ static void footer_action(id footer,SEL sel) {
     if (s) { if (action!=4) { restore_native(s); s->tab=0; } expand(delegate); }
     ((void (*)(id,SEL))original_footer_actions[action])(footer,sel);
     if (!s) return;
-    if (action==1) {
-        s->tab=2;
-        id owner=objc_loadWeakRetained(&s->owner),container=container_for(s,owner),content=find_class(container,"UICollectionView",0);
-        if (content && content!=s->grid) {
-            s->native_content=objc_retain(content); s->native_was_hidden=yes(content,"isHidden");
-            s->native_inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
-            id recent=recents(s); BOOL has=number(recent,"count")>0; objc_release(recent);
-            Insets inset=s->native_inset; if (has) inset.top+=48;
-            ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
-            if (has) ((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),(Point){0,-inset.top},NO);
-        }
-        objc_release(owner);
-    }
-    render(delegate); refresh(delegate); start_tick(delegate);
+    render(delegate); refresh(delegate);
+    if (action==1) scroll_to_recents(s);
+    start_tick(delegate);
 }
 static id editor_delegate(id editor) { id owner=owner_above(editor); return owner ? objc_getAssociatedObject(owner,&state_key) : nil; }
 static void copy_text(id editor,SEL sel,id sender) {
@@ -935,6 +1052,7 @@ void ss_composer_retry_hooks(void) {
     hook(INPUT,"layoutSubviews","v16@0:8",(IMP)input_layout,&original_layout);
     hook(FOOTER,"apply:","v24@0:8@16",(IMP)footer_apply,&original_footer_apply);
     hook(FOOTER,"didMoveToWindow","v16@0:8",(IMP)footer_moved,&original_footer_move);
+    hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
     hook(CONTAINER,"layoutSubviews","v16@0:8",(IMP)container_layout,&original_container_layout);
     const char *actions[]={"keyboardButtonPressed","recentEmotesButtonPressed","channelEmotesButtonPressed","allEmotesButtonPressed","backspaceButtonPressed"};
     for (size_t i=0;i<5;i++) hook(FOOTER,actions[i],"v16@0:8",(IMP)footer_action,&original_footer_actions[i]);
@@ -950,6 +1068,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Hooks (editor/selection/validation/send/footer/copy/undo): %s/%s/%s/%s/%s/%s/%s\n"
         "Mode: %s\nEdits/previews/insertions/picker opens: %llu/%llu/%llu/%llu\n"
         "Native text snapshot hooks (text/storage): %s/%s\n"
+        "Native library scrolling hook: %s\n"
         "Identity layout misses/image failures: %llu/%llu\n"
         "Picker taps (grid/strip), missing selection/lookup: %llu/%llu, %llu/%llu\n"
         "Insertion veto/range miss/unchanged edit: %llu/%llu/%llu\n",
@@ -958,6 +1077,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         ss_composer_suggestion_mode()==0 ? "automatic" : ss_composer_suggestion_mode()==1 ? "colon":"off",
         (unsigned long long)GET(edited),(unsigned long long)GET(previewed),(unsigned long long)GET(insertions),(unsigned long long)GET(palette_opens),
         original_text ? "installed":"missing",original_storage ? "installed":"missing",
+        original_collection_layout ? "installed":"missing",
         (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures),
         (unsigned long long)GET(grid_taps),(unsigned long long)GET(strip_taps),
         (unsigned long long)GET(selection_missing),(unsigned long long)GET(lookup_misses),

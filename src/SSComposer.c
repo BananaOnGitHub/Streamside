@@ -35,7 +35,7 @@ extern void objc_destroyWeak(id *);
 #define ATTACHMENT_KEY "StreamsideEmoteCode"
 #define MAX_TOKENS 512
 #define IMAGE_NOTICE "StreamsideEmoteImagesChanged"
-static char state_key,footer_key,button_key,cell_key,undo_key,attachment_metadata_key;
+static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key;
 static Class delegate_class,attachment_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
@@ -213,12 +213,23 @@ static void visual_text(id editor,id text,Range selected) {
     /* This is a direct text-storage presentation update, not a user edit.
      * Querying or toggling UITextView's undo manager here can throw while an
      * asynchronous image notification is being delivered (iOS 18.2). */
+    id foreground=color("labelColor");
+    id font=((id (*)(id,SEL,double))objc_msgSend)((id)objc_getClass("UIFont"),sel_registerName("systemFontOfSize:"),17.0);
+    U length=number(text,"length");
+    if (length) {
+        ((void (*)(id,SEL,id,id,Range))objc_msgSend)(text,sel_registerName("addAttribute:value:range:"),str("NSFont"),font,(Range){0,length});
+        ((void (*)(id,SEL,id,id,Range))objc_msgSend)(text,sel_registerName("addAttribute:value:range:"),str("NSColor"),foreground,(Range){0,length});
+    }
     id storage=m0(editor,"textStorage"); m0(storage,"beginEditing");
     ((void (*)(id,SEL,Range,id))objc_msgSend)(storage,sel_registerName("replaceCharactersInRange:withAttributedString:"),(Range){0,number(storage,"length")},text);
     m0(storage,"endEditing");
-    U len=number(text,"length"); if (selected.location>len) selected.location=len;
-    if (selected.length>len-selected.location) selected.length=len-selected.location;
+    if (selected.location>length) selected.location=length;
+    if (selected.length>length-selected.location) selected.length=length-selected.location;
     select_range(editor,selected);
+    id typing=m0(m0(editor,"typingAttributes"),"mutableCopy");
+    ((void (*)(id,SEL,id,id))objc_msgSend)(typing,sel_registerName("setObject:forKey:"),font,str("NSFont"));
+    ((void (*)(id,SEL,id,id))objc_msgSend)(typing,sel_registerName("setObject:forKey:"),foreground,str("NSColor"));
+    v1(editor,"setTypingAttributes:",typing); objc_release(typing);
 }
 static void expand(id delegate) {
     State *s=state(delegate); if (!s || s->busy) return;
@@ -388,6 +399,7 @@ static void refresh_strip_images(id scroll) {
 }
 static void picker_button(id self,SEL sel,id sender) { (void)sel; INC(strip_taps); choose(self,objc_getAssociatedObject(sender,&button_key),YES); }
 static void recent_button(id self,SEL sel,id sender) { (void)sel; INC(strip_taps); choose(self,objc_getAssociatedObject(sender,&button_key),NO); }
+static void grid_button(id self,SEL sel,id sender) { (void)sel; INC(grid_taps); choose(self,objc_getAssociatedObject(sender,&button_key),NO); }
 static I item_count(id self,SEL sel,id collection,I section) { (void)sel;(void)collection;(void)section; return (I)number(state(self)->entries,"count"); }
 static id cell(id self,SEL sel,id collection,id path) {
     (void)sel; State *s=state(self); U index=number(path,"item");
@@ -399,8 +411,14 @@ static id cell(id self,SEL sel,id collection,id path) {
         id label=view("UILabel",(Rect){{1,40},{54,14}}); vi(label,"setTag:",301); vi(label,"setTextAlignment:",1);
         v1(label,"setFont:",((id (*)(id,SEL,double))objc_msgSend)((id)objc_getClass("UIFont"),sel_registerName("systemFontOfSize:"),9.0));
         v1(label,"setTextColor:",color("secondaryLabelColor")); v1(content,"addSubview:",label); objc_release(label);
+        id button=view("UIButton",(Rect){{0,0},{56,56}});
+        target(button,self,"ssGridPick:",1UL<<6);
+        v1(content,"addSubview:",button); associate(c,&grid_button_key,button); objc_release(button);
     }
     id metadata=index<number(s->entries,"count") ? at(s->entries,index) : nil;
+    id button=objc_getAssociatedObject(c,&grid_button_key);
+    associate(button,&button_key,metadata);
+    v1(button,"setAccessibilityLabel:",key(metadata,"name"));
     set_thumbnail(image,metadata);
     id label=((id (*)(id,SEL,I))objc_msgSend)(content,sel_registerName("viewWithTag:"),(I)301);
     v1(label,"setText:",key(metadata,"name")); v1(c,"setAccessibilityLabel:",key(metadata,"name"));
@@ -758,6 +776,7 @@ void ss_composer_retry_hooks(void) {
             {"dealloc",(IMP)delegate_dealloc,"v@:"}, {"ssPick:",(IMP)picker_button,"v@:@"},
             {"ssRecent:",(IMP)recent_button,"v@:@"}, {"ssProvider:",(IMP)provider_changed,"v@:@"},
             {"ssScope:",(IMP)scope_changed,"v@:@"}, {"ssThirdParty:",(IMP)third_party_tab,"v@:@"},
+            {"ssGridPick:",(IMP)grid_button,"v@:@"},
             {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},
             {"collectionView:cellForItemAtIndexPath:",(IMP)cell,"@@:@@"},

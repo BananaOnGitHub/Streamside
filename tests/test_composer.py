@@ -761,6 +761,8 @@ class ComposerTests(unittest.TestCase):
                 for h in ("objc.h", "runtime.h", "message.h"):
                     (directory / "objc" / h).write_text(RUNTIME + '\nsize_t class_getInstanceSize(Class);\nBOOL class_addIvar(Class,const char *,size_t,uint8_t,const char *);\nconst char *sel_getName(SEL);\n')
             harness=directory / "composer.c"; binary=directory / "composer"
+            if runtime:
+                content += '\nvoid *_NSConcreteGlobalBlock[32];\n'
             harness.write_text(content)
             subprocess.run(compiler + ["-Wall", "-Wextra", "-Werror", "-ffunction-sections", "-fdata-sections",
                 "-Wl,--gc-sections", *(["-Wno-cast-function-type-mismatch"] if runtime else []), "-I", str(directory), "-I", str(ROOT / "src"), str(harness), "-o", str(binary)],

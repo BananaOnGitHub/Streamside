@@ -121,7 +121,9 @@ ordinary reads, other editors, and marked text retain their native behavior.
 Suggestion and Recent strips use an owned `UIScrollView` subclass that allows
 button tracking to be cancelled when a horizontal drag begins. Stationary taps
 retain the emote button's touch-up action. New results reset the scroll offset;
-image refreshes preserve it. Strip scrolling does not dismiss the keyboard.
+image refreshes preserve it. Strip scrolling does not dismiss the keyboard. Each owned button receives its
+suggestion or Recent action at creation; UIKit scroll indicators are never
+passed target/action APIs during history refreshes.
 
 An owned UIKit collection view overlays the existing keyboard's content area
 when its third-party footer button is selected. The native footer and native

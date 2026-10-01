@@ -51,6 +51,15 @@ int main(void) {
     memcpy(identity+16,&presence,8); identity[4]=255; /* padding is irrelevant */
     assert(ss_identity_room(identity,56)==12345);
     assert(!ss_identity_room(identity,55) && !ss_identity_room(NULL,56));
+    /* A provider name at the caret remains text while it is being typed or
+     * selected. Space commits it; UTF-16 offsets still include emoji. */
+    assert(!ss_preview_token_safe(3,12,16,12,0));
+    assert(!ss_preview_token_safe(3,12,16,6,0));
+    assert(!ss_preview_token_safe(3,12,16,2,4));
+    assert(ss_preview_token_safe(3,12,16,13,0));
+    assert(ss_preview_token_safe(3,12,16,12,1));
+    assert(ss_preview_token_safe(3,12,16,1,0));
+    assert(!ss_preview_token_safe(3,12,16,17,0));
     return 0;
 }
 '''
@@ -77,6 +86,8 @@ SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil; va_list args; va_start(args,sel); id result=nil;
     if(!strcmp(sel,"attributedText"))result=&source;
+    else if(!strcmp(sel,"string"))result=o;
+    else if(!strcmp(sel,"characterAtIndex:")) { U i=va_arg(args,U);assert(i<o->length);result=(id)(uintptr_t)o->units[i]; }
     else if(!strcmp(sel,"labelColor"))result=&theme;
     else if(!strcmp(sel,"systemFontOfSize:")) { double size=va_arg(args,double);assert(size==17.0);result=&body_font; }
     else if(!strcmp(sel,"textStorage"))result=&storage;
@@ -189,6 +200,106 @@ int main(void) {
 }
 '''
 
+AUTOCORRECT = EDITOR[:EDITOR.index("int main(void)")]
+AUTOCORRECT = AUTOCORRECT.replace('static unsigned storage_edits,styled;',
+    'static unsigned storage_edits,styled,selection_sets; static BOOL marked,on_main=YES;')
+AUTOCORRECT = AUTOCORRECT.replace('if(!strcmp(name,"NSString"))return &cls;',
+    'if(!strcmp(name,"NSThread") || !strcmp(name,"NSObject"))return &cls;\n'
+    '    if(!strcmp(name,"NSTextStorage"))return &storage;\n    if(!strcmp(name,"NSString"))return &cls;')
+AUTOCORRECT = AUTOCORRECT.replace('else if(!strcmp(sel,"textStorage"))result=&storage;',
+    'else if(!strcmp(sel,"textStorage"))result=editor_storage(o,sel);\n'
+    '    else if(!strcmp(sel,"text"))result=editor_text(o,sel);\n'
+    '    else if(!strcmp(sel,"isMainThread"))result=(id)(uintptr_t)on_main;\n'
+    '    else if(!strcmp(sel,"markedTextRange"))result=marked ? &typing : nil;')
+AUTOCORRECT = AUTOCORRECT.replace('else assert(!"unexpected editor selector");',
+    'else if(!strcmp(sel,"objectForKey:"))result=nil;\n'
+    '    else if(!strcmp(sel,"alloc")) { result=calloc(1,sizeof(*result));result->cls="NSTextStorage"; }\n'
+    '    else if(!strcmp(sel,"initWithAttributedString:")) { id value=va_arg(args,id);memcpy(o,value,sizeof(*o));o->cls="NSTextStorage";result=o; }\n'
+    '    else if(!strcmp(sel,"cancelPreviousPerformRequestsWithTarget:selector:object:")) {}\n'
+    '    else if(!strcmp(sel,"performSelector:withObject:afterDelay:")) {}\n'
+    '    else assert(!"unexpected editor selector");')
+AUTOCORRECT = AUTOCORRECT.replace('assert(r.location==1 && r.length==0);',
+    '(void)r;selection_sets++;')
+AUTOCORRECT += '\nstatic id fake_delegate;\n' + CONTROLS[CONTROLS.index('static unsigned mutations;'):CONTROLS.index('int main(void)')].replace(
+    '(void)o;(void)k;return nil;', '(void)o;return k==&state_key ? fake_delegate : nil;')
+AUTOCORRECT += r'''
+static struct Fake other={"UITextView",0,{0},{0},{0}};
+static Range expected_range;
+static U expected_length;
+static BOOL accept=YES,expected_snapshot=YES,expected_storage_snapshot=YES;
+static unsigned validated,notified;
+static id raw_text(id o,SEL sel) { (void)sel;return o==&editor ? &source : &other; }
+static id raw_storage(id o,SEL sel) { (void)sel;return o==&editor ? &storage : &other; }
+static void assert_native_reads(id input) {
+    id text=m0(input,"text"),contents=m0(input,"textStorage");
+    assert(text->length==expected_length);
+    assert(contents->length==(expected_storage_snapshot ? expected_length : source.length));
+    if(expected_snapshot) {
+        assert(text->units[3]=='W' && !text->codes[3]);
+        assert(source.units[3]==0xfffc && storage.units[3]==0xfffc);
+    } else assert(contents==&storage && text==&source);
+    if(expected_storage_snapshot) assert(contents!=&storage && !strcmp(contents->cls,"NSTextStorage"));
+    else assert(contents==&storage);
+    assert(m0(&other,"text")==&other && m0(&other,"textStorage")==&other);
+    if(expected_snapshot) {
+        on_main=NO;assert(m0(input,"text")==&source && m0(input,"textStorage")==&storage);on_main=YES;
+    }
+}
+static BOOL validate(id owner,SEL sel,id input,Range r,id replacement) {
+    (void)owner;(void)sel;assert(replacement && r.location==expected_range.location && r.length==expected_range.length);
+    assert_native_reads(input);validated++;return accept;
+}
+static void notify(id owner,SEL sel,id input) { (void)owner;(void)sel;BOOL prior=expected_storage_snapshot;expected_storage_snapshot=NO;assert_native_reads(input);expected_storage_snapshot=prior;notified++; }
+int main(void) {
+    (void)storage_edits;(void)styled;
+    original_text=(IMP)raw_text;original_storage=(IMP)raw_storage;
+    original_should_change=(IMP)validate;original_change=(IMP)notify;
+    /* An emoji and earlier preview precede a misspelled word. The keyboard
+     * wants to fix that word while its caret is farther ahead, after " xy". */
+    uint16_t text[]={0xd83d,0xde00,' ',0xfffc,' ','t','e','h',' ','x','y'};
+    source.length=11;memcpy(source.units,text,sizeof(text));source.codes[3]=ascii("WideEmote");source.native[3]=11;
+    memcpy(&storage,&source,sizeof(source));storage.cls="NSTextStorage";
+    id correction=ascii("the");expected_range=(Range){13,3};expected_length=19;
+    assert(native_validation(nil,"validate",&editor,(Range){5,3},correction));
+    assert(!native_read && !storage_edits && !selection_sets && validated==1);
+    assert(source.length==11 && source.units[3]==0xfffc && source.units[6]=='e');
+    assert(m0(&editor,"text")==&source && m0(&editor,"textStorage")==&storage);
+    /* UIKit applies its own displayed range and preserves its farther caret.
+     * didChange only serializes the new value; it never changes selection. */
+    source.units[6]='h';source.units[7]='e';storage.units[6]='h';storage.units[7]='e';
+    native_changed(nil,"notify",&editor);
+    assert(notified==1 && !native_read && !storage_edits && !selection_sets);
+    expected_range=(Range){3,9};
+    assert(native_validation(nil,"validate",&editor,(Range){3,1},ascii(""))); /* whole-emote deletion */
+    accept=NO;expected_range=(Range){13,3};
+    assert(!native_validation(nil,"validate",&editor,(Range){5,3},correction)); /* native veto retained */
+    assert(!native_read && !storage_edits && !selection_sets);
+    /* Marked/IME transactions keep the exact live storage and offsets. */
+    marked=YES;accept=YES;expected_snapshot=NO;expected_storage_snapshot=NO;expected_length=11;expected_range=(Range){5,3};
+    assert(native_validation(nil,"validate",&editor,(Range){5,3},correction));
+    native_changed(nil,"notify",&editor);assert(notified==2 && !native_read);
+    marked=NO;expected_storage_snapshot=YES;
+    /* Stray inherited metadata on a normal character must not serialize that
+     * character as another emote. Only U+FFFC owns an attachment code. */
+    source.codes[6]=source.codes[3];SSSpan spans[MAX_TOKENS];size_t n;
+    id plain=expanded_copy(&editor,NULL,spans,&n);
+    assert(n==1 && plain->length==19 && plain->units[14]=='h');
+    assert(!storage_edits && !selection_sets);free(plain);
+    /* Exercise the actual delegate entry points. Existing attachments used to
+     * make shouldChange return NO and manually replace text/caret. Selection
+     * and didChange used to expand and render synchronously. */
+    struct Fake delegate={0};State context={0};delegate.codes[255]=(id)&context;
+    delegate_class=&cls;fake_delegate=&delegate;expected_snapshot=YES;expected_length=19;expected_range=(Range){13,3};
+    assert(should_change(&other,"validate",&editor,(Range){5,3},correction));
+    assert(context.preview_scheduled && !storage_edits && !selection_sets);
+    did_change(&other,"notify",&editor);assert(context.preview_scheduled && !storage_edits && !selection_sets);
+    original_selection=(IMP)notify;
+    expected_snapshot=NO;expected_length=11;did_select(&other,"select",&editor);
+    assert(context.preview_scheduled && !native_read && !storage_edits && !selection_sets);
+    return 0;
+}
+'''
+
 TOUCHES = r'''
 #include <stdarg.h>
 #include <assert.h>
@@ -260,6 +371,11 @@ class ComposerTests(unittest.TestCase):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig, "Zig is required for the production composer harness")
         self.compile_run(TOUCHES, [zig, "cc", "-fblocks"], runtime=True)
+
+    def test_keyboard_corrections_validate_snapshots_without_replacing_live_text(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig, "Zig is required for the production composer harness")
+        self.compile_run(AUTOCORRECT, [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):
         with tempfile.TemporaryDirectory() as d:

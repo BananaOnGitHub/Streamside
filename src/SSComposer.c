@@ -36,7 +36,7 @@ extern void objc_destroyWeak(id *);
 #define MAX_TOKENS 512
 #define IMAGE_NOTICE "StreamsideEmoteImagesChanged"
 static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key;
-static Class delegate_class,attachment_class;
+static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_container_layout;
@@ -437,6 +437,43 @@ static id thumbnail_button(id delegate,id metadata,Rect r) {
     v1(label,"setTextColor:",color("secondaryLabelColor")); v1(button,"addSubview:",label); objc_release(label);
     v1(button,"setAccessibilityLabel:",key(metadata,"name")); target(button,delegate,"ssPick:",1UL<<6); return button;
 }
+static BOOL strip_cancel_touch(id self,SEL sel,id content) {
+    (void)self;(void)sel;(void)content;
+    /* UIScrollView normally refuses to cancel tracking inside UIControls.
+     * Every emote tile is a UIButton. Our own strip lets a drag cancel the
+     * button so swiping scrolls, while a stationary touch still taps it. */
+    return YES;
+}
+static void configure_strip(id scroll) {
+    vb(scroll,"setScrollEnabled:",YES);
+    vb(scroll,"setCanCancelContentTouches:",YES);
+    vb(scroll,"setDelaysContentTouches:",NO);
+    vb(scroll,"setAlwaysBounceHorizontal:",YES);
+    vb(scroll,"setAlwaysBounceVertical:",NO);
+    vb(scroll,"setDirectionalLockEnabled:",YES);
+    vb(scroll,"setShowsHorizontalScrollIndicator:",YES);
+    vb(scroll,"setShowsVerticalScrollIndicator:",NO);
+    vi(scroll,"setKeyboardDismissMode:",0);
+    v1(scroll,"setBackgroundColor:",color("secondarySystemBackgroundColor"));
+}
+static id make_strip(void) {
+    if (!strip_class) {
+        Class base=objc_getClass("UIScrollView"); if (!base) return nil;
+        Method cancel=class_getInstanceMethod(base,sel_registerName("touchesShouldCancelInContentView:"));
+        if (!cancel) return nil;
+        Class created=objc_allocateClassPair(base,"SSComposerScrollView",0); if (!created) return nil;
+        class_addMethod(created,sel_registerName("touchesShouldCancelInContentView:"),(IMP)strip_cancel_touch,method_getTypeEncoding(cancel));
+        objc_registerClassPair(created); strip_class=created;
+    }
+    id scroll=((id (*)(id,SEL,Rect))objc_msgSend)(m0((id)strip_class,"alloc"),sel_registerName("initWithFrame:"),(Rect){{0,0},{320,48}});
+    configure_strip(scroll); return scroll;
+}
+static void set_strip_extent(id scroll,U count) {
+    ((void (*)(id,SEL,Size))objc_msgSend)(scroll,sel_registerName("setContentSize:"),(Size){(double)count*64,48});
+    /* A different search starts at its first result. Image-only refreshes do
+     * not refill the strip, so they preserve dragging/deceleration/offset. */
+    ((void (*)(id,SEL,Point))objc_msgSend)(scroll,sel_registerName("setContentOffset:"),(Point){0,0});
+}
 static void fill_strip(id scroll,id delegate,id items) {
     id children=m0(m0(scroll,"subviews"),"copy");
     for (U i=0;i<number(children,"count");i++) if (objc_getAssociatedObject(at(children,i),&button_key)) m0(at(children,i),"removeFromSuperview"); objc_release(children);
@@ -444,7 +481,7 @@ static void fill_strip(id scroll,id delegate,id items) {
         id button=thumbnail_button(delegate,at(items,i),(Rect){{(double)i*64,0},{64,48}});
         v1(scroll,"addSubview:",button); objc_release(button);
     }
-    ((void (*)(id,SEL,Size))objc_msgSend)(scroll,sel_registerName("setContentSize:"),(Size){(double)number(items,"count")*64,48});
+    set_strip_extent(scroll,number(items,"count"));
 }
 static void refresh_strip_images(id scroll) {
     id children=m0(scroll,"subviews");
@@ -635,7 +672,7 @@ static void refresh(id delegate) {
         }
         if (!equal(matches,s->suggestions)) {
             objc_release(s->suggestions); s->suggestions=matches;
-            if (!s->strip) { s->strip=view("UIScrollView",(Rect){{0,0},{320,48}}); vb(s->strip,"setShowsHorizontalScrollIndicator:",NO); vb(s->strip,"setDelaysContentTouches:",NO); v1(s->strip,"setBackgroundColor:",color("secondarySystemBackgroundColor")); }
+            if (!s->strip) s->strip=make_strip();
             fill_strip(s->strip,delegate,matches);
         } else { if (matches) objc_release(matches); refresh_strip_images(s->strip); }
         objc_release(plain);
@@ -646,7 +683,7 @@ static void refresh(id delegate) {
             objc_release(s->entries); s->entries=items;
             if (s->tab==1) m0(s->grid,"reloadData");
             else {
-                if (!s->recent_strip) { s->recent_strip=view("UIScrollView",(Rect){{0,0},{320,48}}); v1(s->recent_strip,"setBackgroundColor:",color("secondarySystemBackgroundColor")); }
+                if (!s->recent_strip) s->recent_strip=make_strip();
                 fill_strip(s->recent_strip,delegate,items);
                 id buttons=m0(s->recent_strip,"subviews"); for (U i=0;i<number(buttons,"count");i++) {
                     id b=at(buttons,i);

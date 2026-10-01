@@ -125,6 +125,14 @@ image refreshes preserve it. Strip scrolling does not dismiss the keyboard. Each
 suggestion or Recent action at creation; UIKit scroll indicators are never
 passed target/action APIs during history refreshes.
 
+The suggestion strip also adapts Twitch's per-chat autocomplete catalog into
+the same metadata/result model. Native codes retain their native IDs and use
+Twitch's validated input/change/send path. Scoped hooks suppress the stock
+vertical colon selector in automatic and colon modes after the native catalog
+is ready, while preserving other native completions. See
+[NATIVE_EMOTES.md](NATIVE_EMOTES.md) for the 30.4.2 runtime investigation,
+queue/Swift bridging guards and device validation requirements.
+
 An owned UIKit collection view overlays the existing keyboard's content area
 when its third-party footer button is selected. The native footer and native
 library actions remain available. Provider changes reset the scope to Channel.

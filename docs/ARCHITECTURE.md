@@ -108,6 +108,16 @@ expanded; native Twitch attachments and text attributes are retained. Preview
 substitutions are excluded from undo registration. Scoped undo/redo expand names
 before invoking the original manager. Marked text is left to UIKit.
 
+Keyboard edits, including autocorrection, retain UIKit's original displayed
+ranges and selection. Scoped main-thread getters provide expanded text and a
+detached `NSTextStorage` snapshot to Twitch's synchronous validation, while its
+didChange callback receives expanded text without replacing live storage.
+Selection callbacks do not expand or redraw the editor. Preview updates are
+debounced until callbacks settle, leave the active word as text until committed,
+and retain existing attachment attributes to avoid rewriting identical content.
+The snapshots apply only to the exact composer editor during those callbacks;
+ordinary reads, other editors, and marked text retain their native behavior.
+
 An owned UIKit collection view overlays the existing keyboard's content area
 when its third-party footer button is selected. The native footer and native
 library actions remain available. Provider changes reset the scope to Channel.

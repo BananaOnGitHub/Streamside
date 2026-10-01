@@ -550,6 +550,80 @@ int main(void) {
 '''
 
 
+# Reuse the scroll-view runtime, adding native flow-layout attributes. UIKit
+# struct getters use the same typed host seam as the recents placement harness.
+HEADERS = RECENTS.split('int main(void) {')[0]
+HEADERS = HEADERS.replace('BOOL hidden;', 'BOOL hidden,pinned; I section,item; id content,native_delegate,path,element_kind,first,last; const char *encoding;')
+HEADERS = HEADERS.replace('static State *current;', '''static State *current;
+static struct Fake copies[32],paths[32],header_kind={.cls="NSString"},footer_kind={.cls="NSString"};
+static U copy_count,path_count; static id native_attributes,native_header;
+Method class_getInstanceMethod(Class c,SEL sel) { (void)sel;return c && c->encoding ? c : NULL; }
+const char *method_getTypeEncoding(Method m) { return ((id)m)->encoding; }
+Insets ss_test_section(id o) { return o->inset; }
+''')
+HEADERS = HEADERS.replace('if(!strcmp(name,"contentInset"))', 'if(!strcmp(name,"sectionInset"))return &o->inset;\n    if(!strcmp(name,"contentInset"))')
+HEADERS = HEADERS.replace('else if(!strcmp(sel,"count"))', '''else if(!strcmp(sel,"stringWithUTF8String:")) { const char *text=va_arg(args,const char *);result=!strcmp(text,"UICollectionElementKindSectionHeader") ? &header_kind : &footer_kind; }
+    else if(!strcmp(sel,"isEqual:"))result=(id)(uintptr_t)(o==va_arg(args,id));
+    else if(!strcmp(sel,"collectionView"))result=o->content;
+    else if(!strcmp(sel,"delegate"))result=o->native_delegate;
+    else if(!strcmp(sel,"sectionHeadersPinToVisibleBounds"))result=(id)(uintptr_t)o->pinned;
+    else if(!strcmp(sel,"representedElementKind"))result=o->element_kind;
+    else if(!strcmp(sel,"indexPath"))result=o->path;
+    else if(!strcmp(sel,"section"))result=(id)(uintptr_t)o->section;
+    else if(!strcmp(sel,"numberOfItemsInSection:")) { assert(va_arg(args,I)==1);result=(id)(uintptr_t)o->count; }
+    else if(!strcmp(sel,"indexPathForItem:inSection:")) { assert(path_count<32);id path=&paths[path_count++];path->item=va_arg(args,I);path->section=va_arg(args,I);result=path; }
+    else if(!strcmp(sel,"layoutAttributesForItemAtIndexPath:")) { id path=va_arg(args,id);assert(path->section==1);result=path->item ? o->last : o->first; }
+    else if(!strcmp(sel,"copy") || !strcmp(sel,"mutableCopy")) { assert(copy_count<32);copies[copy_count]=*o;result=&copies[copy_count++]; }
+    else if(!strcmp(sel,"autorelease"))result=o;
+    else if(!strcmp(sel,"replaceObjectAtIndex:withObject:")) { U i=va_arg(args,U);assert(i<o->count);o->children[i]=va_arg(args,id); }
+    else if(!strcmp(sel,"count"))''')
+HEADERS += r'''
+static id native_elements(id flow,SEL sel,Rect bounds) { (void)flow;(void)sel;(void)bounds;return native_attributes; }
+static id native_supplementary(id flow,SEL sel,id kind_name,id path) { (void)flow;(void)sel;(void)kind_name;(void)path;return native_header; }
+int main(void) {
+    State s={.recent_height=48}; struct Fake delegate={.context=&s};delegate_class=&delegate;
+    struct Fake section_path={.section=1};
+    struct Fake first={.frame={{10,200},{40,40}}},last={.frame={{250,500},{40,40}}};
+    struct Fake header={.frame={{0,348},{390,100}},.path=&section_path,.element_kind=&header_kind};
+    struct Fake footer={.frame={{0,560},{390,20}},.path=&section_path,.element_kind=&footer_kind};
+    struct Fake content={.host=&delegate,.bounds={{0,280},{390,300}},.count=3,.inset={56,0,0,0},.adjusted={68,0,0,0}};
+    struct Fake flow={.content=&content,.pinned=YES,.first=&first,.last=&last,.inset={10,0,20,0}};
+    struct Fake attrs={.count=3,.children={&first,&header,&footer}};
+    native_attributes=&attrs;native_header=&header;
+    original_flow_elements=(IMP)native_elements;original_flow_header=(IMP)native_supplementary;
+    original_collection_layout=(IMP)native_layout;
+    /* The native pin offset excludes only our 48 points, preserving UIKit's
+     * remaining content/safe-area inset. Cells and footers retain identity. */
+    id result=flow_elements(&flow,"layoutAttributesForElementsInRect:",content.bounds);
+    assert(result!=&attrs && result->children[0]==&first && result->children[2]==&footer);
+    assert(result->children[1]->frame.origin.y==300 && header.frame.origin.y==348);
+    id direct=flow_header(&flow,"layoutAttributesForSupplementaryViewOfKind:atIndexPath:",&header_kind,&section_path);
+    assert(direct!=&header && direct->frame.origin.y==300);
+    assert(recent_header_attributes(&flow,direct)==direct); /* No accumulated shifts. */
+    /* Upcoming headers stay at their natural section start; the previous
+     * header stops at its native section end during the next header handoff. */
+    content.bounds.origin.y=-68;header.frame.origin.y=90;
+    assert(recent_header_attributes(&flow,&header)==&header);
+    content.bounds.origin.y=600;header.frame.origin.y=460;
+    assert(recent_header_attributes(&flow,&header)==&header);
+    /* Respect Twitch's per-section inset callback only at its inspected ABI. */
+    struct Fake native_delegate={.encoding="{UIEdgeInsets=dddd}40@0:8@16@24q32",.inset={30,0,40,0}};
+    content.native_delegate=&native_delegate;content.bounds.origin.y=-68;header.frame.origin.y=90;
+    assert(recent_header_attributes(&flow,&header)->frame.origin.y==70);
+    native_delegate.encoding="unknown";
+    assert(recent_header_attributes(&flow,&header)==&header);
+    /* Other libraries, non-pinned layouts and empty sections remain native. */
+    content.host=nil;assert(flow_elements(&flow,"layoutAttributesForElementsInRect:",content.bounds)==&attrs);
+    assert(recent_header_attributes(&flow,&header)==&header);content.host=&delegate;
+    flow.pinned=NO;assert(recent_header_attributes(&flow,&header)==&header);flow.pinned=YES;
+    content.count=0;assert(recent_header_attributes(&flow,&header)==&header);content.count=3;
+    s.recent_height=0;assert(recent_header_attributes(&flow,&header)==&header);
+    assert(first.frame.origin.y==200 && last.frame.origin.y==500 && footer.frame.origin.y==560);
+    return 0;
+}
+'''
+
+
 class ComposerTests(unittest.TestCase):
     def test_utf16_edits_and_completion_boundaries(self):
         self.compile_run(MODEL, ["cc", "-std=c11", "-fsanitize=address,undefined"])
@@ -591,6 +665,19 @@ class ComposerTests(unittest.TestCase):
             source = source.replace(f'(({typ} (*)(id,SEL))objc_msgSend)(content,sel_registerName("{name}"))',
                 f'*( {typ} *)ss_test_field(content,"{name}")')
         self.compile_run(RECENTS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
+
+    def test_native_sticky_headers_keep_their_pin_and_handoff_positions(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig, "Zig is required for the production composer harness")
+        source = (ROOT / "src" / "SSComposer.c").read_text()
+        source = source.replace('static Rect rect(id o,const char *s) { return ((Rect (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }',
+            'extern void *ss_test_field(id,const char *);\nextern Insets ss_test_section(id);\nstatic Rect rect(id o,const char *s) { return *(Rect *)ss_test_field(o,s); }')
+        for obj, name in (("flow", "sectionInset"), ("content", "contentInset"), ("content", "adjustedContentInset")):
+            source = source.replace(f'((Insets (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{name}"))',
+                f'*(Insets *)ss_test_field({obj},"{name}")')
+        source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section)',
+            'ss_test_section(native_delegate)')
+        self.compile_run(HEADERS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):
         with tempfile.TemporaryDirectory() as d:

@@ -1,8 +1,7 @@
 # Security
 
 Do not disclose Twitch account tokens, signing certificates, provisioning
-profiles, device identifiers, client-integrity values, or decrypted application
-packages in a public issue.
+profiles, device identifiers, or client-integrity values, in a public issue.
 
 For ordinary playback and ad-blocking regressions, use the bug-report template
 with sanitized reproduction steps. This project stores no user credentials and

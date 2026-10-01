@@ -46,7 +46,7 @@ static IMP original_dealloc,original_change,original_selection,original_should_c
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_container_layout,original_collection_layout;
 static IMP original_flow_elements,original_flow_header;
-static IMP original_selector_rows,original_selector_layout;
+static IMP original_selector_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
 static id images,pending,failed,image_session;
@@ -255,6 +255,11 @@ static id snapshot_native(id manager,id *snapshot) {
     return result;
 }
 static void stock_update(State *s,id selector) {
+    /* Presentation only: Twitch's async completion reloads this table and
+     * scrolls to row 0 when its Swift match contains results (30.4.2,
+     * 0x100e51c58 / 0x100e51cc8). Returning zero rows here violates that match
+     * and makes UITableView raise an exception, even while its view is hidden.
+     * Keep native rows, sections and match storage entirely under Twitch. */
     if (!s || !selector) return;
     BOOL suppress=s->colon_selector && s->native_ready && ss_composer_suggestion_mode()!=2;
     id stock=m0(selector,"viewIfLoaded"); if (!stock) return;
@@ -273,11 +278,6 @@ static void stock_update(State *s,id selector) {
         s->stock_hidden=NO; s->stock_height_saved=NO;
         m0(stock,"reloadData");
     }
-}
-static I selector_rows(id selector,SEL sel,id table,I section) {
-    State *s=state(objc_getAssociatedObject(selector,&selector_key));
-    if (s && s->colon_selector && s->native_ready && ss_composer_suggestion_mode()!=2) return 0;
-    return ((I (*)(id,SEL,id,I))original_selector_rows)(selector,sel,table,section);
 }
 static void selector_layout(id selector,SEL sel) {
     ((void (*)(id,SEL))original_selector_layout)(selector,sel);
@@ -1309,7 +1309,6 @@ static BOOL hook(const char *classname,const char *name,const char *encoding,IMP
 }
 void ss_composer_retry_hooks(void) {
     if (!tas_emotes_enabled_this_launch()) return;
-    hook(NATIVE_SELECTOR,"tableView:numberOfRowsInSection:","q32@0:8@16q24",(IMP)selector_rows,&original_selector_rows);
     hook(NATIVE_SELECTOR,"viewWillLayoutSubviews","v16@0:8",(IMP)selector_layout,&original_selector_layout);
     if (!delegate_class) {
         if (!objc_getClass("NSObject") || !objc_getClass("NSTextAttachment") || !objc_getClass("NSURLSession")) return;
@@ -1392,7 +1391,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         original_text ? "installed":"missing",original_storage ? "installed":"missing",
         original_collection_layout ? "installed":"missing",
         original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
-        native_array_type ? "ready":"waiting",original_selector_rows && original_selector_layout ? "installed":"missing",
+        native_array_type ? "ready":"waiting",original_selector_layout ? "installed":"missing",
         (unsigned long long)GET(native_snapshots),(unsigned long long)GET(native_catalog_count),(unsigned long long)GET(native_catalog_misses),
         (unsigned long long)GET(native_insertions),(unsigned long long)GET(selector_suppressions),
         (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures),

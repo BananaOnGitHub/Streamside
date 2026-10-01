@@ -126,8 +126,17 @@ image refreshes preserve it. Strip scrolling does not dismiss the keyboard.
 An owned UIKit collection view overlays the existing keyboard's content area
 when its third-party footer button is selected. The native footer and native
 library actions remain available. Provider changes reset the scope to Channel.
-Recent provider names occupy a horizontal row inside the native Recent tab;
-its original collection view receives additional top inset, restored on exit.
+Recent provider names occupy a horizontal row prepended to the native library's
+collection view, populated on every opening without requiring a Recent button
+press. The row scrolls vertically with native sections and horizontally within
+itself. Additional top inset reserves its space; native section navigation and
+scroll-driven highlights remain intact. While the provider row leads the viewport,
+the native Recent indicator uses the existing selected colors, even with empty
+native history; leaving the row restores Twitch’s current appearance. No native
+section model or selected enum is edited. The Recent button includes the provider
+row in its destination. Layout and image refreshes preserve the browsing offset;
+empty history and replacement keyboards remove only the owned inset. The row is
+part of the hidden native collection while the third-party tab is open.
 The native history manager is never passed provider objects.
 
 Provider snapshots contain copied values, never registry pointers. Image requests

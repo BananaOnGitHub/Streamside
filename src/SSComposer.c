@@ -41,6 +41,7 @@ static IMP original_dealloc,original_change,original_selection,original_should_c
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_container_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
+static IMP original_text,original_storage;
 static id images,pending,failed,image_session;
 static uint64_t edited,previewed,insertions,palette_opens,identity_misses,image_failures;
 static uint64_t grid_taps,strip_taps,selection_missing,lookup_misses,validation_vetoes,range_misses,unchanged_edits;
@@ -104,7 +105,7 @@ typedef struct {
     Insets native_inset;
     Range completion;
     int library,library_scope,tab;
-    BOOL busy,scheduled,native_was_hidden;
+    BOOL busy,scheduled,preview_scheduled,native_was_hidden;
 } State;
 static State *state(id delegate) {
     State *s=NULL; Ivar iv=class_getInstanceVariable(delegate_class,"_state");
@@ -117,6 +118,7 @@ static void render(id delegate);
 static void expand(id delegate);
 static void layout(id delegate);
 static void restore_native(State *s);
+static void schedule_preview(id delegate);
 
 int ss_composer_suggestion_mode(void) {
     I mode=((I (*)(id,SEL,id))objc_msgSend)(defaults(),sel_registerName("integerForKey:"),str(MODE_KEY));
@@ -190,8 +192,9 @@ static void set_thumbnail(id image_view,id metadata) {
 static id expanded_copy(id editor,Range *selected,SSSpan *spans,size_t *n) {
     id source=m0(editor,"attributedText"),copy=m0(source,"mutableCopy");
     if (!copy) copy=m1(m0((id)objc_getClass("NSMutableAttributedString"),"alloc"),"initWithString:",str(""));
-    U length=number(source,"length"),extra=0; *n=0;
+    U length=number(source,"length"),extra=0; id source_text=m0(source,"string"); *n=0;
     for (U i=0;i<length;i++) {
+        if (((uint16_t (*)(id,SEL,U))objc_msgSend)(source_text,sel_registerName("characterAtIndex:"),i)!=0xfffc) continue;
         id code=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str(ATTACHMENT_KEY),i,NULL);
         if (!kind(code,"NSString") || !number(code,"length") || *n>=MAX_TOKENS) continue;
         U size=number(code,"length"); spans[(*n)++]=(SSSpan){i+extra,size}; extra+=size-1;
@@ -208,6 +211,52 @@ static id expanded_copy(id editor,Range *selected,SSSpan *spans,size_t *n) {
         ((void (*)(id,SEL,id,Range))objc_msgSend)(copy,sel_registerName("removeAttribute:range:"),str(ATTACHMENT_KEY),(Range){shown,number(code,"length")});
     }
     return copy;
+}
+/* Twitch's validation reads textStorage and its didChange bridge reads text.
+ * Give those synchronous reads expanded names WITHOUT changing the live
+ * editor. UIKit must apply its own edits using the original displayed ranges,
+ * especially autocorrection of a word behind the caret. Scope to the main thread and
+ * exact editor; unrelated editors and normal UIKit reads remain untouched. */
+typedef struct NativeRead { id editor,plain,storage; struct NativeRead *previous; } NativeRead;
+/* UIKit callbacks run on main. Check before touching this stack scope so a
+ * background read can never see a temporary snapshot from the main thread. */
+static NativeRead *native_read;
+static BOOL main_thread(void) { return yes((id)objc_getClass("NSThread"),"isMainThread"); }
+static id editor_text(id editor,SEL sel) {
+    if (main_thread() && native_read && native_read->editor==editor) return m0(native_read->plain,"string");
+    return ((id (*)(id,SEL))original_text)(editor,sel);
+}
+static id editor_storage(id editor,SEL sel) {
+    if (main_thread() && native_read && native_read->editor==editor && native_read->storage) return native_read->storage;
+    return ((id (*)(id,SEL))original_storage)(editor,sel);
+}
+static BOOL native_validation(id owner,SEL sel,id editor,Range range,id replacement) {
+    if (!main_thread() || m0(editor,"markedTextRange")) return ((BOOL (*)(id,SEL,id,Range,id))original_should_change)(owner,sel,editor,range,replacement);
+    SSSpan spans[MAX_TOKENS]; size_t n; Range mapped=range;
+    id plain=expanded_copy(editor,&mapped,spans,&n);
+    /* Keep the getter's concrete UIKit contract as well as its contents.
+     * didChange needs only the text snapshot; its storage stays live. */
+    id snapshot=n ? m1(m0((id)objc_getClass("NSTextStorage"),"alloc"),"initWithAttributedString:",plain) : nil;
+    NativeRead read={editor,plain,snapshot,native_read};
+    if (n) native_read=&read;
+    BOOL allowed=((BOOL (*)(id,SEL,id,Range,id))original_should_change)(owner,sel,editor,n ? mapped : range,replacement);
+    native_read=read.previous; objc_release(snapshot); objc_release(plain); return allowed;
+}
+static void native_changed(id owner,SEL sel,id editor) {
+    if (!main_thread() || m0(editor,"markedTextRange")) { ((void (*)(id,SEL,id))original_change)(owner,sel,editor); return; }
+    SSSpan spans[MAX_TOKENS]; size_t n;
+    id plain=expanded_copy(editor,NULL,spans,&n);
+    NativeRead read={editor,plain,nil,native_read};
+    if (n) native_read=&read;
+    ((void (*)(id,SEL,id))original_change)(owner,sel,editor);
+    native_read=read.previous; objc_release(plain);
+}
+static void clean_typing_attributes(id editor) {
+    id current=m0(editor,"typingAttributes");
+    if (!key(current,ATTACHMENT_KEY)) return;
+    id attributes=m0(current,"mutableCopy");
+    v1(attributes,"removeObjectForKey:",str(ATTACHMENT_KEY)); v1(attributes,"removeObjectForKey:",str("NSAttachment"));
+    v1(editor,"setTypingAttributes:",attributes); objc_release(attributes);
 }
 static void visual_text(id editor,id text,Range selected) {
     /* This is a direct text-storage presentation update, not a user edit.
@@ -232,7 +281,7 @@ static void visual_text(id editor,id text,Range selected) {
     v1(editor,"setTypingAttributes:",typing); objc_release(typing);
 }
 static void expand(id delegate) {
-    State *s=state(delegate); if (!s || s->busy) return;
+    State *s=state(delegate); if (!s || s->busy || native_read) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
     if (!editor || m0(editor,"markedTextRange")) { objc_release(owner); return; }
     SSSpan spans[MAX_TOKENS]; size_t n; Range r=selection(editor);
@@ -241,7 +290,7 @@ static void expand(id delegate) {
     objc_release(plain); objc_release(owner);
 }
 static void render(id delegate) {
-    State *s=state(delegate); if (!s || s->busy) return;
+    State *s=state(delegate); if (!s || s->busy || s->preview_scheduled || native_read) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
     if (!editor || m0(editor,"markedTextRange")) { objc_release(owner); return; }
     Range r=selection(editor); SSSpan old[MAX_TOKENS],spans[MAX_TOKENS]; size_t old_n,n=0;
@@ -252,15 +301,21 @@ static void render(id delegate) {
     for (U start=0;start<length && n<MAX_TOKENS;) {
         if (ss_space(units[start]) || units[start]==0xfffc) { start++; continue; }
         U end=start; while (end<length && !ss_space(units[end]) && units[end]!=0xfffc) end++;
+        /* Leave the word being typed/selected intact until a delimiter commits
+         * it. A provider name can also be the prefix of an ordinary word. */
+        BOOL existing=NO;
+        for (size_t j=0;j<old_n;j++) if (old[j].start==start && old[j].length==end-start) { existing=YES; break; }
+        if (!existing && yes(editor,"isFirstResponder") && !ss_preview_token_safe(start,end,length,r.location,r.length)) { start=end; continue; }
         id metadata=tas_emotes_named_copy(s->room,sub(text,(Range){start,end-start}));
         id cached=metadata ? cached_image(metadata) : nil,attachment=nil;
+        BOOL reused=NO;
         /* Reuse our existing decoded preview after cache eviction; do not keep
          * downloading it on every edit or replace identical attachments. */
         U original_position=ss_display_position(start,old,old_n);
         if (metadata && original_position<number(source,"length")) {
             id previous=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),original_position,NULL);
             id previous_metadata=objc_getAssociatedObject(previous,&attachment_metadata_key);
-            if (previous_metadata && equal(key(previous_metadata,"id"),key(metadata,"id"))) attachment=objc_retain(previous);
+            if (previous_metadata && equal(key(previous_metadata,"id"),key(metadata,"id"))) { attachment=objc_retain(previous); reused=YES; }
         }
         if (metadata && !attachment) image_request(metadata);
         if (cached || attachment) {
@@ -269,7 +324,11 @@ static void render(id delegate) {
             if (aspect<=0) { Size z=((Size (*)(id,SEL))objc_msgSend)(m0(attachment,"image"),sel_registerName("size")); if (z.height>0) aspect=z.width/z.height; }
             tas_emote_proportions(&width,&height,aspect);
             ((void (*)(id,SEL,Rect))objc_msgSend)(attachment,sel_registerName("setBounds:"),(Rect){{0,-4},{width,height}});
-            id item=m1((id)objc_getClass("NSAttributedString"),"attributedStringWithAttachment:",attachment);
+            /* Reuse the entire attributed character, including font/color.
+             * Rebuilding it without those attributes made identical previews
+             * compare unequal, rewriting the document on every refresh. */
+            id item=reused ? ((id (*)(id,SEL,Range))objc_msgSend)(source,sel_registerName("attributedSubstringFromRange:"),(Range){original_position,1}) :
+                m1((id)objc_getClass("NSAttributedString"),"attributedStringWithAttachment:",attachment);
             id replacement=m0(item,"mutableCopy");
             ((void (*)(id,SEL,id,id,Range))objc_msgSend)(replacement,sel_registerName("addAttribute:value:range:"),str(ATTACHMENT_KEY),key(metadata,"name"),(Range){0,1});
             U shown=ss_display_position(start,spans,n);
@@ -284,9 +343,7 @@ static void render(id delegate) {
         s->busy=YES; visual_text(editor,output,r); s->busy=NO;
         __atomic_add_fetch(&previewed,n,__ATOMIC_RELAXED);
         /* Attachment attributes must not leak into subsequent ordinary typing. */
-        id attributes=m0(m0(editor,"typingAttributes"),"mutableCopy");
-        v1(attributes,"removeObjectForKey:",str(ATTACHMENT_KEY)); v1(attributes,"removeObjectForKey:",str("NSAttachment"));
-        v1(editor,"setTypingAttributes:",attributes); objc_release(attributes);
+        clean_typing_attributes(editor);
     }
     objc_release(output); objc_release(plain); objc_release(owner);
 }
@@ -329,7 +386,7 @@ static BOOL replace_plain(id delegate,Range range,id replacement) {
     if (!editor || m0(editor,"markedTextRange")) { INC(selection_missing); objc_release(owner); return NO; }
     expand(delegate); U length=number(m0(editor,"text"),"length");
     if (range.location>length || range.length>length-range.location) { INC(range_misses); objc_release(owner); return NO; }
-    BOOL allowed=((BOOL (*)(id,SEL,id,Range,id))original_should_change)(owner,sel_registerName("textView:shouldChangeTextInRange:replacementText:"),editor,range,replacement);
+    BOOL allowed=native_validation(owner,sel_registerName("textView:shouldChangeTextInRange:replacementText:"),editor,range,replacement);
     if (allowed) {
         id beginning=m0(editor,"beginningOfDocument");
         id start=((id (*)(id,SEL,id,I))objc_msgSend)(editor,sel_registerName("positionFromPosition:offset:"),beginning,(I)range.location);
@@ -342,7 +399,7 @@ static BOOL replace_plain(id delegate,Range range,id replacement) {
             BOOL changed=!equal(before,m0(editor,"text")); objc_release(before);
             if (changed) select_range(editor,(Range){range.location+number(replacement,"length"),0});
             s->busy=NO;
-            if (changed) { ((void (*)(id,SEL,id))original_change)(owner,sel_registerName("textViewDidChange:"),editor); INC(edited); }
+            if (changed) { native_changed(owner,sel_registerName("textViewDidChange:"),editor); INC(edited); }
             else { INC(unchanged_edits); allowed=NO; }
         } else { INC(range_misses); allowed=NO; }
     } else INC(validation_vetoes);
@@ -611,7 +668,7 @@ static void refresh(id delegate) {
 }
 static void tick(id self,SEL sel,id notification) {
     (void)sel;(void)notification; State *s=state(self); if (!s) return;
-    s->scheduled=NO; render(self); refresh(self);
+    s->scheduled=NO; refresh(self);
     id owner=objc_loadWeakRetained(&s->owner);
     if (owner && m0(owner,"window") && (s->tab || yes(editor_for(owner),"isFirstResponder"))) {
         s->scheduled=YES;
@@ -621,7 +678,18 @@ static void tick(id self,SEL sel,id notification) {
 }
 static void image_changed(id self,SEL sel,id notification) {
     (void)sel;(void)notification; State *s=state(self); if (!s) return;
-    render(self); refresh(self);
+    schedule_preview(self); refresh(self);
+}
+static void preview_ready(id self,SEL sel,id object) {
+    (void)sel;(void)object; State *s=state(self); if (!s) return;
+    s->preview_scheduled=NO; render(self); refresh(self);
+}
+static void schedule_preview(id delegate) {
+    State *s=state(delegate); if (!s) return;
+    SEL action=sel_registerName("ssPreview:");
+    ((void (*)(id,SEL,id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:selector:object:"),delegate,action,nil);
+    s->preview_scheduled=YES;
+    ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(delegate,sel_registerName("performSelector:withObject:afterDelay:"),action,nil,0.35);
 }
 static void start_tick(id delegate) {
     State *s=state(delegate); if (!s || s->scheduled) return;
@@ -654,29 +722,30 @@ static id delegate_for(id owner) {
 static void did_change(id owner,SEL sel,id editor) {
     id delegate=delegate_for(owner); State *s=state(delegate);
     if (s && s->busy) return;
-    if (s && !m0(editor,"markedTextRange")) expand(delegate);
-    ((void (*)(id,SEL,id))original_change)(owner,sel,editor);
-    INC(edited); if (s) { render(delegate); refresh(delegate); start_tick(delegate); }
+    if (s) schedule_preview(delegate);
+    native_changed(owner,sel,editor);
+    INC(edited); if (s) { refresh(delegate); start_tick(delegate); }
 }
 static void did_select(id owner,SEL sel,id editor) {
     id delegate=delegate_for(owner); State *s=state(delegate);
     if (s && s->busy) return;
-    if (s && !m0(editor,"markedTextRange")) expand(delegate);
+    if (s) schedule_preview(delegate);
     ((void (*)(id,SEL,id))original_selection)(owner,sel,editor);
-    if (s) { render(delegate); refresh(delegate); }
+    if (s) clean_typing_attributes(editor);
+    if (s) refresh(delegate);
 }
 static BOOL should_change(id owner,SEL sel,id editor,Range range,id replacement) {
     id delegate=delegate_for(owner); State *s=state(delegate);
     if (!s || s->busy || m0(editor,"markedTextRange")) return ((BOOL (*)(id,SEL,id,Range,id))original_should_change)(owner,sel,editor,range,replacement);
-    SSSpan spans[MAX_TOKENS]; size_t n; Range mapped=range;
-    id plain=expanded_copy(editor,&mapped,spans,&n); objc_release(plain);
-    if (!n) return ((BOOL (*)(id,SEL,id,Range,id))original_should_change)(owner,sel,editor,range,replacement);
-    /* Deleting a preview removes its complete emote code. */
-    replace_plain(delegate,mapped,replacement); return NO;
+    schedule_preview(delegate);
+    /* Validation sees expanded names; UIKit applies the original displayed
+     * range. Deleting one attachment naturally deletes one complete emote.
+     * Never replaceRange or force selectedRange for keyboard/autocorrect. */
+    return native_validation(owner,sel,editor,range,replacement);
 }
 static void did_begin(id owner,SEL sel,id editor) {
     ((void (*)(id,SEL,id))original_begin)(owner,sel,editor);
-    id delegate=delegate_for(owner); if (delegate) { render(delegate); refresh(delegate); start_tick(delegate); }
+    id delegate=delegate_for(owner); if (delegate) { schedule_preview(delegate); refresh(delegate); start_tick(delegate); }
 }
 static void did_end(id owner,SEL sel,id editor) {
     id delegate=objc_getAssociatedObject(owner,&state_key); if (delegate) expand(delegate);
@@ -693,7 +762,8 @@ static void emoticon_tapped(id owner,SEL sel) {
     find_footer(owner); if (delegate) { render(delegate); refresh(delegate); start_tick(delegate); }
 }
 static void apply_input(id owner,SEL sel,id model) {
-    id delegate=objc_getAssociatedObject(owner,&state_key); if (delegate) expand(delegate);
+    id delegate=objc_getAssociatedObject(owner,&state_key); State *s=state(delegate);
+    if (s && !s->preview_scheduled) expand(delegate);
     ((void (*)(id,SEL,id))original_apply)(owner,sel,model);
     delegate=delegate_for(owner); if (delegate) { refresh(delegate); render(delegate); }
 }
@@ -791,7 +861,7 @@ void ss_composer_retry_hooks(void) {
             {"ssRecent:",(IMP)recent_button,"v@:@"}, {"ssProvider:",(IMP)provider_changed,"v@:@"},
             {"ssScope:",(IMP)scope_changed,"v@:@"}, {"ssThirdParty:",(IMP)third_party_tab,"v@:@"},
             {"ssGridPick:",(IMP)grid_button,"v@:@"},
-            {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"},
+            {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"}, {"ssPreview:",(IMP)preview_ready,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},
             {"collectionView:cellForItemAtIndexPath:",(IMP)cell,"@@:@@"},
             {"collectionView:didSelectItemAtIndexPath:",(IMP)selected_cell,"v@:@@"}
@@ -812,6 +882,10 @@ void ss_composer_retry_hooks(void) {
     for (size_t i=0;i<4;i++) { Method m=class_getInstanceMethod(c,sel_registerName(required[i])); if (!m || strcmp(method_getTypeEncoding(m),types[i])) return; }
     const char *edit_actions[]={"copy:","cut:","paste:"};
     for (size_t i=0;i<3;i++) { Method m=class_getInstanceMethod(objc_getClass(ENTRY),sel_registerName(edit_actions[i])); if (!m || strcmp(method_getTypeEncoding(m),"v24@0:8@16")) return; }
+    const char *read_actions[]={"text","textStorage"};
+    for (size_t i=0;i<2;i++) { Method m=class_getInstanceMethod(objc_getClass(ENTRY),sel_registerName(read_actions[i])); if (!m || strcmp(method_getTypeEncoding(m),"@16@0:8")) return; }
+    hook(ENTRY,"text","@16@0:8",(IMP)editor_text,&original_text);
+    hook(ENTRY,"textStorage","@16@0:8",(IMP)editor_storage,&original_storage);
     hook(INPUT,required[0],types[0],(IMP)did_change,&original_change);
     hook(INPUT,required[1],types[1],(IMP)did_select,&original_selection);
     hook(INPUT,required[2],types[2],(IMP)should_change,&original_should_change);
@@ -838,6 +912,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
     snprintf(buffer,capacity,"\nStreamside composer (this launch)\n"
         "Hooks (editor/selection/validation/send/footer/copy/undo): %s/%s/%s/%s/%s/%s/%s\n"
         "Mode: %s\nEdits/previews/insertions/picker opens: %llu/%llu/%llu/%llu\n"
+        "Native text snapshot hooks (text/storage): %s/%s\n"
         "Identity layout misses/image failures: %llu/%llu\n"
         "Picker taps (grid/strip), missing selection/lookup: %llu/%llu, %llu/%llu\n"
         "Insertion veto/range miss/unchanged edit: %llu/%llu/%llu\n",
@@ -845,6 +920,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         original_send ? "installed":"missing",original_footer_apply ? "installed":"missing",original_copy ? "installed":"missing",original_undo && original_redo ? "installed":"missing",
         ss_composer_suggestion_mode()==0 ? "automatic" : ss_composer_suggestion_mode()==1 ? "colon":"off",
         (unsigned long long)GET(edited),(unsigned long long)GET(previewed),(unsigned long long)GET(insertions),(unsigned long long)GET(palette_opens),
+        original_text ? "installed":"missing",original_storage ? "installed":"missing",
         (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures),
         (unsigned long long)GET(grid_taps),(unsigned long long)GET(strip_taps),
         (unsigned long long)GET(selection_missing),(unsigned long long)GET(lookup_misses),

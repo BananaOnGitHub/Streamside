@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <dlfcn.h>
 
 typedef unsigned long U;
 typedef long I;
@@ -35,17 +36,23 @@ extern void objc_destroyWeak(id *);
 #define ATTACHMENT_KEY "StreamsideEmoteCode"
 #define MAX_TOKENS 512
 #define IMAGE_NOTICE "StreamsideEmoteImagesChanged"
+#define NATIVE_AUTOCOMPLETE "_TtC6Twitch28ChatEmoteAutocompleteManager"
+#define NATIVE_INFO "_TtCC6Twitch28ChatEmoteAutocompleteManagerP33_CEF95AD68D7B2CB9CDF93771963981BE9EmoteInfo"
+#define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
 static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key;
+static char selector_key;
 static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_container_layout,original_collection_layout;
 static IMP original_flow_elements,original_flow_header;
+static IMP original_selector_rows,original_selector_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
 static id images,pending,failed,image_session;
 static uint64_t edited,previewed,insertions,palette_opens,identity_misses,image_failures;
 static uint64_t grid_taps,strip_taps,selection_missing,lookup_misses,validation_vetoes,range_misses,unchanged_edits;
+static uint64_t native_snapshots,native_catalog_count,native_catalog_misses,native_insertions,selector_suppressions;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 
@@ -110,6 +117,12 @@ typedef struct {
     Range completion;
     int library,library_scope,tab;
     BOOL busy,scheduled,preview_scheduled,native_was_hidden;
+    id native_manager,stock_selector; /* weak, scoped to this input's chat */
+    id native_entries,native_by_code,native_snapshot;
+    uintptr_t native_marker;
+    U native_generation;
+    BOOL native_pending,native_ready,colon_selector,stock_hidden,stock_saved_hidden,stock_height_saved;
+    double stock_height;
 } State;
 static State *state(id delegate) {
     State *s=NULL; Ivar iv=class_getInstanceVariable(delegate_class,"_state");
@@ -124,6 +137,228 @@ static void layout(id delegate);
 static void restore_native(State *s);
 static void schedule_preview(id delegate);
 
+/* Twitch 30.4.2's autocomplete publication bypasses its ObjC wrappers.
+ * Read its catalog on its serial backgroundQueue, using the runtime's own
+ * Array/String/URL bridging. Never interpret Swift string storage, construct
+ * Swift models, or patch executable instructions. See NATIVE_EMOTES.md. */
+#if defined(__aarch64__)
+#define SWIFT_CALL __attribute__((swiftcall))
+#else
+#define SWIFT_CALL
+#endif
+typedef struct { const void *value; uintptr_t state; } MetadataResponse;
+typedef id (SWIFT_CALL *BridgeValue)(const void *,const void *);
+typedef MetadataResponse (SWIFT_CALL *ArrayMetadata)(uintptr_t,const void *);
+typedef MetadataResponse (SWIFT_CALL *ValueMetadata)(uintptr_t);
+static BridgeValue bridge_value;
+static const void *native_array_type,*native_string_type,*native_url_type;
+static void (*queue_async)(void *,void (^)(void));
+static id (*native_weak_load)(void *);
+static void (*native_unknown_release)(id);
+static size_t swift_value_size(const void *metadata) {
+    if (!metadata) return 0;
+    const uintptr_t *witness=((const uintptr_t *const *)metadata)[-1];
+    return witness ? witness[8] : 0;
+}
+static BOOL native_bridge_ready(void) {
+    if (native_array_type) return YES;
+    id version=m1(m0((id)objc_getClass("NSBundle"),"mainBundle"),"objectForInfoDictionaryKey:",str("CFBundleShortVersionString"));
+    if (!equal(version,str("30.4.2"))) return NO;
+    Class info=objc_getClass(NATIVE_INFO); if (!info) return NO;
+    bridge_value=(BridgeValue)dlsym(RTLD_DEFAULT,"$ss27_bridgeAnythingToObjectiveCyyXlxlF");
+    ArrayMetadata array=(ArrayMetadata)dlsym(RTLD_DEFAULT,"$sSaMa");
+    ValueMetadata url=(ValueMetadata)dlsym(RTLD_DEFAULT,"$s10Foundation3URLVMa");
+    const void *(*class_metadata)(Class)=(const void *(*)(Class))dlsym(RTLD_DEFAULT,"swift_getObjCClassMetadata");
+    queue_async=(void (*)(void *,void (^)(void)))dlsym(RTLD_DEFAULT,"dispatch_async");
+    native_weak_load=(id (*)(void *))dlsym(RTLD_DEFAULT,"swift_unknownObjectWeakLoadStrong");
+    native_unknown_release=(void (*)(id))dlsym(RTLD_DEFAULT,"swift_unknownObjectRelease");
+    native_string_type=dlsym(RTLD_DEFAULT,"$sSSN");
+    if (!bridge_value || !array || !url || !class_metadata || !queue_async || !native_string_type || !native_weak_load || !native_unknown_release) return NO;
+    const void *array_type=array(0,class_metadata(info)).value,*url_type=url(0).value;
+    Ivar code=class_getInstanceVariable(info,"code"),image=class_getInstanceVariable(info,"url");
+    size_t size=class_getInstanceSize(info),url_size=swift_value_size(url_type);
+    if (!code || !image || ivar_getOffset(code)!=16 || ivar_getOffset(image)<32 ||
+        (size_t)ivar_getOffset(image)>size || !url_size || url_size>size-(size_t)ivar_getOffset(image) ||
+        swift_value_size(native_string_type)!=16 || swift_value_size(array_type)!=sizeof(void *)) return NO;
+    native_array_type=array_type; native_url_type=url_type; return YES;
+}
+static id connection_for(id owner,id *selector) {
+    if (selector) *selector=nil;
+    /* The input delegate is a Swift weak class existential, not an ObjC weak
+     * id. Use the exact runtime operation called by textViewDidChange. This
+     * also reaches SkylineLiveChat, which is not in the responder chain. */
+    id context=nil,result=nil;
+    Ivar delegate=class_getInstanceVariable(object_getClass(owner),"delegate");
+    if (delegate && ivar_getOffset(delegate)==424 && class_getInstanceSize(object_getClass(owner))>=440)
+        context=native_weak_load((char *)owner+424);
+    for (unsigned pass=0;pass<2 && !result;pass++) {
+      id node=pass ? owner : context;
+      for (unsigned i=0;node && i<64;i++) {
+        id connection=nil;
+        if (kind(node,"_TtC6Twitch18ChatViewController")) {
+            connection=object_field(node,"connectionController","_TtC6Twitch24ChatConnectionController");
+            if (selector) *selector=object_field(node,"suggestionsListController",NATIVE_SELECTOR);
+        } else if (kind(node,"_TtC6Twitch15SkylineLiveChat")) {
+            id chat=object_field(node,"$__lazy_storage_$_skylineChatView","_TtCC6Twitch15SkylineLiveChat15SkylineChatView");
+            connection=object_field(chat,"chatConnectionController","_TtC6Twitch24ChatConnectionController");
+            if (selector) *selector=object_field(node,"$__lazy_storage_$_suggestionsListController",NATIVE_SELECTOR);
+        } else if (kind(node,"_TtCC6Twitch15SkylineLiveChat15SkylineChatView") ||
+                   kind(node,"_TtC6Twitch11IRLChatView")) {
+            connection=object_field(node,"chatConnectionController","_TtC6Twitch24ChatConnectionController");
+        }
+        if (connection) { result=objc_retain(connection); break; }
+        node=responds(node,"nextResponder") ? m0(node,"nextResponder") : nil;
+      }
+    }
+    if (context) native_unknown_release(context);
+    return result;
+}
+static BOOL native_image_url(id url) {
+    if (!kind(url,"NSString")) return NO;
+    id parsed=m1((id)objc_getClass("NSURL"),"URLWithString:",url);
+    return equal(m0(parsed,"scheme"),str("https")) && equal(m0(parsed,"host"),str("static-cdn.jtvnw.net")) &&
+        ((BOOL (*)(id,SEL,id))objc_msgSend)(m0(parsed,"path"),sel_registerName("hasPrefix:"),str("/emoticons/"));
+}
+static void set_key(id dictionary,const char *name,id value) {
+    if (value) ((void (*)(id,SEL,id,id))objc_msgSend)(dictionary,sel_registerName("setObject:forKey:"),value,str(name));
+}
+static id snapshot_native(id manager,id *snapshot) {
+    if (snapshot) *snapshot=nil;
+    Ivar iv=class_getInstanceVariable(object_getClass(manager),"emotes");
+    if (!iv || ivar_getOffset(iv)!=16 || class_getInstanceSize(object_getClass(manager))<32) return nil;
+    id array=bridge_value((char *)manager+ivar_getOffset(iv),native_array_type);
+    if (!kind(array,"NSArray") || number(array,"count")>10000) { objc_release(array); return nil; }
+    id result=m0((id)objc_getClass("NSMutableDictionary"),"new");
+    Class info_class=objc_getClass(NATIVE_INFO);
+    ptrdiff_t code_offset=ivar_getOffset(class_getInstanceVariable(info_class,"code"));
+    ptrdiff_t url_offset=ivar_getOffset(class_getInstanceVariable(info_class,"url"));
+    for (U i=0;i<number(array,"count");i++) {
+        id info=at(array,i); if (object_getClass(info)!=info_class) continue;
+        id code=bridge_value((char *)info+code_offset,native_string_type);
+        id image=bridge_value((char *)info+url_offset,native_url_type);
+        id url=kind(image,"NSURL") ? m0(image,"absoluteString") : nil;
+        if (kind(code,"NSString") && number(code,"length") && number(code,"length")<=96 && native_image_url(url)) {
+            id item=m0((id)objc_getClass("NSMutableDictionary"),"new");
+            set_key(item,"name",code); set_key(item,"url",url); set_key(item,"native",code);
+            /* Preserve the CDN's native identifier; never create a provider ID. */
+            id parts=m0(image,"pathComponents");
+            if (number(parts,"count")>3) set_key(item,"id",at(parts,3));
+            set_key(result,((const char *(*)(id,SEL))objc_msgSend)(code,sel_registerName("UTF8String")),item);
+            objc_release(item);
+        }
+        objc_release(image); objc_release(code);
+    }
+    /* Keep the bridged Array alive with the dictionary. Its immutable native
+     * buffer forces Twitch's next publication to copy on write; pointer reuse
+     * cannot make a changed catalog look identical to the previous snapshot. */
+    if (snapshot) *snapshot=array; else objc_release(array);
+    return result;
+}
+static void stock_update(State *s,id selector) {
+    if (!s || !selector) return;
+    BOOL suppress=s->colon_selector && s->native_ready && ss_composer_suggestion_mode()!=2;
+    id stock=m0(selector,"viewIfLoaded"); if (!stock) return;
+    id height=object_field(selector,"$__lazy_storage_$_preferredHeightConstraint","NSLayoutConstraint");
+    if (suppress) {
+        if (!s->stock_hidden) { s->stock_saved_hidden=yes(stock,"isHidden"); s->stock_hidden=YES; INC(selector_suppressions); }
+        vb(stock,"setHidden:",YES);
+        if (height) {
+            double value=((double (*)(id,SEL))objc_msgSend)(height,sel_registerName("constant"));
+            if (!s->stock_height_saved || value>0) { s->stock_height=value; s->stock_height_saved=YES; }
+            ((void (*)(id,SEL,double))objc_msgSend)(height,sel_registerName("setConstant:"),0.0);
+        }
+    } else if (s->stock_hidden) {
+        vb(stock,"setHidden:",s->stock_saved_hidden);
+        if (height && s->stock_height_saved) ((void (*)(id,SEL,double))objc_msgSend)(height,sel_registerName("setConstant:"),s->stock_height);
+        s->stock_hidden=NO; s->stock_height_saved=NO;
+        m0(stock,"reloadData");
+    }
+}
+static I selector_rows(id selector,SEL sel,id table,I section) {
+    State *s=state(objc_getAssociatedObject(selector,&selector_key));
+    if (s && s->colon_selector && s->native_ready && ss_composer_suggestion_mode()!=2) return 0;
+    return ((I (*)(id,SEL,id,I))original_selector_rows)(selector,sel,table,section);
+}
+static void selector_layout(id selector,SEL sel) {
+    ((void (*)(id,SEL))original_selector_layout)(selector,sel);
+    stock_update(state(objc_getAssociatedObject(selector,&selector_key)),selector);
+}
+static void request_native_catalog(id delegate,id owner) {
+    State *s=state(delegate); if (!s || !native_bridge_ready()) return;
+    id selector=nil,connection=connection_for(owner,&selector);
+    id manager=object_field(connection,"emoteAutocompleteManager",NATIVE_AUTOCOMPLETE);
+    id old=objc_loadWeakRetained(&s->native_manager);
+    if (old!=manager) {
+        objc_destroyWeak(&s->native_manager); objc_initWeak(&s->native_manager,manager);
+        s->native_generation++; s->native_marker=0; s->native_ready=NO; s->native_pending=NO;
+        objc_release(s->native_entries); s->native_entries=nil;
+        objc_release(s->native_by_code); s->native_by_code=nil;
+        objc_release(s->native_snapshot); s->native_snapshot=nil;
+    }
+    objc_release(old);
+    id prior=objc_loadWeakRetained(&s->stock_selector);
+    if (prior!=selector) {
+        BOOL colon=s->colon_selector; s->colon_selector=NO; stock_update(s,prior); s->colon_selector=colon;
+        if (prior) associate(prior,&selector_key,nil);
+        objc_destroyWeak(&s->stock_selector); objc_initWeak(&s->stock_selector,selector);
+        s->stock_hidden=NO; s->stock_height_saved=NO;
+    }
+    if (selector) associate(selector,&selector_key,delegate);
+    objc_release(prior);
+    objc_release(connection);
+    if (!manager || s->native_pending) return;
+    id queue=object_field(manager,"backgroundQueue","OS_dispatch_queue"); if (!queue) { INC(native_catalog_misses); return; }
+    s->native_pending=YES;
+    id held_delegate=objc_retain(delegate),held_manager=objc_retain(manager);
+    U generation=s->native_generation; uintptr_t previous=s->native_marker;
+    queue_async(queue,^{
+        uintptr_t marker=0; memcpy(&marker,(char *)held_manager+16,sizeof(marker));
+        id array=nil,catalog=marker && marker!=previous ? snapshot_native(held_manager,&array) : nil;
+        ((void (*)(id,SEL,id))objc_msgSend)(m0((id)objc_getClass("NSOperationQueue"),"mainQueue"),sel_registerName("addOperationWithBlock:"),(id)^{
+            State *current=state(held_delegate);
+            if (current && current->native_generation==generation) {
+                current->native_pending=NO;
+                if (catalog) {
+                    objc_release(current->native_by_code); current->native_by_code=objc_retain(catalog);
+                    objc_release(current->native_entries); current->native_entries=objc_retain(m0(catalog,"allValues"));
+                    objc_release(current->native_snapshot); current->native_snapshot=objc_retain(array);
+                    current->native_marker=marker; current->native_ready=YES;
+                    INC(native_snapshots); __atomic_store_n(&native_catalog_count,number(catalog,"count"),__ATOMIC_RELAXED);
+                } else if (marker!=previous) INC(native_catalog_misses);
+                /* No refresh here: it would continuously enqueue itself.
+                 * The existing one-second tick and edits pick up the snapshot. */
+            }
+            objc_release(array); objc_release(catalog); objc_release(held_manager); objc_release(held_delegate);
+        });
+    });
+}
+static id native_named(State *s,id name) { return m1(s->native_by_code,"objectForKey:",name); }
+static id unified_matches(State *s,id query) {
+    id native=m0((id)objc_getClass("NSMutableArray"),"new");
+    const char *prefix=((const char *(*)(id,SEL))objc_msgSend)(query,sel_registerName("UTF8String"));
+    for (U i=0;i<number(s->native_entries,"count");i++) {
+        id item=at(s->native_entries,i);
+        const char *name=((const char *(*)(id,SEL))objc_msgSend)(key(item,"name"),sel_registerName("UTF8String"));
+        if (ss_ascii_prefix(name,prefix)) v1(native,"addObject:",item);
+    }
+    /* Stable native ordering, then interleave both catalogs so one provider
+     * cannot fill the entire compact result window. Native codes win overlap. */
+    v1(native,"sortUsingComparator:",(id)^I(id a,id b) {
+        return ((I (*)(id,SEL,id))objc_msgSend)(key(a,"name"),sel_registerName("caseInsensitiveCompare:"),key(b,"name"));
+    });
+    id providers=tas_emotes_picker_copy(s->room,0,-1,query,6500);
+    id filtered=m0((id)objc_getClass("NSMutableArray"),"new");
+    for (U i=0;i<number(providers,"count");i++) {
+        id item=at(providers,i); if (!native_named(s,key(item,"name"))) v1(filtered,"addObject:",item);
+    }
+    id result=m0((id)objc_getClass("NSMutableArray"),"new");
+    for (U i=0;number(result,"count")<64 && (i<number(native,"count") || i<number(filtered,"count"));i++) {
+        if (i<number(native,"count")) v1(result,"addObject:",at(native,i));
+        if (i<number(filtered,"count") && number(result,"count")<64) v1(result,"addObject:",at(filtered,i));
+    }
+    objc_release(native); objc_release(filtered); objc_release(providers); return result;
+}
+
 int ss_composer_suggestion_mode(void) {
     I mode=((I (*)(id,SEL,id))objc_msgSend)(defaults(),sel_registerName("integerForKey:"),str(MODE_KEY));
     return mode>=0 && mode<=2 ? (int)mode : 0;
@@ -137,7 +372,7 @@ void ss_composer_set_suggestion_mode(int mode) {
 static id cached_image(id metadata) { id url=key(metadata,"url"); return url ? m1(images,"objectForKey:",url) : nil; }
 static void image_request(id metadata) {
     id url=key(metadata,"url"); const char *utf8=((const char *(*)(id,SEL))objc_msgSend)(url,sel_registerName("UTF8String"));
-    if (!utf8 || !tas_emotes_is_provider_image_url(utf8) || cached_image(metadata) || key(pending,utf8) || number(pending,"count")>=8) return;
+    if (!utf8 || !(tas_emotes_is_provider_image_url(utf8) || (key(metadata,"native") && native_image_url(url))) || cached_image(metadata) || key(pending,utf8) || number(pending,"count")>=8) return;
     id failure=m1(failed,"objectForKey:",url);
     if (failure && time(NULL)-(time_t)number(failure,"longLongValue")<60) return;
     id held=objc_retain(url);
@@ -310,7 +545,8 @@ static void render(id delegate) {
         BOOL existing=NO;
         for (size_t j=0;j<old_n;j++) if (old[j].start==start && old[j].length==end-start) { existing=YES; break; }
         if (!existing && yes(editor,"isFirstResponder") && !ss_preview_token_safe(start,end,length,r.location,r.length)) { start=end; continue; }
-        id metadata=tas_emotes_named_copy(s->room,sub(text,(Range){start,end-start}));
+        id word=sub(text,(Range){start,end-start});
+        id metadata=native_named(s,word) ? nil : tas_emotes_named_copy(s->room,word);
         id cached=metadata ? cached_image(metadata) : nil,attachment=nil;
         BOOL reused=NO;
         /* Reuse our existing decoded preview after cache eviction; do not keep
@@ -412,10 +648,17 @@ static BOOL replace_plain(id delegate,Range range,id replacement) {
 static void choose(id delegate,id metadata,BOOL suggestion) {
     State *s=state(delegate); id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
     if (!editor || !metadata) { INC(selection_missing); objc_release(owner); return; }
-    id current=tas_emotes_named_copy(room_for(owner),key(metadata,"name"));
+    BOOL native=key(metadata,"native")!=nil;
+    id current=native ? objc_retain(native_named(s,key(metadata,"name"))) : tas_emotes_named_copy(room_for(owner),key(metadata,"name"));
     if (!current) { INC(lookup_misses); refresh(delegate); objc_release(owner); return; }
     metadata=current;
     refresh(delegate);
+    if (native) {
+        id latest=native_named(s,key(metadata,"name"));
+        if (!latest || !equal(key(latest,"id"),key(metadata,"id"))) {
+            INC(lookup_misses); objc_release(current); objc_release(owner); return;
+        }
+    }
     /* The native palette can leave the editor unfocused. Make it the active
      * text input before asking Twitch to validate and apply the edit. */
     m0(editor,"becomeFirstResponder");
@@ -423,7 +666,10 @@ static void choose(id delegate,id metadata,BOOL suggestion) {
     id plain=expanded_copy(editor,&r,spans,&n); objc_release(plain);
     if (suggestion) r=s->completion;
     id code=m1(key(metadata,"name"),"stringByAppendingString:",str(" "));
-    if (replace_plain(delegate,r,code)) { remember(key(metadata,"name")); INC(insertions); }
+    /* The same validated UITextInput edit + native didChange path as Twitch's
+     * own completion. Its formatter/history/send tokenization owns native IDs.
+     * Only provider choices enter Streamside's third-party recent row. */
+    if (replace_plain(delegate,r,code)) { if (native) INC(native_insertions); else remember(key(metadata,"name")); INC(insertions); }
     objc_release(current); objc_release(owner);
 }
 
@@ -769,6 +1015,8 @@ static void refresh(id delegate) {
     if (!equal(room,s->room)) {
         expand(delegate); objc_release(s->room); s->room=objc_retain(room); s->library_scope=0; vi(s->scope,"setSelectedSegmentIndex:",0);
     }
+    request_native_catalog(delegate,owner);
+    s->colon_selector=NO;
     find_footer(owner);
     if (yes(editor,"isFirstResponder") && !m0(editor,"markedTextRange")) {
         SSSpan old[MAX_TOKENS]; size_t n; Range caret=selection(editor);
@@ -777,8 +1025,8 @@ static void refresh(id delegate) {
         if (length<=4096 && !caret.length) {
             ((void (*)(id,SEL,uint16_t *,Range))objc_msgSend)(text,sel_registerName("getCharacters:range:"),units,(Range){0,length});
             if (ss_completion_span(units,length,caret.location,ss_composer_suggestion_mode(),&completion)) {
-                Range query={completion.start,completion.length}; if (units[query.location]==':') { query.location++;query.length--; }
-                matches=tas_emotes_picker_copy(s->room,0,-1,sub(text,query),24); s->completion=(Range){completion.start,completion.length};
+                Range query={completion.start,completion.length}; if (units[query.location]==':') { s->colon_selector=YES; query.location++;query.length--; }
+                matches=unified_matches(s,sub(text,query)); s->completion=(Range){completion.start,completion.length};
             }
         }
         if (!equal(matches,s->suggestions)) {
@@ -788,6 +1036,7 @@ static void refresh(id delegate) {
         } else { if (matches) objc_release(matches); refresh_strip_images(s->strip); }
         objc_release(plain);
     } else if (s->suggestions) { objc_release(s->suggestions); s->suggestions=nil; vb(s->strip,"setHidden:",YES); }
+    id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); objc_release(selector);
     refresh_recents(delegate);
     if (s->tab==1) {
         id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
@@ -844,10 +1093,13 @@ static void delegate_dealloc(id self,SEL sel) {
     ((void (*)(id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:"),self);
     v1(m0((id)objc_getClass("NSNotificationCenter"),"defaultCenter"),"removeObserver:",self);
     if (s) {
+        s->colon_selector=NO;
+        id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); associate(selector,&selector_key,nil); objc_release(selector);
         restore_native(s); detach_recents(s); m0(s->strip,"removeFromSuperview");
-        id values[]={s->room,s->strip,s->suggestions,s->panel,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_entries};
+        id values[]={s->room,s->strip,s->suggestions,s->panel,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot};
         for (size_t i=0;i<sizeof(values)/sizeof(values[0]);i++) if (values[i]) objc_release(values[i]);
-        objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); objc_destroyWeak(&s->recent_content); free(s);
+        objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); objc_destroyWeak(&s->recent_content);
+        objc_destroyWeak(&s->native_manager); objc_destroyWeak(&s->stock_selector); free(s);
     }
     ((void (*)(id,SEL))original_dealloc)(self,sel);
 }
@@ -856,6 +1108,7 @@ static id delegate_for(id owner) {
     id delegate=m0((id)delegate_class,"new"); State *s=calloc(1,sizeof(*s));
     if (!s) { objc_release(delegate); return nil; }
     objc_initWeak(&s->owner,owner); objc_initWeak(&s->footer,nil); objc_initWeak(&s->recent_content,nil);
+    objc_initWeak(&s->native_manager,nil); objc_initWeak(&s->stock_selector,nil);
     Ivar iv=class_getInstanceVariable(delegate_class,"_state"); memcpy((char *)delegate+ivar_getOffset(iv),&s,sizeof(s));
     associate(owner,&state_key,delegate);
     id undo=m0(editor_for(owner),"undoManager"); associate(undo,&undo_key,delegate);
@@ -1056,6 +1309,8 @@ static BOOL hook(const char *classname,const char *name,const char *encoding,IMP
 }
 void ss_composer_retry_hooks(void) {
     if (!tas_emotes_enabled_this_launch()) return;
+    hook(NATIVE_SELECTOR,"tableView:numberOfRowsInSection:","q32@0:8@16q24",(IMP)selector_rows,&original_selector_rows);
+    hook(NATIVE_SELECTOR,"viewWillLayoutSubviews","v16@0:8",(IMP)selector_layout,&original_selector_layout);
     if (!delegate_class) {
         if (!objc_getClass("NSObject") || !objc_getClass("NSTextAttachment") || !objc_getClass("NSURLSession")) return;
         delegate_class=objc_allocateClassPair(objc_getClass("NSObject"),"SSComposerDelegate",0);
@@ -1125,6 +1380,8 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Native text snapshot hooks (text/storage): %s/%s\n"
         "Native library scrolling hook: %s\n"
         "Native library header hooks (elements/header): %s/%s\n"
+        "Unified Twitch catalog bridge/selector hooks: %s/%s\n"
+        "Twitch catalog snapshots/entries/misses/native insertions/suppressions: %llu/%llu/%llu/%llu/%llu\n"
         "Identity layout misses/image failures: %llu/%llu\n"
         "Picker taps (grid/strip), missing selection/lookup: %llu/%llu, %llu/%llu\n"
         "Insertion veto/range miss/unchanged edit: %llu/%llu/%llu\n",
@@ -1135,6 +1392,9 @@ void ss_composer_status(char *buffer,size_t capacity) {
         original_text ? "installed":"missing",original_storage ? "installed":"missing",
         original_collection_layout ? "installed":"missing",
         original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
+        native_array_type ? "ready":"waiting",original_selector_rows && original_selector_layout ? "installed":"missing",
+        (unsigned long long)GET(native_snapshots),(unsigned long long)GET(native_catalog_count),(unsigned long long)GET(native_catalog_misses),
+        (unsigned long long)GET(native_insertions),(unsigned long long)GET(selector_suppressions),
         (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures),
         (unsigned long long)GET(grid_taps),(unsigned long long)GET(strip_taps),
         (unsigned long long)GET(selection_missing),(unsigned long long)GET(lookup_misses),

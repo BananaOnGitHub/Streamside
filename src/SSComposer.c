@@ -209,15 +209,15 @@ static id expanded_copy(id editor,Range *selected,SSSpan *spans,size_t *n) {
     return copy;
 }
 static void visual_text(id editor,id text,Range selected) {
-    id undo=m0(editor,"undoManager"); BOOL enabled=yes(undo,"isUndoRegistrationEnabled");
-    if (enabled) m0(undo,"disableUndoRegistration");
+    /* This is a direct text-storage presentation update, not a user edit.
+     * Querying or toggling UITextView's undo manager here can throw while an
+     * asynchronous image notification is being delivered (iOS 18.2). */
     id storage=m0(editor,"textStorage"); m0(storage,"beginEditing");
     ((void (*)(id,SEL,Range,id))objc_msgSend)(storage,sel_registerName("replaceCharactersInRange:withAttributedString:"),(Range){0,number(storage,"length")},text);
     m0(storage,"endEditing");
     U len=number(text,"length"); if (selected.location>len) selected.location=len;
     if (selected.length>len-selected.location) selected.length=len-selected.location;
     select_range(editor,selected);
-    if (enabled) m0(undo,"enableUndoRegistration");
 }
 static void expand(id delegate) {
     State *s=state(delegate); if (!s || s->busy) return;

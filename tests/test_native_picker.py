@@ -13,6 +13,7 @@ struct Fake {
     id name,url,native,identifier;
     id children[160]; U count;
     State *context;
+    id view; BOOL hidden; U reloads,rows;
 };
 static struct Fake objects[20000],classes[8];static U used,class_count;
 static id fresh(const char *cls) { assert(used<20000);id o=&objects[used++];o->cls=cls;return o; }
@@ -29,12 +30,17 @@ id objc_getAssociatedObject(id o,const void *key) { return o && key==&selector_k
 static ptrdiff_t context_offset=offsetof(struct Fake,context);
 Ivar class_getInstanceVariable(Class c,const char *name) { (void)c;return !strcmp(name,"_state") ? &context_offset : NULL; }
 ptrdiff_t ivar_getOffset(Ivar iv) { return *(ptrdiff_t *)iv; }
+size_t class_getInstanceSize(Class c) { (void)c; return sizeof(struct Fake); }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
     if(!strcmp(sel,"new"))result=fresh(o->cls);
     else if(!strcmp(sel,"stringWithUTF8String:"))result=text_value(va_arg(args,const char *));
     else if(!strcmp(sel,"standardUserDefaults"))result=o;
     else if(!strcmp(sel,"integerForKey:"))result=(id)(uintptr_t)o->count;
+    else if(!strcmp(sel,"viewIfLoaded"))result=o->view;
+    else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
+    else if(!strcmp(sel,"setHidden:"))o->hidden=va_arg(args,int);
+    else if(!strcmp(sel,"reloadData"))o->reloads++;
     else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
     else if(!strcmp(sel,"UTF8String"))result=(id)o->text;
     else if(!strcmp(sel,"objectAtIndex:")) { U i=va_arg(args,U);assert(i<o->count);result=o->children[i]; }
@@ -72,7 +78,7 @@ static id item(const char *name,BOOL native) {
     id o=fresh("NSDictionary");o->name=text_value(name);o->native=native ? o->name : nil;
     o->identifier=text_value(native ? "25" : "tas-synthetic");return o;
 }
-static I native_rows(id self,SEL sel,id table,I section) { (void)self;(void)sel;(void)table;assert(section==0);return 9; }
+static I native_rows(id self,SEL sel,id table,I section) { (void)self;(void)sel;(void)table;assert(section==0);return table->rows; }
 int main(void) {
     id kappa=item("Kappa",YES),keeper=item("Keeper",YES),provider=item("KEKW",NO),overlap=item("Kappa",NO);
     id catalog=fresh("Catalog");catalog->count=2;catalog->children[0]=keeper;catalog->children[1]=kappa;
@@ -94,25 +100,37 @@ int main(void) {
     s.native_entries=native;s.native_by_code=catalog;
     result=unified_matches(&s,text_value("k"));assert(result->count==64);
     for(U i=0;i<64;i++)assert(result->children[i]==(i%2 ? provider : kappa));
-    /* Suppression belongs only to the connected composer's colon completion.
-     * Mentions, commands, disabled mode, unknown catalogs and other selectors
-     * retain Twitch's original result count. Both supported modes suppress. */
-    delegate_class=objc_getClass("SSComposerDelegate");id selector=fresh("Selector");selector->context=&s;
-    original_selector_rows=(IMP)native_rows;
+    /* A native completion reloads then scrolls to its first result. Hiding
+     * presentation must leave those rows valid across colon, backspace and
+     * delayed completion transitions; mentions/off restore the saved view. */
+    id selector=fresh("Selector"),table=fresh("UITableView");selector->view=table;table->rows=9;
     s.colon_selector=YES;
-    assert(!selector_rows(selector,"rows",nil,0));
-    objc_getClass("NSUserDefaults")->count=1;assert(!selector_rows(selector,"rows",nil,0));
-    objc_getClass("NSUserDefaults")->count=2;assert(selector_rows(selector,"rows",nil,0)==9);
-    objc_getClass("NSUserDefaults")->count=0;s.colon_selector=NO;assert(selector_rows(selector,"rows",nil,0)==9);
-    s.colon_selector=YES;s.native_ready=NO;assert(selector_rows(selector,"rows",nil,0)==9);
-    assert(selector_rows(nil,"rows",nil,0)==9);
+    stock_update(&s,selector);assert(table->hidden && s.stock_hidden);
+    m0(table,"reloadData");assert(native_rows(selector,"rows",table,0)==9);
+    objc_getClass("NSUserDefaults")->count=1;
+    stock_update(&s,selector);assert(table->hidden && native_rows(selector,"rows",table,0)==9);
+    table->rows=0;stock_update(&s,selector);assert(table->hidden); /* native empty match */
+    table->rows=4;stock_update(&s,selector);assert(native_rows(selector,"rows",table,0)==4); /* late results */
+    s.colon_selector=NO;stock_update(&s,selector);assert(!table->hidden && !s.stock_hidden && table->reloads==2);
+    s.colon_selector=YES;stock_update(&s,selector);assert(table->hidden);
+    objc_getClass("NSUserDefaults")->count=2;stock_update(&s,selector);assert(!table->hidden);
+    objc_getClass("NSUserDefaults")->count=0;s.native_ready=NO;stock_update(&s,selector);assert(!table->hidden);
+    s.native_ready=YES;table->hidden=YES;stock_update(&s,selector);
+    s.colon_selector=NO;stock_update(&s,selector);assert(table->hidden); /* preserve native hidden state */
+    stock_update(NULL,selector);stock_update(&s,nil);
     return 0;
 }
 '''
 
 
 class NativePickerTests(unittest.TestCase):
-    def test_mixed_results_native_ids_and_scoped_selector_replacement(self):
+    def test_native_table_data_source_is_not_overridden(self):
+        # Twitch reloads and scrolls according to its Swift match. A fabricated
+        # row count makes that asynchronous callback crash UIKit.
+        source = (test_composer.ROOT / "src" / "SSComposer.c").read_text()
+        self.assertNotIn('hook(NATIVE_SELECTOR,"tableView:', source)
+
+    def test_mixed_results_native_ids_and_presentation_only_suppression(self):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)
         test_composer.ComposerTests().compile_run(HARNESS, [zig, "cc", "-fblocks"], runtime=True)

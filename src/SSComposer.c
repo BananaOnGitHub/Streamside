@@ -40,6 +40,7 @@ static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_container_layout,original_collection_layout;
+static IMP original_flow_elements,original_flow_header;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
 static id images,pending,failed,image_session;
@@ -937,6 +938,62 @@ static void footer_moved(id footer,SEL sel) {
     ((void (*)(id,SEL))original_footer_move)(footer,sel);
     install_footer(footer,owner_above(footer));
 }
+/* The extra scroll inset reserves the provider row, but must not become the
+ * pinning offset for every native header. Recompute only pinned headers from
+ * their unchanged native cell geometry. Copies keep UIKit's cached attributes
+ * intact, and the absolute calculation is idempotent across both query paths. */
+static id recent_header_attributes(id flow,id attributes) {
+    id content=m0(flow,"collectionView");
+    id delegate=objc_getAssociatedObject(content,&recent_host_key);
+    State *s=delegate ? state(delegate) : NULL;
+    if (!s || !s->recent_height || !attributes || !yes(flow,"sectionHeadersPinToVisibleBounds") ||
+        !equal(m0(attributes,"representedElementKind"),str("UICollectionElementKindSectionHeader"))) return attributes;
+    id path=m0(attributes,"indexPath"); I section=(I)number(path,"section");
+    I count=((I (*)(id,SEL,I))objc_msgSend)(content,sel_registerName("numberOfItemsInSection:"),section);
+    if (count<=0) return attributes;
+    id paths=(id)objc_getClass("NSIndexPath");
+    id first_path=((id (*)(id,SEL,I,I))objc_msgSend)(paths,sel_registerName("indexPathForItem:inSection:"),0,section);
+    id last_path=((id (*)(id,SEL,I,I))objc_msgSend)(paths,sel_registerName("indexPathForItem:inSection:"),count-1,section);
+    id first=m1(flow,"layoutAttributesForItemAtIndexPath:",first_path);
+    id last=m1(flow,"layoutAttributesForItemAtIndexPath:",last_path);
+    if (!first || !last) return attributes;
+    Insets section_inset=((Insets (*)(id,SEL))objc_msgSend)(flow,sel_registerName("sectionInset"));
+    id native_delegate=m0(content,"delegate");
+    SEL inset_selector=sel_registerName("collectionView:layout:insetForSectionAtIndex:");
+    Method inset_method=native_delegate ? class_getInstanceMethod(object_getClass(native_delegate),inset_selector) : NULL;
+    if (inset_method && !strcmp(method_getTypeEncoding(inset_method),"{UIEdgeInsets=dddd}40@0:8@16@24q32"))
+        section_inset=((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section);
+    Insets inset=responds(content,"adjustedContentInset") ?
+        ((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("adjustedContentInset")) :
+        ((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
+    Rect position=rect(attributes,"frame"),a=rect(first,"frame"),b=rect(last,"frame");
+    double start=a.origin.y-section_inset.top-position.size.height;
+    double end=b.origin.y+b.size.height+section_inset.bottom-position.size.height;
+    double y=rect(content,"bounds").origin.y+inset.top-s->recent_height;
+    if (end<start || position.size.height<=0) return attributes;
+    if (y<start) y=start;
+    if (y>end) y=end; /* Preserve the following section's push-off boundary. */
+    if (position.origin.y==y) return attributes;
+    id copy=m0(attributes,"copy"); position.origin.y=y; frame(copy,position);
+    return m0(copy,"autorelease");
+}
+static id flow_elements(id flow,SEL sel,Rect bounds) {
+    id original=((id (*)(id,SEL,Rect))original_flow_elements)(flow,sel,bounds);
+    id content=m0(flow,"collectionView");
+    if (!objc_getAssociatedObject(content,&recent_host_key)) return original;
+    id result=nil;
+    for (U i=0;i<number(original,"count");i++) {
+        id attributes=at(original,i),corrected=recent_header_attributes(flow,attributes);
+        if (corrected==attributes) continue;
+        if (!result) result=m0(original,"mutableCopy");
+        ((void (*)(id,SEL,U,id))objc_msgSend)(result,sel_registerName("replaceObjectAtIndex:withObject:"),i,corrected);
+    }
+    return result ? m0(result,"autorelease") : original;
+}
+static id flow_header(id flow,SEL sel,id kind_name,id path) {
+    id original=((id (*)(id,SEL,id,id))original_flow_header)(flow,sel,kind_name,path);
+    return recent_header_attributes(flow,original);
+}
 static void collection_layout(id content,SEL sel) {
     ((void (*)(id,SEL))original_collection_layout)(content,sel);
     id delegate=objc_getAssociatedObject(content,&recent_host_key);
@@ -1053,6 +1110,8 @@ void ss_composer_retry_hooks(void) {
     hook(FOOTER,"apply:","v24@0:8@16",(IMP)footer_apply,&original_footer_apply);
     hook(FOOTER,"didMoveToWindow","v16@0:8",(IMP)footer_moved,&original_footer_move);
     hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
+    hook("UICollectionViewFlowLayout","layoutAttributesForElementsInRect:","@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",(IMP)flow_elements,&original_flow_elements);
+    hook("UICollectionViewFlowLayout","layoutAttributesForSupplementaryViewOfKind:atIndexPath:","@32@0:8@16@24",(IMP)flow_header,&original_flow_header);
     hook(CONTAINER,"layoutSubviews","v16@0:8",(IMP)container_layout,&original_container_layout);
     const char *actions[]={"keyboardButtonPressed","recentEmotesButtonPressed","channelEmotesButtonPressed","allEmotesButtonPressed","backspaceButtonPressed"};
     for (size_t i=0;i<5;i++) hook(FOOTER,actions[i],"v16@0:8",(IMP)footer_action,&original_footer_actions[i]);
@@ -1069,6 +1128,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Mode: %s\nEdits/previews/insertions/picker opens: %llu/%llu/%llu/%llu\n"
         "Native text snapshot hooks (text/storage): %s/%s\n"
         "Native library scrolling hook: %s\n"
+        "Native library header hooks (elements/header): %s/%s\n"
         "Identity layout misses/image failures: %llu/%llu\n"
         "Picker taps (grid/strip), missing selection/lookup: %llu/%llu, %llu/%llu\n"
         "Insertion veto/range miss/unchanged edit: %llu/%llu/%llu\n",
@@ -1078,6 +1138,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         (unsigned long long)GET(edited),(unsigned long long)GET(previewed),(unsigned long long)GET(insertions),(unsigned long long)GET(palette_opens),
         original_text ? "installed":"missing",original_storage ? "installed":"missing",
         original_collection_layout ? "installed":"missing",
+        original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
         (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures),
         (unsigned long long)GET(grid_taps),(unsigned long long)GET(strip_taps),
         (unsigned long long)GET(selection_missing),(unsigned long long)GET(lookup_misses),

@@ -61,16 +61,29 @@ EDITOR = r'''
 struct Fake { const char *cls; U length; uint16_t units[256]; id codes[256]; unsigned native[256]; };
 static struct Fake cls={"NSString",0,{0},{0},{0}}, editor={"UITextView",0,{0},{0},{0}};
 static struct Fake source={"NSAttributedString",0,{0},{0},{0}}, storage={"NSTextStorage",0,{0},{0},{0}}, strings[128];
+static struct Fake ui_font={"UIFont",0,{0},{0},{0}},ui_color={"UIColor",0,{0},{0},{0}};
+static struct Fake body_font={"UIFont",0,{0},{0},{0}},theme={"UIColor",0,{0},{0},{0}},typing={"NSDictionary",0,{0},{0},{0}};
 static size_t used;
-static unsigned storage_edits;
+static unsigned storage_edits,styled;
 static id ascii(const char *s) { id o=&strings[used++]; assert(used<128); o->cls="NSString"; o->length=strlen(s); for(U i=0;i<o->length;i++)o->units[i]=(unsigned char)s[i]; return o; }
 static BOOL matches(id o,const char *s) { if(!o || o->length!=strlen(s))return NO; for(U i=0;i<o->length;i++)if(o->units[i]!=(unsigned char)s[i])return NO;return YES; }
-Class objc_getClass(const char *name) { assert(!strcmp(name,"NSString")); return &cls; }
+Class objc_getClass(const char *name) {
+    if(!strcmp(name,"NSString"))return &cls;
+    if(!strcmp(name,"UIFont"))return &ui_font;
+    if(!strcmp(name,"UIColor"))return &ui_color;
+    assert(!"unexpected class");return nil;
+}
 SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil; va_list args; va_start(args,sel); id result=nil;
     if(!strcmp(sel,"attributedText"))result=&source;
+    else if(!strcmp(sel,"labelColor"))result=&theme;
+    else if(!strcmp(sel,"systemFontOfSize:")) { double size=va_arg(args,double);assert(size==17.0);result=&body_font; }
     else if(!strcmp(sel,"textStorage"))result=&storage;
+    else if(!strcmp(sel,"typingAttributes"))result=&typing;
+    else if(!strcmp(sel,"setTypingAttributes:")) { id attrs=va_arg(args,id);assert(attrs && attrs->cls && !strcmp(attrs->cls,"NSMutableAttributedString")); }
+    else if(!strcmp(sel,"setObject:forKey:")) { id value=va_arg(args,id),key=va_arg(args,id);assert(value && (matches(key,"NSFont") || matches(key,"NSColor")));styled++; }
+    else if(!strcmp(sel,"addAttribute:value:range:")) { id key=va_arg(args,id),value=va_arg(args,id);Range r=va_arg(args,Range);assert(value && r.location==0 && r.length==o->length && (matches(key,"NSFont") || matches(key,"NSColor")));styled++; }
     else if(!strcmp(sel,"beginEditing"))storage_edits++;
     else if(!strcmp(sel,"endEditing"))storage_edits++;
     else if(!strcmp(sel,"setSelectedRange:")) { Range r=va_arg(args,Range); assert(r.location==1 && r.length==0); }
@@ -100,6 +113,7 @@ static id dispatch(id o,SEL sel,...) {
     va_end(args); return result;
 }
 id (*objc_msgSend)(id,SEL,...)=dispatch;
+void objc_release(id o) { (void)o; }
 int main(void) {
     /* Two Streamside attachments plus a native attachment, emoji, newline and
      * ordinary text. Exercise the production expansion, not a copy of it. */
@@ -119,14 +133,14 @@ int main(void) {
     /* Async image refresh updates presentation without querying the undo
      * manager; the latter threw on-device during NSOperation notification. */
     storage.length=9; visual_text(&editor,plain,(Range){1,0});
-    assert(storage_edits==2 && storage.length==24 && storage.units[3]=='W');
+    assert(storage_edits==2 && storage.length==24 && storage.units[3]=='W' && styled==4);
     free(plain); return 0;
 }
 '''
 
 CONTROLS = EDITOR[:EDITOR.index("int main(void)")].replace(
-    'assert(!strcmp(name,"NSString")); return &cls;',
-    'return !strcmp(name,"NSString") ? &cls : nil;')
+    'assert(!"unexpected class");return nil;',
+    'return nil;')
 CONTROLS = CONTROLS.replace(
     'else assert(!"unexpected editor selector");',
     'else if(!strcmp(sel,"selectedSegmentIndex")) result=(id)(uintptr_t)o->length;\n'
@@ -149,7 +163,6 @@ id objc_loadWeakRetained(id *p) { return *p; }
 id objc_initWeak(id *p,id o) { *p=o;return o; }
 void objc_destroyWeak(id *p) { *p=nil; }
 id objc_retain(id o) { return o; }
-void objc_release(id o) { (void)o; }
 id objc_getAssociatedObject(id o,const void *k) { (void)o;(void)k;return nil; }
 void objc_setAssociatedObject(id o,const void *k,id v,uintptr_t policy) { (void)o;(void)k;(void)v;(void)policy; }
 id tas_emotes_named_copy(id c,id n) { (void)c;(void)n;return nil; }

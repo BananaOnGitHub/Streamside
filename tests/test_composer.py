@@ -60,8 +60,9 @@ EDITOR = r'''
 #include "SSComposer.c"
 struct Fake { const char *cls; U length; uint16_t units[256]; id codes[256]; unsigned native[256]; };
 static struct Fake cls={"NSString",0,{0},{0},{0}}, editor={"UITextView",0,{0},{0},{0}};
-static struct Fake source={"NSAttributedString",0,{0},{0},{0}}, strings[128];
+static struct Fake source={"NSAttributedString",0,{0},{0},{0}}, storage={"NSTextStorage",0,{0},{0},{0}}, strings[128];
 static size_t used;
+static unsigned storage_edits;
 static id ascii(const char *s) { id o=&strings[used++]; assert(used<128); o->cls="NSString"; o->length=strlen(s); for(U i=0;i<o->length;i++)o->units[i]=(unsigned char)s[i]; return o; }
 static BOOL matches(id o,const char *s) { if(!o || o->length!=strlen(s))return NO; for(U i=0;i<o->length;i++)if(o->units[i]!=(unsigned char)s[i])return NO;return YES; }
 Class objc_getClass(const char *name) { assert(!strcmp(name,"NSString")); return &cls; }
@@ -69,6 +70,15 @@ SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil; va_list args; va_start(args,sel); id result=nil;
     if(!strcmp(sel,"attributedText"))result=&source;
+    else if(!strcmp(sel,"textStorage"))result=&storage;
+    else if(!strcmp(sel,"beginEditing"))storage_edits++;
+    else if(!strcmp(sel,"endEditing"))storage_edits++;
+    else if(!strcmp(sel,"setSelectedRange:")) { Range r=va_arg(args,Range); assert(r.location==1 && r.length==0); }
+    else if(!strcmp(sel,"replaceCharactersInRange:withAttributedString:")) {
+        Range r=va_arg(args,Range); id value=va_arg(args,id);
+        assert(o==&storage && r.location==0 && r.length==storage.length);
+        storage.length=value->length; memcpy(storage.units,value->units,storage.length*2);
+    }
     else if(!strcmp(sel,"mutableCopy")) { result=malloc(sizeof(*result)); memcpy(result,o,sizeof(*result)); result->cls="NSMutableAttributedString"; }
     else if(!strcmp(sel,"stringWithUTF8String:")) result=ascii(va_arg(args,const char *));
     else if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class); result=(id)(uintptr_t)!strcmp(o->cls,c->cls); }
@@ -106,6 +116,10 @@ int main(void) {
     for(U i=0;i<plain->length;i++) assert(!plain->codes[i]);
     assert(plain->native[3]==0 && plain->native[15]==0);
     assert(source.units[3]==0xfffc && source.native[5]==42 && source.length==9); /* snapshot isolation */
+    /* Async image refresh updates presentation without querying the undo
+     * manager; the latter threw on-device during NSOperation notification. */
+    storage.length=9; visual_text(&editor,plain,(Range){1,0});
+    assert(storage_edits==2 && storage.length==24 && storage.units[3]=='W');
     free(plain); return 0;
 }
 '''

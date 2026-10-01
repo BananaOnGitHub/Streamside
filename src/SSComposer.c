@@ -43,6 +43,7 @@ static IMP original_footer_apply,original_footer_move,original_container_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static id images,pending,failed,image_session;
 static uint64_t edited,previewed,insertions,palette_opens,identity_misses,image_failures;
+static uint64_t grid_taps,strip_taps,selection_missing,lookup_misses,validation_vetoes,range_misses,unchanged_edits;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 
@@ -312,11 +313,11 @@ static void remember_typed(id delegate) {
 /* All insertions pass Twitch's native permission/length/command checks. UIKit
  * performs the plain-text edit, so undo and send models see emote codes. */
 static BOOL replace_plain(id delegate,Range range,id replacement) {
-    State *s=state(delegate); if (!s || s->busy) return NO;
+    State *s=state(delegate); if (!s || s->busy) { INC(selection_missing); return NO; }
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
-    if (!editor || m0(editor,"markedTextRange")) { objc_release(owner); return NO; }
+    if (!editor || m0(editor,"markedTextRange")) { INC(selection_missing); objc_release(owner); return NO; }
     expand(delegate); U length=number(m0(editor,"text"),"length");
-    if (range.location>length || range.length>length-range.location) { objc_release(owner); return NO; }
+    if (range.location>length || range.length>length-range.location) { INC(range_misses); objc_release(owner); return NO; }
     BOOL allowed=((BOOL (*)(id,SEL,id,Range,id))original_should_change)(owner,sel_registerName("textView:shouldChangeTextInRange:replacementText:"),editor,range,replacement);
     if (allowed) {
         id beginning=m0(editor,"beginningOfDocument");
@@ -324,28 +325,34 @@ static BOOL replace_plain(id delegate,Range range,id replacement) {
         id end=((id (*)(id,SEL,id,I))objc_msgSend)(editor,sel_registerName("positionFromPosition:offset:"),start,(I)range.length);
         id text_range=((id (*)(id,SEL,id,id))objc_msgSend)(editor,sel_registerName("textRangeFromPosition:toPosition:"),start,end);
         if (text_range) {
+            id before=m0(m0(editor,"text"),"copy");
             s->busy=YES;
             ((void (*)(id,SEL,id,id))objc_msgSend)(editor,sel_registerName("replaceRange:withText:"),text_range,replacement);
-            select_range(editor,(Range){range.location+number(replacement,"length"),0});
+            BOOL changed=!equal(before,m0(editor,"text")); objc_release(before);
+            if (changed) select_range(editor,(Range){range.location+number(replacement,"length"),0});
             s->busy=NO;
-            ((void (*)(id,SEL,id))original_change)(owner,sel_registerName("textViewDidChange:"),editor); INC(edited);
-        } else allowed=NO;
-    }
+            if (changed) { ((void (*)(id,SEL,id))original_change)(owner,sel_registerName("textViewDidChange:"),editor); INC(edited); }
+            else { INC(unchanged_edits); allowed=NO; }
+        } else { INC(range_misses); allowed=NO; }
+    } else INC(validation_vetoes);
     render(delegate); refresh(delegate); objc_release(owner); return allowed;
 }
 static void choose(id delegate,id metadata,BOOL suggestion) {
     State *s=state(delegate); id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
-    if (!editor || !metadata) { objc_release(owner); return; }
+    if (!editor || !metadata) { INC(selection_missing); objc_release(owner); return; }
     id current=tas_emotes_named_copy(room_for(owner),key(metadata,"name"));
-    if (!current) { refresh(delegate); objc_release(owner); return; }
+    if (!current) { INC(lookup_misses); refresh(delegate); objc_release(owner); return; }
     metadata=current;
     refresh(delegate);
+    /* The native palette can leave the editor unfocused. Make it the active
+     * text input before asking Twitch to validate and apply the edit. */
+    m0(editor,"becomeFirstResponder");
     Range r=selection(editor); SSSpan spans[MAX_TOKENS]; size_t n;
     id plain=expanded_copy(editor,&r,spans,&n); objc_release(plain);
     if (suggestion) r=s->completion;
     id code=m1(key(metadata,"name"),"stringByAppendingString:",str(" "));
     if (replace_plain(delegate,r,code)) { remember(key(metadata,"name")); INC(insertions); }
-    m0(editor,"becomeFirstResponder"); objc_release(current); objc_release(owner);
+    objc_release(current); objc_release(owner);
 }
 
 static void target(id control,id delegate,const char *action,U events) {
@@ -379,8 +386,8 @@ static void refresh_strip_images(id scroll) {
         id image=at(m0(button,"subviews"),0); set_thumbnail(image,metadata);
     }
 }
-static void picker_button(id self,SEL sel,id sender) { (void)sel; choose(self,objc_getAssociatedObject(sender,&button_key),YES); }
-static void recent_button(id self,SEL sel,id sender) { (void)sel; choose(self,objc_getAssociatedObject(sender,&button_key),NO); }
+static void picker_button(id self,SEL sel,id sender) { (void)sel; INC(strip_taps); choose(self,objc_getAssociatedObject(sender,&button_key),YES); }
+static void recent_button(id self,SEL sel,id sender) { (void)sel; INC(strip_taps); choose(self,objc_getAssociatedObject(sender,&button_key),NO); }
 static I item_count(id self,SEL sel,id collection,I section) { (void)sel;(void)collection;(void)section; return (I)number(state(self)->entries,"count"); }
 static id cell(id self,SEL sel,id collection,id path) {
     (void)sel; State *s=state(self); U index=number(path,"item");
@@ -400,8 +407,9 @@ static id cell(id self,SEL sel,id collection,id path) {
     return c;
 }
 static void selected_cell(id self,SEL sel,id collection,id path) {
-    (void)sel; (void)collection; State *s=state(self); U i=number(path,"item");
+    (void)sel; (void)collection; INC(grid_taps); State *s=state(self); U i=number(path,"item");
     if (i<number(s->entries,"count")) choose(self,at(s->entries,i),NO);
+    else INC(selection_missing);
 }
 static id segmented(id delegate,const char **labels,size_t n,const char *action) {
     id items=m0((id)objc_getClass("NSMutableArray"),"new"); for (size_t i=0;i<n;i++) v1(items,"addObject:",str(labels[i]));
@@ -478,7 +486,11 @@ static void layout(id delegate) {
             frame(s->provider,(Rect){{8,6},{bounds.size.width-16,28}}); frame(s->scope,(Rect){{8,40},{bounds.size.width-16,28}});
             frame(s->grid,(Rect){{4,76},{bounds.size.width-8,height>76 ? height-76 : 0}});
             frame(s->empty,(Rect){{12,80},{bounds.size.width-24,50}});
-            v1(container,"bringSubviewToFront:",s->panel); v1(container,"bringSubviewToFront:",footer);
+            /* The footer can have a full-height transparent hit-test region.
+             * Keeping it above the panel makes visible emotes untappable and
+             * forwards their touches to Twitch's keyboard-dismiss action.
+             * The panel stops above the actual footer row. */
+            v1(container,"bringSubviewToFront:",s->panel);
         } else if (s->tab==2 && s->recent_strip && number(s->entries,"count")) {
             if (m0(s->recent_strip,"superview")!=container) v1(container,"addSubview:",s->recent_strip);
             frame(s->recent_strip,(Rect){{0,0},{bounds.size.width,48}}); v1(container,"bringSubviewToFront:",s->recent_strip);
@@ -793,10 +805,15 @@ void ss_composer_status(char *buffer,size_t capacity) {
     snprintf(buffer,capacity,"\nStreamside composer (this launch)\n"
         "Hooks (editor/selection/validation/send/footer/copy/undo): %s/%s/%s/%s/%s/%s/%s\n"
         "Mode: %s\nEdits/previews/insertions/picker opens: %llu/%llu/%llu/%llu\n"
-        "Identity layout misses/image failures: %llu/%llu\n",
+        "Identity layout misses/image failures: %llu/%llu\n"
+        "Picker taps (grid/strip), missing selection/lookup: %llu/%llu, %llu/%llu\n"
+        "Insertion veto/range miss/unchanged edit: %llu/%llu/%llu\n",
         original_change ? "installed":"missing",original_selection ? "installed":"missing",original_should_change ? "installed":"missing",
         original_send ? "installed":"missing",original_footer_apply ? "installed":"missing",original_copy ? "installed":"missing",original_undo && original_redo ? "installed":"missing",
         ss_composer_suggestion_mode()==0 ? "automatic" : ss_composer_suggestion_mode()==1 ? "colon":"off",
         (unsigned long long)GET(edited),(unsigned long long)GET(previewed),(unsigned long long)GET(insertions),(unsigned long long)GET(palette_opens),
-        (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures));
+        (unsigned long long)GET(identity_misses),(unsigned long long)GET(image_failures),
+        (unsigned long long)GET(grid_taps),(unsigned long long)GET(strip_taps),
+        (unsigned long long)GET(selection_missing),(unsigned long long)GET(lookup_misses),
+        (unsigned long long)GET(validation_vetoes),(unsigned long long)GET(range_misses),(unsigned long long)GET(unchanged_edits));
 }

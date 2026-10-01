@@ -66,8 +66,11 @@ mention and mid-word boundary rules remain unchanged.
 
 The vertical selector is suppressed only while its connected composer is
 completing a colon token, the native catalog is ready, and a supported composer
-mode is active. Scoped UIKit data-source/layout hooks hide its rows/view and
-collapse its owned height constraint. Leaving that completion restores native
+mode is active. A scoped UIKit layout hook hides its view and collapses its
+owned height constraint. Its data source keeps the original row counts: Twitch's
+asynchronous completion reloads the table and scrolls to row 0 whenever its
+Swift match contains results. Reporting zero rows made that scroll raise a
+UITableView exception, including after edits/backspace. Leaving completion restores native
 visibility and height. Mentions, commands, unrelated selectors and disabled
 suggestions remain native. The native table's Swift match is never modified.
 
@@ -85,7 +88,7 @@ not store account identifiers, channel identities, codes or chat contents.
 ## Validation
 
 Host tests exercise mixed prefixes, native-name precedence and identifiers,
-bare-colon results, missing catalogs, bounded interleaving and scoped suppression
+bare-colon results, missing catalogs, bounded interleaving and presentation-only suppression
 in automatic, colon and disabled modes. Existing composer tests cover UTF-16
 mapping, autocorrection, attachments, strip touches/scrolling, Recent actions and
 native sticky headers. Package validation still checks the normalized 16 KiB

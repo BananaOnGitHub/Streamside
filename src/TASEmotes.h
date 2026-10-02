@@ -25,6 +25,8 @@ id tas_emotes_local_matches_copy(id channel, id content);
  * Channel must be the composer's identity; no background-chat fallback.
  * Display snapshots sort by name ignoring case, then apply the result limit. */
 id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t limit);
+/* Cheap invalidation token. Image arrivals do not change the catalog. */
+uint64_t tas_emotes_catalog_revision(void);
 id tas_emotes_named_copy(id channel, id name);
 double tas_emotes_aspect(uint64_t synthetic_id);
 

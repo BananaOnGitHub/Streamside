@@ -42,7 +42,10 @@ typedef long NSInteger;
 
 extern id objc_retain(id object);
 extern void objc_release(id object);
+extern id objc_getAssociatedObject(id object, const void *key);
 extern void objc_setAssociatedObject(id object, const void *key, id value, uintptr_t policy);
+extern int objc_sync_enter(id object);
+extern int objc_sync_exit(id object);
 extern uint32_t arc4random_uniform(uint32_t upper_bound);
 
 static id msg0(id object, const char *selector) {
@@ -184,6 +187,8 @@ static TASAdSegment g_ad_segments[TAS_MAX_AD_SEGMENTS];
 static size_t g_next_ad_segment;
 
 static char g_association_key;
+static char g_protocol_task_key, g_protocol_stopped_key;
+static id g_protocol_session;
 static IMP g_original_asset_init;
 static IMP g_original_default_configuration;
 static IMP g_original_ephemeral_configuration;
@@ -567,20 +572,88 @@ static id http_response(const char *url, NSInteger status, const char *mime, siz
     return response;
 }
 
+/* Callback delivery and stopLoading serialize on the protocol instance. The
+ * ObjC monitor is recursive: a client may synchronously stop from a callback. */
+static void protocol_deliver(id self, id data, id response, id error) {
+    objc_sync_enter(self);
+    if (!objc_getAssociatedObject(self, &g_protocol_stopped_key)) {
+        id client = msg0(self, "client");
+        if (error || !response) {
+            if (!error) error = ((id (*)(id, SEL, id, NSInteger, id))objc_msgSend)(
+                (id)objc_getClass("NSError"), sel_registerName("errorWithDomain:code:userInfo:"),
+                nsstr("NSURLErrorDomain"), -1, nil);
+            vmsg2(client, "URLProtocol:didFailWithError:", self, error);
+        } else {
+            vmsg3(client, "URLProtocol:didReceiveResponse:cacheStoragePolicy:", self, response, 0);
+            if (data && !objc_getAssociatedObject(self, &g_protocol_stopped_key))
+                vmsg2(client, "URLProtocol:didLoadData:", self, data);
+            if (!objc_getAssociatedObject(self, &g_protocol_stopped_key))
+                vmsg1(client, "URLProtocolDidFinishLoading:", self);
+        }
+    }
+    objc_setAssociatedObject(self, &g_protocol_task_key, nil, 1);
+    objc_sync_exit(self);
+}
+
+static void protocol_complete(id self, id data, id response, id error) {
+    id original = msg0(self, "request");
+    const char *original_url = utf8(msg0(msg0(original, "URL"), "absoluteString"));
+    objc_sync_enter(self);
+    bool stopped = objc_getAssociatedObject(self, &g_protocol_stopped_key) != nil;
+    objc_sync_exit(self);
+    if (stopped) return;
+
+    if (original_url && tas_emotes_is_provider_image_url(original_url))
+        tas_emotes_image_result(data, response, error);
+    id output_data = data, output_response = response, rewritten_response = nil;
+    if (original_url && is_twitch_hls_url(original_url)) {
+        char detail[256];
+        snprintf(detail, sizeof(detail), "transport=NSURLProtocol status=%ld bytes=%zu error=%s",
+                 response ? (long)imsg0(response, "statusCode") : 0L,
+                 data ? data_length(data) : 0, error ? "yes" : "no");
+        tas_diag_log_url("HLS_RESPONSE", original_url, detail);
+        if (error || !data || !response || imsg0(response, "statusCode") < 200 ||
+            imsg0(response, "statusCode") >= 300) tas_diag_metric(TAS_DIAG_HLS_FAILURE, 1);
+    }
+    if (!error && data && response && original_url && is_twitch_hls_url(original_url)) {
+        char *text = copy_data_text(data);
+        if (text && starts_with(text, "#EXTM3U")) {
+            char *processed = process_manifest(original_url, text, false);
+            output_data = data_from_bytes(processed, strlen(processed));
+            rewritten_response = http_response(original_url, imsg0(response, "statusCode"),
+                                               "application/vnd.apple.mpegurl",
+                                               data_length(output_data), response);
+            output_response = rewritten_response;
+            free(processed);
+        }
+        free(text);
+    }
+    protocol_deliver(self, output_data, output_response, error);
+    if (rewritten_response) objc_release(rewritten_response);
+}
+
+static id protocol_session(void) {
+    pthread_mutex_lock(&g_lock);
+    if (!g_protocol_session) {
+        id config = msg0((id)objc_getClass("NSURLSessionConfiguration"), "defaultSessionConfiguration");
+        g_protocol_session = objc_retain(msg1((id)objc_getClass("NSURLSession"), "sessionWithConfiguration:", config));
+    }
+    id session = g_protocol_session;
+    pthread_mutex_unlock(&g_lock);
+    return session;
+}
+
 static void protocol_start_loading(id self, SEL command) {
     (void)command;
     id original = msg0(self, "request");
     const char *original_url = utf8(msg0(msg0(original, "URL"), "absoluteString"));
-    id client = msg0(self, "client");
 
     if (original_url && is_cached_ad_segment(original_url)) {
         tas_diag_metric(TAS_DIAG_SYNTHETIC_SEGMENT, 1);
         tas_diag_log_url("SYNTHETIC_SEGMENT", original_url, "transport=NSURLProtocol");
         id data = blank_video_data();
         id response = http_response(original_url, 200, "video/mp4", data_length(data), nil);
-        vmsg3(client, "URLProtocol:didReceiveResponse:cacheStoragePolicy:", self, response, 0);
-        vmsg2(client, "URLProtocol:didLoadData:", self, data);
-        vmsg1(client, "URLProtocolDidFinishLoading:", self);
+        protocol_deliver(self, data, response, nil);
         objc_release(response);
         return;
     }
@@ -601,54 +674,41 @@ static void protocol_start_loading(id self, SEL command) {
         tas_diag_log_url("HLS_REQUEST", original_url, "transport=NSURLProtocol");
     }
 
-    id response = nil;
-    id error = nil;
     bool provider_image = original_url && tas_emotes_is_provider_image_url(original_url);
     if (provider_image) tas_emotes_image_protocol_request();
-    id data = synchronous_request(request, &response, &error);
-    if (provider_image) tas_emotes_image_result(data, response, error);
-    id output_data = data;
-    id output_response = response;
-    id rewritten_response = nil;
-    if (original_url && is_twitch_hls_url(original_url)) {
-        char detail[256];
-        snprintf(detail, sizeof(detail), "transport=NSURLProtocol status=%ld bytes=%zu error=%s",
-                 response ? (long)imsg0(response, "statusCode") : 0L,
-                 data ? data_length(data) : 0,
-                 error ? "yes" : "no");
-        tas_diag_log_url("HLS_RESPONSE", original_url, detail);
-        if (error || !data || !response || imsg0(response, "statusCode") < 200 ||
-            imsg0(response, "statusCode") >= 300) {
-            tas_diag_metric(TAS_DIAG_HLS_FAILURE, 1);
+    /* Mark the inner request before it enters our swizzled session factory,
+     * so the protocol cannot intercept its own transport recursively. */
+    id session = protocol_session();
+    objc_sync_enter(self);
+    if (!objc_getAssociatedObject(self, &g_protocol_stopped_key)) {
+        id held = objc_retain(self);
+        id task = ((id (*)(id, SEL, id, id))objc_msgSend)(session,
+            sel_registerName("dataTaskWithRequest:completionHandler:"), request,
+            (id)^(id data, id response, id error) {
+                protocol_complete(held, data, response, error);
+                objc_release(held);
+            });
+        if (task) {
+            objc_setAssociatedObject(self, &g_protocol_task_key, task, 1);
+            msg0(task, "resume");
+        } else {
+            objc_release(held);
+            protocol_deliver(self, nil, nil, nil);
         }
     }
-    if (!error && data && response && original_url && is_twitch_hls_url(original_url)) {
-        char *text = copy_data_text(data);
-        if (text && starts_with(text, "#EXTM3U")) {
-            char *processed = process_manifest(original_url, text, false);
-            output_data = data_from_bytes(processed, strlen(processed));
-            rewritten_response = http_response(original_url, imsg0(response, "statusCode"),
-                                               "application/vnd.apple.mpegurl",
-                                               data_length(output_data), response);
-            output_response = rewritten_response;
-            free(processed);
-        }
-        free(text);
-    }
-    if (error || !output_response) {
-        vmsg2(client, "URLProtocol:didFailWithError:", self, error);
-    } else {
-        vmsg3(client, "URLProtocol:didReceiveResponse:cacheStoragePolicy:", self, output_response, 0);
-        if (output_data) vmsg2(client, "URLProtocol:didLoadData:", self, output_data);
-        vmsg1(client, "URLProtocolDidFinishLoading:", self);
-    }
-    if (rewritten_response) objc_release(rewritten_response);
+    objc_sync_exit(self);
     objc_release(request);
 }
 
 static void protocol_stop_loading(id self, SEL command) {
-    (void)self;
     (void)command;
+    objc_sync_enter(self);
+    objc_setAssociatedObject(self, &g_protocol_stopped_key, nsstr("stopped"), 1);
+    id task = objc_retain(objc_getAssociatedObject(self, &g_protocol_task_key));
+    objc_setAssociatedObject(self, &g_protocol_task_key, nil, 1);
+    msg0(task, "cancel");
+    objc_release(task);
+    objc_sync_exit(self);
 }
 
 static BOOL protocol_can_init(id self, SEL command, id request) {

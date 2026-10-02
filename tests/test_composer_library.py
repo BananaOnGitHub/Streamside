@@ -37,6 +37,8 @@ static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions,metric_invalidations;
 static int last_provider,last_scope;
 static id expected_room;
+static uint64_t catalog_revision=1;
+uint64_t tas_emotes_catalog_revision(void) { return catalog_revision; }
 static id raw_item(id flow,SEL sel,id path);
 static id raw_header(id flow,SEL sel,id kind_name,id path);
 static Size raw_size(id flow,SEL sel);
@@ -323,6 +325,15 @@ int main(void) {
     /* The library exists inline before selecting its footer shortcut. */
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
     install_footer(&footer,&owner);make_panel(&delegate);refresh_library(&s);place_library_panel(&s,&native);
+    /* Image arrivals and timer ticks reuse the display snapshot. */
+    U initial_queries=queries,initial_reloads=s.grid->reloads;
+    for(int i=0;i<100;i++)refresh_library(&s);
+    assert(queries==initial_queries && s.grid->reloads==initial_reloads);
+    /* A catalog update invalidates even with unchanged room/provider/scope. */
+    catalog_revision++;refresh_library(&s);assert(queries==initial_queries+1);
+    struct Fake other_room={.cls="NSString"};
+    s.room=&other_room;expected_room=&other_room;refresh_library(&s);assert(queries==initial_queries+2);
+    s.room=&room;expected_room=&room;refresh_library(&s);assert(queries==initial_queries+3);
     assert(s.panel->parent==&native && !native.hidden && !s.tab && !button->selected);
     assert(s.library_section==1 && s.library_start==236 && s.library_height==410);
     assert(metric_invalidations && s.panel->clips && s.grid->clips);
@@ -417,7 +428,7 @@ int main(void) {
     place_library_panel(&s,&native);
     assert(native.inset.bottom==12 && !s.library_section && !s.library_start);
     assert(flow.applied_first.origin.y==462); /* account emotes remain below the library */
-    datasets[3][0].count=0;refresh_library(&s);place_library_panel(&s,&native);
+    datasets[3][0].count=0;catalog_revision++;refresh_library(&s);place_library_panel(&s,&native);
     assert(s.library_height==178 && !s.empty->hidden);
     native.sections=0;flow.content_size.height=0;place_library_panel(&s,&native);
     assert(native.inset.bottom==12 && flow_size(&flow,"size").height==178);

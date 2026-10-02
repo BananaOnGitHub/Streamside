@@ -9,6 +9,10 @@ private Twitch symbols.
 - HLS requests from Amazon IVS are intercepted through `NSURLProtocol`.
 - `AVAssetResourceLoader` remains as a compatibility path for AVFoundation.
 - Internal VAFT requests carry `X-TAS-Internal` to avoid recursive interception.
+- URL-protocol image and HLS transport uses asynchronous `NSURLSession` tasks.
+  Each protocol instance owns its active task; stopping cancels that task and
+  prevents further client callbacks, including during reentrant response delivery.
+  Manifest processing remains in the completion path, outside `startLoading`.
 
 Authenticated startup GraphQL responses are never proxied.
 

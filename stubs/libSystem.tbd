@@ -8,6 +8,7 @@ exports:
     symbols:         [ ___memcpy_chk, ___stderrp, __Block_copy, __Block_release,
                        __Block_object_assign, __Block_object_dispose, __NSConcreteStackBlock,
                        __NSConcreteGlobalBlock,
+                       __availability_version_check, _sys_icache_invalidate,
                        _arc4random_uniform, _bzero,
                        _calloc, _dlopen, _dlsym, _dispatch_queue_create, _fprintf, _free,
                        _fwrite, _malloc, _memchr, _memcpy, _memmove,

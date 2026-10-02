@@ -12,5 +12,6 @@ exports:
                        _method_setImplementation, _objc_allocateClassPair,
                        _objc_getAssociatedObject, _objc_getClass, _objc_msgSend, _objc_registerClassPair,
                        _objc_initWeak, _objc_loadWeakRetained, _objc_destroyWeak, _objc_release, _objc_retain, _objc_setAssociatedObject,
+                       _objc_sync_enter, _objc_sync_exit,
                        _object_getClass, _sel_getName, _sel_registerName ]
 ...

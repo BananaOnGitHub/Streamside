@@ -113,6 +113,15 @@ static OldImage g_old[MAX_HISTORY];
 static size_t g_old_next;
 static time_t g_last_sweep;
 static uint64_t g_generation = 1;
+static uint64_t g_catalog_revision = 1;
+static void catalog_changed_locked(void) {
+    /* Writers already hold g_emote_lock; only publication needs to be atomic. */
+    uint64_t next = __atomic_load_n(&g_catalog_revision, __ATOMIC_RELAXED) + 1;
+    __atomic_store_n(&g_catalog_revision, next, __ATOMIC_RELEASE);
+}
+uint64_t tas_emotes_catalog_revision(void) {
+    return __atomic_load_n(&g_catalog_revision, __ATOMIC_ACQUIRE);
+}
 static char g_last_room[32];
 static bool g_enabled;
 static IMP g_public_receive, g_private_receive;
@@ -152,6 +161,7 @@ static void retire_emote_locked(Emote *e, time_t now) {
 }
 
 static void reset_room_locked(Room *room, bool retire, time_t now) {
+    catalog_changed_locked();
     for (size_t i = 0; i < room->size; i++) {
         if (retire) retire_emote_locked(&room->items[i], now);
         else drop_emote(&room->items[i]);
@@ -196,6 +206,7 @@ static Room *room_locked(const char *id, time_t now) {
     r->last_used = now;
     r->generation = ++g_generation;
     memcpy(r->id, id, strlen(id) + 1);
+    catalog_changed_locked();
     return r;
 }
 
@@ -288,6 +299,7 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
             existing->global = global;
             existing->owner = duplicate(owner, 128);
             existing->aspect = aspect;
+            catalog_changed_locked();
         } else {
             free(word);
             free(image);
@@ -310,6 +322,7 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
         memmove(&room->items[victim], &room->items[victim + 1],
                 (room->size - victim - 1) * sizeof(*room->items));
         room->size--;
+        catalog_changed_locked();
     }
     Emote *larger = realloc(room->items, (room->size + 1) * sizeof(*larger));
     if (!larger) {
@@ -326,6 +339,7 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
         .owner = duplicate(owner, 128), .aspect = aspect,
         .fake_id = number, .provider = provider, .global = global};
     room->size++;
+    catalog_changed_locked();
 }
 
 static const char *json_string(id value) {
@@ -648,8 +662,11 @@ static char *rewrite_line(const char *line, size_t length) {
         for (size_t i = 0; i < MAX_ROOMS; i++)
             if (g_rooms[i].occupied && !strcmp(g_rooms[i].id, room_id)) {
                 size_t n = (size_t)(channel_end - channel_start);
-                memcpy(g_rooms[i].login, channel_start, n);
-                g_rooms[i].login[n] = 0;
+                if (strlen(g_rooms[i].login) != n || memcmp(g_rooms[i].login, channel_start, n)) {
+                    memcpy(g_rooms[i].login, channel_start, n);
+                    g_rooms[i].login[n] = 0;
+                    catalog_changed_locked();
+                }
             }
         pthread_mutex_unlock(&g_emote_lock);
     }

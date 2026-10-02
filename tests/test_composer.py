@@ -180,6 +180,7 @@ id objc_getAssociatedObject(id o,const void *k) { (void)o;(void)k;return nil; }
 void objc_setAssociatedObject(id o,const void *k,id v,uintptr_t policy) { (void)o;(void)k;(void)v;(void)policy; }
 id tas_emotes_named_copy(id c,id n) { (void)c;(void)n;return nil; }
 id tas_emotes_picker_copy(id c,int p,int scope,id q,size_t n) { (void)c;(void)p;(void)scope;(void)q;(void)n;return nil; }
+uint64_t tas_emotes_catalog_revision(void) { return 1; }
 bool tas_emotes_is_provider_image_url(const char *url) { (void)url;return false; }
 void *_NSConcreteStackBlock[32];
 int main(void) {

@@ -85,10 +85,13 @@ static void expect(id items,const char *names) {
 }
 int main(void) {
     g_enabled=true;Room *room=room_locked("123",time(NULL));id channel=string("123");
+    uint64_t before=tas_emotes_catalog_revision();
     add(room,"ZAMN",0,false);add(room,"aaaa",0,false);add(room,"Alpha",1,false);
     add(room,"alpha",0,false);add(room,"Beta",2,false);add(room,"YouKnow",0,false);add(room,"beta",2,false);
     add(&g_global,"aardvark",1,true);add(&g_global,"ZGlobal",0,true);
     add(&g_global,"zglobal",2,true);add(&g_global,"aaaa",2,true);
+    assert(tas_emotes_catalog_revision()>before);before=tas_emotes_catalog_revision();
+    add(room,"aaaa",0,false);assert(tas_emotes_catalog_revision()==before); /* duplicate did not change metadata */
     /* Uppercase and lowercase stay distinct in the exact-code registry. */
     assert(find_word(room,"Alpha") && find_word(room,"alpha") && !find_word(room,"ALPHA"));
     assert(find_word(room,"Alpha")->fake_id!=find_word(room,"alpha")->fake_id);
@@ -112,8 +115,12 @@ int main(void) {
     id exact=tas_emotes_named_copy(channel,string("Alpha"));assert(dict(exact,"id")->number==find_word(room,"Alpha")->fake_id);
     exact=tas_emotes_named_copy(channel,string("alpha"));assert(dict(exact,"id")->number==find_word(room,"alpha")->fake_id);
     assert(!tas_emotes_named_copy(channel,string("ALPHA")));
+    assert(tas_emotes_catalog_revision()==before); /* reading/sorting never invalidates */
+    add(room,"Beta",0,false);assert(tas_emotes_catalog_revision()>before); /* provider precedence replacement */
+    before=tas_emotes_catalog_revision();
     for(size_t i=1;i<room->size;i++)assert(strcmp(room->items[i-1].name,room->items[i].name)<0);
     reset_room_locked(room,false,time(NULL));reset_room_locked(&g_global,false,time(NULL));
+    assert(tas_emotes_catalog_revision()>before); /* reload/clear/expiry removes entries */
     return 0;
 }
 '''

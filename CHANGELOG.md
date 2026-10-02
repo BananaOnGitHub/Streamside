@@ -50,7 +50,14 @@
   name ignoring capitalization across all included providers/scopes, with an
   exact-name tie-break and limits applied after sorting. Keep the registry's
   case-sensitive code lookup and channel-over-global precedence intact.
-- Candidate bundle build: `3.0.0.24`; alphabetical library order requires device verification.
+- Device-confirmed the build 24 alphabetical library order. Replace blocking
+  URL-protocol downloads with cancellable asynchronous tasks for provider images
+  and HLS. Suppress callbacks after stop, including stops during response delivery;
+  preserve manifest rewriting, internal-request recursion protection and blank ads.
+- Reuse the emote library's sorted metadata snapshot until its catalog revision,
+  channel, provider or scope changes. Image completions and periodic refreshes
+  update visible thumbnails without rebuilding thousands of metadata objects.
+- Candidate bundle build: `3.0.0.25`; playback impact awaits device observation.
 
 ## 2.3.1 (prepared; not published)
 

@@ -126,6 +126,10 @@ typedef struct {
     BOOL placing_library;
     Range completion;
     int library,library_scope,tab;
+    id library_room; /* retained snapshot key, separate from the active room */
+    uint64_t library_revision;
+    int library_provider_snapshot,library_scope_snapshot;
+    BOOL library_snapshot_valid;
     BOOL busy,scheduled,preview_scheduled;
     id native_manager,stock_selector; /* weak, scoped to this input's chat */
     id native_entries,native_by_code,native_snapshot;
@@ -873,10 +877,19 @@ static void make_panel(id delegate) {
 }
 static void refresh_library(State *s) {
     if (!s->panel || !s->recent_menu_open) return;
-    id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
-    if (!equal(items,s->entries)) {
-        objc_release(s->entries); s->entries=items; m0(s->grid,"reloadData");
-    } else if (items) objc_release(items);
+    uint64_t revision=tas_emotes_catalog_revision();
+    if (!s->library_snapshot_valid || revision!=s->library_revision || !equal(s->room,s->library_room) ||
+        s->library!=s->library_provider_snapshot || s->library_scope!=s->library_scope_snapshot) {
+        id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
+        if (!equal(items,s->entries)) {
+            objc_release(s->entries); s->entries=items; m0(s->grid,"reloadData");
+        } else if (items) objc_release(items);
+        objc_release(s->library_room); s->library_room=objc_retain(s->room);
+        /* Read before copying: a concurrent update can cause one extra pass,
+         * but must never mark an older snapshot as the latest revision. */
+        s->library_revision=revision; s->library_provider_snapshot=s->library;
+        s->library_scope_snapshot=s->library_scope; s->library_snapshot_valid=YES;
+    }
     vb(s->empty,"setHidden:",number(s->entries,"count")!=0);
     v1(s->empty,"setText:",str(s->library_scope ? "No global emotes available." : "No channel emotes available yet.\nUse Reload Emotes to refresh."));
     id cells=m0(s->grid,"visibleCells"); for (U i=0;i<number(cells,"count");i++) {
@@ -1376,7 +1389,7 @@ static void delegate_dealloc(id self,SEL sel) {
         s->colon_selector=NO;
         id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); associate(selector,&selector_key,nil); objc_release(selector);
         restore_native(s); detach_recents(s); m0(s->strip,"removeFromSuperview");
-        id values[]={s->room,s->strip,s->suggestions,s->panel,s->library_title,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_clip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot};
+        id values[]={s->room,s->library_room,s->strip,s->suggestions,s->panel,s->library_title,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_clip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot};
         for (size_t i=0;i<sizeof(values)/sizeof(values[0]);i++) if (values[i]) objc_release(values[i]);
         objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); objc_destroyWeak(&s->recent_content);
         objc_destroyWeak(&s->native_manager); objc_destroyWeak(&s->stock_selector); free(s);

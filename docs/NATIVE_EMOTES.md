@@ -73,6 +73,10 @@ Swift match contains results. Reporting zero rows made that scroll raise a
 UITableView exception, including after edits/backspace. Leaving completion restores native
 visibility and height. Mentions, commands, unrelated selectors and disabled
 suggestions remain native. The native table's Swift match is never modified.
+Restoration only changes presentation. `viewIfLoaded` can return a UIView
+wrapper rather than the table, so sending `reloadData` to it crashed when an
+emote selection ended the colon completion. No reload is needed because the
+data source stays native. Host tests use a wrapper that rejects table methods.
 
 Selection revalidates native codes against the current connection's snapshot.
 It inserts the code through the existing validated UITextInput edit and native

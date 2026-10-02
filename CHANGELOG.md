@@ -20,12 +20,17 @@
   Twitch replaces its native button/highlight stacks. Match native slot sizes
   and highlight behavior; keep the emote grid, All / 7TV / BTTV / FFZ filters and
   Channel / Global control reachable. Every provider change resets Channel.
+- Place the full provider library inline between native Recent and account
+  subscription emotes. Its footer entry jumps to that section; provider controls
+  and all grid rows share the native picker’s vertical scroll. Reserve native
+  layout space without changing section indexes, and virtualize the owned grid
+  to keep only a viewport of cells active, including after width/scope changes.
 - Bound thumbnail requests/cache and validate native bridge signatures; add
   UTF-16 selection/deletion, native-attachment preservation and identity-layout
   regression tests. Keep every existing Mach-O and packaging guard mandatory.
 - Preserve the existing icon. The forthcoming logo must support UIKit dynamic
   background/appearance and tint; logo work and release publication remain pending.
-- Candidate bundle build: `3.0.0.19`; restored library browser requires device verification.
+- Candidate bundle build: `3.0.0.20`; inline library section requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

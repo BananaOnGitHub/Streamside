@@ -133,16 +133,24 @@ is ready, while preserving other native completions. See
 [NATIVE_EMOTES.md](NATIVE_EMOTES.md) for the 30.4.2 runtime investigation,
 queue/Swift bridging guards and device validation requirements.
 
-An owned UIKit collection view overlays the existing keyboard's content area
-when its third-party footer button is selected. The native footer and native
-library actions remain available. Provider changes reset the scope to Channel.
-Its entry and matching highlight are inserted immediately after native Recent
-in both footer stacks. Twitch's Swift availability updates replace all arranged
-views, so installation verifies membership, not just a retained association.
-A scoped footer layout hook reinserts owned slots after those rebuilds without
-duplicating buttons, actions or constraints; native navigation restores the
-original palette and footer appearance. The browser is a complete grid and
-provider/scope control panel, not the compact recent-emote row.
+The complete provider library is an inline section between native Recent and
+account subscription emotes. Its heading, All / 7TV / BTTV / FFZ control,
+Channel / Global control and grid share the native collection's vertical scroll.
+Provider changes reset the scope to Channel. A scoped, ABI-validated native
+section-inset hook reserves the full panel height before the following native
+section; header-attribute copies move that section's title below the panel.
+Native cells, section indexes, content size and footer navigation remain native.
+When no following native section exists, an owned bottom inset reserves the panel.
+A non-scrolling owned collection displays only the outer viewport's intersection
+with the virtual grid and synchronizes its content offset, so thousands of emotes
+reuse a bounded number of visible cells rather than rendering the entire library.
+Width and provider/scope changes recompute the reserved height.
+The entry and matching highlight follow Recent in both footer stacks and jump
+the native picker to the inline section. Scroll position drives their selection.
+Twitch's Swift availability updates replace all arranged views, so installation
+verifies membership, not just a retained association. A scoped footer layout
+hook reinserts owned slots after rebuilds without duplicating buttons, actions
+or constraints. Native footer navigation keeps the panel in the same list.
 Recent provider names occupy a horizontal row beneath the native Frequently
 Used heading in the library's collection view, populated on every opening without requiring a Recent button
 press. The row scrolls vertically with native sections and horizontally within

@@ -761,7 +761,8 @@ def recent_geometry_source():
     source = source.replace('static void frame(id o,Rect r) { ((void (*)(id,SEL,Rect))objc_msgSend)(o,sel_registerName("setFrame:"),r); }',
         'static void frame(id o,Rect r) { ss_test_frame(o,r); }')
     for obj, name, typ in (("flow", "sectionInset", "Insets"), ("content", "contentInset", "Insets"),
-                           ("content", "adjustedContentInset", "Insets"), ("content", "contentOffset", "Point")):
+                           ("content", "adjustedContentInset", "Insets"), ("content", "contentOffset", "Point"),
+                           ("s->grid", "contentOffset", "Point"), ("flow", "collectionViewContentSize", "Size")):
         source = source.replace(f'(({typ} (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{name}"))',
             f'*({typ} *)ss_test_field({obj},"{name}")')
     source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section)',
@@ -770,6 +771,10 @@ def recent_geometry_source():
         'ss_test_inset(content,inset)')
     source = source.replace('((void (*)(id,SEL,Point))objc_msgSend)(content,sel_registerName("setContentOffset:"),offset)',
         'ss_test_offset(content,offset)')
+    source = source.replace('((void (*)(id,SEL,Point))objc_msgSend)(s->grid,sel_registerName("setContentOffset:"),position)',
+        'ss_test_offset(s->grid,position)')
+    source = source.replace('((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),offset,NO)',
+        'ss_test_offset_animated(content,offset,NO)')
     source = source.replace('((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),(Point){0,-inset.top},NO)',
         'ss_test_offset_animated(content,(Point){0,-inset.top},NO)')
     return source

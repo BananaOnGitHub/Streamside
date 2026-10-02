@@ -13,18 +13,25 @@ HARNESS = r'''
 struct Fake {
     const char *cls,*text,*action;
     id parent,host,button,highlight,stack,highlights,container,views[6],children[16],front;
+    id flow,collection,heading,title,native_header,first,last,path,element_kind;
+    const char *encoding;
     State *context;
     Rect frame,bounds;
+    Insets inset,adjusted;
+    Point offset;
+    Size content_size;
+    I section;
+    U sections;
     U count,selected,targets,reloads;
     id tint,background;
     double constant;
-    BOOL hidden,active;
+    BOOL hidden,active,scroll_enabled;
 };
-static struct Fake objects[256],classes[32],empty={0},datasets[4][2];
+static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions;
 static int last_provider,last_scope;
 static id expected_room;
-static id create(const char *cls) { assert(allocated<256);id o=&objects[allocated++];o->cls=cls;return o; }
+static id create(const char *cls) { assert(allocated<2048);id o=&objects[allocated++];o->cls=cls;return o; }
 Class objc_getClass(const char *name) {
     for(U i=0;i<class_count;i++)if(!strcmp(classes[i].cls,name))return &classes[i];
     assert(class_count<32);classes[class_count].cls=name;return &classes[class_count++];
@@ -38,6 +45,7 @@ Ivar class_getInstanceVariable(Class c,const char *name) {
     if(!strcmp(name,"emoteButtonsStackView"))return (Ivar)(uintptr_t)offsetof(struct Fake,stack);
     if(!strcmp(name,"emoteHighlightsStackView"))return (Ivar)(uintptr_t)offsetof(struct Fake,highlights);
     if(!strcmp(name,"emoticonPaletteContainerView"))return (Ivar)(uintptr_t)offsetof(struct Fake,container);
+    if(!strcmp(name,"titleLabel"))return (Ivar)(uintptr_t)offsetof(struct Fake,title);
     const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
         "$__lazy_storage_$_allEmotesButton","recentEmotesHighlight","channelEmotesHighlight","allEmotesHighlight"};
     for(U i=0;i<6;i++)if(!strcmp(name,names[i]))return (Ivar)(uintptr_t)(offsetof(struct Fake,views)+i*sizeof(id));
@@ -45,6 +53,8 @@ Ivar class_getInstanceVariable(Class c,const char *name) {
 }
 ptrdiff_t ivar_getOffset(Ivar iv) { return (ptrdiff_t)(uintptr_t)iv; }
 size_t class_getInstanceSize(Class c) { (void)c;return sizeof(struct Fake); }
+Method class_getInstanceMethod(Class c,SEL sel) { (void)sel;return c && c->encoding ? c : NULL; }
+const char *method_getTypeEncoding(Method m) { return ((id)m)->encoding; }
 id objc_retain(id o) { return o; }
 void objc_release(id o) { (void)o; }
 id objc_loadWeakRetained(id *p) { return *p; }
@@ -52,14 +62,14 @@ id objc_initWeak(id *p,id o) { *p=o;return o; }
 void objc_destroyWeak(id *p) { *p=nil; }
 id objc_getAssociatedObject(id o,const void *key) {
     if(!o)return nil;
-    if(key==&state_key || key==&footer_key)return o->host;
+    if(key==&state_key || key==&footer_key || key==&recent_host_key)return o->host;
     if(key==&button_key)return o->button;
     if(key==&library_highlight_key)return o->highlight;
     return nil;
 }
 void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
     assert(policy==1);
-    if(key==&footer_key)o->host=value;
+    if(key==&footer_key || key==&recent_host_key)o->host=value;
     else if(key==&button_key)o->button=value;
     else if(key==&library_highlight_key)o->highlight=value;
     else assert(!"unexpected association");
@@ -67,6 +77,11 @@ void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
 void *ss_test_field(id o,const char *name) {
     if(!strcmp(name,"frame"))return &o->frame;
     if(!strcmp(name,"bounds"))return &o->bounds;
+    if(!strcmp(name,"contentInset"))return &o->inset;
+    if(!strcmp(name,"adjustedContentInset"))return &o->adjusted;
+    if(!strcmp(name,"contentOffset"))return &o->offset;
+    if(!strcmp(name,"sectionInset"))return &o->inset;
+    if(!strcmp(name,"collectionViewContentSize"))return &o->content_size;
     assert(!"unexpected geometry");return NULL;
 }
 void ss_test_frame(id o,Rect value) { o->frame=value;o->bounds.size=value.size; }
@@ -75,7 +90,14 @@ id ss_test_collection(Rect value,id flow) { assert(flow);return ss_test_view("UI
 Rect ss_test_convert(id footer) { return footer->frame; }
 id ss_test_constraint(id anchor,double value) { anchor->constant=value;return anchor; }
 void ss_test_size(id flow,Size value) { flow->bounds.size=value; }
-void ss_test_offset_animated(id content,Point value,BOOL animated) { (void)content;(void)value;(void)animated;assert(!"no provider recents in this fixture"); }
+void ss_test_offset(id content,Point value) { content->offset=value;content->bounds.origin=value; }
+void ss_test_offset_animated(id content,Point value,BOOL animated) { assert(!animated);ss_test_offset(content,value); }
+void ss_test_inset(id content,Insets value) { content->inset=value;content->adjusted=value; }
+static Insets native_inset(id self,SEL sel,id content,id flow,I section) {
+    (void)self;(void)sel;(void)content;(void)flow;(void)section;return (Insets){8,0,8,0};
+}
+static I geometry_section;
+Insets ss_test_section(id o) { return palette_inset(o,"collectionView:layout:insetForSectionAtIndex:",o,o->flow,geometry_section); }
 static void remove_child(id parent,id child) {
     if(!parent)return;
     for(U i=0;i<parent->count;i++)if(parent->children[i]==child) {
@@ -84,7 +106,8 @@ static void remove_child(id parent,id child) {
 }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
-    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls)); }
+    if(!strcmp(sel,"respondsToSelector:")) { (void)va_arg(args,SEL);result=(id)1; }
+    else if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls)); }
     else if(!strcmp(sel,"new") || !strcmp(sel,"alloc"))result=create(o->cls);
     else if(!strcmp(sel,"stringWithUTF8String:")) { result=create("NSString");result->text=va_arg(args,const char *); }
     else if(!strcmp(sel,"isEqual:")) { id other=va_arg(args,id);result=(id)(uintptr_t)(o==other || (o->text && other->text && !strcmp(o->text,other->text))); }
@@ -93,6 +116,8 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"setAccessibilityLabel:") || !strcmp(sel,"setAccessibilityIdentifier:") || !strcmp(sel,"setText:"))o->text=va_arg(args,id)->text;
     else if(!strcmp(sel,"widthAnchor") || !strcmp(sel,"heightAnchor"))result=o;
     else if(!strcmp(sel,"setActive:"))o->active=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"setScrollEnabled:"))o->scroll_enabled=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"setContentInsetAdjustmentBehavior:"))assert(va_arg(args,I)==2);
     else if(!strcmp(sel,"setTranslatesAutoresizingMaskIntoConstraints:") || !strcmp(sel,"setUserInteractionEnabled:") || !strcmp(sel,"setAlwaysBounceVertical:")) { (void)va_arg(args,int); }
     else if(!strcmp(sel,"setHidden:"))o->hidden=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
@@ -101,7 +126,9 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"tintColor"))result=o->tint;
     else if(!strcmp(sel,"setBackgroundColor:"))o->background=va_arg(args,id);
     else if(!strcmp(sel,"backgroundColor"))result=o->background;
-    else if(!strcmp(sel,"secondaryLabelColor") || !strcmp(sel,"systemPurpleColor") || !strcmp(sel,"secondarySystemBackgroundColor") || !strcmp(sel,"clearColor"))result=o;
+    else if(!strcmp(sel,"secondaryLabelColor") || !strcmp(sel,"labelColor") || !strcmp(sel,"systemPurpleColor") || !strcmp(sel,"secondarySystemBackgroundColor") || !strcmp(sel,"clearColor"))result=o;
+    else if(!strcmp(sel,"boldSystemFontOfSize:"))result=o;
+    else if(!strcmp(sel,"setFont:")) { assert(va_arg(args,id)); }
     else if(!strcmp(sel,"superview"))result=o->parent;
     else if(!strcmp(sel,"window"))result=o;
     else if(!strcmp(sel,"subviews") || !strcmp(sel,"arrangedSubviews"))result=o;
@@ -127,6 +154,33 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"setTextColor:"))o->tint=va_arg(args,id);
     else if(!strcmp(sel,"reloadData"))o->reloads++;
     else if(!strcmp(sel,"visibleCells"))result=&empty;
+    else if(!strcmp(sel,"numberOfSections"))result=(id)(uintptr_t)o->sections;
+    else if(!strcmp(sel,"collectionViewLayout"))result=o->flow;
+    else if(!strcmp(sel,"collectionView"))result=o->collection;
+    else if(!strcmp(sel,"delegate"))result=o;
+    else if(!strcmp(sel,"invalidateLayout")) { }
+    else if(!strcmp(sel,"sectionHeadersPinToVisibleBounds"))result=(id)1;
+    else if(!strcmp(sel,"mainBundle"))result=o;
+    else if(!strcmp(sel,"localizedStringForKey:value:table:")) { result=va_arg(args,id);(void)va_arg(args,id);(void)va_arg(args,id); }
+    else if(!strcmp(sel,"text")) { result=create("NSString");result->text=o->text; }
+    else if(!strcmp(sel,"supplementaryViewForElementKind:atIndexPath:")) { (void)va_arg(args,id);(void)va_arg(args,id);result=o->heading; }
+    else if(!strcmp(sel,"indexPathForItem:inSection:")) { result=create("NSIndexPath");result->selected=(U)va_arg(args,I);result->section=va_arg(args,I); }
+    else if(!strcmp(sel,"numberOfItemsInSection:")) { (void)va_arg(args,I);result=(id)3; }
+    else if(!strcmp(sel,"representedElementKind"))result=o->element_kind;
+    else if(!strcmp(sel,"indexPath"))result=o->path;
+    else if(!strcmp(sel,"section"))result=(id)(uintptr_t)o->section;
+    else if(!strcmp(sel,"layoutAttributesForSupplementaryViewOfKind:atIndexPath:")) {
+        id kind_name=va_arg(args,id),path=va_arg(args,id);geometry_section=path->section;
+        Insets inset=ss_test_section(o->collection);
+        double base=path->section ? 160 : 0;
+        o->first->frame=(Rect){{0,base+44+inset.top},{56,56}};
+        o->last->frame=(Rect){{0,base+164+inset.top},{56,56}};
+        o->native_header->frame=(Rect){{0,base},{390,44}};o->native_header->path=path;o->native_header->element_kind=kind_name;
+        result=recent_header_attributes(o,o->native_header);
+    } else if(!strcmp(sel,"layoutAttributesForItemAtIndexPath:")) { id path=va_arg(args,id);result=path->selected ? o->last : o->first; }
+    else if(!strcmp(sel,"copy") || !strcmp(sel,"autorelease")) {
+        if(!strcmp(sel,"copy")) { result=create(o->cls);*result=*o; } else result=o;
+    } else if(!strcmp(sel,"setZIndex:")) { assert(va_arg(args,I)==1024); }
     else assert(!"unexpected library selector");
     va_end(args);return result;
 }
@@ -135,7 +189,12 @@ id tas_emotes_picker_copy(id room,int provider,int scope,id query,size_t limit) 
     assert(room==expected_room && !query && limit==6500);assert(provider>=0 && provider<4 && scope>=0 && scope<2);
     last_provider=provider;last_scope=scope;queries++;return &datasets[provider][scope];
 }
-static void native_action(id o,SEL sel) { (void)o;(void)sel;native_actions++; }
+static void native_action(id o,SEL sel) {
+    native_actions++;State *s=o->host->context;id content=s->recent_content;
+    if(!strcmp(sel,"channelEmotesButtonPressed") || !strcmp(sel,"allEmotesButtonPressed"))
+        ss_test_offset(content,(Point){0,s->library_start+s->library_height});
+    else if(!strcmp(sel,"recentEmotesButtonPressed"))ss_test_offset(content,(Point){0,-content->adjusted.top});
+}
 static void rebuilt_stack(id stack,id own,id a,id b,id c) {
     own->parent=nil;stack->count=0;
     id native[]={a,b,c};for(U i=0;i<3;i++)if(native[i]) { stack->children[stack->count++]=native[i];native[i]->parent=stack; }
@@ -155,9 +214,15 @@ int main(void) {
     (void)attachment_metadata_key;(void)thumbnail_url_key;(void)thumbnail_record_key;
     (void)request_native_catalog;(void)unified_matches;(void)image_request;(void)visual_text;
     struct Fake normal={.cls="UIColor"},active={.cls="UIColor"},room={.cls="NSString"};expected_room=&room;
-    State s={.room=&room};struct Fake delegate={.context=&s};delegate_class=&delegate;
+    State s={.room=&room,.recent_menu_open=YES};struct Fake delegate={.context=&s};delegate_class=&delegate;
     struct Fake owner={.cls=INPUT,.host=&delegate},container={.cls=CONTAINER,.parent=&owner,.bounds={{0,0},{390,300}}};owner.container=&container;
     struct Fake native={.cls="UICollectionView",.parent=&container},footer={.cls=FOOTER,.parent=&container,.frame={{0,252},{390,48}},.bounds={{0,0},{390,48}}};
+    struct Fake first={.cls="UICollectionViewLayoutAttributes"},last={.cls="UICollectionViewLayoutAttributes"},header={.cls="UICollectionViewLayoutAttributes"};
+    struct Fake flow={.cls="UICollectionViewFlowLayout",.collection=&native,.first=&first,.last=&last,.native_header=&header,.content_size={390,160}};
+    struct Fake title={.cls="UILabel",.text="Frequently Used"},heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}}};
+    native.flow=&flow;native.heading=&heading;native.bounds=(Rect){{0,0},{390,300}};native.sections=2;
+    native.encoding="{UIEdgeInsets=dddd}40@0:8@16@24q32";native.host=&delegate;
+    s.recent_content=&native;original_palette_inset=(IMP)native_inset;
     container.children[container.count++]=&native;container.children[container.count++]=&footer;
     struct Fake buttons={.cls="UIStackView"},highlights={.cls="UIStackView"},views[6]={0};footer.stack=&buttons;footer.highlights=&highlights;
     for(U i=0;i<6;i++) { views[i].cls=i<3 ? "UIButton":"UIView";views[i].tint=&normal;footer.views[i]=&views[i]; }
@@ -179,14 +244,24 @@ int main(void) {
     assert(button->targets==1);
     rebuilt_stack(&buttons,button,nil,&views[1],&views[2]);rebuilt_stack(&highlights,highlight,nil,&views[4],&views[5]);
     install_footer(&footer,&owner);assert(buttons.children[0]==button && highlights.children[0]==highlight);
-    /* Restore Recent and open the actual complete panel, not an empty tab. */
+    /* The library exists inline before selecting its footer shortcut. */
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
-    install_footer(&footer,&owner);third_party_tab(&delegate,"ssThirdParty:",button);
-    assert(s.tab==1 && s.panel && s.panel->parent==&container && native.hidden && container.front==s.panel);
-    assert(s.provider->count==4 && s.scope->count==2 && s.grid->host==&delegate);
+    install_footer(&footer,&owner);make_panel(&delegate);refresh_library(&s);place_library_panel(&s,&native);
+    assert(s.panel->parent==&native && !native.hidden && !s.tab && !button->selected);
+    assert(s.library_section==1 && s.library_start==160 && s.library_height==170);
+    assert(s.panel->frame.origin.y==160 && s.panel->frame.size.height==170);
+    assert(header.frame.origin.y==160); /* UIKit's cached header is unchanged. */
+    assert(first.frame.origin.y==382 && last.frame.origin.y==502); /* native cells follow the inline gap */
+    Insets scoped=palette_inset(&native,"inset",&native,&flow,1);
+    assert(scoped.top==178 && scoped.bottom==8);
+    assert(palette_inset(&native,"inset",&native,&flow,0).top==8);
+    struct Fake orphan={0};assert(palette_inset(&orphan,"inset",&orphan,&flow,1).top==8);
+    third_party_tab(&delegate,"ssThirdParty:",button);
+    assert(s.tab==1 && native.offset.y==160 && s.panel->parent==&native && !native.hidden);
+    assert(s.provider->count==4 && s.scope->count==2 && s.grid->host==&delegate && !s.grid->scroll_enabled);
     const char *providers[]={"All","7TV","BTTV","FFZ"};for(U i=0;i<4;i++)assert(!strcmp(s.provider->children[i]->text,providers[i]));
     assert(!strcmp(s.scope->children[0]->text,"Channel") && !strcmp(s.scope->children[1]->text,"Global"));
-    assert(s.panel->frame.size.height==252 && s.grid->frame.origin.y==76 && s.grid->frame.size.height==176);
+    assert(s.grid->frame.origin.y==106 && s.grid->frame.size.height==56);
     assert(button->selected && highlight->background==&active && !views[3].background && views[0].tint==&normal);
     for(int p=0;p<4;p++) {
         s.scope->selected=1;scope_changed(&delegate,"ssScope:",s.scope);assert(last_scope==1);
@@ -194,25 +269,45 @@ int main(void) {
         assert(s.library==p && !s.library_scope && !s.scope->selected && last_provider==p && !last_scope);
         assert(item_count(&delegate,"collectionView:numberOfItemsInSection:",s.grid,0)==(I)datasets[p][0].count);
     }
-    /* A rebuild while browsing must preserve the panel and selection. */
+    /* All rows share outer scrolling but instantiate a viewport grid. */
+    assert(s.library_height==3170);
+    ss_test_offset(&native,(Point){0,1266});place_library_panel(&s,&native);
+    assert(s.grid->offset.y==1000 && s.grid->frame.origin.y==1106 && s.grid->frame.size.height==300 && s.tab==1);
+    assert(s.panel->frame.origin.y==160 && s.panel->frame.size.height==3170);
+    datasets[3][0].count=6500;refresh_library(&s);place_library_panel(&s,&native);
+    assert(s.library_height==65150 && s.grid->frame.size.height==300);
+    ss_test_offset(&native,(Point){0,30000});place_library_panel(&s,&native);
+    assert(s.grid->offset.y==29734 && s.grid->frame.size.height==300);
+    datasets[3][0].count=301;refresh_library(&s);ss_test_offset(&native,(Point){0,1266});place_library_panel(&s,&native);
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
-    install_footer(&footer,&owner);assert(buttons.children[1]==button && button->selected && s.tab==1 && s.panel->parent==&container);
+    install_footer(&footer,&owner);assert(buttons.children[1]==button && button->selected && s.tab==1 && s.panel->parent==&native);
     struct Fake themed={.cls="UIColor"};original_footer_apply=(IMP)native_footer_apply;
     footer_apply(&footer,"apply:",&themed);
     assert(button->selected && highlight->background==&themed && !views[4].background && s.library==3 && !s.library_scope);
-    container.bounds.size.width=844;place_library_panel(&s,&container,&footer);assert(s.grid->frame.size.width==836);
-    /* Backspace keeps the browser open; native library navigation exits it. */
+    native.bounds.size.width=844;place_library_panel(&s,&native);assert(s.grid->frame.size.width==836 && s.library_height==1430);
     for(U i=0;i<5;i++)original_footer_actions[i]=(IMP)native_action;
-    footer_action(&footer,"backspaceButtonPressed");assert(s.tab==1 && native.hidden);
-    footer_action(&footer,"channelEmotesButtonPressed");assert(!s.tab && !native.hidden && !s.panel->parent && !button->selected && !highlight->background);
-    assert(views[4].background==&themed && views[1].tint==&themed && native_actions==2 && queries==10);
-    /* Native Recent's lazy views can be absent altogether, not just absent
-     * from the stacks. The full library must still open and highlight. */
+    footer_action(&footer,"backspaceButtonPressed");assert(s.tab==1 && !native.hidden);
+    footer_action(&footer,"channelEmotesButtonPressed");
+    assert(!s.tab && !native.hidden && s.panel->parent==&native && !button->selected && !highlight->background);
+    assert(views[4].background==&themed && views[1].tint==&themed && native_actions==2);
+    /* Scrolling back to the section highlights the shortcut automatically. */
+    ss_test_offset(&native,(Point){0,s.library_start});place_library_panel(&s,&native);assert(button->selected && s.tab==1);
     footer.views[0]=nil;footer.views[3]=nil;footer_layout(&footer,"layoutSubviews");
     assert(buttons.children[0]==button && highlights.children[0]==highlight);
     third_party_tab(&delegate,"ssThirdParty:",button);
-    assert(s.tab==1 && button->selected && highlight->background==&themed && native.hidden);
-    footer_action(&footer,"allEmotesButtonPressed");assert(!s.tab && !native.hidden && !s.panel->parent);
+    assert(s.tab==1 && button->selected && highlight->background==&themed && !native.hidden);
+    footer_action(&footer,"allEmotesButtonPressed");assert(!s.tab && !native.hidden && s.panel->parent==&native);
+    /* With only Recent present, owned bottom inset makes the library reachable.
+     * Empty/no-history layouts still put it before the native channel section. */
+    native.sections=1;native.inset.bottom=12;native.adjusted.bottom=12;
+    place_library_panel(&s,&native);assert(s.library_tail_height==1430 && native.inset.bottom==1442 && s.library_start==160);
+    native.sections=2;title.text="Channel";place_library_panel(&s,&native);
+    assert(!s.library_tail_height && native.inset.bottom==12 && !s.library_section && !s.library_start);
+    assert(first.frame.origin.y==1482); /* account emotes remain below the library */
+    datasets[3][0].count=0;refresh_library(&s);place_library_panel(&s,&native);
+    assert(s.library_height==178 && !s.empty->hidden);
+    native.sections=0;place_library_panel(&s,&native);assert(s.library_tail_height==178 && native.inset.bottom==190);
+    detach_recents(&s);assert(!s.panel->parent && !native.hidden && !s.library_height && native.inset.bottom==12);
     return 0;
 }
 '''
@@ -229,12 +324,12 @@ def replace_body(source, name, body):
 
 
 class LibraryTests(unittest.TestCase):
-    def test_footer_rebuild_restores_complete_browser_and_provider_scope_reset(self):
+    def test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset(self):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)
         source = composer.recent_geometry_source()
         source = replace_body(source, "static id delegate_for(id owner)", "return objc_getAssociatedObject(owner,&state_key);")
-        source = replace_body(source, "static void refresh(id delegate)", "State *s=state(delegate);refresh_library(s);place_library_panel(s,container_for(s,s->owner),s->footer);")
+        source = replace_body(source, "static void refresh(id delegate)", "State *s=state(delegate);if(!s->panel)make_panel(delegate);refresh_library(s);place_library_panel(s,s->recent_content);")
         for signature, body in (("static void render(id delegate)", "(void)delegate;"),
                                 ("static void expand(id delegate)", "(void)delegate;"),
                                 ("static void start_tick(id delegate)", "(void)delegate;"),

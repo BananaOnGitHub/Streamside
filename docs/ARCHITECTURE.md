@@ -145,6 +145,11 @@ A non-scrolling owned collection displays only the outer viewport's intersection
 with the virtual grid and synchronizes its content offset, so thousands of emotes
 reuse a bounded number of visible cells rather than rendering the entire library.
 Width and provider/scope changes recompute the reserved height.
+Height/section changes use the flow layout's own invalidation-context class,
+explicitly invalidate both delegate metrics and layout attributes, and request
+an immediate native layout pass before placing the transparent panel. Cached
+insets must not leave native subscription cells at their old positions. The
+panel and viewport grid clip their contents at their own boundaries.
 The entry and matching highlight follow Recent in both footer stacks and jump
 the native picker to the inline section. Scroll position drives their selection.
 Twitch's Swift availability updates replace all arranged views, so installation

@@ -30,7 +30,11 @@
   regression tests. Keep every existing Mach-O and packaging guard mandatory.
 - Preserve the existing icon. The forthcoming logo must support UIKit dynamic
   background/appearance and tint; logo work and release publication remain pending.
-- Candidate bundle build: `3.0.0.20`; inline library section requires device verification.
+- Explicitly invalidate cached native flow-layout delegate metrics and attributes
+  when the inline library height changes, then apply native cell frames before
+  placing the transparent panel. Clip the panel and its viewport grid to their
+  own bounds; add a cached-metrics regression covering the full 6,500-emote grid.
+- Candidate bundle build: `3.0.0.21`; inline library section requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

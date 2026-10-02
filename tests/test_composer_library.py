@@ -18,6 +18,7 @@ struct Fake {
     State *context;
     Rect frame,bounds;
     Insets inset,adjusted;
+    Insets cached_sections[4];
     Point offset;
     Size content_size;
     I section;
@@ -25,10 +26,10 @@ struct Fake {
     U count,selected,targets,reloads;
     id tint,background;
     double constant;
-    BOOL hidden,active,scroll_enabled;
+    BOOL hidden,active,scroll_enabled,clips,metrics,attributes,needs_metrics;
 };
 static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
-static U allocated,class_count,queries,native_actions;
+static U allocated,class_count,queries,native_actions,metric_invalidations;
 static int last_provider,last_scope;
 static id expected_room;
 static id create(const char *cls) { assert(allocated<2048);id o=&objects[allocated++];o->cls=cls;return o; }
@@ -117,6 +118,9 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"widthAnchor") || !strcmp(sel,"heightAnchor"))result=o;
     else if(!strcmp(sel,"setActive:"))o->active=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"setScrollEnabled:"))o->scroll_enabled=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"setClipsToBounds:"))o->clips=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"setInvalidateFlowLayoutDelegateMetrics:"))o->metrics=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"setInvalidateFlowLayoutAttributes:"))o->attributes=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"setContentInsetAdjustmentBehavior:"))assert(va_arg(args,I)==2);
     else if(!strcmp(sel,"setTranslatesAutoresizingMaskIntoConstraints:") || !strcmp(sel,"setUserInteractionEnabled:") || !strcmp(sel,"setAlwaysBounceVertical:")) { (void)va_arg(args,int); }
     else if(!strcmp(sel,"setHidden:"))o->hidden=(BOOL)va_arg(args,int);
@@ -158,7 +162,27 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"collectionViewLayout"))result=o->flow;
     else if(!strcmp(sel,"collectionView"))result=o->collection;
     else if(!strcmp(sel,"delegate"))result=o;
+    /* Reproduce cached delegate metrics and already-applied native frames.
+     * Ordinary invalidation must NOT magically query fresh section insets. */
     else if(!strcmp(sel,"invalidateLayout")) { }
+    else if(!strcmp(sel,"invalidationContextClass"))result=objc_getClass("UICollectionViewFlowLayoutInvalidationContext");
+    else if(!strcmp(sel,"invalidateLayoutWithContext:")) {
+        id context=va_arg(args,id);assert(context->metrics && context->attributes);
+        o->needs_metrics=YES;metric_invalidations++;
+    } else if(!strcmp(sel,"setNeedsLayout")) { }
+    else if(!strcmp(sel,"layoutIfNeeded")) {
+        id flow=o->flow;
+        if(flow && flow->needs_metrics) {
+            flow->needs_metrics=NO;
+            for(I i=0;i<(I)o->sections;i++)flow->cached_sections[i]=palette_inset(o,"inset",o,flow,i);
+            I section=o->host ? o->host->context->library_section : 0;
+            if(section<(I)o->sections) {
+                double base=section ? 160 : 0;
+                flow->first->frame=(Rect){{0,base+44+flow->cached_sections[section].top},{56,56}};
+                flow->last->frame=(Rect){{0,base+164+flow->cached_sections[section].top},{56,56}};
+            }
+        }
+    }
     else if(!strcmp(sel,"sectionHeadersPinToVisibleBounds"))result=(id)1;
     else if(!strcmp(sel,"mainBundle"))result=o;
     else if(!strcmp(sel,"localizedStringForKey:value:table:")) { result=va_arg(args,id);(void)va_arg(args,id);(void)va_arg(args,id); }
@@ -171,7 +195,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"section"))result=(id)(uintptr_t)o->section;
     else if(!strcmp(sel,"layoutAttributesForSupplementaryViewOfKind:atIndexPath:")) {
         id kind_name=va_arg(args,id),path=va_arg(args,id);geometry_section=path->section;
-        Insets inset=ss_test_section(o->collection);
+        Insets inset=o->cached_sections[path->section];
         double base=path->section ? 160 : 0;
         o->first->frame=(Rect){{0,base+44+inset.top},{56,56}};
         o->last->frame=(Rect){{0,base+164+inset.top},{56,56}};
@@ -219,6 +243,7 @@ int main(void) {
     struct Fake native={.cls="UICollectionView",.parent=&container},footer={.cls=FOOTER,.parent=&container,.frame={{0,252},{390,48}},.bounds={{0,0},{390,48}}};
     struct Fake first={.cls="UICollectionViewLayoutAttributes"},last={.cls="UICollectionViewLayoutAttributes"},header={.cls="UICollectionViewLayoutAttributes"};
     struct Fake flow={.cls="UICollectionViewFlowLayout",.collection=&native,.first=&first,.last=&last,.native_header=&header,.content_size={390,160}};
+    for(U i=0;i<4;i++)flow.cached_sections[i]=(Insets){8,0,8,0};
     struct Fake title={.cls="UILabel",.text="Frequently Used"},heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}}};
     native.flow=&flow;native.heading=&heading;native.bounds=(Rect){{0,0},{390,300}};native.sections=2;
     native.encoding="{UIEdgeInsets=dddd}40@0:8@16@24q32";native.host=&delegate;
@@ -249,6 +274,8 @@ int main(void) {
     install_footer(&footer,&owner);make_panel(&delegate);refresh_library(&s);place_library_panel(&s,&native);
     assert(s.panel->parent==&native && !native.hidden && !s.tab && !button->selected);
     assert(s.library_section==1 && s.library_start==160 && s.library_height==170);
+    assert(metric_invalidations && s.panel->clips && s.grid->clips);
+    assert(flow.cached_sections[1].top==178 && first.frame.origin.y==382);
     assert(s.panel->frame.origin.y==160 && s.panel->frame.size.height==170);
     assert(header.frame.origin.y==160); /* UIKit's cached header is unchanged. */
     assert(first.frame.origin.y==382 && last.frame.origin.y==502); /* native cells follow the inline gap */
@@ -276,6 +303,7 @@ int main(void) {
     assert(s.panel->frame.origin.y==160 && s.panel->frame.size.height==3170);
     datasets[3][0].count=6500;refresh_library(&s);place_library_panel(&s,&native);
     assert(s.library_height==65150 && s.grid->frame.size.height==300);
+    assert(flow.cached_sections[1].top==65158 && first.frame.origin.y>=s.library_start+s.library_height);
     ss_test_offset(&native,(Point){0,30000});place_library_panel(&s,&native);
     assert(s.grid->offset.y==29734 && s.grid->frame.size.height==300);
     datasets[3][0].count=301;refresh_library(&s);ss_test_offset(&native,(Point){0,1266});place_library_panel(&s,&native);

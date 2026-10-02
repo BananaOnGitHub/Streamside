@@ -831,6 +831,7 @@ static id container_for(State *s,id owner) {
 static void make_panel(id delegate) {
     State *s=state(delegate); if (s->panel) return;
     s->panel=view("UIView",(Rect){{0,0},{320,200}}); v1(s->panel,"setBackgroundColor:",color("clearColor"));
+    vb(s->panel,"setClipsToBounds:",YES);
     s->library_title=view("UILabel",(Rect){{8,6},{304,24}});
     v1(s->library_title,"setText:",str("Emote Library")); v1(s->library_title,"setTextColor:",color("labelColor"));
     v1(s->library_title,"setFont:",((id (*)(id,SEL,double))objc_msgSend)((id)objc_getClass("UIFont"),sel_registerName("boldSystemFontOfSize:"),14.0));
@@ -846,6 +847,7 @@ static void make_panel(id delegate) {
     s->grid=((id (*)(id,SEL,Rect,id))objc_msgSend)(m0((id)objc_getClass("UICollectionView"),"alloc"),sel_registerName("initWithFrame:collectionViewLayout:"),(Rect){{0,76},{320,124}},flow); objc_release(flow);
     ((void (*)(id,SEL,Class,id))objc_msgSend)(s->grid,sel_registerName("registerClass:forCellWithReuseIdentifier:"),objc_getClass("UICollectionViewCell"),str("SSEmoteCell"));
     v1(s->grid,"setDataSource:",delegate); v1(s->grid,"setDelegate:",delegate); v1(s->grid,"setBackgroundColor:",color("clearColor"));
+    vb(s->grid,"setClipsToBounds:",YES);
     vb(s->grid,"setScrollEnabled:",NO); vi(s->grid,"setContentInsetAdjustmentBehavior:",2);
     v1(s->panel,"addSubview:",s->grid);
     s->empty=view("UILabel",(Rect){{16,88},{288,60}}); vi(s->empty,"setTextAlignment:",1); vi(s->empty,"setNumberOfLines:",2);
@@ -863,6 +865,22 @@ static void refresh_library(State *s) {
         id c=at(cells,i),path=m1(s->grid,"indexPathForCell:",c); U index=number(path,"item");
         if (path && index<number(s->entries,"count")) set_thumbnail(objc_getAssociatedObject(c,&cell_key),at(s->entries,index));
     }
+}
+static void invalidate_picker_metrics(id content) {
+    id flow=m0(content,"collectionViewLayout");
+    /* An attribute-only invalidation can keep the delegate's old section
+     * insets. Explicitly discard both caches, then apply the new native cell
+     * frames before mounting/moving our transparent inline panel. */
+    Class context_class=(Class)m0((id)object_getClass(flow),"invalidationContextClass");
+    id context=context_class ? m0((id)context_class,"new") : nil;
+    if (kind(context,"UICollectionViewFlowLayoutInvalidationContext")) {
+        vb(context,"setInvalidateFlowLayoutDelegateMetrics:",YES);
+        vb(context,"setInvalidateFlowLayoutAttributes:",YES);
+        v1(flow,"invalidateLayoutWithContext:",context);
+    } else m0(flow,"invalidateLayout");
+    objc_release(context);
+    m0(content,"setNeedsLayout");
+    m0(content,"layoutIfNeeded");
 }
 static void place_library_panel(State *s,id content) {
     if (!s || !s->panel || !content || s->placing_library || !original_palette_inset) return;
@@ -887,7 +905,7 @@ static void place_library_panel(State *s,id content) {
         inset.bottom+=tail-s->library_tail_height; s->library_tail_height=tail;
         ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
     }
-    if (changed) m0(flow,"invalidateLayout");
+    if (changed) invalidate_picker_metrics(content);
     if (tail) {
         Size size=((Size (*)(id,SEL))objc_msgSend)(flow,sel_registerName("collectionViewContentSize"));
         s->library_start=size.height;
@@ -1096,7 +1114,7 @@ static void detach_recents(State *s) {
             inset.bottom-=s->library_tail_height; s->library_tail_height=0;
             ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
         }
-        if (s->library_height) m0(m0(content,"collectionViewLayout"),"invalidateLayout");
+        if (s->library_height) invalidate_picker_metrics(content);
     }
     s->recent_height=0; s->recent_header_height=0; s->recent_header_start=0;
     s->library_height=0; s->library_start=0; s->library_tail_height=0;

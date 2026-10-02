@@ -109,7 +109,7 @@ static id room_for(id owner) {
 
 typedef struct {
     id owner; /* objc weak storage */
-    id room,strip,suggestions,panel,grid,provider,scope,entries,empty,recent_strip,recent_entries;
+    id room,strip,suggestions,panel,grid,provider,scope,entries,empty,recent_strip,recent_clip,recent_entries;
     id footer; /* objc weak storage: the emote keyboard may be recreated */
     id native_content; /* retained only while an overlay uses it */
     id recent_content; /* objc weak storage: follows the native scroll view */
@@ -891,12 +891,12 @@ static void update_recent_highlight(State *s,id content) {
 /* Observe the rendered native title, including Twitch's localization. A first
  * section can instead be Channel when Twitch has no saved native history.
  * Never move that header or read/construct the private Swift section tuples. */
-static void observe_recent_heading(State *s,id content) {
+static id observe_recent_heading(State *s,id content) {
     id path=((id (*)(id,SEL,I,I))objc_msgSend)((id)objc_getClass("NSIndexPath"),sel_registerName("indexPathForItem:inSection:"),0,0);
     id heading=((id (*)(id,SEL,id,id))objc_msgSend)(content,sel_registerName("supplementaryViewForElementKind:atIndexPath:"),str("UICollectionElementKindSectionHeader"),path);
-    if (!kind(heading,PALETTE_HEADER)) return; /* Offscreen/reused headers retain the last observation. */
+    if (!kind(heading,PALETTE_HEADER)) return nil; /* Offscreen/reused headers retain the last observation. */
     id title=object_field(heading,"titleLabel","UILabel");
-    if (!title) return;
+    if (!title) return nil;
     id name=str("Frequently Used");
     id localized=((id (*)(id,SEL,id,id,id))objc_msgSend)(m0((id)objc_getClass("NSBundle"),"mainBundle"),sel_registerName("localizedStringForKey:value:table:"),name,name,nil);
     double height=equal(m0(title,"text"),localized) ? rect(heading,"bounds").size.height : 0;
@@ -906,12 +906,13 @@ static void observe_recent_heading(State *s,id content) {
         s->recent_header_start=0;
         m0(m0(content,"collectionViewLayout"),"invalidateLayout");
     }
+    return height ? heading : nil;
 }
 static void place_recent_strip(State *s,id content) {
     if (!s || !content || s->placing_recents) return;
     s->placing_recents=YES;
-    double height=number(s->recent_entries,"count") && s->recent_strip ? 48 : 0;
-    if (height) observe_recent_heading(s,content);
+    double height=number(s->recent_entries,"count") && s->recent_strip && s->recent_clip ? 48 : 0;
+    id heading=height ? observe_recent_heading(s,content) : nil;
     if (height!=s->recent_height) {
         Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
         Insets adjusted=responds(content,"adjustedContentInset") ?
@@ -934,12 +935,27 @@ static void place_recent_strip(State *s,id content) {
         /* Put the row after the native Frequently Used title. Its header
          * moves into our existing inset; native cells keep their geometry. */
         double y=s->recent_header_height ? s->recent_header_start+s->recent_header_height-height : -height;
-        Rect bounds=rect(content,"bounds"),position={{bounds.origin.x,y},{bounds.size.width,height}};
-        if (m0(s->recent_strip,"superview")!=content) v1(content,"addSubview:",s->recent_strip);
-        Rect old=rect(s->recent_strip,"frame");
+        /* Native headers pin while this row scrolls away. Clip the part that
+         * crosses the rendered heading, including its touch area. Changing
+         * only z-order cannot hide emotes through a transparent header. Keep
+         * the scroll view full-sized so a swipe/deceleration is undisturbed. */
+        double clipped=0;
+        if (heading) {
+            Rect header=rect(heading,"frame");
+            clipped=header.origin.y+header.size.height-y;
+            if (clipped<0) clipped=0;
+            if (clipped>height) clipped=height;
+        }
+        Rect bounds=rect(content,"bounds");
+        Rect viewport={{bounds.origin.x,y+clipped},{bounds.size.width,height-clipped}};
+        Rect position={{0,-clipped},{bounds.size.width,height}};
+        if (m0(s->recent_clip,"superview")!=content) v1(content,"addSubview:",s->recent_clip);
+        Rect old=rect(s->recent_clip,"frame");
+        if (memcmp(&old,&viewport,sizeof(viewport))) frame(s->recent_clip,viewport);
+        old=rect(s->recent_strip,"frame");
         if (memcmp(&old,&position,sizeof(position))) frame(s->recent_strip,position);
-        v1(content,"bringSubviewToFront:",s->recent_strip);
-    } else m0(s->recent_strip,"removeFromSuperview");
+        v1(content,"bringSubviewToFront:",s->recent_clip);
+    } else m0(s->recent_clip,"removeFromSuperview");
     s->placing_recents=NO; update_recent_highlight(s,content);
 }
 static void detach_recents(State *s) {
@@ -954,7 +970,7 @@ static void detach_recents(State *s) {
         }
     }
     s->recent_height=0; s->recent_header_height=0; s->recent_header_start=0;
-    m0(s->recent_strip,"removeFromSuperview");
+    m0(s->recent_clip,"removeFromSuperview");
     objc_destroyWeak(&s->recent_content); objc_initWeak(&s->recent_content,nil); objc_release(content);
 }
 static void bind_recents(id delegate,id container) {
@@ -982,7 +998,13 @@ static void refresh_recents(id delegate,BOOL menu_open) {
         objc_release(s->recent_entries); s->recent_entries=items;
         if (!s->recent_strip && number(items,"count")) {
             s->recent_strip=make_strip();
-            v1(s->recent_strip,"setBackgroundColor:",color("clearColor"));
+            if (s->recent_strip) {
+                v1(s->recent_strip,"setBackgroundColor:",color("clearColor"));
+                s->recent_clip=view("UIView",(Rect){{0,0},{320,48}});
+                vb(s->recent_clip,"setClipsToBounds:",YES);
+                v1(s->recent_clip,"setBackgroundColor:",color("clearColor"));
+                v1(s->recent_clip,"addSubview:",s->recent_strip);
+            }
         }
         if (s->recent_strip) {
             fill_strip(s->recent_strip,delegate,items,"ssRecent:");
@@ -1148,7 +1170,7 @@ static void delegate_dealloc(id self,SEL sel) {
         s->colon_selector=NO;
         id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); associate(selector,&selector_key,nil); objc_release(selector);
         restore_native(s); detach_recents(s); m0(s->strip,"removeFromSuperview");
-        id values[]={s->room,s->strip,s->suggestions,s->panel,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot};
+        id values[]={s->room,s->strip,s->suggestions,s->panel,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_clip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot};
         for (size_t i=0;i<sizeof(values)/sizeof(values[0]);i++) if (values[i]) objc_release(values[i]);
         objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); objc_destroyWeak(&s->recent_content);
         objc_destroyWeak(&s->native_manager); objc_destroyWeak(&s->stock_selector); free(s);

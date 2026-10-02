@@ -279,7 +279,7 @@ class VersionContractTests(unittest.TestCase):
         self.assertTrue(info["CFBundleVersion"].startswith(version + "."))
         build = info["CFBundleVersion"][len(version) + 1:]
         self.assertTrue(build.isdecimal() and int(build) > 0)
-        self.assertIn(f'#define TAS_REPORT_VERSION "{version}"', (root / "src/TASDiagnostics.c").read_text())
+        self.assertIn(f'#define TAS_REPORT_VERSION "{version}-build.{build}"', (root / "src/TASDiagnostics.c").read_text())
 
 
 if __name__ == "__main__":

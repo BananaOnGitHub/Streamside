@@ -111,6 +111,11 @@ cell geometry, section models, navigation and sticky-header push-off stay intact
 If Twitch has no native Frequently Used header, the row keeps its preceding
 position rather than borrowing a Channel heading. The row has a transparent
 background so it shares the section's appearance.
+An owned transparent UIView clips the row at the rendered Frequently Used
+header's lower edge during vertical scrolling. The pinned title therefore stays
+clear even with a transparent native header. The full-height scroll view moves
+inside that viewport without changing its horizontal offset or cancelling a
+swipe; the clipped portion also falls outside UIKit's touch area.
 
 The third-party Recent row snapshots saved history on the first visible layout
 of each emote menu opening. Selection/send still saves history immediately;

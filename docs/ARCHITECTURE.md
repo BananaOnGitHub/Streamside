@@ -149,6 +149,10 @@ Frequently Used title. Only that header moves into the owned inset; the row
 follows it and uses a transparent background. If no matching native heading is
 present, the row retains its preceding position. Other section titles are not
 moved into that space.
+The row lives inside a transparent clipping view whose visible bounds stop at
+the pinned header's lower edge. Its scroll-view size and horizontal offset stay
+stable as it scrolls out; clipped emotes cannot draw or receive touches over the
+title. This does not rely on the native header having an opaque background.
 Per-section inset callbacks require their complete inspected Objective-C encoding.
 While the provider row leads the viewport,
 the native Recent indicator uses the existing selected colors, even with empty

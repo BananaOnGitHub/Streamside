@@ -501,22 +501,28 @@ static id dispatch(id o,SEL sel,...) {
     va_end(args);return result;
 }
 id (*objc_msgSend)(id,SEL,...)=dispatch;
+/* Named struct arguments preserve the host ABI; a nonvariadic objc_msgSend
+ * cast cannot safely call our variadic mock for floating-point aggregates. */
+void ss_test_frame(id o,Rect value) { dispatch(o,"setFrame:",value); }
+void ss_test_inset(id o,Insets value) { dispatch(o,"setContentInset:",value); }
+void ss_test_offset(id o,Point value) { dispatch(o,"setContentOffset:",value); }
+void ss_test_offset_animated(id o,Point value,BOOL animated) { dispatch(o,"setContentOffset:animated:",value,animated); }
 static void native_layout(id o,SEL sel) { (void)o;(void)sel;original_layouts++; }
 int main(void) {
     struct Fake ordinary={.cls="UIColor"},active={.cls="UIColor"};
     struct Fake buttons[6]={0},footer={.cls="UIView"};
     for(U i=0;i<6;i++) { buttons[i].cls=i<3 ? "UIButton":"UIView";buttons[i].tint=&ordinary;footer.views[i]=&buttons[i]; }
     buttons[1].tint=&active;buttons[4].background=&active; /* native Channel selected; native Recent empty */
-    struct Fake items={.count=3},row={.cls="UIScrollView"};
+    struct Fake items={.count=3},clip={.cls="UIView"},row={.cls="UIScrollView",.parent=&clip};
     struct Fake native={.cls="UICollectionView",.bounds={{0,-20},{390,220}},.inset={8,2,4,6},.adjusted={20,2,4,6},.offset={0,-20}};
-    State s={.recent_strip=&row,.recent_entries=&items,.footer=&footer};current=&s;
+    State s={.recent_strip=&row,.recent_clip=&clip,.recent_entries=&items,.footer=&footer};current=&s;
     struct Fake delegate={.context=&s},container={.cls="UIView",.children={&native},.count=1};delegate_class=&delegate;
     original_collection_layout=(IMP)native_layout;
     /* No Recent button press: tab remains the default native library. */
     bind_recents(&delegate,&container);
-    assert(!s.tab && row.parent==&native && s.recent_content==&native && native.host==&delegate);
+    assert(!s.tab && clip.parent==&native && row.parent==&clip && s.recent_content==&native && native.host==&delegate);
     assert(native.inset.top==56 && native.inset.bottom==4 && native.offset.y==-68);
-    assert(row.frame.origin.y==-48 && row.frame.size.width==390 && row.frame.size.height==48);
+    assert(clip.frame.origin.y==-48 && row.frame.origin.y==0 && row.frame.size.width==390 && row.frame.size.height==48);
     assert(s.recent_highlight_active && buttons[3].background==&active && !buttons[4].background);
     assert(buttons[0].tint==&active && buttons[1].tint==&ordinary);
     unsigned offsets=offset_sets,insets=inset_sets;
@@ -524,27 +530,47 @@ int main(void) {
     bind_recents(&delegate,&container);collection_layout(&native,"layoutSubviews");
     assert(offset_sets==offsets && inset_sets==insets && row.offset.x==192 && original_layouts==1);
     struct Fake title={.cls="UILabel",.tint=objc_getClass("NSString")};
-    struct Fake heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}}};native.heading=&heading;
+    struct Fake heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}},.frame={{0,-48},{390,44}}};native.heading=&heading;
     place_recent_strip(&s,&native);
-    assert(s.recent_header_height==44 && row.frame.origin.y==-4);
+    assert(s.recent_header_height==44 && clip.frame.origin.y==-4 && row.frame.origin.y==0);
     assert(native.inset.top==56 && offset_sets==offsets && row.offset.x==192);
     title.tint=&ordinary;place_recent_strip(&s,&native); /* A Channel header is never moved. */
-    assert(!s.recent_header_height && row.frame.origin.y==-48 && offset_sets==offsets);
+    assert(!s.recent_header_height && clip.frame.origin.y==-48 && row.frame.origin.y==0 && offset_sets==offsets);
     title.tint=objc_getClass("NSString");place_recent_strip(&s,&native);
-    assert(s.recent_header_height==44 && row.frame.origin.y==-4 && offset_sets==offsets);
+    assert(s.recent_header_height==44 && clip.frame.origin.y==-4 && row.frame.origin.y==0 && offset_sets==offsets);
+    /* On a vertical swipe the native title pins, and the row must disappear
+     * beneath its lower edge even when the header background is transparent.
+     * The full scroll view keeps its geometry/offset inside a clipped viewport;
+     * UIKit hit testing rejects the removed area because it is outside that
+     * viewport. Unscrolling restores the original row without rebuilding it. */
+    for (int delta=0;delta<=60;delta++) {
+        heading.frame.origin.y=-48+delta;
+        native.bounds.origin.y=-68+delta;
+        native.offset.y=native.bounds.origin.y;
+        collection_layout(&native,"layoutSubviews");
+        double removed=delta>48 ? 48 : delta;
+        assert(clip.frame.origin.y==-4+removed && clip.frame.size.height==48-removed);
+        assert(row.frame.origin.y==-removed && row.frame.size.height==48);
+        assert(clip.frame.origin.y+row.frame.origin.y==-4); /* content never jumps */
+        assert(!clip.frame.size.height || clip.frame.origin.y>=heading.frame.origin.y+44);
+        assert(row.offset.x==192 && offset_sets==offsets && inset_sets==insets);
+    }
+    heading.frame.origin.y=-48;native.bounds.origin.y=-68;native.offset.y=-68;
+    collection_layout(&native,"layoutSubviews");
+    assert(clip.frame.origin.y==-4 && clip.frame.size.height==48 && !row.frame.origin.y);
     native.heading=nil; /* UIKit recycles the title while browsing. */
     /* Native vertical scrolling moves the row with content, never pins it. */
     native.offset.y=100;native.bounds.origin.y=100;collection_layout(&native,"layoutSubviews");
-    assert(row.frame.origin.y-native.bounds.origin.y==-104 && offset_sets==offsets);
+    assert(clip.frame.origin.y+row.frame.origin.y-native.bounds.origin.y==-104 && offset_sets==offsets);
     assert(!s.recent_highlight_active && !buttons[3].background && buttons[4].background==&active);
     assert(buttons[1].tint==&active && buttons[0].tint==&ordinary);
     struct Fake unrelated={.cls="UICollectionView"};collection_layout(&unrelated,"layoutSubviews");
-    assert(!unrelated.inset.top && !unrelated.host && original_layouts==3);
+    assert(!unrelated.inset.top && !unrelated.host && original_layouts==65);
     /* Recent navigation includes the provider row; provider overlay retains
      * it inside the hidden native collection, rather than over the grid. */
     scroll_to_recents(&s);assert(native.offset.y==-68);
     s.tab=1;native.hidden=YES;place_recent_strip(&s,&native);
-    assert(row.parent==&native && !s.recent_highlight_active);
+    assert(clip.parent==&native && row.parent==&clip && !s.recent_highlight_active);
     s.tab=0;native.hidden=NO;
     /* Rotation changes width without moving the user's scroll position. */
     native.bounds.size.width=844;native.bounds.origin.y=300;native.offset.y=300;
@@ -554,13 +580,13 @@ int main(void) {
      * bottom/side insets and independent changes to the top inset. */
     native.inset.top+=7;native.adjusted.top+=7;items.count=0;
     place_recent_strip(&s,&native);
-    assert(!row.parent && native.inset.top==15 && native.inset.bottom==4 && native.offset.y==300);
+    assert(!clip.parent && row.parent==&clip && native.inset.top==15 && native.inset.bottom==4 && native.offset.y==300);
     items.count=3;place_recent_strip(&s,&native);assert(native.inset.top==63 && native.offset.y==300);
     struct Fake replacement={.cls="UICollectionView",.bounds={{0,0},{320,200}}};container.children[0]=&replacement;
     bind_recents(&delegate,&container);
     assert(native.inset.top==15 && !native.host && replacement.inset.top==48 && replacement.offset.y==-48);
-    assert(row.parent==&replacement && s.recent_content==&replacement);
-    detach_recents(&s);assert(!replacement.inset.top && !replacement.host && !row.parent && !s.recent_content);
+    assert(clip.parent==&replacement && row.parent==&clip && s.recent_content==&replacement);
+    detach_recents(&s);assert(!replacement.inset.top && !replacement.host && !clip.parent && !s.recent_content);
     /* Some opening layouts still report y=0 before safe-area adjustment. */
     replacement.inset.top=8;replacement.adjusted.top=20;replacement.offset.y=0;replacement.bounds.origin.y=0;
     bind_recents(&delegate,&container);assert(replacement.inset.top==56 && replacement.offset.y==-68);
@@ -724,6 +750,30 @@ int main(void) {
 '''
 
 
+
+def recent_geometry_source():
+    source = (ROOT / "src" / "SSComposer.c").read_text()
+    source = source.replace('static Rect rect(id o,const char *s) { return ((Rect (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }',
+        'extern void *ss_test_field(id,const char *);\nextern Insets ss_test_section(id);\n'
+        'extern void ss_test_frame(id,Rect);\nextern void ss_test_inset(id,Insets);\n'
+        'extern void ss_test_offset(id,Point);\nextern void ss_test_offset_animated(id,Point,BOOL);\n'
+        'static Rect rect(id o,const char *s) { return *(Rect *)ss_test_field(o,s); }')
+    source = source.replace('static void frame(id o,Rect r) { ((void (*)(id,SEL,Rect))objc_msgSend)(o,sel_registerName("setFrame:"),r); }',
+        'static void frame(id o,Rect r) { ss_test_frame(o,r); }')
+    for obj, name, typ in (("flow", "sectionInset", "Insets"), ("content", "contentInset", "Insets"),
+                           ("content", "adjustedContentInset", "Insets"), ("content", "contentOffset", "Point")):
+        source = source.replace(f'(({typ} (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{name}"))',
+            f'*({typ} *)ss_test_field({obj},"{name}")')
+    source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section)',
+        'ss_test_section(native_delegate)')
+    source = source.replace('((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset)',
+        'ss_test_inset(content,inset)')
+    source = source.replace('((void (*)(id,SEL,Point))objc_msgSend)(content,sel_registerName("setContentOffset:"),offset)',
+        'ss_test_offset(content,offset)')
+    source = source.replace('((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),(Point){0,-inset.top},NO)',
+        'ss_test_offset_animated(content,(Point){0,-inset.top},NO)')
+    return source
+
 class ComposerTests(unittest.TestCase):
     def test_utf16_edits_and_completion_boundaries(self):
         self.compile_run(MODEL, ["cc", "-std=c11", "-fsanitize=address,undefined"])
@@ -756,27 +806,15 @@ class ComposerTests(unittest.TestCase):
     def test_native_library_recents_scroll_by_default_and_preserve_section_navigation(self):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig, "Zig is required for the production composer harness")
-        # Host mocks return UIKit structs through typed field getters; all
-        # production placement/binding/navigation/highlight logic is unchanged.
-        source = (ROOT / "src" / "SSComposer.c").read_text()
-        source = source.replace('static Rect rect(id o,const char *s) { return ((Rect (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }',
-            'extern void *ss_test_field(id,const char *);\nstatic Rect rect(id o,const char *s) { return *(Rect *)ss_test_field(o,s); }')
-        for name, typ in (("contentInset", "Insets"), ("adjustedContentInset", "Insets"), ("contentOffset", "Point")):
-            source = source.replace(f'(({typ} (*)(id,SEL))objc_msgSend)(content,sel_registerName("{name}"))',
-                f'*( {typ} *)ss_test_field(content,"{name}")')
+        # Only the runtime boundary is mocked; placement and scrolling use
+        # the production functions, including synchronous UIKit reentry.
+        source = recent_geometry_source()
         self.compile_run(RECENTS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
 
     def test_native_sticky_headers_keep_their_pin_and_handoff_positions(self):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig, "Zig is required for the production composer harness")
-        source = (ROOT / "src" / "SSComposer.c").read_text()
-        source = source.replace('static Rect rect(id o,const char *s) { return ((Rect (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }',
-            'extern void *ss_test_field(id,const char *);\nextern Insets ss_test_section(id);\nstatic Rect rect(id o,const char *s) { return *(Rect *)ss_test_field(o,s); }')
-        for obj, name in (("flow", "sectionInset"), ("content", "contentInset"), ("content", "adjustedContentInset")):
-            source = source.replace(f'((Insets (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{name}"))',
-                f'*(Insets *)ss_test_field({obj},"{name}")')
-        source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section)',
-            'ss_test_section(native_delegate)')
+        source = recent_geometry_source()
         self.compile_run(HEADERS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
 
     def test_recent_history_refresh_never_wires_uikit_scroll_indicators(self):

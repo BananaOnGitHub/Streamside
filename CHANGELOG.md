@@ -14,12 +14,14 @@
   Place the scroller beneath its localized Frequently Used heading and above
   the native history grid, sharing the section background and preserving native
   cell geometry, sticky headers, navigation and the menu-opening snapshot.
+- Clip the provider Recent row beneath the pinned Frequently Used heading
+  during scrolling, preserving its transparent appearance and horizontal swipe.
 - Bound thumbnail requests/cache and validate native bridge signatures; add
   UTF-16 selection/deletion, native-attachment preservation and identity-layout
   regression tests. Keep every existing Mach-O and packaging guard mandatory.
 - Preserve the existing icon. The forthcoming logo must support UIKit dynamic
   background/appearance and tint; logo work and release publication remain pending.
-- Candidate bundle build: `3.0.0.17`; scroller placement requires device verification.
+- Candidate bundle build: `3.0.0.18`; scroller clipping requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

@@ -112,7 +112,7 @@ typedef struct {
     id native_content; /* retained only while an overlay uses it */
     id recent_content; /* objc weak storage: follows the native scroll view */
     double recent_height;
-    BOOL placing_recents,recent_highlight_active;
+    BOOL placing_recents,recent_highlight_active,recent_menu_open;
     id recent_colors[6]; /* retained native footer appearance while overridden */
     Range completion;
     int library,library_scope,tab;
@@ -136,6 +136,7 @@ static void expand(id delegate);
 static void layout(id delegate);
 static void restore_native(State *s);
 static void schedule_preview(id delegate);
+static BOOL visible_in_window(id view);
 
 /* Twitch 30.4.2's autocomplete publication bypasses its ObjC wrappers.
  * Read its catalog on its serial backgroundQueue, using the runtime's own
@@ -928,8 +929,15 @@ static void bind_recents(id delegate,id container) {
     }
     objc_release(previous); place_recent_strip(s,content);
 }
-static void refresh_recents(id delegate) {
-    State *s=state(delegate); id items=recents(s);
+static void refresh_recents(id delegate,BOOL menu_open) {
+    State *s=state(delegate); if (!s) return;
+    if (!menu_open) { s->recent_menu_open=NO; return; }
+    /* History is saved on selection/send, but the visible row is a snapshot
+     * of opening the menu. Keep its buttons, order and scroll offset stable
+     * through selections, editing, tab switches and periodic/image refreshes. */
+    if (s->recent_menu_open) { refresh_strip_images(s->recent_strip); return; }
+    s->recent_menu_open=YES; /* Set before UIKit callbacks from filling it. */
+    id items=recents(s);
     if (!equal(items,s->recent_entries)) {
         objc_release(s->recent_entries); s->recent_entries=items;
         if (!s->recent_strip && number(items,"count")) s->recent_strip=make_strip();
@@ -958,12 +966,13 @@ static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rec
 static void layout(id delegate) {
     State *s=state(delegate); if (!s) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),window=m0(owner,"window");
-    if (!owner || !window) { m0(s->strip,"removeFromSuperview"); restore_native(s); objc_release(owner); return; }
+    if (!owner || !window) { s->recent_menu_open=NO; m0(s->strip,"removeFromSuperview"); restore_native(s); objc_release(owner); return; }
     if (s->strip) {
         Rect position=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(owner,sel_registerName("convertRect:toView:"),rect(owner,"bounds"),window);
         place_suggestion_strip(s,owner,editor,position,rect(window,"bounds"));
     }
     id container=container_for(s,owner),footer=objc_loadWeakRetained(&s->footer);
+    refresh_recents(delegate,visible_in_window(container));
     if (container && m0(container,"window")) bind_recents(delegate,container);
     if (s->tab==1 && container && footer && m0(container,"window")) {
         Rect bounds=rect(container,"bounds"),foot=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(footer,sel_registerName("convertRect:toView:"),rect(footer,"bounds"),container);
@@ -994,7 +1003,7 @@ static void install_footer(id footer,id owner) {
     if (!footer || !owner) return;
     id delegate=delegate_for(owner); State *s=state(delegate); if (!s) return;
     id previous=objc_loadWeakRetained(&s->footer);
-    if (previous!=footer) { restore_native(s); s->tab=0; objc_destroyWeak(&s->footer); objc_initWeak(&s->footer,footer); }
+    if (previous!=footer) { restore_native(s); s->tab=0; s->recent_menu_open=NO; objc_destroyWeak(&s->footer); objc_initWeak(&s->footer,footer); }
     objc_release(previous); associate(footer,&footer_key,delegate);
     id stack=object_field(footer,"emoteButtonsStackView","UIStackView");
     if (!stack || objc_getAssociatedObject(footer,&button_key)) return;
@@ -1038,7 +1047,6 @@ static void refresh(id delegate) {
         objc_release(plain);
     } else if (s->suggestions) { objc_release(s->suggestions); s->suggestions=nil; vb(s->strip,"setHidden:",YES); }
     id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); objc_release(selector);
-    refresh_recents(delegate);
     if (s->tab==1) {
         id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
         if (!equal(items,s->entries)) {
@@ -1186,6 +1194,10 @@ static void footer_apply(id footer,SEL sel,id model) {
 }
 static void footer_moved(id footer,SEL sel) {
     ((void (*)(id,SEL))original_footer_move)(footer,sel);
+    State *s=state(objc_getAssociatedObject(footer,&footer_key));
+    /* Catch a close/reopen between timer ticks, even when UIKit reuses the
+     * same palette/footer. Reopening snapshots on the first visible layout. */
+    if (s && !m0(footer,"window")) s->recent_menu_open=NO;
     install_footer(footer,owner_above(footer));
 }
 /* The extra scroll inset reserves the provider row, but must not become the

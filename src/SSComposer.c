@@ -41,15 +41,15 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_AUTOCOMPLETE "_TtC6Twitch28ChatEmoteAutocompleteManager"
 #define NATIVE_INFO "_TtCC6Twitch28ChatEmoteAutocompleteManagerP33_CEF95AD68D7B2CB9CDF93771963981BE9EmoteInfo"
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
-static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key;
+static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key,inline_attributes_key;
 static char selector_key;
 static char thumbnail_url_key,thumbnail_record_key;
 static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_footer_layout,original_container_layout,original_collection_layout;
-static IMP original_flow_elements,original_flow_header;
-static IMP original_palette_inset,original_palette_scroll;
+static IMP original_flow_elements,original_flow_header,original_flow_item,original_flow_size;
+static IMP original_palette_scroll;
 static IMP original_selector_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
@@ -120,7 +120,8 @@ typedef struct {
     id recent_colors[6]; /* retained native footer appearance while overridden */
     BOOL library_highlight_active;
     id library_colors[6]; /* retained native appearance while the library is selected */
-    double library_height,library_start,library_tail_height;
+    double library_height,library_start;
+    id library_generation; /* Marks copied attributes; never modify native caches. */
     I library_section;
     BOOL placing_library;
     Range completion;
@@ -868,9 +869,8 @@ static void refresh_library(State *s) {
 }
 static void invalidate_picker_metrics(id content) {
     id flow=m0(content,"collectionViewLayout");
-    /* An attribute-only invalidation can keep the delegate's old section
-     * insets. Explicitly discard both caches, then apply the new native cell
-     * frames before mounting/moving our transparent inline panel. */
+    /* Discard both native caches when the owned gap moves or resizes, then
+     * apply translated cell frames before mounting/moving the inline panel. */
     Class context_class=(Class)m0((id)object_getClass(flow),"invalidationContextClass");
     id context=context_class ? m0((id)context_class,"new") : nil;
     if (kind(context,"UICollectionViewFlowLayoutInvalidationContext")) {
@@ -883,7 +883,8 @@ static void invalidate_picker_metrics(id content) {
     m0(content,"layoutIfNeeded");
 }
 static void place_library_panel(State *s,id content) {
-    if (!s || !s->panel || !content || s->placing_library || !original_palette_inset) return;
+    if (!s || !s->panel || !content || s->placing_library ||
+        !original_flow_item || !original_flow_size || !original_flow_header || !original_flow_elements) return;
     s->placing_library=YES;
     observe_recent_heading(s,content);
     Rect bounds=rect(content,"bounds"); double width=bounds.size.width-8;
@@ -893,27 +894,37 @@ static void place_library_panel(State *s,id content) {
     double height=106+grid_height+8;
     I section=s->recent_header_height ? 1 : 0;
     I sections=(I)number(content,"numberOfSections");
-    BOOL changed=s->library_height!=height || s->library_section!=section;
-    s->library_height=height; s->library_section=section;
     id flow=m0(content,"collectionViewLayout");
-    /* A native flow-layout inset reserves the entire section, so native cells,
-     * content size, index paths and footer navigation account for it themselves.
-     * With no following native section, reserve only an owned bottom inset. */
-    double tail=section>=sections ? height : 0;
-    if (tail!=s->library_tail_height) {
-        Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
-        inset.bottom+=tail-s->library_tail_height; s->library_tail_height=tail;
-        ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
-    }
-    if (changed) invalidate_picker_metrics(content);
-    if (tail) {
-        Size size=((Size (*)(id,SEL))objc_msgSend)(flow,sel_registerName("collectionViewContentSize"));
-        s->library_start=size.height;
+    /* Native section indexes can include empty sets, and a header can have
+     * zero height. Find the first actual cells after Recent and measure their
+     * ORIGINAL geometry, before any owned translation. */
+    while (section<sections && ((I (*)(id,SEL,I))objc_msgSend)(content,sel_registerName("numberOfItemsInSection:"),section)<=0) section++;
+    double start=0;
+    if (section>=sections) {
+        Size size=((Size (*)(id,SEL))original_flow_size)(flow,sel_registerName("collectionViewContentSize"));
+        start=size.height;
     } else {
         id path=((id (*)(id,SEL,I,I))objc_msgSend)((id)objc_getClass("NSIndexPath"),sel_registerName("indexPathForItem:inSection:"),0,section);
-        ((id (*)(id,SEL,id,id))objc_msgSend)(flow,sel_registerName("layoutAttributesForSupplementaryViewOfKind:atIndexPath:"),str("UICollectionElementKindSectionHeader"),path);
+        id first=((id (*)(id,SEL,id))original_flow_item)(flow,sel_registerName("layoutAttributesForItemAtIndexPath:"),path);
+        id header=((id (*)(id,SEL,id,id))original_flow_header)(flow,sel_registerName("layoutAttributesForSupplementaryViewOfKind:atIndexPath:"),str("UICollectionElementKindSectionHeader"),path);
+        Insets inset=((Insets (*)(id,SEL))objc_msgSend)(flow,sel_registerName("sectionInset"));
+        id native_delegate=m0(content,"delegate");
+        SEL selector=sel_registerName("collectionView:layout:insetForSectionAtIndex:");
+        Method method=native_delegate ? class_getInstanceMethod(object_getClass(native_delegate),selector) : NULL;
+        if (method && !strcmp(method_getTypeEncoding(method),"{UIEdgeInsets=dddd}40@0:8@16@24q32"))
+            inset=((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,selector,content,flow,section);
+        if (!first) { s->placing_library=NO; vb(s->panel,"setHidden:",YES); return; }
+        start=rect(first,"frame").origin.y-inset.top-(header ? rect(header,"frame").size.height : 0);
+        if (start<0) start=0;
+    }
+    BOOL changed=s->library_height!=height || s->library_section!=section || s->library_start!=start;
+    s->library_height=height; s->library_section=section; s->library_start=start;
+    if (changed) {
+        objc_release(s->library_generation); s->library_generation=m0((id)objc_getClass("NSObject"),"new");
+        invalidate_picker_metrics(content);
     }
     if (m0(s->panel,"superview")!=content) v1(content,"addSubview:",s->panel);
+    vb(s->panel,"setHidden:",NO);
     frame(s->panel,(Rect){{bounds.origin.x,s->library_start},{bounds.size.width,height}});
     frame(s->library_title,(Rect){{8,6},{bounds.size.width-16,24}});
     frame(s->provider,(Rect){{8,36},{bounds.size.width-16,28}});
@@ -1108,23 +1119,28 @@ static void detach_recents(State *s) {
     id content=objc_loadWeakRetained(&s->recent_content);
     if (content) {
         associate(content,&recent_host_key,nil);
-        if (s->recent_height || s->library_tail_height) {
+        if (s->recent_height) {
             Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
             inset.top-=s->recent_height; s->recent_height=0;
-            inset.bottom-=s->library_tail_height; s->library_tail_height=0;
             ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
         }
         if (s->library_height) invalidate_picker_metrics(content);
     }
     s->recent_height=0; s->recent_header_height=0; s->recent_header_start=0;
-    s->library_height=0; s->library_start=0; s->library_tail_height=0;
+    s->library_height=0; s->library_start=0;
+    objc_release(s->library_generation); s->library_generation=nil;
     m0(s->panel,"removeFromSuperview");
     m0(s->recent_clip,"removeFromSuperview");
     objc_destroyWeak(&s->recent_content); objc_initWeak(&s->recent_content,nil); objc_release(content);
 }
 static void bind_recents(id delegate,id container) {
     State *s=state(delegate); if (!s || s->placing_recents) return;
-    id content=find_class(container,"UICollectionView",0);
+    /* Twitch's palette is itself the collection view. Bind that exact stored
+     * object, rather than the first collection in a hierarchy that also holds
+     * owned grids or other picker content. Verified on Twitch 30.4.2. */
+    id content=object_field(container,"palette",PALETTE);
+    if (!content) content=find_class(container,PALETTE,0);
+    if (!content) content=find_class(container,"UICollectionView",0);
     if (content==s->grid) content=nil;
     id previous=objc_loadWeakRetained(&s->recent_content);
     if (previous!=content) {
@@ -1451,10 +1467,31 @@ static void footer_moved(id footer,SEL sel) {
     if (s && !m0(footer,"window")) s->recent_menu_open=NO;
     install_footer(footer,owner_above(footer));
 }
-/* The extra scroll inset reserves the provider row, but must not become the
- * pinning offset for every native header. Recompute only pinned headers from
- * their unchanged native cell geometry. Copies keep UIKit's cached attributes
- * intact, and the absolute calculation is idempotent across both query paths. */
+/* Reserve the inline gap by copying attributes, preserving native caches.
+ * Headers then pin using the same translated cells and the Recent row's
+ * separate top-inset correction. */
+static id inline_attributes(id flow,id attributes) {
+    id content=m0(flow,"collectionView");
+    State *s=state(objc_getAssociatedObject(content,&recent_host_key));
+    if (!s || !s->library_height || !attributes || !s->library_generation ||
+        objc_getAssociatedObject(attributes,&inline_attributes_key)==s->library_generation) return attributes;
+    id path=m0(attributes,"indexPath");
+    if (!path || (I)number(path,"section")<s->library_section) return attributes;
+    Rect position=rect(attributes,"frame"); position.origin.y+=s->library_height;
+    id copy=m0(attributes,"copy"); frame(copy,position);
+    associate(copy,&inline_attributes_key,s->library_generation);
+    return m0(copy,"autorelease");
+}
+static double native_library_y(State *s,double y) {
+    if (y<s->library_start) return y;
+    if (y<s->library_start+s->library_height) return s->library_start;
+    return y-s->library_height;
+}
+static BOOL intersects(Rect a,Rect b) {
+    return a.size.width>0 && a.size.height>0 && b.size.width>0 && b.size.height>0 &&
+        a.origin.x<b.origin.x+b.size.width && a.origin.x+a.size.width>b.origin.x &&
+        a.origin.y<b.origin.y+b.size.height && a.origin.y+a.size.height>b.origin.y;
+}
 static id recent_header_attributes(id flow,id attributes) {
     id content=m0(flow,"collectionView");
     id delegate=objc_getAssociatedObject(content,&recent_host_key);
@@ -1487,10 +1524,6 @@ static id recent_header_attributes(id flow,id attributes) {
     double end=b.origin.y+b.size.height+section_inset.bottom-position.size.height;
     double y=rect(content,"bounds").origin.y+inset.top-s->recent_height;
     if (end<start) return attributes;
-    if (library) {
-        s->library_start=start;
-        start+=s->library_height; /* The following native title belongs below the inline library. */
-    }
     if (position.size.height<=0) return attributes;
     if (section==0 && s->recent_header_height) {
         s->recent_header_start=start;
@@ -1501,13 +1534,33 @@ static id recent_header_attributes(id flow,id attributes) {
     if (y>end) y=end; /* Preserve the following section's push-off boundary. */
     if (position.origin.y==y) return attributes;
     id copy=m0(attributes,"copy"); position.origin.y=y; frame(copy,position);
+    id generation=objc_getAssociatedObject(attributes,&inline_attributes_key);
+    if (generation) associate(copy,&inline_attributes_key,generation);
     if (section==0 && s->recent_header_height) vi(copy,"setZIndex:",1024);
     return m0(copy,"autorelease");
 }
 static id flow_elements(id flow,SEL sel,Rect bounds) {
-    id original=((id (*)(id,SEL,Rect))original_flow_elements)(flow,sel,bounds);
     id content=m0(flow,"collectionView");
-    if (!objc_getAssociatedObject(content,&recent_host_key)) return original;
+    State *s=state(objc_getAssociatedObject(content,&recent_host_key));
+    Rect query=bounds;
+    if (s && s->library_height) {
+        double bottom=native_library_y(s,bounds.origin.y+bounds.size.height);
+        query.origin.y=native_library_y(s,bounds.origin.y);
+        query.size.height=bottom-query.origin.y;
+        if (query.size.height<1) query.size.height=1;
+    }
+    id original=((id (*)(id,SEL,Rect))original_flow_elements)(flow,sel,query);
+    if (!s) return original;
+    if (s->library_height) {
+        /* Translate the query too: UIKit otherwise culls the cells that move
+         * into this viewport. Never return native cells inside the owned gap. */
+        id result=m0((id)objc_getClass("NSMutableArray"),"new");
+        for (U i=0;i<number(original,"count");i++) {
+            id corrected=recent_header_attributes(flow,inline_attributes(flow,at(original,i)));
+            if (intersects(rect(corrected,"frame"),bounds)) v1(result,"addObject:",corrected);
+        }
+        return m0(result,"autorelease");
+    }
     id result=nil;
     for (U i=0;i<number(original,"count");i++) {
         id attributes=at(original,i),corrected=recent_header_attributes(flow,attributes);
@@ -1519,7 +1572,17 @@ static id flow_elements(id flow,SEL sel,Rect bounds) {
 }
 static id flow_header(id flow,SEL sel,id kind_name,id path) {
     id original=((id (*)(id,SEL,id,id))original_flow_header)(flow,sel,kind_name,path);
-    return recent_header_attributes(flow,original);
+    return recent_header_attributes(flow,inline_attributes(flow,original));
+}
+static id flow_item(id flow,SEL sel,id path) {
+    id original=((id (*)(id,SEL,id))original_flow_item)(flow,sel,path);
+    return inline_attributes(flow,original);
+}
+static Size flow_size(id flow,SEL sel) {
+    Size size=((Size (*)(id,SEL))original_flow_size)(flow,sel);
+    State *s=state(objc_getAssociatedObject(m0(flow,"collectionView"),&recent_host_key));
+    if (s) size.height+=s->library_height;
+    return size;
 }
 static void collection_layout(id content,SEL sel) {
     ((void (*)(id,SEL))original_collection_layout)(content,sel);
@@ -1527,12 +1590,6 @@ static void collection_layout(id content,SEL sel) {
     if (delegate) {
         State *s=state(delegate); place_recent_strip(s,content); place_library_panel(s,content);
     }
-}
-static Insets palette_inset(id self,SEL sel,id content,id flow,I section) {
-    Insets inset=((Insets (*)(id,SEL,id,id,I))original_palette_inset)(self,sel,content,flow,section);
-    State *s=state(objc_getAssociatedObject(content,&recent_host_key));
-    if (s && s->library_height && section==s->library_section) inset.top+=s->library_height;
-    return inset;
 }
 static void palette_scrolled(id self,SEL sel,id content) {
     ((void (*)(id,SEL,id))original_palette_scroll)(self,sel,content);
@@ -1651,11 +1708,12 @@ void ss_composer_retry_hooks(void) {
     hook(FOOTER,"apply:","v24@0:8@16",(IMP)footer_apply,&original_footer_apply);
     hook(FOOTER,"didMoveToWindow","v16@0:8",(IMP)footer_moved,&original_footer_move);
     hook(FOOTER,"layoutSubviews","v16@0:8",(IMP)footer_layout,&original_footer_layout);
-    hook(PALETTE,"collectionView:layout:insetForSectionAtIndex:","{UIEdgeInsets=dddd}40@0:8@16@24q32",(IMP)palette_inset,&original_palette_inset);
     hook(PALETTE,"scrollViewDidScroll:","v24@0:8@16",(IMP)palette_scrolled,&original_palette_scroll);
     hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
     hook("UICollectionViewFlowLayout","layoutAttributesForElementsInRect:","@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",(IMP)flow_elements,&original_flow_elements);
     hook("UICollectionViewFlowLayout","layoutAttributesForSupplementaryViewOfKind:atIndexPath:","@32@0:8@16@24",(IMP)flow_header,&original_flow_header);
+    hook("UICollectionViewFlowLayout","layoutAttributesForItemAtIndexPath:","@24@0:8@16",(IMP)flow_item,&original_flow_item);
+    hook("UICollectionViewFlowLayout","collectionViewContentSize","{CGSize=dd}16@0:8",(IMP)flow_size,&original_flow_size);
     hook(CONTAINER,"layoutSubviews","v16@0:8",(IMP)container_layout,&original_container_layout);
     const char *actions[]={"keyboardButtonPressed","recentEmotesButtonPressed","channelEmotesButtonPressed","allEmotesButtonPressed","backspaceButtonPressed"};
     for (size_t i=0;i<5;i++) hook(FOOTER,actions[i],"v16@0:8",(IMP)footer_action,&original_footer_actions[i]);
@@ -1674,7 +1732,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Native library scrolling hook: %s\n"
         "Native library header hooks (elements/header): %s/%s\n"
         "Library footer layout hook: %s; tabs created/restored: %llu/%llu\n"
-        "Inline library hooks (section inset/scroll): %s/%s\n"
+        "Inline library hooks (items/content size/scroll): %s/%s/%s\n"
         "Unified Twitch catalog bridge/selector hooks: %s/%s\n"
         "Twitch catalog snapshots/entries/misses/native insertions/suppressions: %llu/%llu/%llu/%llu/%llu\n"
         "Identity layout misses/image failures: %llu/%llu\n"
@@ -1688,7 +1746,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         original_collection_layout ? "installed":"missing",
         original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
         original_footer_layout ? "installed":"missing",(unsigned long long)GET(library_tab_creations),(unsigned long long)GET(library_tab_repairs),
-        original_palette_inset ? "installed":"missing",original_palette_scroll ? "installed":"missing",
+        original_flow_item ? "installed":"missing",original_flow_size ? "installed":"missing",original_palette_scroll ? "installed":"missing",
         native_array_type ? "ready":"waiting",original_selector_layout ? "installed":"missing",
         (unsigned long long)GET(native_snapshots),(unsigned long long)GET(native_catalog_count),(unsigned long long)GET(native_catalog_misses),
         (unsigned long long)GET(native_insertions),(unsigned long long)GET(selector_suppressions),

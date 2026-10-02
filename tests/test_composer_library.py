@@ -12,15 +12,18 @@ HARNESS = r'''
 #include "SSComposer.c"
 struct Fake {
     const char *cls,*text,*action;
-    id parent,host,button,highlight,stack,highlights,container,views[6],children[16],front;
-    id flow,collection,heading,title,native_header,first,last,path,element_kind;
+    id parent,host,button,highlight,stack,highlights,container,palette,views[6],children[16],front;
+    id flow,collection,heading,title,native_header,first,last,path,element_kind,marker;
     const char *encoding;
     State *context;
-    Rect frame,bounds;
+    Rect frame,bounds,applied_first;
     Insets inset,adjusted;
     Insets cached_sections[4];
     Point offset;
     Size content_size;
+    Size applied_size;
+    I item_counts[4];
+    double header_heights[4];
     I section;
     U sections;
     U count,selected,targets,reloads;
@@ -32,6 +35,11 @@ static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions,metric_invalidations;
 static int last_provider,last_scope;
 static id expected_room;
+static id raw_item(id flow,SEL sel,id path);
+static id raw_header(id flow,SEL sel,id kind_name,id path);
+static Size raw_size(id flow,SEL sel);
+static id raw_elements(id flow,SEL sel,Rect query);
+static Rect last_query;
 static id create(const char *cls) { assert(allocated<2048);id o=&objects[allocated++];o->cls=cls;return o; }
 Class objc_getClass(const char *name) {
     for(U i=0;i<class_count;i++)if(!strcmp(classes[i].cls,name))return &classes[i];
@@ -46,6 +54,7 @@ Ivar class_getInstanceVariable(Class c,const char *name) {
     if(!strcmp(name,"emoteButtonsStackView"))return (Ivar)(uintptr_t)offsetof(struct Fake,stack);
     if(!strcmp(name,"emoteHighlightsStackView"))return (Ivar)(uintptr_t)offsetof(struct Fake,highlights);
     if(!strcmp(name,"emoticonPaletteContainerView"))return (Ivar)(uintptr_t)offsetof(struct Fake,container);
+    if(!strcmp(name,"palette"))return (Ivar)(uintptr_t)offsetof(struct Fake,palette);
     if(!strcmp(name,"titleLabel"))return (Ivar)(uintptr_t)offsetof(struct Fake,title);
     const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
         "$__lazy_storage_$_allEmotesButton","recentEmotesHighlight","channelEmotesHighlight","allEmotesHighlight"};
@@ -66,6 +75,7 @@ id objc_getAssociatedObject(id o,const void *key) {
     if(key==&state_key || key==&footer_key || key==&recent_host_key)return o->host;
     if(key==&button_key)return o->button;
     if(key==&library_highlight_key)return o->highlight;
+    if(key==&inline_attributes_key)return o->marker;
     return nil;
 }
 void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
@@ -73,6 +83,7 @@ void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
     if(key==&footer_key || key==&recent_host_key)o->host=value;
     else if(key==&button_key)o->button=value;
     else if(key==&library_highlight_key)o->highlight=value;
+    else if(key==&inline_attributes_key)o->marker=value;
     else assert(!"unexpected association");
 }
 void *ss_test_field(id o,const char *name) {
@@ -98,7 +109,7 @@ static Insets native_inset(id self,SEL sel,id content,id flow,I section) {
     (void)self;(void)sel;(void)content;(void)flow;(void)section;return (Insets){8,0,8,0};
 }
 static I geometry_section;
-Insets ss_test_section(id o) { return palette_inset(o,"collectionView:layout:insetForSectionAtIndex:",o,o->flow,geometry_section); }
+Insets ss_test_section(id o) { return native_inset(o,"inset",o,o->flow,geometry_section); }
 static void remove_child(id parent,id child) {
     if(!parent)return;
     for(U i=0;i<parent->count;i++)if(parent->children[i]==child) {
@@ -174,13 +185,13 @@ static id dispatch(id o,SEL sel,...) {
         id flow=o->flow;
         if(flow && flow->needs_metrics) {
             flow->needs_metrics=NO;
-            for(I i=0;i<(I)o->sections;i++)flow->cached_sections[i]=palette_inset(o,"inset",o,flow,i);
+            for(I i=0;i<(I)o->sections;i++)flow->cached_sections[i]=native_inset(o,"inset",o,flow,i);
             I section=o->host ? o->host->context->library_section : 0;
             if(section<(I)o->sections) {
-                double base=section ? 160 : 0;
-                flow->first->frame=(Rect){{0,base+44+flow->cached_sections[section].top},{56,56}};
-                flow->last->frame=(Rect){{0,base+164+flow->cached_sections[section].top},{56,56}};
+                id path=create("NSIndexPath");path->section=section;
+                flow->applied_first=rect(flow_item(flow,"item",path),"frame");
             }
+            flow->applied_size=flow_size(flow,"collectionViewContentSize");
         }
     }
     else if(!strcmp(sel,"sectionHeadersPinToVisibleBounds"))result=(id)1;
@@ -189,19 +200,13 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"text")) { result=create("NSString");result->text=o->text; }
     else if(!strcmp(sel,"supplementaryViewForElementKind:atIndexPath:")) { (void)va_arg(args,id);(void)va_arg(args,id);result=o->heading; }
     else if(!strcmp(sel,"indexPathForItem:inSection:")) { result=create("NSIndexPath");result->selected=(U)va_arg(args,I);result->section=va_arg(args,I); }
-    else if(!strcmp(sel,"numberOfItemsInSection:")) { (void)va_arg(args,I);result=(id)3; }
+    else if(!strcmp(sel,"numberOfItemsInSection:")) { I section=va_arg(args,I);result=(id)(uintptr_t)o->item_counts[section]; }
     else if(!strcmp(sel,"representedElementKind"))result=o->element_kind;
     else if(!strcmp(sel,"indexPath"))result=o->path;
     else if(!strcmp(sel,"section"))result=(id)(uintptr_t)o->section;
     else if(!strcmp(sel,"layoutAttributesForSupplementaryViewOfKind:atIndexPath:")) {
-        id kind_name=va_arg(args,id),path=va_arg(args,id);geometry_section=path->section;
-        Insets inset=o->cached_sections[path->section];
-        double base=path->section ? 160 : 0;
-        o->first->frame=(Rect){{0,base+44+inset.top},{56,56}};
-        o->last->frame=(Rect){{0,base+164+inset.top},{56,56}};
-        o->native_header->frame=(Rect){{0,base},{390,44}};o->native_header->path=path;o->native_header->element_kind=kind_name;
-        result=recent_header_attributes(o,o->native_header);
-    } else if(!strcmp(sel,"layoutAttributesForItemAtIndexPath:")) { id path=va_arg(args,id);result=path->selected ? o->last : o->first; }
+        id kind_name=va_arg(args,id),path=va_arg(args,id);result=flow_header(o,sel,kind_name,path);
+    } else if(!strcmp(sel,"layoutAttributesForItemAtIndexPath:")) { id path=va_arg(args,id);result=flow_item(o,sel,path); }
     else if(!strcmp(sel,"copy") || !strcmp(sel,"autorelease")) {
         if(!strcmp(sel,"copy")) { result=create(o->cls);*result=*o; } else result=o;
     } else if(!strcmp(sel,"setZIndex:")) { assert(va_arg(args,I)==1024); }
@@ -209,6 +214,35 @@ static id dispatch(id o,SEL sel,...) {
     va_end(args);return result;
 }
 id (*objc_msgSend)(id,SEL,...)=dispatch;
+static id raw_item(id flow,SEL sel,id path) {
+    (void)sel;geometry_section=path->section;id content=flow->collection;
+    if(path->section>=(I)content->sections || !content->item_counts[path->section])return nil;
+    id attributes=path->selected ? flow->last : flow->first;
+    attributes->frame=(Rect){{0,path->section*236+content->header_heights[path->section]+8+(path->selected ? 120 : 0)},{56,56}};
+    attributes->path=path;attributes->element_kind=nil;attributes->marker=nil;
+    return attributes;
+}
+static id raw_header(id flow,SEL sel,id kind_name,id path) {
+    (void)sel;geometry_section=path->section;id content=flow->collection;
+    if(!content->header_heights[path->section])return nil;
+    id attributes=flow->native_header;
+    attributes->frame=(Rect){{0,path->section*236},{390,content->header_heights[path->section]}};
+    attributes->path=path;attributes->element_kind=kind_name;attributes->marker=nil;
+    return attributes;
+}
+static Size raw_size(id flow,SEL sel) { (void)sel;return flow->content_size; }
+static id raw_elements(id flow,SEL sel,Rect query) {
+    (void)sel;last_query=query;id array=create("NSMutableArray");
+    for(I section=0;section<(I)flow->collection->sections;section++) {
+        if(!flow->collection->item_counts[section])continue;
+        id path=create("NSIndexPath");path->section=section;
+        id item=raw_item(flow,"item",path);
+        if(intersects(item->frame,query))array->children[array->count++]=m0(item,"copy");
+        id header=raw_header(flow,"header",str("UICollectionElementKindSectionHeader"),path);
+        if(header)array->children[array->count++]=m0(header,"copy");
+    }
+    return array;
+}
 id tas_emotes_picker_copy(id room,int provider,int scope,id query,size_t limit) {
     assert(room==expected_room && !query && limit==6500);assert(provider>=0 && provider<4 && scope>=0 && scope<2);
     last_provider=provider;last_scope=scope;queries++;return &datasets[provider][scope];
@@ -240,20 +274,24 @@ int main(void) {
     struct Fake normal={.cls="UIColor"},active={.cls="UIColor"},room={.cls="NSString"};expected_room=&room;
     State s={.room=&room,.recent_menu_open=YES};struct Fake delegate={.context=&s};delegate_class=&delegate;
     struct Fake owner={.cls=INPUT,.host=&delegate},container={.cls=CONTAINER,.parent=&owner,.bounds={{0,0},{390,300}}};owner.container=&container;
-    struct Fake native={.cls="UICollectionView",.parent=&container},footer={.cls=FOOTER,.parent=&container,.frame={{0,252},{390,48}},.bounds={{0,0},{390,48}}};
+    struct Fake native={.cls=PALETTE,.parent=&container},footer={.cls=FOOTER,.parent=&container,.frame={{0,252},{390,48}},.bounds={{0,0},{390,48}}};
+    struct Fake decoy={.cls="UICollectionView",.parent=&container};container.palette=&native;
     struct Fake first={.cls="UICollectionViewLayoutAttributes"},last={.cls="UICollectionViewLayoutAttributes"},header={.cls="UICollectionViewLayoutAttributes"};
-    struct Fake flow={.cls="UICollectionViewFlowLayout",.collection=&native,.first=&first,.last=&last,.native_header=&header,.content_size={390,160}};
+    struct Fake flow={.cls="UICollectionViewFlowLayout",.collection=&native,.first=&first,.last=&last,.native_header=&header,.content_size={390,472}};
     for(U i=0;i<4;i++)flow.cached_sections[i]=(Insets){8,0,8,0};
     struct Fake title={.cls="UILabel",.text="Frequently Used"},heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}}};
     native.flow=&flow;native.heading=&heading;native.bounds=(Rect){{0,0},{390,300}};native.sections=2;
     native.encoding="{UIEdgeInsets=dddd}40@0:8@16@24q32";native.host=&delegate;
-    s.recent_content=&native;original_palette_inset=(IMP)native_inset;
-    container.children[container.count++]=&native;container.children[container.count++]=&footer;
+    for(U i=0;i<4;i++) { native.item_counts[i]=3;native.header_heights[i]=44; }
+    s.recent_content=&native;original_flow_item=(IMP)raw_item;original_flow_header=(IMP)raw_header;
+    original_flow_size=(IMP)raw_size;original_flow_elements=(IMP)raw_elements;
+    container.children[container.count++]=&decoy;container.children[container.count++]=&native;container.children[container.count++]=&footer;
     struct Fake buttons={.cls="UIStackView"},highlights={.cls="UIStackView"},views[6]={0};footer.stack=&buttons;footer.highlights=&highlights;
     for(U i=0;i<6;i++) { views[i].cls=i<3 ? "UIButton":"UIView";views[i].tint=&normal;footer.views[i]=&views[i]; }
     views[0].tint=&active;views[3].background=&active;
     rebuilt_stack(&buttons,&empty,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,&empty,&views[3],&views[4],&views[5]);
     s.owner=&owner;s.footer=&footer;
+    bind_recents(&delegate,&container);assert(s.recent_content==&native && !decoy.host);
     for(int p=0;p<4;p++)for(int sc=0;sc<2;sc++)datasets[p][sc].count=(U)(p*100+sc+1);
     install_footer(&footer,&owner);
     id button=footer.button,highlight=footer.highlight;
@@ -273,18 +311,14 @@ int main(void) {
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
     install_footer(&footer,&owner);make_panel(&delegate);refresh_library(&s);place_library_panel(&s,&native);
     assert(s.panel->parent==&native && !native.hidden && !s.tab && !button->selected);
-    assert(s.library_section==1 && s.library_start==160 && s.library_height==170);
+    assert(s.library_section==1 && s.library_start==236 && s.library_height==170);
     assert(metric_invalidations && s.panel->clips && s.grid->clips);
-    assert(flow.cached_sections[1].top==178 && first.frame.origin.y==382);
-    assert(s.panel->frame.origin.y==160 && s.panel->frame.size.height==170);
-    assert(header.frame.origin.y==160); /* UIKit's cached header is unchanged. */
-    assert(first.frame.origin.y==382 && last.frame.origin.y==502); /* native cells follow the inline gap */
-    Insets scoped=palette_inset(&native,"inset",&native,&flow,1);
-    assert(scoped.top==178 && scoped.bottom==8);
-    assert(palette_inset(&native,"inset",&native,&flow,0).top==8);
-    struct Fake orphan={0};assert(palette_inset(&orphan,"inset",&orphan,&flow,1).top==8);
+    assert(flow.cached_sections[1].top==8 && flow.applied_first.origin.y==458);
+    assert(flow.applied_size.height==642 && flow.applied_size.width==390);
+    assert(s.panel->frame.origin.y==236 && s.panel->frame.size.height==170);
+    assert(header.frame.origin.y==236 && first.frame.origin.y==288); /* native caches and delegate insets stay native */
     third_party_tab(&delegate,"ssThirdParty:",button);
-    assert(s.tab==1 && native.offset.y==160 && s.panel->parent==&native && !native.hidden);
+    assert(s.tab==1 && native.offset.y==236 && s.panel->parent==&native && !native.hidden);
     assert(s.provider->count==4 && s.scope->count==2 && s.grid->host==&delegate && !s.grid->scroll_enabled);
     const char *providers[]={"All","7TV","BTTV","FFZ"};for(U i=0;i<4;i++)assert(!strcmp(s.provider->children[i]->text,providers[i]));
     assert(!strcmp(s.scope->children[0]->text,"Channel") && !strcmp(s.scope->children[1]->text,"Global"));
@@ -298,15 +332,15 @@ int main(void) {
     }
     /* All rows share outer scrolling but instantiate a viewport grid. */
     assert(s.library_height==3170);
-    ss_test_offset(&native,(Point){0,1266});place_library_panel(&s,&native);
+    ss_test_offset(&native,(Point){0,1342});place_library_panel(&s,&native);
     assert(s.grid->offset.y==1000 && s.grid->frame.origin.y==1106 && s.grid->frame.size.height==300 && s.tab==1);
-    assert(s.panel->frame.origin.y==160 && s.panel->frame.size.height==3170);
+    assert(s.panel->frame.origin.y==236 && s.panel->frame.size.height==3170);
     datasets[3][0].count=6500;refresh_library(&s);place_library_panel(&s,&native);
     assert(s.library_height==65150 && s.grid->frame.size.height==300);
-    assert(flow.cached_sections[1].top==65158 && first.frame.origin.y>=s.library_start+s.library_height);
+    assert(flow.cached_sections[1].top==8 && flow.applied_first.origin.y>=s.library_start+s.library_height);
     ss_test_offset(&native,(Point){0,30000});place_library_panel(&s,&native);
-    assert(s.grid->offset.y==29734 && s.grid->frame.size.height==300);
-    datasets[3][0].count=301;refresh_library(&s);ss_test_offset(&native,(Point){0,1266});place_library_panel(&s,&native);
+    assert(s.grid->offset.y==29658 && s.grid->frame.size.height==300);
+    datasets[3][0].count=301;refresh_library(&s);ss_test_offset(&native,(Point){0,1342});place_library_panel(&s,&native);
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
     install_footer(&footer,&owner);assert(buttons.children[1]==button && button->selected && s.tab==1 && s.panel->parent==&native);
     struct Fake themed={.cls="UIColor"};original_footer_apply=(IMP)native_footer_apply;
@@ -325,16 +359,41 @@ int main(void) {
     third_party_tab(&delegate,"ssThirdParty:",button);
     assert(s.tab==1 && button->selected && highlight->background==&themed && !native.hidden);
     footer_action(&footer,"allEmotesButtonPressed");assert(!s.tab && !native.hidden && s.panel->parent==&native);
-    /* With only Recent present, owned bottom inset makes the library reachable.
-     * Empty/no-history layouts still put it before the native channel section. */
-    native.sections=1;native.inset.bottom=12;native.adjusted.bottom=12;
-    place_library_panel(&s,&native);assert(s.library_tail_height==1430 && native.inset.bottom==1442 && s.library_start==160);
-    native.sections=2;title.text="Channel";place_library_panel(&s,&native);
-    assert(!s.library_tail_height && native.inset.bottom==12 && !s.library_section && !s.library_start);
-    assert(first.frame.origin.y==1482); /* account emotes remain below the library */
+    /* Empty intermediate sets and missing headers must not swallow the gap. */
+    native.sections=3;native.item_counts[1]=0;native.header_heights[2]=0;flow.content_size.height=664;
+    place_library_panel(&s,&native);
+    assert(s.library_section==2 && s.library_start==472 && flow.applied_first.origin.y==1910);
+    id section_path=create("NSIndexPath");section_path->section=2;
+    id shifted=flow_item(&flow,"item",section_path);
+    assert(shifted!=&first && shifted->frame.origin.y==1910 && first.frame.origin.y==480);
+    assert(inline_attributes(&flow,shifted)==shifted); /* never translate twice */
+    Rect gap={{0,472},{390,300}};ss_test_offset(&native,gap.origin);
+    id gap_items=flow_elements(&flow,"elements",gap);assert(!gap_items->count);
+    Rect below={{0,1902},{390,100}};ss_test_offset(&native,below.origin);
+    id below_items=flow_elements(&flow,"elements",below);
+    assert(last_query.origin.y==472 && last_query.size.height==100 && below_items->count==1);
+    assert(below_items->children[0]->frame.origin.y==1910);
+    assert(flow_size(&flow,"size").height==2094); /* bottom of the provider library is part of native content size */
+    /* Direct and array header queries agree and cannot cover the owned panel. */
+    native.header_heights[2]=44;place_library_panel(&s,&native);
+    id corrected=flow_header(&flow,"header",str("UICollectionElementKindSectionHeader"),section_path);
+    assert(corrected->frame.origin.y==1902 && header.frame.origin.y==472);
+    assert(inline_attributes(&flow,corrected)==corrected);
+    /* Native objects without our association retain their original geometry. */
+    native.host=nil;assert(flow_item(&flow,"item",section_path)==&first && first.frame.origin.y==524);
+    assert(flow_size(&flow,"size").height==664);native.host=&delegate;
+    /* With only Recent present, layout content size reserves the library tail
+     * without changing either native content inset. */
+    native.sections=1;flow.content_size.height=236;native.inset.bottom=12;native.adjusted.bottom=12;
+    place_library_panel(&s,&native);assert(native.inset.bottom==12 && s.library_start==236 && flow_size(&flow,"size").height==1666);
+    native.sections=2;native.item_counts[1]=3;title.text="Channel";flow.content_size.height=472;
+    place_library_panel(&s,&native);
+    assert(native.inset.bottom==12 && !s.library_section && !s.library_start);
+    assert(flow.applied_first.origin.y==1482); /* account emotes remain below the library */
     datasets[3][0].count=0;refresh_library(&s);place_library_panel(&s,&native);
     assert(s.library_height==178 && !s.empty->hidden);
-    native.sections=0;place_library_panel(&s,&native);assert(s.library_tail_height==178 && native.inset.bottom==190);
+    native.sections=0;flow.content_size.height=0;place_library_panel(&s,&native);
+    assert(native.inset.bottom==12 && flow_size(&flow,"size").height==178);
     detach_recents(&s);assert(!s.panel->parent && !native.hidden && !s.library_height && native.inset.bottom==12);
     return 0;
 }

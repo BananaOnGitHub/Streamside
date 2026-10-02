@@ -455,6 +455,9 @@ id objc_initWeak(id *p,id o) { *p=o;return o; }
 void objc_destroyWeak(id *p) { *p=nil; }
 id objc_getAssociatedObject(id o,const void *key) { return o && key==&recent_host_key ? o->host : nil; }
 void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) { assert(key==&recent_host_key && policy==1);o->host=value; }
+Method class_getInstanceMethod(Class c,SEL sel) { (void)c;(void)sel;return NULL; }
+const char *method_getTypeEncoding(Method m) { (void)m;return ""; }
+Insets ss_test_section(id o) { return o->inset; }
 void *ss_test_field(id o,const char *name) {
     assert(o);
     if(!strcmp(name,"frame"))return &o->frame;
@@ -603,10 +606,11 @@ HEADERS = HEADERS.replace('BOOL hidden;', 'BOOL hidden,pinned; I section,item; i
 HEADERS = HEADERS.replace('static State *current;', '''static State *current;
 static struct Fake copies[32],paths[32],header_kind={.cls="NSString"},footer_kind={.cls="NSString"};
 static U copy_count,path_count; static id native_attributes,native_header;
-Method class_getInstanceMethod(Class c,SEL sel) { (void)sel;return c && c->encoding ? c : NULL; }
-const char *method_getTypeEncoding(Method m) { return ((id)m)->encoding; }
-Insets ss_test_section(id o) { return o->inset; }
 ''')
+HEADERS = HEADERS.replace('Method class_getInstanceMethod(Class c,SEL sel) { (void)c;(void)sel;return NULL; }',
+    'Method class_getInstanceMethod(Class c,SEL sel) { (void)sel;return c && c->encoding ? c : NULL; }')
+HEADERS = HEADERS.replace('const char *method_getTypeEncoding(Method m) { (void)m;return ""; }',
+    'const char *method_getTypeEncoding(Method m) { return ((id)m)->encoding; }')
 HEADERS = HEADERS.replace('if(!strcmp(name,"contentInset"))', 'if(!strcmp(name,"sectionInset"))return &o->inset;\n    if(!strcmp(name,"contentInset"))')
 HEADERS = HEADERS.replace('else if(!strcmp(sel,"count"))', '''else if(!strcmp(sel,"stringWithUTF8String:")) { const char *text=va_arg(args,const char *);result=!strcmp(text,"UICollectionElementKindSectionHeader") ? &header_kind : &footer_kind; }
     else if(!strcmp(sel,"isEqual:"))result=(id)(uintptr_t)(o==va_arg(args,id));
@@ -766,6 +770,8 @@ def recent_geometry_source():
         source = source.replace(f'(({typ} (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{name}"))',
             f'*({typ} *)ss_test_field({obj},"{name}")')
     source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,inset_selector,content,flow,section)',
+        'ss_test_section(native_delegate)')
+    source = source.replace('((Insets (*)(id,SEL,id,id,I))objc_msgSend)(native_delegate,selector,content,flow,section)',
         'ss_test_section(native_delegate)')
     source = source.replace('((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset)',
         'ss_test_inset(content,inset)')

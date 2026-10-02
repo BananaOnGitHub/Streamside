@@ -34,7 +34,13 @@
   when the inline library height changes, then apply native cell frames before
   placing the transparent panel. Clip the panel and its viewport grid to their
   own bounds; add a cached-metrics regression covering the full 6,500-emote grid.
-- Candidate bundle build: `3.0.0.21`; inline library section requires device verification.
+- Replace the ineffective native section-inset spacer with copied layout
+  attributes that move following native cells and headers, a matching content
+  height extension, and visible-rectangle translation. Bind the exact Twitch
+  palette and handle empty/headerless native sections without changing their
+  models or cached attributes. Add regression coverage for both direct and
+  visible-cell queries, large libraries, rotation and unrelated collections.
+- Candidate bundle build: `3.0.0.22`; inline library section requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

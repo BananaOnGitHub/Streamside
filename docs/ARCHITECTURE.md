@@ -136,20 +136,26 @@ queue/Swift bridging guards and device validation requirements.
 The complete provider library is an inline section between native Recent and
 account subscription emotes. Its heading, All / 7TV / BTTV / FFZ control,
 Channel / Global control and grid share the native collection's vertical scroll.
-Provider changes reset the scope to Channel. A scoped, ABI-validated native
-section-inset hook reserves the full panel height before the following native
-section; header-attribute copies move that section's title below the panel.
-Native cells, section indexes, content size and footer navigation remain native.
-When no following native section exists, an owned bottom inset reserves the panel.
+Provider changes reset the scope to Channel. Bind the container's stored palette,
+which is itself Twitch's collection view. Scoped, ABI-validated flow-layout hooks
+copy attributes to move the following native cells and headers below the full
+panel. Direct cell queries and visible-rectangle queries use the same coordinate
+translation; the latter maps the requested viewport back to native coordinates
+before obtaining attributes. The native layout's content height increases by the
+panel height. Empty sections are skipped when choosing the insertion point;
+headerless sections use their first cell and native inset. With no following
+cells, the library starts at the original native content height. Native section
+indexes, models, cached attributes and section/content insets stay unchanged.
 A non-scrolling owned collection displays only the outer viewport's intersection
 with the virtual grid and synchronizes its content offset, so thousands of emotes
 reuse a bounded number of visible cells rather than rendering the entire library.
 Width and provider/scope changes recompute the reserved height.
-Height/section changes use the flow layout's own invalidation-context class,
+Height/section/start changes use the flow layout's own invalidation-context class,
 explicitly invalidate both delegate metrics and layout attributes, and request
-an immediate native layout pass before placing the transparent panel. Cached
-insets must not leave native subscription cells at their old positions. The
-panel and viewport grid clip their contents at their own boundaries.
+an immediate native layout pass before placing the transparent panel. Attribute
+copies carry a placement-generation marker so direct and visible-header paths
+cannot translate the same copy twice. The panel and viewport grid clip their
+contents at their own boundaries.
 The entry and matching highlight follow Recent in both footer stacks and jump
 the native picker to the inline section. Scroll position drives their selection.
 Twitch's Swift availability updates replace all arranged views, so installation
@@ -163,7 +169,7 @@ itself. Additional top inset reserves its space; native section navigation and
 scroll-driven highlights remain intact. Scoped flow-layout hooks exclude the
 owned inset from sticky-header pinning, retaining the native section start and
 push-off boundary. Both element-array and direct header queries return copied
-attributes; cached attributes, cells, footers and other libraries remain untouched.
+attributes; cached attributes and other collection views remain untouched.
 The rendered first header's UILabel is checked against Twitch's localized
 Frequently Used title. Only that header moves into the owned inset; the row
 follows it and uses a transparent background. If no matching native heading is
@@ -180,7 +186,7 @@ native history; leaving the row restores Twitch’s current appearance. No nativ
 section model or selected enum is edited. The Recent button includes the provider
 row in its destination. Layout and image refreshes preserve the browsing offset;
 empty history and replacement keyboards remove only the owned inset. The row is
-part of the hidden native collection while the third-party tab is open.
+part of the same native collection as the inline provider library.
 The native history manager is never passed provider objects.
 
 Provider snapshots contain copied values, never registry pointers. Image requests

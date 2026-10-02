@@ -85,6 +85,13 @@ tokenization to Twitch. Provider choices continue through the existing registry,
 preview, send and Recent implementations. Native names are excluded from
 provider preview substitution, including names that collide with provider codes.
 
+The third-party Recent row snapshots saved history on the first visible layout
+of each emote menu opening. Selection/send still saves history immediately;
+editing, timer ticks, tab changes and image updates only refresh thumbnails in
+the existing buttons. Their order and horizontal scroll position stay stable
+until the menu is closed and reopened. Footer window detachment also ends the
+snapshot session, so a rapid reopen of the same UIKit menu loads current history.
+
 Diagnostics report bridge readiness, selector hook installation, native catalog
 snapshots/count/misses, native insertions and suppression transitions. They do
 not store account identifiers, channel identities, codes or chat contents.

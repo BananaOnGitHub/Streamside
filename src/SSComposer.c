@@ -41,6 +41,7 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
 static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key;
 static char selector_key;
+static char thumbnail_url_key,thumbnail_record_key;
 static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
@@ -422,10 +423,24 @@ static void image_request(id metadata) {
     m0(task,"resume");
 }
 static void set_thumbnail(id image_view,id metadata) {
+    id url=key(metadata,"url"),bound=objc_getAssociatedObject(image_view,&thumbnail_url_key);
+    id previous=objc_getAssociatedObject(image_view,&thumbnail_record_key);
+    BOOL same=equal(url,bound);
+    /* Visible views retain their displayed record across NSCache eviction.
+     * Repeated static setters clear FLAnimatedImageView's animation, resetting
+     * the frame clock on every unrelated image notification/timer refresh. */
     id cached=cached_image(metadata);
-    v1(image_view,"setImage:",key(cached,"image"));
-    if (responds(image_view,"setAnimatedImage:")) v1(image_view,"setAnimatedImage:",key(cached,"animation"));
-    image_request(metadata);
+    if (same && previous) cached=previous;
+    if (!same || cached!=previous) {
+        if (responds(image_view,"setAnimatedImage:")) {
+            id animation=key(cached,"animation");
+            v1(image_view,"setAnimatedImage:",animation);
+            if (!animation) v1(image_view,"setImage:",key(cached,"image"));
+        } else v1(image_view,"setImage:",key(cached,"image"));
+        associate(image_view,&thumbnail_url_key,url);
+        associate(image_view,&thumbnail_record_key,cached);
+    }
+    if (!cached) image_request(metadata);
 }
 
 /* Expand only our attribute. Twitch's native attachments and other attributes

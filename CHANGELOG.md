@@ -11,12 +11,15 @@
 - Add a third-party library inside Twitch’s existing emote keyboard: All / 7TV /
   BTTV / FFZ, then Channel / Global. Provider changes reset Channel.
 - Integrate up to 40 provider-emote recents into Twitch’s native Recent tab.
+  Place the scroller beneath its localized Frequently Used heading and above
+  the native history grid, sharing the section background and preserving native
+  cell geometry, sticky headers, navigation and the menu-opening snapshot.
 - Bound thumbnail requests/cache and validate native bridge signatures; add
   UTF-16 selection/deletion, native-attachment preservation and identity-layout
   regression tests. Keep every existing Mach-O and packaging guard mandatory.
 - Preserve the existing icon. The forthcoming logo must support UIKit dynamic
   background/appearance and tint; logo work and release publication remain pending.
-- Candidate bundle build: `3.0.0.1`; composer/keyboard require device verification.
+- Candidate bundle build: `3.0.0.17`; scroller placement requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

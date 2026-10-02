@@ -30,6 +30,7 @@ extern void objc_destroyWeak(id *);
 #define INPUT "_TtC6Twitch13ChatInputView"
 #define FOOTER "_TtC6Twitch34EmoticonPaletteContainerFooterView"
 #define CONTAINER "_TtC6Twitch28EmoticonPaletteContainerView"
+#define PALETTE_HEADER "_TtCC6Twitch19EmoticonPaletteView10HeaderView"
 #define ENTRY "_TtC6TwitchP33_C04E56FD3AAC83881997DAF21B26CBB613TextEntryView"
 #define MODE_KEY "StreamsideEmoteSuggestions"
 #define RECENTS_KEY "StreamsideRecentEmotes"
@@ -112,7 +113,7 @@ typedef struct {
     id footer; /* objc weak storage: the emote keyboard may be recreated */
     id native_content; /* retained only while an overlay uses it */
     id recent_content; /* objc weak storage: follows the native scroll view */
-    double recent_height;
+    double recent_height,recent_header_height,recent_header_start;
     BOOL placing_recents,recent_highlight_active,recent_menu_open;
     id recent_colors[6]; /* retained native footer appearance while overridden */
     Range completion;
@@ -847,8 +848,8 @@ static void restore_native(State *s) {
     }
 }
 /* The provider Recent row belongs to the native library's scroll content,
- * not the container/footer overlay. It precedes native Recent cells without
- * adding fake Swift sections or changing the collection's data source. Native
+ * below its Frequently Used heading and before native Recent cells, without
+ * adding Swift sections or changing the collection's data source. Native
  * section anchors already account for contentInset (Twitch 30.4.2). */
 static id recent_footer_view(id footer,U index) {
     const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
@@ -887,10 +888,30 @@ static void update_recent_highlight(State *s,id content) {
     }
     objc_release(footer);
 }
+/* Observe the rendered native title, including Twitch's localization. A first
+ * section can instead be Channel when Twitch has no saved native history.
+ * Never move that header or read/construct the private Swift section tuples. */
+static void observe_recent_heading(State *s,id content) {
+    id path=((id (*)(id,SEL,I,I))objc_msgSend)((id)objc_getClass("NSIndexPath"),sel_registerName("indexPathForItem:inSection:"),0,0);
+    id heading=((id (*)(id,SEL,id,id))objc_msgSend)(content,sel_registerName("supplementaryViewForElementKind:atIndexPath:"),str("UICollectionElementKindSectionHeader"),path);
+    if (!kind(heading,PALETTE_HEADER)) return; /* Offscreen/reused headers retain the last observation. */
+    id title=object_field(heading,"titleLabel","UILabel");
+    if (!title) return;
+    id name=str("Frequently Used");
+    id localized=((id (*)(id,SEL,id,id,id))objc_msgSend)(m0((id)objc_getClass("NSBundle"),"mainBundle"),sel_registerName("localizedStringForKey:value:table:"),name,name,nil);
+    double height=equal(m0(title,"text"),localized) ? rect(heading,"bounds").size.height : 0;
+    if (height<=0 || height>200) height=0;
+    if (s->recent_header_height!=height) {
+        s->recent_header_height=height;
+        s->recent_header_start=0;
+        m0(m0(content,"collectionViewLayout"),"invalidateLayout");
+    }
+}
 static void place_recent_strip(State *s,id content) {
     if (!s || !content || s->placing_recents) return;
     s->placing_recents=YES;
     double height=number(s->recent_entries,"count") && s->recent_strip ? 48 : 0;
+    if (height) observe_recent_heading(s,content);
     if (height!=s->recent_height) {
         Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("contentInset"));
         Insets adjusted=responds(content,"adjustedContentInset") ?
@@ -910,7 +931,10 @@ static void place_recent_strip(State *s,id content) {
         }
     }
     if (height) {
-        Rect bounds=rect(content,"bounds"),position={{bounds.origin.x,-height},{bounds.size.width,height}};
+        /* Put the row after the native Frequently Used title. Its header
+         * moves into our existing inset; native cells keep their geometry. */
+        double y=s->recent_header_height ? s->recent_header_start+s->recent_header_height-height : -height;
+        Rect bounds=rect(content,"bounds"),position={{bounds.origin.x,y},{bounds.size.width,height}};
         if (m0(s->recent_strip,"superview")!=content) v1(content,"addSubview:",s->recent_strip);
         Rect old=rect(s->recent_strip,"frame");
         if (memcmp(&old,&position,sizeof(position))) frame(s->recent_strip,position);
@@ -929,7 +953,8 @@ static void detach_recents(State *s) {
             ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
         }
     }
-    s->recent_height=0; m0(s->recent_strip,"removeFromSuperview");
+    s->recent_height=0; s->recent_header_height=0; s->recent_header_start=0;
+    m0(s->recent_strip,"removeFromSuperview");
     objc_destroyWeak(&s->recent_content); objc_initWeak(&s->recent_content,nil); objc_release(content);
 }
 static void bind_recents(id delegate,id container) {
@@ -955,7 +980,10 @@ static void refresh_recents(id delegate,BOOL menu_open) {
     id items=recents(s);
     if (!equal(items,s->recent_entries)) {
         objc_release(s->recent_entries); s->recent_entries=items;
-        if (!s->recent_strip && number(items,"count")) s->recent_strip=make_strip();
+        if (!s->recent_strip && number(items,"count")) {
+            s->recent_strip=make_strip();
+            v1(s->recent_strip,"setBackgroundColor:",color("clearColor"));
+        }
         if (s->recent_strip) {
             fill_strip(s->recent_strip,delegate,items,"ssRecent:");
         }
@@ -1223,9 +1251,11 @@ static id recent_header_attributes(id flow,id attributes) {
     id content=m0(flow,"collectionView");
     id delegate=objc_getAssociatedObject(content,&recent_host_key);
     State *s=delegate ? state(delegate) : NULL;
-    if (!s || !s->recent_height || !attributes || !yes(flow,"sectionHeadersPinToVisibleBounds") ||
+    if (!s || !s->recent_height || !attributes ||
         !equal(m0(attributes,"representedElementKind"),str("UICollectionElementKindSectionHeader"))) return attributes;
     id path=m0(attributes,"indexPath"); I section=(I)number(path,"section");
+    BOOL pinned=yes(flow,"sectionHeadersPinToVisibleBounds");
+    if (!pinned && !(section==0 && s->recent_header_height)) return attributes;
     I count=((I (*)(id,SEL,I))objc_msgSend)(content,sel_registerName("numberOfItemsInSection:"),section);
     if (count<=0) return attributes;
     id paths=(id)objc_getClass("NSIndexPath");
@@ -1248,10 +1278,16 @@ static id recent_header_attributes(id flow,id attributes) {
     double end=b.origin.y+b.size.height+section_inset.bottom-position.size.height;
     double y=rect(content,"bounds").origin.y+inset.top-s->recent_height;
     if (end<start || position.size.height<=0) return attributes;
+    if (section==0 && s->recent_header_height) {
+        s->recent_header_start=start;
+        start-=s->recent_height;
+    }
+    if (!pinned) y=start;
     if (y<start) y=start;
     if (y>end) y=end; /* Preserve the following section's push-off boundary. */
     if (position.origin.y==y) return attributes;
     id copy=m0(attributes,"copy"); position.origin.y=y; frame(copy,position);
+    if (section==0 && s->recent_header_height) vi(copy,"setZIndex:",1024);
     return m0(copy,"autorelease");
 }
 static id flow_elements(id flow,SEL sel,Rect bounds) {

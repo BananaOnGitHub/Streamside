@@ -420,7 +420,7 @@ RECENTS = r'''
 #include "SSComposer.c"
 struct Fake {
     const char *cls;
-    id parent,host,views[6],children[4],tint,background;
+    id parent,host,views[6],children[4],tint,background,heading,title;
     State *context;
     Rect frame,bounds;
     Insets inset,adjusted;
@@ -428,12 +428,12 @@ struct Fake {
     U count;
     BOOL hidden;
 };
-static struct Fake classes[8]; static U class_count;
+static struct Fake classes[16]; static U class_count;
 static unsigned inset_sets,offset_sets,original_layouts;
 static State *current;
 Class objc_getClass(const char *name) {
     for(U i=0;i<class_count;i++)if(!strcmp(classes[i].cls,name))return &classes[i];
-    assert(class_count<8);classes[class_count].cls=name;return &classes[class_count++];
+    assert(class_count<16);classes[class_count].cls=name;return &classes[class_count++];
 }
 Class object_getClass(id o) { return o; }
 SEL sel_registerName(const char *s) { return s; }
@@ -443,6 +443,7 @@ Ivar class_getInstanceVariable(Class c,const char *name) {
     const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
         "$__lazy_storage_$_allEmotesButton","recentEmotesHighlight","channelEmotesHighlight","allEmotesHighlight"};
     for(U i=0;i<6;i++)if(!strcmp(name,names[i]))return (Ivar)(uintptr_t)(offsetof(struct Fake,views)+i*sizeof(id));
+    if(!strcmp(name,"titleLabel"))return (Ivar)(uintptr_t)offsetof(struct Fake,title);
     return NULL;
 }
 ptrdiff_t ivar_getOffset(Ivar iv) { return (ptrdiff_t)(uintptr_t)iv; }
@@ -467,7 +468,16 @@ static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
     if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls) || (!strcmp(c->cls,"UIView") && !strcmp(o->cls,"UIButton"))); }
     else if(!strcmp(sel,"respondsToSelector:")) { (void)va_arg(args,SEL);result=(id)1; }
+    else if(!strcmp(sel,"supplementaryViewForElementKind:atIndexPath:")) { (void)va_arg(args,id);(void)va_arg(args,id);result=o->heading; }
+    else if(!strcmp(sel,"mainBundle"))result=o;
+    else if(!strcmp(sel,"localizedStringForKey:value:table:")) { result=va_arg(args,id);(void)va_arg(args,id);(void)va_arg(args,id); }
+    else if(!strcmp(sel,"text"))result=o->tint;
+    else if(!strcmp(sel,"collectionViewLayout"))result=o;
+    else if(!strcmp(sel,"invalidateLayout")) { }
     else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
+    else if(!strcmp(sel,"stringWithUTF8String:")) { (void)va_arg(args,const char *);result=objc_getClass("NSString"); }
+    else if(!strcmp(sel,"indexPathForItem:inSection:")) { (void)va_arg(args,I);(void)va_arg(args,I);result=o; }
+    else if(!strcmp(sel,"isEqual:"))result=(id)(uintptr_t)(o==va_arg(args,id));
     else if(!strcmp(sel,"subviews"))result=o;
     else if(!strcmp(sel,"objectAtIndex:")) { U i=va_arg(args,U);assert(i<o->count);result=o->children[i]; }
     else if(!strcmp(sel,"superview"))result=o->parent;
@@ -513,9 +523,19 @@ int main(void) {
     row.offset.x=192;
     bind_recents(&delegate,&container);collection_layout(&native,"layoutSubviews");
     assert(offset_sets==offsets && inset_sets==insets && row.offset.x==192 && original_layouts==1);
+    struct Fake title={.cls="UILabel",.tint=objc_getClass("NSString")};
+    struct Fake heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}}};native.heading=&heading;
+    place_recent_strip(&s,&native);
+    assert(s.recent_header_height==44 && row.frame.origin.y==-4);
+    assert(native.inset.top==56 && offset_sets==offsets && row.offset.x==192);
+    title.tint=&ordinary;place_recent_strip(&s,&native); /* A Channel header is never moved. */
+    assert(!s.recent_header_height && row.frame.origin.y==-48 && offset_sets==offsets);
+    title.tint=objc_getClass("NSString");place_recent_strip(&s,&native);
+    assert(s.recent_header_height==44 && row.frame.origin.y==-4 && offset_sets==offsets);
+    native.heading=nil; /* UIKit recycles the title while browsing. */
     /* Native vertical scrolling moves the row with content, never pins it. */
     native.offset.y=100;native.bounds.origin.y=100;collection_layout(&native,"layoutSubviews");
-    assert(row.frame.origin.y-native.bounds.origin.y==-148 && offset_sets==offsets);
+    assert(row.frame.origin.y-native.bounds.origin.y==-104 && offset_sets==offsets);
     assert(!s.recent_highlight_active && !buttons[3].background && buttons[4].background==&active);
     assert(buttons[1].tint==&active && buttons[0].tint==&ordinary);
     struct Fake unrelated={.cls="UICollectionView"};collection_layout(&unrelated,"layoutSubviews");
@@ -570,9 +590,10 @@ HEADERS = HEADERS.replace('else if(!strcmp(sel,"count"))', '''else if(!strcmp(se
     else if(!strcmp(sel,"representedElementKind"))result=o->element_kind;
     else if(!strcmp(sel,"indexPath"))result=o->path;
     else if(!strcmp(sel,"section"))result=(id)(uintptr_t)o->section;
-    else if(!strcmp(sel,"numberOfItemsInSection:")) { assert(va_arg(args,I)==1);result=(id)(uintptr_t)o->count; }
+    else if(!strcmp(sel,"numberOfItemsInSection:")) { assert(va_arg(args,I)>=0);result=(id)(uintptr_t)o->count; }
     else if(!strcmp(sel,"indexPathForItem:inSection:")) { assert(path_count<32);id path=&paths[path_count++];path->item=va_arg(args,I);path->section=va_arg(args,I);result=path; }
-    else if(!strcmp(sel,"layoutAttributesForItemAtIndexPath:")) { id path=va_arg(args,id);assert(path->section==1);result=path->item ? o->last : o->first; }
+    else if(!strcmp(sel,"layoutAttributesForItemAtIndexPath:")) { id path=va_arg(args,id);assert(path->section>=0);result=path->item ? o->last : o->first; }
+    else if(!strcmp(sel,"setZIndex:")) { assert(va_arg(args,I)==1024); }
     else if(!strcmp(sel,"copy") || !strcmp(sel,"mutableCopy")) { assert(copy_count<32);copies[copy_count]=*o;result=&copies[copy_count++]; }
     else if(!strcmp(sel,"autorelease"))result=o;
     else if(!strcmp(sel,"replaceObjectAtIndex:withObject:")) { U i=va_arg(args,U);assert(i<o->count);o->children[i]=va_arg(args,id); }
@@ -617,6 +638,20 @@ int main(void) {
     assert(recent_header_attributes(&flow,&header)==&header);content.host=&delegate;
     flow.pinned=NO;assert(recent_header_attributes(&flow,&header)==&header);flow.pinned=YES;
     content.count=0;assert(recent_header_attributes(&flow,&header)==&header);content.count=3;
+    section_path.section=0;s.recent_header_height=100;
+    content.bounds.origin.y=-68;header.frame.origin.y=90;
+    id frequent=recent_header_attributes(&flow,&header);
+    assert(frequent!=&header && frequent->frame.origin.y==42 && header.frame.origin.y==90);
+    assert(s.recent_header_start==90 && first.frame.origin.y==200);
+    assert(s.recent_header_start+s.recent_header_height-s.recent_height==142); /* row follows title */
+    assert(recent_header_attributes(&flow,frequent)==frequent);
+    flow.pinned=NO;header.frame.origin.y=90;
+    assert(recent_header_attributes(&flow,&header)->frame.origin.y==42);
+    flow.pinned=YES;
+    content.bounds.origin.y=280;header.frame.origin.y=348;
+    assert(recent_header_attributes(&flow,&header)->frame.origin.y==300); /* native pin */
+    content.bounds.origin.y=600;header.frame.origin.y=460;
+    assert(recent_header_attributes(&flow,&header)==&header); /* native push-off */
     s.recent_height=0;assert(recent_header_attributes(&flow,&header)==&header);
     assert(first.frame.origin.y==200 && last.frame.origin.y==500 && footer.frame.origin.y==560);
     return 0;
@@ -767,4 +802,5 @@ class ComposerTests(unittest.TestCase):
             subprocess.run(compiler + ["-Wall", "-Wextra", "-Werror", "-ffunction-sections", "-fdata-sections",
                 "-Wl,--gc-sections", *(["-Wno-cast-function-type-mismatch"] if runtime else []), "-I", str(directory), "-I", str(ROOT / "src"), str(harness), "-o", str(binary)],
                 check=True, capture_output=True)
-            subprocess.run([binary], check=True, capture_output=True, env={**os.environ,"ASAN_OPTIONS":"detect_leaks=0"})
+            result = subprocess.run([binary], capture_output=True, env={**os.environ,"ASAN_OPTIONS":"detect_leaks=0"})
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))

@@ -102,6 +102,16 @@ tokenization to Twitch. Provider choices continue through the existing registry,
 preview, send and Recent implementations. Native names are excluded from
 provider preview substitution, including names that collide with provider codes.
 
+The third-party Recent row sits below Twitch's native Frequently Used title
+and above its native history cells. The rendered first header's title is checked
+against the app's localized `Frequently Used` string; Channel/other headers are
+never repurposed. Its existing 48-point inset is reused by moving only the title
+into the reserved space and positioning the row directly beneath it. Native
+cell geometry, section models, navigation and sticky-header push-off stay intact.
+If Twitch has no native Frequently Used header, the row keeps its preceding
+position rather than borrowing a Channel heading. The row has a transparent
+background so it shares the section's appearance.
+
 The third-party Recent row snapshots saved history on the first visible layout
 of each emote menu opening. Selection/send still saves history immediately;
 editing, timer ticks, tab changes and image updates only refresh thumbnails in

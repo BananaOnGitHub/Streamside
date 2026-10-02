@@ -136,14 +136,19 @@ queue/Swift bridging guards and device validation requirements.
 An owned UIKit collection view overlays the existing keyboard's content area
 when its third-party footer button is selected. The native footer and native
 library actions remain available. Provider changes reset the scope to Channel.
-Recent provider names occupy a horizontal row prepended to the native library's
-collection view, populated on every opening without requiring a Recent button
+Recent provider names occupy a horizontal row beneath the native Frequently
+Used heading in the library's collection view, populated on every opening without requiring a Recent button
 press. The row scrolls vertically with native sections and horizontally within
 itself. Additional top inset reserves its space; native section navigation and
 scroll-driven highlights remain intact. Scoped flow-layout hooks exclude the
 owned inset from sticky-header pinning, retaining the native section start and
 push-off boundary. Both element-array and direct header queries return copied
-attributes; cached headers, cells, footers and other libraries remain untouched.
+attributes; cached attributes, cells, footers and other libraries remain untouched.
+The rendered first header's UILabel is checked against Twitch's localized
+Frequently Used title. Only that header moves into the owned inset; the row
+follows it and uses a transparent background. If no matching native heading is
+present, the row retains its preceding position. Other section titles are not
+moved into that space.
 Per-section inset callbacks require their complete inspected Objective-C encoding.
 While the provider row leads the viewport,
 the native Recent indicator uses the existing selected colors, even with empty

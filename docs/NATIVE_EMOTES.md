@@ -5,6 +5,23 @@ catalog alongside the existing 7TV, BTTV and FFZ registry. Automatic and colon
 modes use the same results and selection path. The native emote keyboard,
 provider tab and scrolling third-party Recent row retain their existing behavior.
 
+Third-party image IDs now derive from channel scope, emote name and provider
+image URL, independently of request order or app launch. They use a separate
+15-digit namespace from the old sequential IDs. This prevents Twitch's
+persistent synthetic-URL image cache from displaying a previous session's
+bitmap under a new emote's dimensions. A detected hash collision is rejected
+rather than remapped; retired IDs keep their original image routes.
+
+Picker views retain the displayed image record while visible and only apply
+setters when their URL or image changes. Cache eviction and unrelated image
+notifications no longer clear/restart an animation. Chat recovery is limited
+to provider `ImageAttachmentLayer` instances: its attached
+`TWAnimatedImageLayer` uses unlimited loops and re-evaluates native visibility
+when paused. Native Twitch animation behavior remains unchanged. The inspected
+30.4.2 setter (`0x100004644`) copies finite GIF loop counts, the display callback
+(`0x100004808`) stops on countdown exhaustion, and removal (`0x10000452c`)
+pauses the layer; the runtime hooks use selectors, never those addresses.
+
 ## Twitch 30.4.2 investigation
 
 These findings come from the decrypted 30.4.2 app and its bundled TwitchKit

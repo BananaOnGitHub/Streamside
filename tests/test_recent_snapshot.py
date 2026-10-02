@@ -87,7 +87,7 @@ class RecentSnapshotTests(unittest.TestCase):
         # Thumbnail loading and strip construction are UIKit infrastructure;
         # production snapshot, history, visibility and button binding run here.
         for name, replacement in (
-            ("set_thumbnail", 'static void set_thumbnail(id image,id metadata) { (void)metadata;v1(image,"setImage:",nil); }'),
+            ("set_thumbnail", 'static void set_thumbnail(id image,id metadata) { (void)metadata;(void)thumbnail_url_key;(void)thumbnail_record_key;v1(image,"setImage:",nil); }'),
             ("make_strip", 'static id make_strip(void) { (void)strip_class;(void)strip_cancel_touch;(void)configure_strip;assert(!"test supplies its UIKit strip");return nil; }'),
         ):
             start = source.index(f"static {'id' if name=='make_strip' else 'void'} {name}(")

@@ -46,7 +46,11 @@
   browsing position during refresh/outer scrolling/rotation, reset it for
   provider/scope/channel switches, and allow swipes starting on emote buttons
   through an isolated collection-view subclass.
-- Candidate bundle build: `3.0.0.23`; horizontal library requires device verification.
+- Device-confirmed the build 23 horizontal library. Sort picker snapshots by
+  name ignoring capitalization across all included providers/scopes, with an
+  exact-name tie-break and limits applied after sorting. Keep the registry's
+  case-sensitive code lookup and channel-over-global precedence intact.
+- Candidate bundle build: `3.0.0.24`; alphabetical library order requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

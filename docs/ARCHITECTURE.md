@@ -138,7 +138,11 @@ account subscription emotes. Its heading, All / 7TV / BTTV / FFZ control,
 Channel / Global control and grid move together in the native collection's vertical
 scroll. The owned grid scrolls horizontally in five rows, with UIKit's horizontal
 flow layout filling each column top to bottom. Provider changes reset the scope
-to Channel. Bind the container's stored palette,
+to Channel. Picker snapshots sort by name ignoring capitalization across all
+included providers and scopes, with an exact-name tie-break, before applying
+the result limit. The lookup registry retains its exact byte order and distinct
+case-sensitive chat codes; suggestions retain channel-over-global precedence.
+Bind the container's stored palette,
 which is itself Twitch's collection view. Scoped, ABI-validated flow-layout hooks
 copy attributes to move the following native cells and headers below the full
 panel. Direct cell queries and visible-rectangle queries use the same coordinate

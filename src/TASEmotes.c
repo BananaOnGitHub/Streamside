@@ -886,23 +886,34 @@ id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t 
     if (!prefix || strlen(prefix) > 96) return nil;
     if (limit > MAX_ROOM + MAX_GLOBAL) limit = MAX_ROOM + MAX_GLOBAL;
     id result = call0((id)objc_getClass("NSMutableArray"),"new");
+    if (!limit) return result;
     pthread_mutex_lock(&g_emote_lock);
     Room *room = picker_room_locked(channel);
     Room *libraries[] = {room, &g_global};
-    size_t added = 0;
-    for (int library=0;library<2 && added<limit;library++) {
+    for (int library=0;library<2;library++) {
         Room *r=libraries[library];
         if (!r || (scope >= 0 && scope != library)) continue;
-        for (size_t i=0;i<r->size && added<limit;i++) {
+        for (size_t i=0;i<r->size;i++) {
             Emote *e=&r->items[i];
             if (!ss_provider_matches(e->provider,provider) || !ss_ascii_prefix(e->name,prefix)) continue;
             /* Suggestions use the same channel-over-global precedence as chat. */
             if (scope == -1 && library && room && find_word(room,e->name)) continue;
             id metadata=metadata_locked(e); ((void (*)(id,SEL,id))objc_msgSend)(result,sel_registerName("addObject:"),metadata);
-            objc_release(metadata); added++;
+            objc_release(metadata);
         }
     }
-    pthread_mutex_unlock(&g_emote_lock); return result;
+    pthread_mutex_unlock(&g_emote_lock);
+    /* The lookup registry must keep exact byte ordering for case-sensitive
+     * chat codes. Sort only these immutable display snapshots, across every
+     * included provider/scope, so uppercase A-Z cannot precede lowercase a-z. */
+    ((void (*)(id,SEL,id))objc_msgSend)(result,sel_registerName("sortUsingComparator:"),(id)^NSInteger(id a,id b) {
+        id left=dict(a,"name"),right=dict(b,"name");
+        NSInteger order=((NSInteger (*)(id,SEL,id))objc_msgSend)(left,sel_registerName("caseInsensitiveCompare:"),right);
+        return order ? order : ((NSInteger (*)(id,SEL,id))objc_msgSend)(left,sel_registerName("compare:"),right);
+    });
+    /* Apply the limit after sorting, so a small result window starts at A. */
+    while (count(result)>limit) call0(result,"removeLastObject");
+    return result;
 }
 
 id tas_emotes_named_copy(id channel, id name) {

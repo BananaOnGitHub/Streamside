@@ -837,8 +837,9 @@ class ComposerTests(unittest.TestCase):
             if runtime:
                 content += '\nvoid *_NSConcreteGlobalBlock[32];\n'
             harness.write_text(content)
-            subprocess.run(compiler + ["-Wall", "-Wextra", "-Werror", "-ffunction-sections", "-fdata-sections",
+            compiled = subprocess.run(compiler + ["-Wall", "-Wextra", "-Werror", "-ffunction-sections", "-fdata-sections",
                 "-Wl,--gc-sections", *(["-Wno-cast-function-type-mismatch"] if runtime else []), "-I", str(directory), "-I", str(ROOT / "src"), str(harness), "-o", str(binary)],
-                check=True, capture_output=True)
+                capture_output=True)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr.decode(errors="replace"))
             result = subprocess.run([binary], capture_output=True, env={**os.environ,"ASAN_OPTIONS":"detect_leaks=0"})
             self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))

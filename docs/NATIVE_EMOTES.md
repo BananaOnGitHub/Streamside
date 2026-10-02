@@ -74,6 +74,24 @@ provided by Twitch, with the existing response/image size limits.
 
 ## Search, suppression and insertion
 
+The full provider library has an entry immediately after native Recent in the
+emote keyboard footer (first among emote tabs when Twitch omits Recent). It opens
+the scrollable emote grid with All / 7TV / BTTV / FFZ and Channel / Global
+controls; every provider change resets Channel. Native footer actions restore
+the native palette, while backspace keeps the provider browser open.
+
+Twitch 30.4.2's Swift footer availability worker (`0x101981f1c`) calls its
+stack replacement helper (`0x1045a7480`): remove every arranged view, then add
+only the native array. Streamside's retained button association survives that
+removal. Checking only that association previously prevented reinsertion,
+leaving the complete panel unreachable. Installation now checks both actual
+stack memberships, reuses the same button/action and matching highlight, and
+inserts them after Recent. A scoped footer layout hook catches Swift rebuilds
+that bypass the Objective-C apply wrapper. Owned slots use the inspected native
+40-point width / 3-point underline, and selection/theme restoration only changes
+UIKit appearance, never Twitch's Swift selected-section model. Diagnostics
+include the footer layout hook and creation/restoration counts.
+
 Both composer modes search the complete captured native catalog and existing
 provider libraries with case-insensitive prefixes. Native codes win exact
 name collisions. Sorted native results alternate with provider results in a

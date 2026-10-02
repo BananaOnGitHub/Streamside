@@ -16,12 +16,16 @@
   cell geometry, sticky headers, navigation and the menu-opening snapshot.
 - Clip the provider Recent row beneath the pinned Frequently Used heading
   during scrolling, preserving its transparent appearance and horizontal swipe.
+- Restore the complete provider library's footer entry after Recent whenever
+  Twitch replaces its native button/highlight stacks. Match native slot sizes
+  and highlight behavior; keep the emote grid, All / 7TV / BTTV / FFZ filters and
+  Channel / Global control reachable. Every provider change resets Channel.
 - Bound thumbnail requests/cache and validate native bridge signatures; add
   UTF-16 selection/deletion, native-attachment preservation and identity-layout
   regression tests. Keep every existing Mach-O and packaging guard mandatory.
 - Preserve the existing icon. The forthcoming logo must support UIKit dynamic
   background/appearance and tint; logo work and release publication remain pending.
-- Candidate bundle build: `3.0.0.18`; scroller clipping requires device verification.
+- Candidate bundle build: `3.0.0.19`; restored library browser requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

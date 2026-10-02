@@ -40,13 +40,13 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_AUTOCOMPLETE "_TtC6Twitch28ChatEmoteAutocompleteManager"
 #define NATIVE_INFO "_TtCC6Twitch28ChatEmoteAutocompleteManagerP33_CEF95AD68D7B2CB9CDF93771963981BE9EmoteInfo"
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
-static char state_key,footer_key,button_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key;
+static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key;
 static char selector_key;
 static char thumbnail_url_key,thumbnail_record_key;
 static Class delegate_class,attachment_class,strip_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
-static IMP original_footer_apply,original_footer_move,original_container_layout,original_collection_layout;
+static IMP original_footer_apply,original_footer_move,original_footer_layout,original_container_layout,original_collection_layout;
 static IMP original_flow_elements,original_flow_header;
 static IMP original_selector_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
@@ -55,6 +55,7 @@ static id images,pending,failed,image_session;
 static uint64_t edited,previewed,insertions,palette_opens,identity_misses,image_failures;
 static uint64_t grid_taps,strip_taps,selection_missing,lookup_misses,validation_vetoes,range_misses,unchanged_edits;
 static uint64_t native_snapshots,native_catalog_count,native_catalog_misses,native_insertions,selector_suppressions;
+static uint64_t library_tab_creations,library_tab_repairs;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 
@@ -116,6 +117,8 @@ typedef struct {
     double recent_height,recent_header_height,recent_header_start;
     BOOL placing_recents,recent_highlight_active,recent_menu_open;
     id recent_colors[6]; /* retained native footer appearance while overridden */
+    BOOL library_highlight_active;
+    id library_colors[6]; /* retained native appearance while the library is selected */
     Range completion;
     int library,library_scope,tab;
     BOOL busy,scheduled,preview_scheduled,native_was_hidden;
@@ -837,9 +840,38 @@ static void make_panel(id delegate) {
     s->empty=view("UILabel",(Rect){{16,88},{288,60}}); vi(s->empty,"setTextAlignment:",1); vi(s->empty,"setNumberOfLines:",2);
     v1(s->empty,"setTextColor:",color("secondaryLabelColor")); v1(s->panel,"addSubview:",s->empty);
 }
+static void refresh_library(State *s) {
+    if (s->tab!=1) return;
+    id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
+    if (!equal(items,s->entries)) {
+        objc_release(s->entries); s->entries=items; m0(s->grid,"reloadData");
+    } else if (items) objc_release(items);
+    vb(s->empty,"setHidden:",number(s->entries,"count")!=0);
+    v1(s->empty,"setText:",str(s->library_scope ? "No global emotes available." : "No channel emotes available yet.\nUse Reload Emotes to refresh."));
+    id cells=m0(s->grid,"visibleCells"); for (U i=0;i<number(cells,"count");i++) {
+        id c=at(cells,i),path=m1(s->grid,"indexPathForCell:",c); U index=number(path,"item");
+        if (path && index<number(s->entries,"count")) set_thumbnail(objc_getAssociatedObject(c,&cell_key),at(s->entries,index));
+    }
+}
+static void place_library_panel(State *s,id container,id footer) {
+    if (s->tab!=1 || !container || !footer || !m0(container,"window")) return;
+    Rect bounds=rect(container,"bounds"),foot=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(footer,sel_registerName("convertRect:toView:"),rect(footer,"bounds"),container);
+    double height=foot.origin.y>0 && foot.origin.y<bounds.size.height ? foot.origin.y : bounds.size.height-48;
+    if (height<0) height=0;
+    if (m0(s->panel,"superview")!=container) v1(container,"addSubview:",s->panel);
+    frame(s->panel,(Rect){{0,0},{bounds.size.width,height}});
+    frame(s->provider,(Rect){{8,6},{bounds.size.width-16,28}}); frame(s->scope,(Rect){{8,40},{bounds.size.width-16,28}});
+    frame(s->grid,(Rect){{4,76},{bounds.size.width-8,height>76 ? height-76 : 0}});
+    frame(s->empty,(Rect){{12,80},{bounds.size.width-24,50}});
+    /* The footer can have a full-height transparent hit-test region. The
+     * panel stops above its visible row and stays above that invisible area. */
+    v1(container,"bringSubviewToFront:",s->panel);
+}
 static void restore_recent_highlight(State *s);
+static void restore_library_highlight(State *s);
 static void restore_native(State *s) {
     restore_recent_highlight(s);
+    restore_library_highlight(s);
     m0(s->panel,"removeFromSuperview");
     id footer=objc_loadWeakRetained(&s->footer); vb(objc_getAssociatedObject(footer,&button_key),"setSelected:",NO); objc_release(footer);
     if (s->native_content) {
@@ -864,6 +896,43 @@ static void restore_recent_highlight(State *s) {
         objc_release(s->recent_colors[i]); s->recent_colors[i]=nil;
     }
     s->recent_highlight_active=NO; objc_release(footer);
+}
+static void restore_library_highlight(State *s) {
+    id footer=objc_loadWeakRetained(&s->footer);
+    if (s->library_highlight_active) {
+        for (U i=0;i<6;i++) {
+            v1(recent_footer_view(footer,i),i<3 ? "setTintColor:":"setBackgroundColor:",s->library_colors[i]);
+            objc_release(s->library_colors[i]); s->library_colors[i]=nil;
+        }
+        s->library_highlight_active=NO;
+    }
+    v1(objc_getAssociatedObject(footer,&library_highlight_key),"setBackgroundColor:",nil);
+    vb(objc_getAssociatedObject(footer,&button_key),"setSelected:",NO);
+    objc_release(footer);
+}
+static void update_library_highlight(State *s) {
+    if (s->tab!=1) return;
+    id footer=objc_loadWeakRetained(&s->footer);
+    id button=objc_getAssociatedObject(footer,&button_key),highlight=objc_getAssociatedObject(footer,&library_highlight_key);
+    id native[6];
+    for (U i=0;i<6;i++) native[i]=recent_footer_view(footer,i);
+    if (button && highlight) {
+        if (!s->library_highlight_active) {
+            for (U i=0;i<6;i++) s->library_colors[i]=objc_retain(m0(native[i],i<3 ? "tintColor":"backgroundColor"));
+            s->library_highlight_active=YES;
+        }
+        id active=nil,inactive=nil;
+        for (U i=0;i<3;i++) {
+            if (s->library_colors[i+3]) active=s->library_colors[i+3];
+            else if (s->library_colors[i]) inactive=s->library_colors[i];
+        }
+        if (!active) active=color("systemPurpleColor");
+        if (!inactive) inactive=color("secondaryLabelColor");
+        for (U i=0;i<3;i++) { v1(native[i],"setTintColor:",inactive); v1(native[i+3],"setBackgroundColor:",nil); }
+        v1(button,"setTintColor:",active); v1(highlight,"setBackgroundColor:",active);
+        vb(button,"setSelected:",YES);
+    }
+    objc_release(footer);
 }
 static void update_recent_highlight(State *s,id content) {
     /* Native scroll callbacks continue to own every native section. The added
@@ -1039,21 +1108,7 @@ static void layout(id delegate) {
     id container=container_for(s,owner),footer=objc_loadWeakRetained(&s->footer);
     refresh_recents(delegate,visible_in_window(container));
     if (container && m0(container,"window")) bind_recents(delegate,container);
-    if (s->tab==1 && container && footer && m0(container,"window")) {
-        Rect bounds=rect(container,"bounds"),foot=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(footer,sel_registerName("convertRect:toView:"),rect(footer,"bounds"),container);
-        double height=foot.origin.y>0 && foot.origin.y<bounds.size.height ? foot.origin.y : bounds.size.height-48;
-        if (height<0) height=0;
-        if (m0(s->panel,"superview")!=container) v1(container,"addSubview:",s->panel);
-        frame(s->panel,(Rect){{0,0},{bounds.size.width,height}});
-        frame(s->provider,(Rect){{8,6},{bounds.size.width-16,28}}); frame(s->scope,(Rect){{8,40},{bounds.size.width-16,28}});
-        frame(s->grid,(Rect){{4,76},{bounds.size.width-8,height>76 ? height-76 : 0}});
-        frame(s->empty,(Rect){{12,80},{bounds.size.width-24,50}});
-        /* The footer can have a full-height transparent hit-test region.
-         * Keeping it above the panel makes visible emotes untappable and
-         * forwards their touches to Twitch's keyboard-dismiss action.
-         * The panel stops above the actual footer row. */
-        v1(container,"bringSubviewToFront:",s->panel);
-    }
+    place_library_panel(s,container,footer);
     objc_release(footer); objc_release(owner);
 }
 static void third_party_tab(id self,SEL sel,id sender) {
@@ -1061,8 +1116,34 @@ static void third_party_tab(id self,SEL sel,id sender) {
     id owner=objc_loadWeakRetained(&s->owner),container=container_for(s,owner);
     id content=find_class(container,"UICollectionView",0);
     if (content && content!=s->grid) { s->native_content=objc_retain(content); s->native_was_hidden=yes(content,"isHidden"); vb(content,"setHidden:",YES); }
-    id footer=objc_loadWeakRetained(&s->footer); vb(objc_getAssociatedObject(footer,&button_key),"setSelected:",YES); objc_release(footer);
+    update_library_highlight(s);
     INC(palette_opens); refresh(self); objc_release(owner);
+}
+/* Twitch replaces BOTH arranged-subview arrays from Swift when native
+ * availability changes. A retained association is not proof of membership.
+ * Restore our entry after Recent (or first when Recent is absent), with a
+ * matching underline slot. Never append duplicates or change native models. */
+static BOOL place_footer_item(id stack,id item,id recent) {
+    id arranged=m0(stack,"arrangedSubviews");
+    U index=number(arranged,"count"),recent_index=index;
+    for (U i=0;i<number(arranged,"count");i++) {
+        if (at(arranged,i)==item) index=i;
+        if (recent && at(arranged,i)==recent) recent_index=i;
+    }
+    U desired=recent_index<number(arranged,"count") ? recent_index+1 : 0;
+    if (index<number(arranged,"count") && index==desired) return NO;
+    if (m0(item,"superview")) {
+        v1(stack,"removeArrangedSubview:",item); m0(item,"removeFromSuperview");
+    }
+    arranged=m0(stack,"arrangedSubviews"); desired=0;
+    for (U i=0;i<number(arranged,"count");i++) if (recent && at(arranged,i)==recent) { desired=i+1; break; }
+    ((void (*)(id,SEL,id,U))objc_msgSend)(stack,sel_registerName("insertArrangedSubview:atIndex:"),item,desired);
+    return YES;
+}
+static void footer_width(id item,double width) {
+    vb(item,"setTranslatesAutoresizingMaskIntoConstraints:",NO);
+    id constraint=((id (*)(id,SEL,double))objc_msgSend)(m0(item,"widthAnchor"),sel_registerName("constraintEqualToConstant:"),width);
+    vb(constraint,"setActive:",YES);
 }
 static void install_footer(id footer,id owner) {
     if (!footer || !owner) return;
@@ -1071,12 +1152,36 @@ static void install_footer(id footer,id owner) {
     if (previous!=footer) { restore_native(s); s->tab=0; s->recent_menu_open=NO; objc_destroyWeak(&s->footer); objc_initWeak(&s->footer,footer); }
     objc_release(previous); associate(footer,&footer_key,delegate);
     id stack=object_field(footer,"emoteButtonsStackView","UIStackView");
-    if (!stack || objc_getAssociatedObject(footer,&button_key)) return;
-    id button=m0((id)objc_getClass("UIButton"),"new");
-    id icon=m1((id)objc_getClass("UIImage"),"systemImageNamed:",str("face.smiling"));
-    ((void (*)(id,SEL,id,U))objc_msgSend)(button,sel_registerName("setImage:forState:"),icon,(U)0);
-    v1(button,"setAccessibilityLabel:",str("Third-party emotes")); v1(button,"setAccessibilityIdentifier:",str("StreamsideThirdPartyEmotes"));
-    target(button,delegate,"ssThirdParty:",1UL<<6); v1(stack,"addArrangedSubview:",button); associate(footer,&button_key,button); objc_release(button);
+    id highlights=object_field(footer,"emoteHighlightsStackView","UIStackView");
+    if (!stack || !highlights) return;
+    id button=objc_getAssociatedObject(footer,&button_key),highlight=objc_getAssociatedObject(footer,&library_highlight_key);
+    BOOL created=!button;
+    if (!button) {
+        button=m0((id)objc_getClass("UIButton"),"new");
+        id icon=m1((id)objc_getClass("UIImage"),"systemImageNamed:",str("face.smiling"));
+        ((void (*)(id,SEL,id,U))objc_msgSend)(button,sel_registerName("setImage:forState:"),icon,(U)0);
+        v1(button,"setAccessibilityLabel:",str("Emote library")); v1(button,"setAccessibilityIdentifier:",str("StreamsideThirdPartyEmotes"));
+        footer_width(button,40); target(button,delegate,"ssThirdParty:",1UL<<6);
+        associate(footer,&button_key,button); objc_release(button); INC(library_tab_creations);
+    }
+    if (!highlight) {
+        highlight=m0((id)objc_getClass("UIView"),"new"); footer_width(highlight,40);
+        id height=((id (*)(id,SEL,double))objc_msgSend)(m0(highlight,"heightAnchor"),sel_registerName("constraintEqualToConstant:"),3.0);
+        vb(height,"setActive:",YES); vb(highlight,"setUserInteractionEnabled:",NO);
+        associate(footer,&library_highlight_key,highlight); objc_release(highlight);
+    }
+    BOOL repaired=place_footer_item(stack,button,recent_footer_view(footer,0));
+    repaired=place_footer_item(highlights,highlight,recent_footer_view(footer,3)) || repaired;
+    if (repaired && !created) INC(library_tab_repairs);
+    vb(button,"setHidden:",NO); vb(highlight,"setHidden:",NO);
+    if (s->tab==1) update_library_highlight(s);
+    else {
+        id inactive=nil;
+        for (U i=0;i<3;i++) if (!m0(recent_footer_view(footer,i+3),"backgroundColor")) {
+            id tint=m0(recent_footer_view(footer,i),"tintColor"); if (tint) inactive=tint;
+        }
+        v1(button,"setTintColor:",inactive ?: color("secondaryLabelColor"));
+    }
 }
 static void find_footer(id owner) {
     id container=object_field(owner,"emoticonPaletteContainerView",CONTAINER);
@@ -1112,18 +1217,7 @@ static void refresh(id delegate) {
         objc_release(plain);
     } else if (s->suggestions) { objc_release(s->suggestions); s->suggestions=nil; vb(s->strip,"setHidden:",YES); }
     id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); objc_release(selector);
-    if (s->tab==1) {
-        id items=tas_emotes_picker_copy(s->room,s->library,s->library_scope,nil,6500);
-        if (!equal(items,s->entries)) {
-            objc_release(s->entries); s->entries=items; m0(s->grid,"reloadData");
-        } else if (items) objc_release(items);
-        vb(s->empty,"setHidden:",number(s->entries,"count")!=0);
-        v1(s->empty,"setText:",str(s->library_scope ? "No global emotes available." : "No channel emotes available yet.\nUse Reload Emotes to refresh."));
-        id cells=m0(s->grid,"visibleCells"); for (U i=0;i<number(cells,"count");i++) {
-            id c=at(cells,i),path=m1(s->grid,"indexPathForCell:",c); U index=number(path,"item");
-            if (path && index<number(s->entries,"count")) set_thumbnail(objc_getAssociatedObject(c,&cell_key),at(s->entries,index));
-        }
-    }
+    refresh_library(s);
     layout(delegate); objc_release(owner);
 }
 static BOOL visible_in_window(id view) {
@@ -1252,10 +1346,14 @@ static id owner_above(id child) {
 }
 static void footer_apply(id footer,SEL sel,id model) {
     State *s=state(objc_getAssociatedObject(footer,&footer_key));
-    if (s) restore_recent_highlight(s);
+    if (s) { restore_recent_highlight(s); restore_library_highlight(s); }
     ((void (*)(id,SEL,id))original_footer_apply)(footer,sel,model);
     install_footer(footer,owner_above(footer));
     if (s) { id content=objc_loadWeakRetained(&s->recent_content); update_recent_highlight(s,content); objc_release(content); }
+}
+static void footer_layout(id footer,SEL sel) {
+    ((void (*)(id,SEL))original_footer_layout)(footer,sel);
+    install_footer(footer,owner_above(footer));
 }
 static void footer_moved(id footer,SEL sel) {
     ((void (*)(id,SEL))original_footer_move)(footer,sel);
@@ -1445,6 +1543,7 @@ void ss_composer_retry_hooks(void) {
     hook(INPUT,"layoutSubviews","v16@0:8",(IMP)input_layout,&original_layout);
     hook(FOOTER,"apply:","v24@0:8@16",(IMP)footer_apply,&original_footer_apply);
     hook(FOOTER,"didMoveToWindow","v16@0:8",(IMP)footer_moved,&original_footer_move);
+    hook(FOOTER,"layoutSubviews","v16@0:8",(IMP)footer_layout,&original_footer_layout);
     hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
     hook("UICollectionViewFlowLayout","layoutAttributesForElementsInRect:","@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",(IMP)flow_elements,&original_flow_elements);
     hook("UICollectionViewFlowLayout","layoutAttributesForSupplementaryViewOfKind:atIndexPath:","@32@0:8@16@24",(IMP)flow_header,&original_flow_header);
@@ -1465,6 +1564,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Native text snapshot hooks (text/storage): %s/%s\n"
         "Native library scrolling hook: %s\n"
         "Native library header hooks (elements/header): %s/%s\n"
+        "Library footer layout hook: %s; tabs created/restored: %llu/%llu\n"
         "Unified Twitch catalog bridge/selector hooks: %s/%s\n"
         "Twitch catalog snapshots/entries/misses/native insertions/suppressions: %llu/%llu/%llu/%llu/%llu\n"
         "Identity layout misses/image failures: %llu/%llu\n"
@@ -1477,6 +1577,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         original_text ? "installed":"missing",original_storage ? "installed":"missing",
         original_collection_layout ? "installed":"missing",
         original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
+        original_footer_layout ? "installed":"missing",(unsigned long long)GET(library_tab_creations),(unsigned long long)GET(library_tab_repairs),
         native_array_type ? "ready":"waiting",original_selector_layout ? "installed":"missing",
         (unsigned long long)GET(native_snapshots),(unsigned long long)GET(native_catalog_count),(unsigned long long)GET(native_catalog_misses),
         (unsigned long long)GET(native_insertions),(unsigned long long)GET(selector_suppressions),

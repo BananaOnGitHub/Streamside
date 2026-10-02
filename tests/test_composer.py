@@ -750,7 +750,7 @@ class ComposerTests(unittest.TestCase):
         source = (ROOT / "src" / "SSComposer.c").read_text()
         start = source.index('static void set_thumbnail(')
         end = source.index('\n}', start) + 2
-        source = source[:start] + 'static void set_thumbnail(id image,id metadata) { (void)metadata;v1(image,"setImage:",nil); }' + source[end:]
+        source = source[:start] + 'static void set_thumbnail(id image,id metadata) { (void)metadata;(void)thumbnail_url_key;(void)thumbnail_record_key;v1(image,"setImage:",nil); }' + source[end:]
         self.compile_run(RECENT_ACTIONS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
 
     def compile_run(self, content, compiler, runtime=False):

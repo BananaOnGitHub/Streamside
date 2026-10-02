@@ -360,22 +360,28 @@ SCROLL = r'''
 #include <assert.h>
 #include "SSComposer.c"
 struct Fake { Rect frame; Size content; Point offset; BOOL options[8]; I dismiss; };
-static struct Fake base,owned,palette,scroll,button,background;
+static struct Fake base,owned,grid_base,grid_owned,palette,scroll,grid_scroll,button,background;
 static unsigned allocated,registered;
-static IMP cancellation;
+static IMP cancellation,grid_cancellation;
 Class objc_getClass(const char *name) {
     if(!strcmp(name,"UIScrollView"))return &base;
+    if(!strcmp(name,"UICollectionView"))return &grid_base;
     if(!strcmp(name,"UIColor"))return &palette;
     assert(!"unexpected scroll class");return nil;
 }
 SEL sel_registerName(const char *s) { return s; }
-Method class_getInstanceMethod(Class c,SEL sel) { assert(c==&base && !strcmp(sel,"touchesShouldCancelInContentView:"));return (Method)1; }
+Method class_getInstanceMethod(Class c,SEL sel) { assert((c==&base || c==&grid_base) && !strcmp(sel,"touchesShouldCancelInContentView:"));return (Method)1; }
 const char *method_getTypeEncoding(Method m) { assert(m);return "B24@0:8@16"; }
-Class objc_allocateClassPair(Class c,const char *name,size_t bytes) { assert(c==&base && !strcmp(name,"SSComposerScrollView") && !bytes);allocated++;return &owned; }
-BOOL class_addMethod(Class c,SEL sel,IMP imp,const char *types) {
-    assert(c==&owned && !strcmp(sel,"touchesShouldCancelInContentView:") && !strcmp(types,"B24@0:8@16"));cancellation=imp;return YES;
+Class objc_allocateClassPair(Class c,const char *name,size_t bytes) {
+    assert(!bytes);allocated++;
+    if(c==&base) { assert(!strcmp(name,"SSComposerScrollView"));return &owned; }
+    assert(c==&grid_base && !strcmp(name,"SSComposerEmoteGrid"));return &grid_owned;
 }
-void objc_registerClassPair(Class c) { assert(c==&owned && cancellation);registered++; }
+BOOL class_addMethod(Class c,SEL sel,IMP imp,const char *types) {
+    assert(!strcmp(sel,"touchesShouldCancelInContentView:") && !strcmp(types,"B24@0:8@16"));
+    if(c==&owned)cancellation=imp;else { assert(c==&grid_owned);grid_cancellation=imp; }return YES;
+}
+void objc_registerClassPair(Class c) { assert((c==&owned && cancellation) || (c==&grid_owned && grid_cancellation));registered++; }
 static id dispatch(id o,SEL sel,...) {
     assert(o);va_list args;va_start(args,sel);id result=nil;
     const char *names[]={"setScrollEnabled:","setCanCancelContentTouches:","setDelaysContentTouches:",
@@ -410,6 +416,14 @@ int main(void) {
     scroll.offset=(Point){1216,0};set_strip_extent(row,2);
     assert(scroll.content.width==128 && scroll.offset.x==0 && scroll.offset.y==0); /* new search resets stale offset */
     assert(make_strip()==row && allocated==1 && registered==1);
+    assert(library_grid_class()==&grid_owned && allocated==2 && registered==2);
+    assert(library_grid_class()==&grid_owned && allocated==2 && registered==2);
+    configure_strip(&grid_scroll);
+    assert(grid_scroll.options[0] && grid_scroll.options[1] && !grid_scroll.options[2]);
+    assert(grid_scroll.options[3] && !grid_scroll.options[4] && grid_scroll.options[5]);
+    assert(grid_scroll.options[6] && !grid_scroll.options[7] && !grid_scroll.dismiss);
+    assert(((BOOL (*)(id,SEL,id))grid_cancellation)(&grid_scroll,"touchesShouldCancelInContentView:",&button));
+    assert(!GET(grid_taps) && !GET(insertions));
     return 0;
 }
 '''
@@ -779,6 +793,8 @@ def recent_geometry_source():
         'ss_test_offset(content,offset)')
     source = source.replace('((void (*)(id,SEL,Point))objc_msgSend)(s->grid,sel_registerName("setContentOffset:"),position)',
         'ss_test_offset(s->grid,position)')
+    source = source.replace('((void (*)(id,SEL,Point))objc_msgSend)(s->grid,sel_registerName("setContentOffset:"),(Point){0,0})',
+        'ss_test_offset(s->grid,(Point){0,0})')
     source = source.replace('((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),offset,NO)',
         'ss_test_offset_animated(content,offset,NO)')
     source = source.replace('((void (*)(id,SEL,Point,BOOL))objc_msgSend)(content,sel_registerName("setContentOffset:animated:"),(Point){0,-inset.top},NO)',

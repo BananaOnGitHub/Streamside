@@ -135,8 +135,10 @@ queue/Swift bridging guards and device validation requirements.
 
 The complete provider library is an inline section between native Recent and
 account subscription emotes. Its heading, All / 7TV / BTTV / FFZ control,
-Channel / Global control and grid share the native collection's vertical scroll.
-Provider changes reset the scope to Channel. Bind the container's stored palette,
+Channel / Global control and grid move together in the native collection's vertical
+scroll. The owned grid scrolls horizontally in five rows, with UIKit's horizontal
+flow layout filling each column top to bottom. Provider changes reset the scope
+to Channel. Bind the container's stored palette,
 which is itself Twitch's collection view. Scoped, ABI-validated flow-layout hooks
 copy attributes to move the following native cells and headers below the full
 panel. Direct cell queries and visible-rectangle queries use the same coordinate
@@ -146,15 +148,20 @@ panel height. Empty sections are skipped when choosing the insertion point;
 headerless sections use their first cell and native inset. With no following
 cells, the library starts at the original native content height. Native section
 indexes, models, cached attributes and section/content insets stay unchanged.
-A non-scrolling owned collection displays only the outer viewport's intersection
-with the virtual grid and synchronizes its content offset, so thousands of emotes
-reuse a bounded number of visible cells rather than rendering the entire library.
-Width and provider/scope changes recompute the reserved height.
+A fixed 296-point grid fits five 56-point cells and four 4-point gaps. Larger
+libraries extend its horizontal content, while native cell reuse keeps only
+visible columns active. The section reserves 410 points including controls and
+padding, or 178 points for an empty-state label. Rotation changes the grid width,
+not its row count. Outer vertical scrolling and catalog/image refreshes preserve
+its horizontal offset; provider, scope and room changes reset the first column.
+An isolated UICollectionView subclass permits cancellation of UIButton tracking
+for horizontal swipes, sharing the Recent row's scrolling options. Native scroll
+classes and the emote tap/insert path retain their existing behavior.
 Height/section/start changes use the flow layout's own invalidation-context class,
 explicitly invalidate both delegate metrics and layout attributes, and request
 an immediate native layout pass before placing the transparent panel. Attribute
 copies carry a placement-generation marker so direct and visible-header paths
-cannot translate the same copy twice. The panel and viewport grid clip their
+cannot translate the same copy twice. The panel and horizontal grid clip their
 contents at their own boundaries.
 The entry and matching highlight follow Recent in both footer stacks and jump
 the native picker to the inline section. Scroll position drives their selection.

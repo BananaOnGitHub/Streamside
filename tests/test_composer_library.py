@@ -28,7 +28,9 @@ struct Fake {
     U sections;
     U count,selected,targets,reloads;
     id tint,background;
-    double constant;
+    double constant,line_spacing,interitem_spacing;
+    I scroll_direction;
+    BOOL scroll_options[8];
     BOOL hidden,active,scroll_enabled,clips,metrics,attributes,needs_metrics;
 };
 static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
@@ -98,7 +100,7 @@ void *ss_test_field(id o,const char *name) {
 }
 void ss_test_frame(id o,Rect value) { o->frame=value;o->bounds.size=value.size; }
 id ss_test_view(const char *cls,Rect value) { id o=create(cls);ss_test_frame(o,value);return o; }
-id ss_test_collection(Rect value,id flow) { assert(flow);return ss_test_view("UICollectionView",value); }
+id ss_test_collection(Rect value,id flow) { assert(flow);id o=ss_test_view("UICollectionView",value);o->flow=flow;flow->collection=o;return o; }
 Rect ss_test_convert(id footer) { return footer->frame; }
 id ss_test_constraint(id anchor,double value) { anchor->constant=value;return anchor; }
 void ss_test_size(id flow,Size value) { flow->bounds.size=value; }
@@ -129,6 +131,16 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"widthAnchor") || !strcmp(sel,"heightAnchor"))result=o;
     else if(!strcmp(sel,"setActive:"))o->active=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"setScrollEnabled:"))o->scroll_enabled=(BOOL)va_arg(args,int);
+    else if(!strcmp(sel,"setScrollDirection:"))o->scroll_direction=va_arg(args,I);
+    else if(!strcmp(sel,"setKeyboardDismissMode:"))assert(va_arg(args,I)==0);
+    else if(!strcmp(sel,"setCanCancelContentTouches:") || !strcmp(sel,"setDelaysContentTouches:") ||
+            !strcmp(sel,"setAlwaysBounceHorizontal:") || !strcmp(sel,"setAlwaysBounceVertical:") ||
+            !strcmp(sel,"setDirectionalLockEnabled:") || !strcmp(sel,"setShowsHorizontalScrollIndicator:") ||
+            !strcmp(sel,"setShowsVerticalScrollIndicator:")) {
+        const char *names[]={"setCanCancelContentTouches:","setDelaysContentTouches:","setAlwaysBounceHorizontal:",
+            "setAlwaysBounceVertical:","setDirectionalLockEnabled:","setShowsHorizontalScrollIndicator:","setShowsVerticalScrollIndicator:"};
+        U i=0;while(strcmp(sel,names[i]))i++;o->scroll_options[i]=(BOOL)va_arg(args,int);
+    }
     else if(!strcmp(sel,"setClipsToBounds:"))o->clips=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"setInvalidateFlowLayoutDelegateMetrics:"))o->metrics=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"setInvalidateFlowLayoutAttributes:"))o->attributes=(BOOL)va_arg(args,int);
@@ -162,7 +174,8 @@ static id dispatch(id o,SEL sel,...) {
     } else if(!strcmp(sel,"initWithItems:")) { id items=va_arg(args,id);o->count=items->count;memcpy(o->children,items->children,items->count*sizeof(id));result=o; }
     else if(!strcmp(sel,"setSelectedSegmentIndex:"))o->selected=(U)va_arg(args,I);
     else if(!strcmp(sel,"selectedSegmentIndex"))result=(id)(uintptr_t)o->selected;
-    else if(!strcmp(sel,"setMinimumInteritemSpacing:") || !strcmp(sel,"setMinimumLineSpacing:")) { }
+    else if(!strcmp(sel,"setMinimumInteritemSpacing:"))o->interitem_spacing=va_arg(args,double);
+    else if(!strcmp(sel,"setMinimumLineSpacing:"))o->line_spacing=va_arg(args,double);
     else if(!strcmp(sel,"registerClass:forCellWithReuseIdentifier:")) { assert(va_arg(args,Class));assert(va_arg(args,id)); }
     else if(!strcmp(sel,"setDataSource:") || !strcmp(sel,"setDelegate:"))o->host=va_arg(args,id);
     else if(!strcmp(sel,"setTextAlignment:") || !strcmp(sel,"setNumberOfLines:")) { (void)va_arg(args,I); }
@@ -269,7 +282,7 @@ static void native_footer_apply(id footer,SEL sel,id theme) {
     footer->views[3]->background=nil;footer->views[4]->background=theme;
 }
 int main(void) {
-    (void)attachment_metadata_key;(void)thumbnail_url_key;(void)thumbnail_record_key;
+    (void)attachment_metadata_key;(void)thumbnail_url_key;(void)thumbnail_record_key;(void)library_grid_class;
     (void)request_native_catalog;(void)unified_matches;(void)image_request;(void)visual_text;
     struct Fake normal={.cls="UIColor"},active={.cls="UIColor"},room={.cls="NSString"};expected_room=&room;
     State s={.room=&room,.recent_menu_open=YES};struct Fake delegate={.context=&s};delegate_class=&delegate;
@@ -311,42 +324,56 @@ int main(void) {
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
     install_footer(&footer,&owner);make_panel(&delegate);refresh_library(&s);place_library_panel(&s,&native);
     assert(s.panel->parent==&native && !native.hidden && !s.tab && !button->selected);
-    assert(s.library_section==1 && s.library_start==236 && s.library_height==170);
+    assert(s.library_section==1 && s.library_start==236 && s.library_height==410);
     assert(metric_invalidations && s.panel->clips && s.grid->clips);
-    assert(flow.cached_sections[1].top==8 && flow.applied_first.origin.y==458);
-    assert(flow.applied_size.height==642 && flow.applied_size.width==390);
-    assert(s.panel->frame.origin.y==236 && s.panel->frame.size.height==170);
+    assert(flow.cached_sections[1].top==8 && flow.applied_first.origin.y==698);
+    assert(flow.applied_size.height==882 && flow.applied_size.width==390);
+    assert(s.panel->frame.origin.y==236 && s.panel->frame.size.height==410);
     assert(header.frame.origin.y==236 && first.frame.origin.y==288); /* native caches and delegate insets stay native */
     third_party_tab(&delegate,"ssThirdParty:",button);
     assert(s.tab==1 && native.offset.y==236 && s.panel->parent==&native && !native.hidden);
-    assert(s.provider->count==4 && s.scope->count==2 && s.grid->host==&delegate && !s.grid->scroll_enabled);
+    assert(s.provider->count==4 && s.scope->count==2 && s.grid->host==&delegate && s.grid->scroll_enabled);
+    assert(s.grid->flow->scroll_direction==1 && s.grid->flow->bounds.size.height==56);
+    assert(s.grid->flow->interitem_spacing==4 && s.grid->flow->line_spacing==4);
+    assert(s.grid->scroll_options[0] && !s.grid->scroll_options[1] && s.grid->scroll_options[2]);
+    assert(!s.grid->scroll_options[3] && s.grid->scroll_options[4] && s.grid->scroll_options[5] && !s.grid->scroll_options[6]);
     const char *providers[]={"All","7TV","BTTV","FFZ"};for(U i=0;i<4;i++)assert(!strcmp(s.provider->children[i]->text,providers[i]));
     assert(!strcmp(s.scope->children[0]->text,"Channel") && !strcmp(s.scope->children[1]->text,"Global"));
-    assert(s.grid->frame.origin.y==106 && s.grid->frame.size.height==56);
+    assert(s.grid->frame.origin.y==106 && s.grid->frame.size.height==296);
+    assert((s.grid->frame.size.height+s.grid->flow->interitem_spacing)/
+        (s.grid->flow->bounds.size.height+s.grid->flow->interitem_spacing)==5);
     assert(button->selected && highlight->background==&active && !views[3].background && views[0].tint==&normal);
     for(int p=0;p<4;p++) {
+        ss_test_offset(s.grid,(Point){600,0});
         s.scope->selected=1;scope_changed(&delegate,"ssScope:",s.scope);assert(last_scope==1);
+        assert(!s.grid->offset.x && !s.grid->offset.y && native.offset.y==236);
+        ss_test_offset(s.grid,(Point){1200,0});
         s.provider->selected=(U)p;provider_changed(&delegate,"ssProvider:",s.provider);
         assert(s.library==p && !s.library_scope && !s.scope->selected && last_provider==p && !last_scope);
+        assert(!s.grid->offset.x && !s.grid->offset.y && native.offset.y==236);
         assert(item_count(&delegate,"collectionView:numberOfItemsInSection:",s.grid,0)==(I)datasets[p][0].count);
     }
-    /* All rows share outer scrolling but instantiate a viewport grid. */
-    assert(s.library_height==3170);
-    ss_test_offset(&native,(Point){0,1342});place_library_panel(&s,&native);
-    assert(s.grid->offset.y==1000 && s.grid->frame.origin.y==1106 && s.grid->frame.size.height==300 && s.tab==1);
-    assert(s.panel->frame.origin.y==236 && s.panel->frame.size.height==3170);
+    /* Extra entries add horizontal columns without moving native emotes down.
+     * Outer scrolling, refreshes and rotation preserve horizontal browsing. */
+    assert(s.library_height==410);
+    ss_test_offset(s.grid,(Point){1000,0});
+    ss_test_offset(&native,(Point){0,342});place_library_panel(&s,&native);
+    assert(s.grid->offset.x==1000 && !s.grid->offset.y && s.grid->frame.origin.y==106 && s.grid->frame.size.height==296 && s.tab==1);
+    assert(s.panel->frame.origin.y==236 && s.panel->frame.size.height==410);
     datasets[3][0].count=6500;refresh_library(&s);place_library_panel(&s,&native);
-    assert(s.library_height==65150 && s.grid->frame.size.height==300);
+    assert(s.library_height==410 && s.grid->frame.size.height==296 && s.grid->offset.x==1000);
     assert(flow.cached_sections[1].top==8 && flow.applied_first.origin.y>=s.library_start+s.library_height);
     ss_test_offset(&native,(Point){0,30000});place_library_panel(&s,&native);
-    assert(s.grid->offset.y==29658 && s.grid->frame.size.height==300);
-    datasets[3][0].count=301;refresh_library(&s);ss_test_offset(&native,(Point){0,1342});place_library_panel(&s,&native);
+    assert(s.grid->offset.x==1000 && !s.grid->offset.y && s.grid->frame.size.height==296 && !s.tab);
+    datasets[3][0].count=301;refresh_library(&s);ss_test_offset(&native,(Point){0,342});place_library_panel(&s,&native);
+    assert(s.grid->offset.x==1000 && s.library_height==410);
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
     install_footer(&footer,&owner);assert(buttons.children[1]==button && button->selected && s.tab==1 && s.panel->parent==&native);
     struct Fake themed={.cls="UIColor"};original_footer_apply=(IMP)native_footer_apply;
     footer_apply(&footer,"apply:",&themed);
     assert(button->selected && highlight->background==&themed && !views[4].background && s.library==3 && !s.library_scope);
-    native.bounds.size.width=844;place_library_panel(&s,&native);assert(s.grid->frame.size.width==836 && s.library_height==1430);
+    native.bounds.size.width=844;place_library_panel(&s,&native);
+    assert(s.grid->frame.size.width==836 && s.grid->frame.size.height==296 && s.library_height==410 && s.grid->offset.x==1000);
     for(U i=0;i<5;i++)original_footer_actions[i]=(IMP)native_action;
     footer_action(&footer,"backspaceButtonPressed");assert(s.tab==1 && !native.hidden);
     footer_action(&footer,"channelEmotesButtonPressed");
@@ -362,22 +389,22 @@ int main(void) {
     /* Empty intermediate sets and missing headers must not swallow the gap. */
     native.sections=3;native.item_counts[1]=0;native.header_heights[2]=0;flow.content_size.height=664;
     place_library_panel(&s,&native);
-    assert(s.library_section==2 && s.library_start==472 && flow.applied_first.origin.y==1910);
+    assert(s.library_section==2 && s.library_start==472 && flow.applied_first.origin.y==890);
     id section_path=create("NSIndexPath");section_path->section=2;
     id shifted=flow_item(&flow,"item",section_path);
-    assert(shifted!=&first && shifted->frame.origin.y==1910 && first.frame.origin.y==480);
+    assert(shifted!=&first && shifted->frame.origin.y==890 && first.frame.origin.y==480);
     assert(inline_attributes(&flow,shifted)==shifted); /* never translate twice */
     Rect gap={{0,472},{390,300}};ss_test_offset(&native,gap.origin);
     id gap_items=flow_elements(&flow,"elements",gap);assert(!gap_items->count);
-    Rect below={{0,1902},{390,100}};ss_test_offset(&native,below.origin);
+    Rect below={{0,882},{390,100}};ss_test_offset(&native,below.origin);
     id below_items=flow_elements(&flow,"elements",below);
     assert(last_query.origin.y==472 && last_query.size.height==100 && below_items->count==1);
-    assert(below_items->children[0]->frame.origin.y==1910);
-    assert(flow_size(&flow,"size").height==2094); /* bottom of the provider library is part of native content size */
+    assert(below_items->children[0]->frame.origin.y==890);
+    assert(flow_size(&flow,"size").height==1074); /* bottom of the provider library is part of native content size */
     /* Direct and array header queries agree and cannot cover the owned panel. */
     native.header_heights[2]=44;place_library_panel(&s,&native);
     id corrected=flow_header(&flow,"header",str("UICollectionElementKindSectionHeader"),section_path);
-    assert(corrected->frame.origin.y==1902 && header.frame.origin.y==472);
+    assert(corrected->frame.origin.y==882 && header.frame.origin.y==472);
     assert(inline_attributes(&flow,corrected)==corrected);
     /* Native objects without our association retain their original geometry. */
     native.host=nil;assert(flow_item(&flow,"item",section_path)==&first && first.frame.origin.y==524);
@@ -385,11 +412,11 @@ int main(void) {
     /* With only Recent present, layout content size reserves the library tail
      * without changing either native content inset. */
     native.sections=1;flow.content_size.height=236;native.inset.bottom=12;native.adjusted.bottom=12;
-    place_library_panel(&s,&native);assert(native.inset.bottom==12 && s.library_start==236 && flow_size(&flow,"size").height==1666);
+    place_library_panel(&s,&native);assert(native.inset.bottom==12 && s.library_start==236 && flow_size(&flow,"size").height==646);
     native.sections=2;native.item_counts[1]=3;title.text="Channel";flow.content_size.height=472;
     place_library_panel(&s,&native);
     assert(native.inset.bottom==12 && !s.library_section && !s.library_start);
-    assert(flow.applied_first.origin.y==1482); /* account emotes remain below the library */
+    assert(flow.applied_first.origin.y==462); /* account emotes remain below the library */
     datasets[3][0].count=0;refresh_library(&s);place_library_panel(&s,&native);
     assert(s.library_height==178 && !s.empty->hidden);
     native.sections=0;flow.content_size.height=0;place_library_panel(&s,&native);
@@ -424,8 +451,8 @@ class LibraryTests(unittest.TestCase):
             source = replace_body(source, signature, body)
         source = source.replace('static id view(const char *c,Rect r) { return ((id (*)(id,SEL,Rect))objc_msgSend)(m0((id)objc_getClass(c),"alloc"),sel_registerName("initWithFrame:"),r); }',
             'extern id ss_test_view(const char *,Rect);\nextern id ss_test_collection(Rect,id);\nextern Rect ss_test_convert(id);\nextern id ss_test_constraint(id,double);\nextern void ss_test_size(id,Size);\nstatic id view(const char *c,Rect r) { return ss_test_view(c,r); }')
-        source = source.replace('((id (*)(id,SEL,Rect,id))objc_msgSend)(m0((id)objc_getClass("UICollectionView"),"alloc"),sel_registerName("initWithFrame:collectionViewLayout:"),(Rect){{0,76},{320,124}},flow)',
-            'ss_test_collection((Rect){{0,76},{320,124}},flow)')
+        source = source.replace('((id (*)(id,SEL,Rect,id))objc_msgSend)(m0((id)library_grid_class(),"alloc"),sel_registerName("initWithFrame:collectionViewLayout:"),(Rect){{0,106},{320,296}},flow)',
+            'ss_test_collection((Rect){{0,106},{320,296}},flow)')
         source = source.replace('((void (*)(id,SEL,Size))objc_msgSend)(flow,sel_registerName("setItemSize:"),(Size){56,56})', 'ss_test_size(flow,(Size){56,56})')
         source = source.replace('((Rect (*)(id,SEL,Rect,id))objc_msgSend)(footer,sel_registerName("convertRect:toView:"),rect(footer,"bounds"),container)', 'ss_test_convert(footer)')
         source = source.replace('((id (*)(id,SEL,double))objc_msgSend)(m0(item,"widthAnchor"),sel_registerName("constraintEqualToConstant:"),width)', 'ss_test_constraint(m0(item,"widthAnchor"),width)')

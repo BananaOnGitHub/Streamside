@@ -40,7 +40,13 @@
   palette and handle empty/headerless native sections without changing their
   models or cached attributes. Add regression coverage for both direct and
   visible-cell queries, large libraries, rotation and unrelated collections.
-- Candidate bundle build: `3.0.0.22`; inline library section requires device verification.
+- Device-confirmed the build 22 inline library spacing. Make its provider grid
+  scroll horizontally in five rows, filling each column top to bottom. Larger
+  libraries add columns instead of extending the native vertical scroll. Keep
+  browsing position during refresh/outer scrolling/rotation, reset it for
+  provider/scope/channel switches, and allow swipes starting on emote buttons
+  through an isolated collection-view subclass.
+- Candidate bundle build: `3.0.0.23`; horizontal library requires device verification.
 
 ## 2.3.1 (prepared; not published)
 

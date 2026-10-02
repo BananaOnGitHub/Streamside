@@ -44,7 +44,7 @@ extern void objc_destroyWeak(id *);
 static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key,inline_attributes_key;
 static char selector_key;
 static char thumbnail_url_key,thumbnail_record_key;
-static Class delegate_class,attachment_class,strip_class;
+static Class delegate_class,attachment_class,strip_class,grid_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
 static IMP original_footer_apply,original_footer_move,original_footer_layout,original_container_layout,original_collection_layout;
@@ -746,6 +746,15 @@ static id make_strip(void) {
     id scroll=((id (*)(id,SEL,Rect))objc_msgSend)(m0((id)strip_class,"alloc"),sel_registerName("initWithFrame:"),(Rect){{0,0},{320,48}});
     configure_strip(scroll); return scroll;
 }
+static Class library_grid_class(void) {
+    if (grid_class) return grid_class;
+    Class base=objc_getClass("UICollectionView");
+    Method cancel=base ? class_getInstanceMethod(base,sel_registerName("touchesShouldCancelInContentView:")) : NULL;
+    if (!cancel) return base;
+    Class created=objc_allocateClassPair(base,"SSComposerEmoteGrid",0); if (!created) return base;
+    class_addMethod(created,sel_registerName("touchesShouldCancelInContentView:"),(IMP)strip_cancel_touch,method_getTypeEncoding(cancel));
+    objc_registerClassPair(created); grid_class=created; return grid_class;
+}
 static void set_strip_extent(id scroll,U count) {
     ((void (*)(id,SEL,Size))objc_msgSend)(scroll,sel_registerName("setContentSize:"),(Size){(double)count*64,48});
     /* A different search starts at its first result. Image-only refreshes do
@@ -808,12 +817,18 @@ static id segmented(id delegate,const char **labels,size_t n,const char *action)
     id control=m1(m0((id)objc_getClass("UISegmentedControl"),"alloc"),"initWithItems:",items); objc_release(items);
     vi(control,"setSelectedSegmentIndex:",0); target(control,delegate,action,1UL<<12); return control;
 }
+static void reset_library_scroll(State *s) {
+    if (s->grid) ((void (*)(id,SEL,Point))objc_msgSend)(s->grid,sel_registerName("setContentOffset:"),(Point){0,0});
+}
 static void provider_changed(id self,SEL sel,id control) {
     (void)sel; State *s=state(self); s->library=(int)number(control,"selectedSegmentIndex");
     s->library_scope=0; vi(s->scope,"setSelectedSegmentIndex:",0); /* Every provider change resets Channel. */
-    refresh(self);
+    reset_library_scroll(s); refresh(self);
 }
-static void scope_changed(id self,SEL sel,id control) { (void)sel; state(self)->library_scope=(int)number(control,"selectedSegmentIndex"); refresh(self); }
+static void scope_changed(id self,SEL sel,id control) {
+    (void)sel; State *s=state(self); s->library_scope=(int)number(control,"selectedSegmentIndex");
+    reset_library_scroll(s); refresh(self);
+}
 
 static id find_class(id root,const char *name,unsigned depth) {
     if (!root || depth>12) return nil;
@@ -842,14 +857,16 @@ static void make_panel(id delegate) {
     v1(s->provider,"setAccessibilityLabel:",str("Emote provider")); v1(s->scope,"setAccessibilityLabel:",str("Emote scope"));
     v1(s->panel,"addSubview:",s->provider); v1(s->panel,"addSubview:",s->scope);
     id flow=m0((id)objc_getClass("UICollectionViewFlowLayout"),"new");
+    vi(flow,"setScrollDirection:",1); /* Horizontal flow fills each five-item column top to bottom. */
     ((void (*)(id,SEL,Size))objc_msgSend)(flow,sel_registerName("setItemSize:"),(Size){56,56});
     ((void (*)(id,SEL,double))objc_msgSend)(flow,sel_registerName("setMinimumInteritemSpacing:"),4.0);
     ((void (*)(id,SEL,double))objc_msgSend)(flow,sel_registerName("setMinimumLineSpacing:"),4.0);
-    s->grid=((id (*)(id,SEL,Rect,id))objc_msgSend)(m0((id)objc_getClass("UICollectionView"),"alloc"),sel_registerName("initWithFrame:collectionViewLayout:"),(Rect){{0,76},{320,124}},flow); objc_release(flow);
+    s->grid=((id (*)(id,SEL,Rect,id))objc_msgSend)(m0((id)library_grid_class(),"alloc"),sel_registerName("initWithFrame:collectionViewLayout:"),(Rect){{0,106},{320,296}},flow); objc_release(flow);
     ((void (*)(id,SEL,Class,id))objc_msgSend)(s->grid,sel_registerName("registerClass:forCellWithReuseIdentifier:"),objc_getClass("UICollectionViewCell"),str("SSEmoteCell"));
-    v1(s->grid,"setDataSource:",delegate); v1(s->grid,"setDelegate:",delegate); v1(s->grid,"setBackgroundColor:",color("clearColor"));
+    v1(s->grid,"setDataSource:",delegate); v1(s->grid,"setDelegate:",delegate);
+    configure_strip(s->grid); v1(s->grid,"setBackgroundColor:",color("clearColor"));
     vb(s->grid,"setClipsToBounds:",YES);
-    vb(s->grid,"setScrollEnabled:",NO); vi(s->grid,"setContentInsetAdjustmentBehavior:",2);
+    vi(s->grid,"setContentInsetAdjustmentBehavior:",2);
     v1(s->panel,"addSubview:",s->grid);
     s->empty=view("UILabel",(Rect){{16,88},{288,60}}); vi(s->empty,"setTextAlignment:",1); vi(s->empty,"setNumberOfLines:",2);
     v1(s->empty,"setTextColor:",color("secondaryLabelColor")); v1(s->panel,"addSubview:",s->empty);
@@ -888,9 +905,9 @@ static void place_library_panel(State *s,id content) {
     s->placing_library=YES;
     observe_recent_heading(s,content);
     Rect bounds=rect(content,"bounds"); double width=bounds.size.width-8;
-    U columns=width>=56 ? (U)((width+4)/60) : 1;
-    U rows=(number(s->entries,"count")+columns-1)/columns;
-    double grid_height=rows ? (double)rows*60-4 : 64;
+    /* Five 56-point cells with four 4-point gaps. More emotes add columns,
+     * never vertical space; the native sections stay within easy reach. */
+    double grid_height=number(s->entries,"count") ? 5*56+4*4 : 64;
     double height=106+grid_height+8;
     I section=s->recent_header_height ? 1 : 0;
     I sections=(I)number(content,"numberOfSections");
@@ -930,20 +947,10 @@ static void place_library_panel(State *s,id content) {
     frame(s->provider,(Rect){{8,36},{bounds.size.width-16,28}});
     frame(s->scope,(Rect){{8,70},{bounds.size.width-16,28}});
     frame(s->empty,(Rect){{12,110},{bounds.size.width-24,50}});
-    /* The outer picker owns vertical scrolling. Move a viewport-sized grid
-     * through the virtual section and synchronize its offset, so even thousands
-     * of provider emotes reuse only the visible cells instead of all rendering. */
-    double top=s->library_start+106,visible_top=bounds.origin.y>top ? bounds.origin.y : top;
-    double bottom=top+grid_height,visible_bottom=bounds.origin.y+bounds.size.height;
-    if (visible_bottom>bottom) visible_bottom=bottom;
-    double visible_height=visible_bottom>visible_top ? visible_bottom-visible_top : 0;
-    double offset=visible_top-top; if (offset>grid_height) offset=grid_height;
-    frame(s->grid,(Rect){{4,106+offset},{width>0 ? width : 0,visible_height}});
-    Point current=((Point (*)(id,SEL))objc_msgSend)(s->grid,sel_registerName("contentOffset"));
-    Point position={0,offset};
-    if (current.x!=position.x || current.y!=position.y)
-        ((void (*)(id,SEL,Point))objc_msgSend)(s->grid,sel_registerName("setContentOffset:"),position);
-    vb(s->grid,"setHidden:",visible_height==0);
+    /* Let UIKit reuse horizontal cells. Outer vertical scrolling moves this
+     * whole section, without changing its row count or horizontal position. */
+    frame(s->grid,(Rect){{4,106},{width>0 ? width : 0,grid_height}});
+    vb(s->grid,"setHidden:",number(s->entries,"count")==0);
     s->placing_library=NO; update_inline_selection(s,content);
 }
 static void restore_recent_highlight(State *s);
@@ -1298,6 +1305,7 @@ static void refresh(id delegate) {
     id room=room_for(owner);
     if (!equal(room,s->room)) {
         expand(delegate); objc_release(s->room); s->room=objc_retain(room); s->library_scope=0; vi(s->scope,"setSelectedSegmentIndex:",0);
+        reset_library_scroll(s);
     }
     request_native_catalog(delegate,owner);
     s->colon_selector=NO;

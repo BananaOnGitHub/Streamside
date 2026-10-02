@@ -40,7 +40,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"viewIfLoaded"))result=o->view;
     else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
     else if(!strcmp(sel,"setHidden:"))o->hidden=va_arg(args,int);
-    else if(!strcmp(sel,"reloadData"))o->reloads++;
+    else if(!strcmp(sel,"reloadData")) { assert(!strcmp(o->cls,"UITableView"));o->reloads++; }
     else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
     else if(!strcmp(sel,"UTF8String"))result=(id)o->text;
     else if(!strcmp(sel,"objectAtIndex:")) { U i=va_arg(args,U);assert(i<o->count);result=o->children[i]; }
@@ -103,20 +103,23 @@ int main(void) {
     /* A native completion reloads then scrolls to its first result. Hiding
      * presentation must leave those rows valid across colon, backspace and
      * delayed completion transitions; mentions/off restore the saved view. */
-    id selector=fresh("Selector"),table=fresh("UITableView");selector->view=table;table->rows=9;
+    id selector=fresh("Selector"),root=fresh("UIView"),table=fresh("UITableView");selector->view=root;table->rows=9;
     s.colon_selector=YES;
-    stock_update(&s,selector);assert(table->hidden && s.stock_hidden);
+    stock_update(&s,selector);assert(root->hidden && s.stock_hidden);
     m0(table,"reloadData");assert(native_rows(selector,"rows",table,0)==9);
     objc_getClass("NSUserDefaults")->count=1;
-    stock_update(&s,selector);assert(table->hidden && native_rows(selector,"rows",table,0)==9);
-    table->rows=0;stock_update(&s,selector);assert(table->hidden); /* native empty match */
+    stock_update(&s,selector);assert(root->hidden && native_rows(selector,"rows",table,0)==9);
+    table->rows=0;stock_update(&s,selector);assert(root->hidden); /* native empty match */
     table->rows=4;stock_update(&s,selector);assert(native_rows(selector,"rows",table,0)==4); /* late results */
-    s.colon_selector=NO;stock_update(&s,selector);assert(!table->hidden && !s.stock_hidden && table->reloads==2);
-    s.colon_selector=YES;stock_update(&s,selector);assert(table->hidden);
-    objc_getClass("NSUserDefaults")->count=2;stock_update(&s,selector);assert(!table->hidden);
-    objc_getClass("NSUserDefaults")->count=0;s.native_ready=NO;stock_update(&s,selector);assert(!table->hidden);
-    s.native_ready=YES;table->hidden=YES;stock_update(&s,selector);
-    s.colon_selector=NO;stock_update(&s,selector);assert(table->hidden); /* preserve native hidden state */
+    /* Picking a provider/native result or deleting ':' ends completion. The
+     * wrapper lacks reloadData and must only have its visibility restored. */
+    s.colon_selector=NO;stock_update(&s,selector);assert(!root->hidden && !s.stock_hidden && table->reloads==1);
+    s.colon_selector=YES;stock_update(&s,selector);assert(root->hidden);
+    objc_getClass("NSUserDefaults")->count=2;stock_update(&s,selector);assert(!root->hidden);
+    objc_getClass("NSUserDefaults")->count=0;s.native_ready=NO;stock_update(&s,selector);assert(!root->hidden);
+    s.native_ready=YES;root->hidden=YES;stock_update(&s,selector);
+    s.colon_selector=NO;stock_update(&s,selector);assert(root->hidden); /* preserve native hidden state */
+    assert(!root->reloads && !table->hidden && table->rows==4);
     stock_update(NULL,selector);stock_update(&s,nil);
     return 0;
 }

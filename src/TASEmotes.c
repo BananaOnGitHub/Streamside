@@ -112,7 +112,6 @@ static Room g_rooms[MAX_ROOMS];
 static OldImage g_old[MAX_HISTORY];
 static size_t g_old_next;
 static time_t g_last_sweep;
-static uint64_t g_next_id = FAKE_ID_START;
 static uint64_t g_generation = 1;
 static char g_last_room[32];
 static bool g_enabled;
@@ -229,6 +228,37 @@ bool tas_emotes_is_provider_image_url(const char *url) {
 
 void tas_emotes_image_protocol_request(void) { PROBE_INC(g_image_protocol_requests); }
 
+/* Twitch persists decoded images under the synthetic CDN URL, before our
+ * request rewrite. Launch-order counters therefore reused yesterday's bitmap
+ * for today's different emote. Keep identity deterministic across processes,
+ * independent of fetch order, and disjoint from the old counter namespace.
+ * Fifteen decimal digits stay exact even through a double-backed number. */
+static uint64_t image_identity(const char *scope, const char *name, const char *url) {
+    uint64_t hash = 14695981039346656037ULL;
+    const char *parts[] = {"Streamside-image-v1", scope, name, url};
+    for (size_t i = 0; i < sizeof(parts) / sizeof(parts[0]); i++) {
+        for (const unsigned char *p = (const unsigned char *)parts[i]; *p; p++) {
+            hash ^= *p; hash *= 1099511628211ULL;
+        }
+        hash ^= 0; hash *= 1099511628211ULL;
+    }
+    return 900000000000000ULL + hash % 100000000000000ULL;
+}
+static bool identity_available_locked(uint64_t number, const char *name, const char *url) {
+    for (size_t r = 0; r <= MAX_ROOMS; r++) {
+        Room *room = r == MAX_ROOMS ? &g_global : &g_rooms[r];
+        for (size_t i = 0; i < room->size; i++) {
+            Emote *e = &room->items[i];
+            if (e->fake_id == number && (strcmp(e->name,name) || strcmp(e->url,url))) return false;
+        }
+    }
+    for (size_t i = 0; i < MAX_HISTORY; i++) {
+        Emote *e = &g_old[i].emote;
+        if (e->fake_id == number && e->url && (strcmp(e->name,name) || strcmp(e->url,url))) return false;
+    }
+    return true; /* A collision fails closed; never assign another URL to it. */
+}
+
 /* API strings are copied while the JSON object is alive; only bounded entries
  * are retained. The fixed provider rank makes name collisions deterministic. */
 static void add_emote_locked(Room *room, size_t max, const char *name,
@@ -243,13 +273,17 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
         free(image);
         return;
     }
+    uint64_t number = image_identity(room->id, word, image);
+    if (!identity_available_locked(number, word, image)) {
+        free(word); free(image); return;
+    }
     Emote *existing = find_word(room, word);
     if (existing) {
         if (provider < existing->provider) {
             retire_emote_locked(existing, time(NULL));
             existing->name = word;
             existing->url = image;
-            existing->fake_id = g_next_id++;
+            existing->fake_id = number;
             existing->provider = provider;
             existing->global = global;
             existing->owner = duplicate(owner, 128);
@@ -290,7 +324,7 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
             (room->size - insert) * sizeof(*room->items));
     room->items[insert] = (Emote){.name = word, .url = image,
         .owner = duplicate(owner, 128), .aspect = aspect,
-        .fake_id = g_next_id++, .provider = provider, .global = global};
+        .fake_id = number, .provider = provider, .global = global};
     room->size++;
 }
 

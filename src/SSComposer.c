@@ -276,7 +276,8 @@ static void stock_update(State *s,id selector) {
         vb(stock,"setHidden:",s->stock_saved_hidden);
         if (height && s->stock_height_saved) ((void (*)(id,SEL,double))objc_msgSend)(height,sel_registerName("setConstant:"),s->stock_height);
         s->stock_hidden=NO; s->stock_height_saved=NO;
-        m0(stock,"reloadData");
+        /* viewIfLoaded can be Twitch's UIView wrapper, not its table. Nothing
+         * in its data source changed, so restoration needs no reloadData. */
     }
 }
 static void selector_layout(id selector,SEL sel) {

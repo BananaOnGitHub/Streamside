@@ -24,11 +24,14 @@ extern void objc_release(id);
 extern id objc_getAssociatedObject(id, const void *);
 extern void objc_setAssociatedObject(id, const void *, id, uintptr_t);
 static IMP g_receive, g_size, g_base_size, g_bounds, g_set_bounds, g_textkit_bounds, g_chat_textkit_bounds, g_layer_frame, g_layer_layout, g_tap;
+static IMP g_animated_image;
 static Class g_details_class;
 static char g_metadata_key, g_snapshot_message_key;
+static char g_animation_key;
 static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
 static uint64_t g_size_calls, g_bounds_calls, g_textkit_calls, g_resolved_ids;
 static uint64_t g_layer_calls, g_layer_ids, g_layer_resizes, g_layer_layouts;
+static uint64_t g_animation_loops, g_animation_resumes;
 #define INC(x) ((void)__atomic_add_fetch(&(x), 1, __ATOMIC_RELAXED))
 #define GET(x) __atomic_load_n(&(x), __ATOMIC_RELAXED)
 static id m0(id o, const char *s) { return ((id (*)(id,SEL))objc_msgSend)(o, sel_registerName(s)); }
@@ -90,6 +93,37 @@ static uint64_t image_layer_id(id layer) {
     return number;
 }
 
+/* 30.4.2's TWAnimatedImageLayer copies a GIF's finite loop count and pauses
+ * on removal. Reattachment alone does not call updateAnimationState. Scope
+ * recovery to a provider attachment and let Twitch check hidden/opacity and
+ * parent presence; never force an offscreen or native emote to animate. */
+static void provider_animation(id attachment) {
+    if (!image_layer_id(attachment)) return;
+    id layer=object_ivar(attachment,"animatedImageLayer");
+    if (!kind(layer,"TWAnimatedImageLayer") || m0(layer,"superlayer")!=attachment ||
+        !responds(layer,"animatedImage") || !responds(layer,"updateAnimationState") ||
+        !responds(layer,"setLoopCountdown:") || !responds(layer,"displayLink")) return;
+    id animation=m0(layer,"animatedImage");
+    if (!animation) return;
+    if (animation!=objc_getAssociatedObject(layer,&g_animation_key)) {
+        ((void (*)(id,SEL,NSUInteger))objc_msgSend)(layer,sel_registerName("setLoopCountdown:"),UINT64_MAX);
+        objc_setAssociatedObject(layer,&g_animation_key,animation,1);
+        INC(g_animation_loops);
+    }
+    id link=m0(layer,"displayLink");
+    if (responds(link,"isPaused") && ((BOOL (*)(id,SEL))objc_msgSend)(link,sel_registerName("isPaused"))) {
+        m0(layer,"updateAnimationState");
+        if (!((BOOL (*)(id,SEL))objc_msgSend)(link,sel_registerName("isPaused"))) INC(g_animation_resumes);
+    }
+}
+static void animated_set_image(id self, SEL sel, id image) {
+    ((void (*)(id,SEL,id))g_animated_image)(self,sel,image);
+    /* The setter resets its countdown even if a reused layer keeps its URL. */
+    if (image!=objc_getAssociatedObject(self,&g_animation_key))
+        objc_setAssociatedObject(self,&g_animation_key,nil,1);
+    provider_animation(m0(self,"superlayer"));
+}
+
 static Size proportional(Size size, uint64_t number) {
     double aspect = tas_emotes_aspect(number);
     if (aspect <= 0 || size.height <= 0) return size;
@@ -122,6 +156,7 @@ static void image_layer_layout(id self, SEL sel) {
     Rect adjusted = proportional_layer_frame(frame,number);
     if (frame.size.width != adjusted.size.width || frame.size.height != adjusted.size.height)
         ((void (*)(id,SEL,Rect))objc_msgSend)(self,sel_registerName("setFrame:"),adjusted);
+    provider_animation(self);
 }
 
 static uint64_t message_id_at(id message, NSInteger index) {
@@ -458,6 +493,7 @@ void tas_emote_ui_retry_hooks(void) {
     hook(objc_getClass("_TtC6Twitch32MessageStringImageDataAttachment"),"setBounds:",3,(IMP)attachment_set_bounds,&g_set_bounds);
     hook(objc_getClass("CALayer"),"setFrame:",3,(IMP)layer_set_frame,&g_layer_frame);
     hook(objc_getClass("_TtC6Twitch20ImageAttachmentLayer"),"layoutSublayers",2,(IMP)image_layer_layout,&g_layer_layout);
+    hook(objc_getClass("TWAnimatedImageLayer"),"setAnimatedImage:",3,(IMP)animated_set_image,&g_animated_image);
     hook(objc_getClass("_TtC6Twitch17MessageStringView"),"handleTapGesture:",3,(IMP)tap_gesture,&g_tap);
 }
 void tas_emote_ui_status(char *buffer, size_t capacity) {
@@ -470,11 +506,13 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         "Proportional sizes/taps/provider sheets: %llu/%llu/%llu\n"
         "Tap snapshots/provider hits: %llu/%llu\n"
         "Image layer hooks (frame/layout): %s/%s\n"
-        "Image layer frame calls/layouts/provider IDs/resizes: %llu/%llu/%llu/%llu\n",
+        "Image layer frame calls/layouts/provider IDs/resizes: %llu/%llu/%llu/%llu\n"
+        "Provider animation hook/loop bindings/resumes: %s/%llu/%llu\n",
         g_receive ? "installed" : "missing",g_size ? "installed" : "missing",g_base_size ? "installed" : "missing",g_bounds && g_set_bounds ? "installed" : "missing",g_textkit_bounds && g_chat_textkit_bounds ? "installed" : "missing",g_tap ? "installed" : "missing",
         (unsigned long long)GET(g_receive_calls),(unsigned long long)GET(g_sent_calls),(unsigned long long)GET(g_sent_matches),
         (unsigned long long)GET(g_size_calls),(unsigned long long)GET(g_bounds_calls),(unsigned long long)GET(g_textkit_calls),(unsigned long long)GET(g_resolved_ids),
         (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits),
         g_layer_frame ? "installed" : "missing",g_layer_layout ? "installed" : "missing",
-        (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes));
+        (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes),
+        g_animated_image ? "installed" : "missing",(unsigned long long)GET(g_animation_loops),(unsigned long long)GET(g_animation_resumes));
 }

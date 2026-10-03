@@ -43,6 +43,7 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
 static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key,inline_attributes_key;
 static char selector_key;
+static char footer_paint_key;
 static char thumbnail_url_key,thumbnail_record_key,attachment_record_key,attachment_animation_key;
 static Class delegate_class,attachment_class,strip_class,grid_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
@@ -50,6 +51,7 @@ static IMP original_begin,original_end,original_send,original_apply,original_mov
 static IMP original_footer_apply,original_footer_move,original_footer_layout,original_container_layout,original_collection_layout;
 static IMP original_flow_elements,original_flow_header,original_flow_item,original_flow_size;
 static IMP original_palette_scroll;
+static IMP original_footer_tint,original_footer_background;
 static IMP original_selector_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
@@ -58,6 +60,7 @@ static uint64_t edited,previewed,insertions,palette_opens,identity_misses,image_
 static uint64_t grid_taps,strip_taps,selection_missing,lookup_misses,validation_vetoes,range_misses,unchanged_edits;
 static uint64_t native_snapshots,native_catalog_count,native_catalog_misses,native_insertions,selector_suppressions;
 static uint64_t library_tab_creations,library_tab_repairs;
+static uint64_t footer_paint_blocks;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 
@@ -125,6 +128,8 @@ typedef struct {
     BOOL placing_recents,recent_highlight_active,recent_menu_open;
     id recent_colors[6]; /* retained native footer appearance while overridden */
     BOOL library_highlight_active;
+    BOOL painting_library;
+    id library_inactive_color;
     id library_colors[6]; /* retained native appearance while the library is selected */
     double library_height,library_start;
     id library_generation; /* Marks copied attributes; never modify native caches. */
@@ -1168,12 +1173,13 @@ static void restore_recent_highlight(State *s) {
 static void restore_library_highlight(State *s) {
     id footer=objc_loadWeakRetained(&s->footer);
     if (s->library_highlight_active) {
+        s->library_highlight_active=NO; /* Disable setter guards before restoring native colors. */
         for (U i=0;i<6;i++) {
             v1(recent_footer_view(footer,i),i<3 ? "setTintColor:":"setBackgroundColor:",s->library_colors[i]);
             objc_release(s->library_colors[i]); s->library_colors[i]=nil;
         }
-        s->library_highlight_active=NO;
     }
+    objc_release(s->library_inactive_color); s->library_inactive_color=nil;
     v1(objc_getAssociatedObject(footer,&library_highlight_key),"setBackgroundColor:",nil);
     vb(objc_getAssociatedObject(footer,&button_key),"setSelected:",NO);
     objc_release(footer);
@@ -1196,11 +1202,38 @@ static void update_library_highlight(State *s) {
         }
         if (!active) active=color("systemPurpleColor");
         if (!inactive) inactive=color("secondaryLabelColor");
+        if (inactive!=s->library_inactive_color) {
+            objc_retain(inactive); objc_release(s->library_inactive_color); s->library_inactive_color=inactive;
+        }
+        BOOL painting=s->painting_library; s->painting_library=YES;
         for (U i=0;i<3;i++) { v1(native[i],"setTintColor:",inactive); v1(native[i+3],"setBackgroundColor:",nil); }
         v1(button,"setTintColor:",active); v1(highlight,"setBackgroundColor:",active);
         vb(button,"setSelected:",YES);
+        s->painting_library=painting;
     }
     objc_release(footer);
+}
+/* Swift footer workers can call UIKit setters without passing through apply:
+ * or the palette's scroll callback. Guard only the six currently bound native
+ * footer views, retaining their requested appearance for native handoff. */
+static id footer_paint_color(id view,id requested,BOOL tint) {
+    id delegate=objc_getAssociatedObject(view,&footer_paint_key);
+    State *s=delegate ? state(delegate) : NULL;
+    if (!s || s->tab!=1 || !s->library_highlight_active || s->painting_library) return requested;
+    id footer=objc_loadWeakRetained(&s->footer),result=requested;
+    for (U i=tint ? 0 : 3;i<(tint ? 3 : 6);i++) if (view==recent_footer_view(footer,i)) {
+        if (requested!=s->library_colors[i]) {
+            objc_retain(requested); objc_release(s->library_colors[i]); s->library_colors[i]=requested;
+        }
+        result=tint ? s->library_inactive_color : nil; INC(footer_paint_blocks); break;
+    }
+    objc_release(footer); return result;
+}
+static void footer_tint(id view,SEL sel,id requested) {
+    ((void (*)(id,SEL,id))original_footer_tint)(view,sel,footer_paint_color(view,requested,YES));
+}
+static void footer_background(id view,SEL sel,id requested) {
+    ((void (*)(id,SEL,id))original_footer_background)(view,sel,footer_paint_color(view,requested,NO));
 }
 static void update_inline_selection(State *s,id content) {
     if (!s || !content || s->placing_library) return;
@@ -1477,6 +1510,16 @@ static void install_footer(id footer,id owner) {
     repaired=place_footer_item(highlights,highlight,recent_footer_view(footer,3)) || repaired;
     if (repaired && !created) INC(library_tab_repairs);
     vb(button,"setHidden:",NO); vb(highlight,"setHidden:",NO);
+    if (original_footer_tint && original_footer_background) for (U i=0;i<6;i++) {
+        id native=recent_footer_view(footer,i);
+        if (native && objc_getAssociatedObject(native,&footer_paint_key)!=delegate) {
+            if (s->library_highlight_active) {
+                id requested=objc_retain(m0(native,i<3 ? "tintColor":"backgroundColor"));
+                objc_release(s->library_colors[i]); s->library_colors[i]=requested;
+            }
+            associate(native,&footer_paint_key,delegate);
+        }
+    }
     if (s->tab==1) update_library_highlight(s);
     else {
         id inactive=nil;
@@ -1653,7 +1696,10 @@ static id owner_above(id child) {
 }
 static void footer_apply(id footer,SEL sel,id model) {
     State *s=state(objc_getAssociatedObject(footer,&footer_key));
-    if (s) { restore_recent_highlight(s); restore_library_highlight(s); }
+    if (s) {
+        restore_recent_highlight(s);
+        if (s->tab!=1) restore_library_highlight(s);
+    }
     ((void (*)(id,SEL,id))original_footer_apply)(footer,sel,model);
     install_footer(footer,owner_above(footer));
     if (s) { id content=objc_loadWeakRetained(&s->recent_content); update_recent_highlight(s,content); objc_release(content); }
@@ -1939,6 +1985,8 @@ void ss_composer_retry_hooks(void) {
     hook(FOOTER,"apply:","v24@0:8@16",(IMP)footer_apply,&original_footer_apply);
     hook(FOOTER,"didMoveToWindow","v16@0:8",(IMP)footer_moved,&original_footer_move);
     hook(FOOTER,"layoutSubviews","v16@0:8",(IMP)footer_layout,&original_footer_layout);
+    hook("UIView","setTintColor:","v24@0:8@16",(IMP)footer_tint,&original_footer_tint);
+    hook("UIView","setBackgroundColor:","v24@0:8@16",(IMP)footer_background,&original_footer_background);
     hook(PALETTE,"scrollViewDidScroll:","v24@0:8@16",(IMP)palette_scrolled,&original_palette_scroll);
     hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
     hook("UICollectionViewFlowLayout","layoutAttributesForElementsInRect:","@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",(IMP)flow_elements,&original_flow_elements);
@@ -1963,6 +2011,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Native library scrolling hook: %s\n"
         "Native library header hooks (elements/header): %s/%s\n"
         "Library footer layout hook: %s; tabs created/restored: %llu/%llu\n"
+        "Footer highlight paint guards (tint/background)/blocked writes: %s/%s/%llu\n"
         "Inline library hooks (items/content size/scroll): %s/%s/%s\n"
         "Unified Twitch catalog bridge/selector hooks: %s/%s\n"
         "Twitch catalog snapshots/entries/misses/native insertions/suppressions: %llu/%llu/%llu/%llu/%llu\n"
@@ -1977,6 +2026,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         original_collection_layout ? "installed":"missing",
         original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
         original_footer_layout ? "installed":"missing",(unsigned long long)GET(library_tab_creations),(unsigned long long)GET(library_tab_repairs),
+        original_footer_tint ? "installed":"missing",original_footer_background ? "installed":"missing",(unsigned long long)GET(footer_paint_blocks),
         original_flow_item ? "installed":"missing",original_flow_size ? "installed":"missing",original_palette_scroll ? "installed":"missing",
         native_array_type ? "ready":"waiting",original_selector_layout ? "installed":"missing",
         (unsigned long long)GET(native_snapshots),(unsigned long long)GET(native_catalog_count),(unsigned long long)GET(native_catalog_misses),

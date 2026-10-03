@@ -102,7 +102,16 @@
   callbacks at both boundaries, for closed menus and unrelated collections.
   Add rapid-scroll, entry/exit, unavailable-footer and native-fallback regressions
   to prevent Recent from competing with the provider shortcut.
-- Candidate bundle build: `3.0.0.32`; stable library selection awaits device
+- Device-rejected build 32's scroll-publication fix: Recent still flickers.
+  Guard tint/background writes to the six currently bound native footer views
+  while the inline provider library owns selection, including Swift/reactive
+  paints outside scroll/apply callbacks. Save requested native colors for handoff
+  and theme changes; let Streamside's own styling and all unrelated views pass
+  through. Do not temporarily restore native highlighting during active apply.
+  Test every rendering-boundary write across 200 independent native repaints,
+  theme updates, native handoff and stale/unbound view associations. Report
+  guard installation and blocked-write counts without user/channel identifiers.
+- Candidate bundle build: `3.0.0.33`; guarded library selection awaits device
   verification.
 
 ## 2.3.1 (prepared; not published)

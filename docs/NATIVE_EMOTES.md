@@ -105,6 +105,19 @@ before/after the section, when the menu closes, and when the shortcut is missing
 Other collections retain their original callback. Native section models and
 footer actions are preserved; no new Swift selection byte is fabricated.
 
+Device testing rejected that scroll-only fix in build 32. Native Swift/reactive
+footer paints can bypass the hooked scroll and `apply:` methods, so selection
+also has a renderer-boundary guard. The UIKit tint/background hooks pass through
+unchanged unless the receiver is one of the six associated native footer views,
+still belongs to that state's current footer, and the library owns selection.
+Native requests update the retained native-color snapshot, but display the
+stable inactive tint and clear native highlight bars. Streamside's own styling
+bypasses the guard. Active `apply:` calls no longer restore native highlights
+temporarily; theme changes are captured and applied to the provider shortcut.
+Leaving the library disables guards before restoring the latest native colors.
+Replaced/unbound footer views pass through; newly bound views get their own
+current appearance captured. Diagnostics report both guards and blocked writes.
+
 Both composer modes search the complete captured native catalog and existing
 provider libraries with case-insensitive prefixes. Native codes win exact
 name collisions. Sorted native results alternate with provider results in a

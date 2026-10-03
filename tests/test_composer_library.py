@@ -12,7 +12,7 @@ HARNESS = r'''
 #include "SSComposer.c"
 struct Fake {
     const char *cls,*text,*action;
-    id parent,host,button,highlight,stack,highlights,container,palette,views[6],children[16],front;
+    id parent,host,paint_host,button,highlight,stack,highlights,container,palette,views[6],children[16],front;
     id flow,collection,heading,deferred_heading,title,native_header,first,last,path,element_kind,marker;
     const char *encoding;
     State *context;
@@ -37,6 +37,7 @@ static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions,metric_invalidations;
 static unsigned initial_header_layouts;
 static unsigned native_scroll_calls,native_scroll_paints;
+static BOOL observe_native_paints;
 static int last_provider,last_scope;
 static id expected_room;
 static uint64_t catalog_revision=1;
@@ -82,6 +83,7 @@ id objc_getAssociatedObject(id o,const void *key) {
     if(key==&button_key)return o->button;
     if(key==&library_highlight_key)return o->highlight;
     if(key==&inline_attributes_key)return o->marker;
+    if(key==&footer_paint_key)return o->paint_host;
     return nil;
 }
 void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
@@ -90,6 +92,7 @@ void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
     else if(key==&button_key)o->button=value;
     else if(key==&library_highlight_key)o->highlight=value;
     else if(key==&inline_attributes_key)o->marker=value;
+    else if(key==&footer_paint_key)o->paint_host=value;
     else assert(!"unexpected association");
 }
 void *ss_test_field(id o,const char *name) {
@@ -153,9 +156,9 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"setHidden:"))o->hidden=(BOOL)va_arg(args,int);
     else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
     else if(!strcmp(sel,"setSelected:"))o->selected=(U)va_arg(args,int);
-    else if(!strcmp(sel,"setTintColor:"))o->tint=va_arg(args,id);
+    else if(!strcmp(sel,"setTintColor:"))footer_tint(o,sel,va_arg(args,id));
     else if(!strcmp(sel,"tintColor"))result=o->tint;
-    else if(!strcmp(sel,"setBackgroundColor:"))o->background=va_arg(args,id);
+    else if(!strcmp(sel,"setBackgroundColor:"))footer_background(o,sel,va_arg(args,id));
     else if(!strcmp(sel,"backgroundColor"))result=o->background;
     else if(!strcmp(sel,"secondaryLabelColor") || !strcmp(sel,"labelColor") || !strcmp(sel,"systemPurpleColor") || !strcmp(sel,"secondarySystemBackgroundColor") || !strcmp(sel,"clearColor"))result=o;
     else if(!strcmp(sel,"boldSystemFontOfSize:"))result=o;
@@ -288,9 +291,26 @@ static void native_footer_layout(id footer,SEL sel) {
 }
 static void native_footer_apply(id footer,SEL sel,id theme) {
     native_footer_layout(footer,sel);
-    footer->views[0]->tint=footer->views[2]->tint;
-    footer->views[1]->tint=theme;
-    footer->views[3]->background=nil;footer->views[4]->background=theme;
+    v1(footer->views[0],"setTintColor:",footer->views[2]->tint);
+    v1(footer->views[1],"setTintColor:",theme);
+    v1(footer->views[3],"setBackgroundColor:",nil);v1(footer->views[4],"setBackgroundColor:",theme);
+}
+static void observe_paint(id view) {
+    State *s=view->paint_host ? view->paint_host->context : NULL;
+    if(!observe_native_paints || !s || !s->library_highlight_active || s->painting_library)return;
+    /* Check the actual rendering boundary after every setter, not just after
+     * scroll/layout refresh has had a chance to repaint the footer again. */
+    id footer=s->footer;
+    for(U i=0;i<3;i++)assert(!footer->views[i+3]->background && footer->views[i]->tint==s->library_inactive_color);
+    assert(footer->button->selected && footer->highlight->background);
+}
+static void raw_tint(id view,SEL sel,id color) { (void)sel;view->tint=color;observe_paint(view); }
+static void raw_background(id view,SEL sel,id color) { (void)sel;view->background=color;observe_paint(view); }
+static void native_footer_paint(id footer,U selected,id active,id inactive) {
+    for(U i=0;i<3;i++) {
+        v1(footer->views[i],"setTintColor:",i==selected ? active : inactive);
+        v1(footer->views[i+3],"setBackgroundColor:",i==selected ? active : nil);
+    }
 }
 static void native_scroll(id palette,SEL sel,id content) {
     (void)palette;(void)sel;native_scroll_calls++;
@@ -304,9 +324,10 @@ static void native_scroll(id palette,SEL sel,id content) {
     if(s->library_highlight_active)active=s->library_colors[3] ? s->library_colors[3] : s->library_colors[4];
     double leading=content->bounds.origin.y+content->adjusted.top-s->recent_height;
     U selected=leading<s->library_start+s->library_height ? 0 : 1;
-    for(U i=0;i<3;i++)footer->views[i+3]->background=i==selected ? active : nil;
+    for(U i=0;i<3;i++)v1(footer->views[i+3],"setBackgroundColor:",i==selected ? active : nil);
 }
 int main(void) {
+    original_footer_tint=(IMP)raw_tint;original_footer_background=(IMP)raw_background;
     (void)preview_placeholder_image; /* Composer rendering is mocked in this library-only harness. */
     (void)update_preview_frames;
     (void)attachment_metadata_key;(void)thumbnail_url_key;(void)thumbnail_record_key;(void)library_grid_class;
@@ -403,6 +424,25 @@ int main(void) {
         for(U j=0;j<3;j++)assert(!views[j+3].background && views[j].tint==&normal);
     }
     assert(!native_scroll_calls && !native_scroll_paints);
+    /* Swift workers and previously queued reactive updates need not enter
+     * apply: or scrollViewDidScroll:. Every native setter stays neutral during
+     * horizontal browsing, while requested native state is saved for handoff. */
+    observe_native_paints=YES;U old_queries=queries;
+    for(U i=0;i<200;i++) {
+        ss_test_offset(s.grid,(Point){(double)i*60,0});
+        native_footer_paint(&footer,i%3,&active,&normal);
+        assert(s.tab==1 && s.grid->offset.x==(double)i*60 && button->selected && highlight->background==&active);
+    }
+    assert(GET(footer_paint_blocks)>=1200 && queries==old_queries);
+    native_footer_paint(&footer,0,&active,&normal);
+    assert(s.library_colors[0]==&active && s.library_colors[3]==&active && !s.library_colors[4]);
+    /* Unbound views, and an old footer view no longer in the current binding,
+     * must pass through even when they retain a former guard association. */
+    struct Fake unrelated={.cls="UIView"};
+    footer_tint(&unrelated,"setTintColor:",&active);footer_background(&unrelated,"setBackgroundColor:",&active);
+    assert(unrelated.tint==&active && unrelated.background==&active);
+    unrelated.paint_host=&delegate;footer_background(&unrelated,"setBackgroundColor:",&normal);
+    assert(unrelated.background==&normal);
     /* Exact end/start boundaries, unrelated collections, a closed menu and
      * an unavailable footer retain native callbacks. Re-entry takes ownership. */
     ss_test_offset(&native,(Point){0,s.library_start+s.library_height});palette_scrolled(&native,"scrollViewDidScroll:",&native);
@@ -445,6 +485,7 @@ int main(void) {
     struct Fake themed={.cls="UIColor"};original_footer_apply=(IMP)native_footer_apply;
     footer_apply(&footer,"apply:",&themed);
     assert(button->selected && highlight->background==&themed && !views[4].background && s.library==3 && !s.library_scope);
+    assert(s.library_colors[1]==&themed && s.library_colors[4]==&themed);
     native.bounds.size.width=844;place_library_panel(&s,&native);
     assert(s.grid->frame.size.width==836 && s.grid->frame.size.height==296 && s.library_height==410 && s.grid->offset.x==1000);
     for(U i=0;i<5;i++)original_footer_actions[i]=(IMP)native_action;

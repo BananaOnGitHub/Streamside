@@ -43,7 +43,7 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
 static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key,inline_attributes_key;
 static char selector_key;
-static char thumbnail_url_key,thumbnail_record_key;
+static char thumbnail_url_key,thumbnail_record_key,attachment_record_key;
 static Class delegate_class,attachment_class,strip_class,grid_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
@@ -111,6 +111,11 @@ static id room_for(id owner) {
 }
 
 typedef struct {
+    id attachment,animation; /* retained while this exact preview is in the editor */
+    U location,index;
+    double elapsed;
+} PreviewFrame;
+typedef struct {
     id owner; /* objc weak storage */
     id room,strip,suggestions,panel,library_title,grid,provider,scope,entries,empty,recent_strip,recent_clip,recent_entries;
     id footer; /* objc weak storage: the emote keyboard may be recreated */
@@ -132,6 +137,10 @@ typedef struct {
     int library_provider_snapshot,library_scope_snapshot;
     BOOL library_snapshot_valid;
     BOOL busy,scheduled,preview_scheduled;
+    PreviewFrame *animation_frames;
+    U animation_count;
+    id animation_link;
+    double animation_timestamp;
     id native_manager,stock_selector; /* weak, scoped to this input's chat */
     id native_entries,native_by_code,native_snapshot;
     uintptr_t native_marker;
@@ -154,6 +163,7 @@ static void update_inline_selection(State *s,id content);
 static id observe_recent_heading(State *s,id content);
 static void schedule_preview(id delegate);
 static BOOL visible_in_window(id view);
+static void sync_preview_clock(id delegate,id editor);
 
 /* Twitch 30.4.2's autocomplete publication bypasses its ObjC wrappers.
  * Read its catalog on its serial backgroundQueue, using the runtime's own
@@ -569,6 +579,96 @@ static void visual_text(id editor,id text,Range selected) {
     ((void (*)(id,SEL,id,id))objc_msgSend)(typing,sel_registerName("setObject:forKey:"),foreground,str("NSColor"));
     v1(editor,"setTypingAttributes:",typing); objc_release(typing);
 }
+static void stop_preview_clock(State *s) {
+    id link=s->animation_link; s->animation_link=nil; s->animation_timestamp=0;
+    m0(link,"invalidate"); objc_release(link);
+}
+static void clear_preview_frames(State *s) {
+    for (U i=0;i<s->animation_count;i++) {
+        objc_release(s->animation_frames[i].attachment); objc_release(s->animation_frames[i].animation);
+    }
+    free(s->animation_frames); s->animation_frames=NULL; s->animation_count=0;
+}
+static void sync_preview_clock(id delegate,id editor) {
+    State *s=state(delegate); if (!s) return;
+    if (!s->animation_count || !editor || !visible_in_window(editor)) { stop_preview_clock(s); return; }
+    if (s->animation_link) return;
+    Class clock=objc_getClass("CADisplayLink"); if (!clock) return;
+    id link=((id (*)(id,SEL,id,SEL))objc_msgSend)((id)clock,sel_registerName("displayLinkWithTarget:selector:"),delegate,sel_registerName("ssAnimate:"));
+    if (!link) return;
+    s->animation_link=objc_retain(link); s->animation_timestamp=0;
+    vi(link,"setPreferredFramesPerSecond:",30);
+    ((void (*)(id,SEL,id,id))objc_msgSend)(link,sel_registerName("addToRunLoop:forMode:"),m0((id)objc_getClass("NSRunLoop"),"mainRunLoop"),str("kCFRunLoopCommonModes"));
+}
+static void update_preview_frames(id delegate,id editor) {
+    State *s=state(delegate); if (!s) return;
+    id source=m0(editor,"attributedText"),text=m0(source,"string"); U length=number(source,"length"),count=0;
+    PreviewFrame next[MAX_TOKENS];
+    if (length<=4096) for (U i=0;i<length && count<MAX_TOKENS;i++) {
+        if (((uint16_t (*)(id,SEL,U))objc_msgSend)(text,sel_registerName("characterAtIndex:"),i)!=0xfffc) continue;
+        id attachment=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),i,NULL);
+        id record=objc_getAssociatedObject(attachment,&attachment_record_key),animation=key(record,"animation");
+        if (!objc_getAssociatedObject(attachment,&attachment_metadata_key) || !animation ||
+            number(animation,"frameCount")<2 || !responds(animation,"imageLazilyCachedAtIndex:")) continue;
+        PreviewFrame frame={attachment,animation,i,number(animation,"posterImageFrameIndex"),0};
+        for (U j=0;j<s->animation_count;j++) if (s->animation_frames[j].attachment==attachment && s->animation_frames[j].animation==animation) {
+            frame.index=s->animation_frames[j].index; frame.elapsed=s->animation_frames[j].elapsed; break;
+        }
+        next[count++]=frame;
+    }
+    BOOL same=count==s->animation_count;
+    for (U i=0;same && i<count;i++) same=next[i].attachment==s->animation_frames[i].attachment && next[i].animation==s->animation_frames[i].animation;
+    if (same) {
+        for (U i=0;i<count;i++) s->animation_frames[i].location=next[i].location;
+    } else {
+        PreviewFrame *frames=count ? calloc(count,sizeof(*frames)) : NULL;
+        if (frames) for (U i=0;i<count;i++) {
+            frames[i]=next[i]; objc_retain(frames[i].attachment); objc_retain(frames[i].animation);
+        }
+        clear_preview_frames(s); s->animation_frames=frames; s->animation_count=frames ? count : 0;
+    }
+    sync_preview_clock(delegate,editor);
+}
+static double preview_frame_delay(id animation,U index) {
+    id number_index=((id (*)(id,SEL,U))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedInteger:"),index);
+    id delay=m1(m0(animation,"delayTimesForIndexes"),"objectForKey:",number_index);
+    double seconds=((double (*)(id,SEL))objc_msgSend)(delay,sel_registerName("doubleValue"));
+    return seconds>=0.02 && seconds<=10 ? seconds : 0.1;
+}
+static void animate_preview(id self,SEL sel,id link) {
+    (void)sel; objc_retain(self); State *s=state(self);
+    if (!s || link!=s->animation_link) { objc_release(self); return; }
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
+    if (!editor || !visible_in_window(editor)) {
+        stop_preview_clock(s); objc_release(owner); objc_release(self); return;
+    }
+    double now=((double (*)(id,SEL))objc_msgSend)(link,sel_registerName("timestamp")),previous=s->animation_timestamp;
+    s->animation_timestamp=now;
+    /* Do not touch presentation during UIKit edits/IME or replay time spent
+     * hidden. One bounded clock serves all animated provider attachments. */
+    if (!previous || s->busy || s->preview_scheduled || native_read || m0(editor,"markedTextRange")) {
+        objc_release(owner); objc_release(self); return;
+    }
+    double delta=now-previous; if (delta<=0) { objc_release(owner); objc_release(self); return; }
+    if (delta>0.25) delta=0.25;
+    id source=m0(editor,"attributedText"),manager=m0(editor,"layoutManager"); U length=number(source,"length");
+    for (U i=0;i<s->animation_count;i++) {
+        PreviewFrame *frame=&s->animation_frames[i];
+        if (frame->location>=length || ((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),frame->location,NULL)!=frame->attachment) continue;
+        frame->elapsed+=delta; double delay=preview_frame_delay(frame->animation,frame->index);
+        U count=number(frame->animation,"frameCount"); if (count<2) continue;
+        BOOL changed=NO;
+        for (unsigned step=0;frame->elapsed>=delay && step<16;step++) {
+            U next=(frame->index+1)%count;
+            id image=((id (*)(id,SEL,U))objc_msgSend)(frame->animation,sel_registerName("imageLazilyCachedAtIndex:"),next);
+            if (!image) { frame->elapsed=delay; break; } /* lazy decode is still pending */
+            frame->elapsed-=delay; frame->index=next; v1(frame->attachment,"setImage:",image); changed=YES;
+            delay=preview_frame_delay(frame->animation,frame->index);
+        }
+        if (changed) ((void (*)(id,SEL,Range))objc_msgSend)(manager,sel_registerName("invalidateDisplayForCharacterRange:"),(Range){frame->location,1});
+    }
+    objc_release(owner); objc_release(self);
+}
 static void expand(id delegate) {
     State *s=state(delegate); if (!s || s->busy || native_read) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
@@ -576,6 +676,7 @@ static void expand(id delegate) {
     SSSpan spans[MAX_TOKENS]; size_t n; Range r=selection(editor);
     id plain=expanded_copy(editor,&r,spans,&n);
     if (n) { s->busy=YES; visual_text(editor,plain,r); s->busy=NO; }
+    update_preview_frames(delegate,editor);
     objc_release(plain); objc_release(owner);
 }
 static void render(id delegate) {
@@ -611,9 +712,13 @@ static void render(id delegate) {
             /* Reserve the emote's geometry before its image is available. The
              * code attribute gives even a blank placeholder atomic deletion. */
             if (!attachment) { attachment=m0((id)attachment_class,"new"); associate(attachment,&attachment_metadata_key,metadata); }
-            id bitmap=key(cached,"image");
-            if (bitmap && bitmap!=m0(attachment,"image")) { v1(attachment,"setImage:",bitmap); image_updated=YES; }
             id placeholder=preview_placeholder_image();
+            id previous_record=objc_getAssociatedObject(attachment,&attachment_record_key);
+            if (!cached && reused) cached=previous_record;
+            id bitmap=key(cached,"image"),animation=key(cached,"animation"),current=m0(attachment,"image");
+            BOOL playing=animation && animation==key(previous_record,"animation") && current && current!=placeholder;
+            if (bitmap && !playing && bitmap!=current) { v1(attachment,"setImage:",bitmap); image_updated=YES; }
+            if (cached!=previous_record) associate(attachment,&attachment_record_key,cached);
             if (!m0(attachment,"image")) v1(attachment,"setImage:",placeholder);
             if (!cached && m0(attachment,"image")==placeholder) image_request(metadata);
             double height=22, width=22,aspect=((double (*)(id,SEL))objc_msgSend)(key(metadata,"aspect"),sel_registerName("doubleValue"));
@@ -649,6 +754,7 @@ static void render(id delegate) {
         ((void (*)(id,SEL,Range,Range *))objc_msgSend)(manager,sel_registerName("invalidateLayoutForCharacterRange:actualCharacterRange:"),all,NULL);
         ((void (*)(id,SEL,Range))objc_msgSend)(manager,sel_registerName("invalidateDisplayForCharacterRange:"),all);
     }
+    update_preview_frames(delegate,editor);
     objc_release(output); objc_release(plain); objc_release(owner);
 }
 
@@ -1274,6 +1380,7 @@ static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rec
 static void layout(id delegate) {
     State *s=state(delegate); if (!s) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),window=m0(owner,"window");
+    sync_preview_clock(delegate,editor);
     if (!owner || !window) { s->recent_menu_open=NO; m0(s->strip,"removeFromSuperview"); restore_native(s); objc_release(owner); return; }
     if (s->strip) {
         Rect position=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(owner,sel_registerName("convertRect:toView:"),rect(owner,"bounds"),window);
@@ -1446,6 +1553,7 @@ static void delegate_dealloc(id self,SEL sel) {
     ((void (*)(id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:"),self);
     v1(m0((id)objc_getClass("NSNotificationCenter"),"defaultCenter"),"removeObserver:",self);
     if (s) {
+        stop_preview_clock(s); clear_preview_frames(s);
         s->colon_selector=NO;
         id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); associate(selector,&selector_key,nil); objc_release(selector);
         restore_native(s); detach_recents(s); m0(s->strip,"removeFromSuperview");
@@ -1770,6 +1878,7 @@ void ss_composer_retry_hooks(void) {
             {"ssScope:",(IMP)scope_changed,"v@:@"}, {"ssThirdParty:",(IMP)third_party_tab,"v@:@"},
             {"ssGridPick:",(IMP)grid_button,"v@:@"},
             {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"}, {"ssPreview:",(IMP)preview_ready,"v@:@"},
+            {"ssAnimate:",(IMP)animate_preview,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},
             {"collectionView:cellForItemAtIndexPath:",(IMP)cell,"@@:@@"},
             {"collectionView:didSelectItemAtIndexPath:",(IMP)selected_cell,"v@:@@"}

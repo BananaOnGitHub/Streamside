@@ -293,6 +293,7 @@ static void native_footer_apply(id footer,SEL sel,id theme) {
 }
 int main(void) {
     (void)preview_placeholder_image; /* Composer rendering is mocked in this library-only harness. */
+    (void)update_preview_frames;
     (void)attachment_metadata_key;(void)thumbnail_url_key;(void)thumbnail_record_key;(void)library_grid_class;
     (void)request_native_catalog;(void)unified_matches;(void)image_request;(void)visual_text;
     struct Fake normal={.cls="UIColor"},active={.cls="UIColor"},room={.cls="NSString"};expected_room=&room;

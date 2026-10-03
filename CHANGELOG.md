@@ -81,7 +81,14 @@
   Keep the observation while headers are offscreen and clear it when rebinding
   the palette. Add initial-layout, empty-title, zero-height, headerless and empty
   collection regressions so native Recent cells retain their opening position.
-- Candidate bundle build: `3.0.0.29`; initial native Recent layout awaits device
+- Device-confirmed build 29 initial native Recent layout. Play cached provider
+  GIFs in composer attachments using one 30-fps display link per visible input,
+  the decoder's frame delays and its existing bounded lazy frame cache. Repaint
+  only changed attachment characters without rewriting text or moving the caret.
+  Preserve playheads across edits/image refreshes/cache eviction; stop on
+  detachment, hiding or expansion and remove deleted previews from playback.
+  Add timing, looping, pending-decoder, edit/IME, deletion and lifecycle regressions.
+- Candidate bundle build: `3.0.0.30`; animated composer previews await device
   verification.
 
 ## 2.3.1 (prepared; not published)

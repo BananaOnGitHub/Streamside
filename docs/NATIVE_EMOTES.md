@@ -127,6 +127,15 @@ immediately, even without a bitmap. Image completion fills the same attachment
 with the downloaded image. A shared transparent RGBA pixel hides UIKit's
 missing-image box while loading; it never counts as a completed download.
 Image replacement invalidates layout/display, preserving the live text and caret.
+Provider GIF previews retain their cached animation record and share one 30-fps
+display link per visible input. It follows the GIF's per-frame delays, requests
+frames through FLAnimatedImage's bounded lazy cache and invalidates only the
+changed attachment character's display. Frame updates do not rebuild attributed
+text, recalculate layout or move the caret. Playheads survive ordinary edits,
+image refreshes and cache eviction; active keyboard/IME transactions are skipped.
+Hidden/detached editors stop their clock, while deletion and clipboard/send
+expansion drop their playback bindings. Static and native attachments do not
+enter this provider animation path.
 A caret inside a literal word or an overlapping selection keeps that word editable;
 marked composition is never substituted. Typing beyond an exact code restores
 literal text if the resulting word no longer matches.

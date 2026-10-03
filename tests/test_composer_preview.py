@@ -20,16 +20,19 @@ struct Fake {
     U length;
     uint16_t units[256];
     id codes[256],attachments[256];
-    id value,host,metadata,bitmap,name,url,identifier;
+    id value,host,metadata,record,bitmap,name,url,identifier,animation,children[8];
     State *context;
     Range selected;
     Rect bounds;
-    BOOL marked,responder;
+    double seconds;
+    BOOL marked,responder,visible,hidden,invalidated;
 };
 static struct Fake objects[8192],classes[32],editor,owner,delegate,footer,source,typing,meta,cache,bitmap,transparent;
 static U used,class_count;
 static unsigned requests,storage_edits,selection_sets,layouts,displays,notified,validated,fallbacks;
 static unsigned placeholder_decodes;
+static unsigned clocks,stopped;
+static BOOL decoder_pending;
 static BOOL available,accept=YES,emit_change=YES;
 static Range validated_range;
 static id last_plain;
@@ -57,14 +60,16 @@ void objc_release(id o) { (void)o; }
 id objc_loadWeakRetained(id *p) { return *p; }
 id objc_getAssociatedObject(id o,const void *k) {
     if(!o)return nil;
-    return k==&attachment_metadata_key ? o->metadata : o->host;
+    return k==&attachment_metadata_key ? o->metadata : k==&attachment_record_key ? o->record : o->host;
 }
 void objc_setAssociatedObject(id o,const void *k,id v,uintptr_t policy) {
-    assert(policy==1 && k==&attachment_metadata_key);o->metadata=v;
+    assert(policy==1);
+    if(k==&attachment_metadata_key)o->metadata=v;else {assert(k==&attachment_record_key);o->record=v;}
 }
 static void ss_test_request(id metadata) { assert(metadata==&meta);requests++; }
 static Range ss_test_selection(id o) { return o->selected; }
 static void ss_test_set_bounds(id o,Rect r) { o->bounds=r; }
+static double ss_test_double(id o,const char *name) { (void)name;return o ? o->seconds : 0; }
 static id duplicate(id o,const char *cls) { id result=create(cls);memcpy(result,o,sizeof(*o));result->cls=cls;return result; }
 static void replace(id o,Range r,id v,BOOL attributed) {
     assert(r.location+r.length<=o->length && o->length-r.length+v->length<256);
@@ -140,14 +145,28 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"objectForKey:")){
         id k=va_arg(args,id);
         if(o==&meta){if(matches(k,"name"))result=o->name;else if(matches(k,"id"))result=o->identifier;else if(matches(k,"url"))result=o->url;}
-        else if(o==&cache && matches(k,"image"))result=&bitmap;
+        else if(o==&cache){if(matches(k,"image"))result=&bitmap;else if(matches(k,"animation"))result=o->animation;}
+        else if(o->cls && !strcmp(o->cls,"FrameDelays")){assert(k->length<8);result=o->children[k->length];}
         else if(o==images && available)result=&cache;
     }
     else if(!strcmp(sel,"image"))result=o->bitmap;
     else if(!strcmp(sel,"setImage:"))o->bitmap=va_arg(args,id);
     else if(!strcmp(sel,"layoutManager"))result=&typing;
+    else if(!strcmp(sel,"window"))result=o->visible ? &typing : nil;
+    else if(!strcmp(sel,"superview"))result=nil;
+    else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
+    else if(!strcmp(sel,"frameCount"))result=(id)(uintptr_t)o->length;
+    else if(!strcmp(sel,"posterImageFrameIndex"))result=nil;
+    else if(!strcmp(sel,"delayTimesForIndexes"))result=o->value;
+    else if(!strcmp(sel,"numberWithUnsignedInteger:")){result=create("NSNumber");result->length=va_arg(args,U);}
+    else if(!strcmp(sel,"imageLazilyCachedAtIndex:")){U index=va_arg(args,U);assert(index<o->length);result=decoder_pending ? nil : o->children[index];}
+    else if(!strcmp(sel,"displayLinkWithTarget:selector:")){result=create("CADisplayLink");result->value=va_arg(args,id);assert(!strcmp(va_arg(args,SEL),"ssAnimate:"));clocks++;}
+    else if(!strcmp(sel,"setPreferredFramesPerSecond:"))assert(va_arg(args,I)==30);
+    else if(!strcmp(sel,"mainRunLoop"))result=o;
+    else if(!strcmp(sel,"addToRunLoop:forMode:")){assert(va_arg(args,id));assert(matches(va_arg(args,id),"kCFRunLoopCommonModes"));}
+    else if(!strcmp(sel,"invalidate")){assert(!o->invalidated);o->invalidated=YES;stopped++;}
     else if(!strcmp(sel,"invalidateLayoutForCharacterRange:actualCharacterRange:")){Range r=va_arg(args,Range);assert(r.location==0 && r.length==source.length);assert(!va_arg(args,Range *));layouts++;}
-    else if(!strcmp(sel,"invalidateDisplayForCharacterRange:")){Range r=va_arg(args,Range);assert(r.location==0 && r.length==source.length);displays++;}
+    else if(!strcmp(sel,"invalidateDisplayForCharacterRange:")){Range r=va_arg(args,Range);assert(r.location+r.length<=source.length);displays++;}
     else if(!strcmp(sel,"typingAttributes") || !strcmp(sel,"labelColor"))result=&typing;
     else if(!strcmp(sel,"systemFontOfSize:")){assert(va_arg(args,double)==17.0);result=&typing;}
     else if(!strcmp(sel,"setTypingAttributes:")){(void)va_arg(args,id);}
@@ -224,6 +243,69 @@ int main(void) {
 }
 '''
 
+ANIMATION = HARNESS[:HARNESS.index("int main(void)")] + r'''
+static void pulse(double seconds) {
+    assert(context.animation_link);context.animation_link->seconds=seconds;
+    animate_preview(&delegate,"ssAnimate:",context.animation_link);
+}
+int main(void) {
+    (void)request_native_catalog;(void)unified_matches;
+    editor.cls="UITextView";editor.visible=YES;owner.value=&editor;owner.host=&delegate;
+    delegate.context=&context;footer.host=&delegate;context.owner=&owner;
+    delegate_class=objc_getClass("SSComposerDelegate");attachment_class=objc_getClass("SSComposerAttachment");images=create("NSCache");
+    meta.name=ascii("Wide");meta.url=ascii("https://example/emote");meta.identifier=ascii("7tv:wide");
+    original_text=(IMP)raw_text;original_storage=(IMP)raw_text;original_should_change=(IMP)validate;original_change=(IMP)notify;original_footer_actions[4]=(IMP)fallback;
+    struct Fake animation={.cls="FLAnimatedImage",.length=3},delays={.cls="FrameDelays"};
+    struct Fake d0={.seconds=0.1},d1={.seconds=0.2},d2={.seconds=0.05};
+    delays.children[0]=&d0;delays.children[1]=&d1;delays.children[2]=&d2;animation.value=&delays;
+    id frame1=create("UIImage"),frame2=create("UIImage");animation.children[0]=&bitmap;animation.children[1]=frame1;animation.children[2]=frame2;
+    cache.animation=&animation;reset("Wide",4,YES);available=YES;render(&delegate);
+    assert(source.length==1 && context.animation_count==1 && clocks==1);
+    id attachment=source.attachments[0];unsigned writes=storage_edits,carets=selection_sets,layout_count=layouts;
+    pulse(100);pulse(100.11);assert(attachment->bitmap==frame1 && context.animation_frames[0].index==1);
+    unsigned drawings=displays;
+    /* Refreshes, unrelated downloads and cache eviction keep the same frame
+     * and clock, rather than applying the cached poster image again. */
+    for(unsigned i=0;i<100;i++)render(&delegate);
+    image_changed(&delegate,"ssImages:",nil);ready();available=NO;render(&delegate);
+    assert(attachment->bitmap==frame1 && clocks==1 && !requests);
+    assert(storage_edits==writes && selection_sets==carets && layouts==layout_count && displays==drawings);
+    pulse(100.21);assert(attachment->bitmap==frame1);pulse(100.32);assert(attachment->bitmap==frame2);
+    pulse(100.38);assert(attachment->bitmap==&bitmap); /* loops indefinitely */
+    decoder_pending=YES;drawings=displays;pulse(100.49);
+    assert(attachment->bitmap==&bitmap && displays==drawings && context.animation_frames[0].index==0);
+    decoder_pending=NO;pulse(100.53);assert(attachment->bitmap==frame1);
+    /* Do not repaint during an active keyboard/IME callback. */
+    context.busy=YES;pulse(101);context.busy=NO;
+    context.preview_scheduled=YES;pulse(102);context.preview_scheduled=NO;
+    editor.marked=YES;pulse(103);editor.marked=NO;
+    assert(attachment->bitmap==frame1 && storage_edits==writes && selection_sets==carets);
+    replace(&source,(Range){0,0},ascii("hi "),NO);editor.selected=(Range){4,0};render(&delegate);
+    assert(context.animation_frames[0].location==3 && context.animation_frames[0].index==1 && source.attachments[3]==attachment && clocks==1);
+    id old_link=context.animation_link;menu();ready();
+    assert(matches(&source,"hi ") && !context.animation_count && !context.animation_link && old_link->invalidated && stopped==1 && validated_range.length==4);
+    animate_preview(&delegate,"ssAnimate:",old_link);assert(matches(&source,"hi "));
+    /* Multiple attachments share a clock; deleting one preserves the other
+     * playhead and remaps its character position. */
+    reset("Wide Wide",9,YES);available=YES;render(&delegate);
+    assert(context.animation_count==2 && clocks==2);pulse(200);pulse(200.11);
+    id survivor=source.attachments[2];assert(source.attachments[0]->bitmap==frame1 && survivor->bitmap==frame1);
+    editor.selected=(Range){0,2};menu();ready();
+    assert(context.animation_count==1 && context.animation_frames[0].attachment==survivor && context.animation_frames[0].index==1 && context.animation_frames[0].location==0 && clocks==2);
+    /* Stop when hidden/detached, resume without resetting the image, and drop
+     * all playback state before clipboard/send expansion. */
+    editor.visible=NO;sync_preview_clock(&delegate,&editor);assert(!context.animation_link && stopped==2);
+    editor.visible=YES;sync_preview_clock(&delegate,&editor);assert(clocks==3 && survivor->bitmap==frame1 && context.animation_frames[0].index==1);
+    editor.hidden=YES;pulse(300);assert(!context.animation_link && stopped==3);
+    editor.hidden=NO;sync_preview_clock(&delegate,&editor);assert(clocks==4);
+    expand(&delegate);assert(matches(&source,"Wide") && !context.animation_count && !context.animation_link && stopped==4);
+    cache.animation=nil;render(&delegate);assert(!context.animation_count && clocks==4); /* static emotes get no clock */
+    cache.animation=&animation;render(&delegate);assert(context.animation_link && clocks==5);
+    context.owner=nil;pulse(400);assert(!context.animation_link && stopped==5); /* weak owner disappears */
+    clear_preview_frames(&context);return 0;
+}
+'''
+
 
 class PreviewTests(unittest.TestCase):
     def test_loading_placeholder_is_a_fully_transparent_rgba_pixel(self):
@@ -244,10 +326,19 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(zlib.decompress(compressed), b"\x00\x00\x00\x00\x00")
 
     def test_immediate_placeholders_image_hydration_and_both_backspace_paths(self):
+        self.run_preview(HARNESS)
+
+    def test_animation_timing_refresh_deletion_and_visibility(self):
+        self.run_preview(ANIMATION)
+
+    def run_preview(self, harness):
         zig = os.environ.get("ZIG", shutil.which("zig"))
         if not zig:
             self.skipTest("Zig unavailable")
         source = (composer.ROOT / "src/SSComposer.c").read_text()
+        source = source.replace("static void stop_preview_clock(State *s) {", "static double ss_test_double(id,const char *);\nstatic void stop_preview_clock(State *s) {")
+        source = source.replace('((double (*)(id,SEL))objc_msgSend)(delay,sel_registerName("doubleValue"))', 'ss_test_double(delay,"doubleValue")')
+        source = source.replace('((double (*)(id,SEL))objc_msgSend)(link,sel_registerName("timestamp"))', 'ss_test_double(link,"timestamp")')
         source = source.replace("static Range selection(id editor) {", "static Range ss_test_selection(id);\nstatic Range selection(id editor) {")
         source = replace_body(source, "static Range selection(id editor)", "return ss_test_selection(editor);")
         for signature, body in (
@@ -265,4 +356,4 @@ class PreviewTests(unittest.TestCase):
         source = source.replace('Size z=((Size (*)(id,SEL))objc_msgSend)(m0(attachment,"image"),sel_registerName("size"));', 'Size z={22,22};')
         source = source.replace('((void (*)(id,SEL,Rect))objc_msgSend)(attachment,sel_registerName("setBounds:"),(Rect){{0,-4},{width,height}});', 'ss_test_set_bounds(attachment,(Rect){{0,-4},{width,height}});')
         source = source.replace("static void render(id delegate) {", "static void ss_test_set_bounds(id,Rect);\nstatic void render(id delegate) {")
-        composer.ComposerTests().compile_run(HARNESS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
+        composer.ComposerTests().compile_run(harness.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)

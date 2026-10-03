@@ -39,6 +39,7 @@ extern void objc_destroyWeak(id *);
 #define ATTACHMENT_KEY "StreamsideEmoteCode"
 #define MAX_TOKENS 512
 #define IMAGE_NOTICE "StreamsideEmoteImagesChanged"
+#define EMOTE_HOLD_SECONDS 0.5
 #define NATIVE_AUTOCOMPLETE "_TtC6Twitch28ChatEmoteAutocompleteManager"
 #define NATIVE_INFO "_TtCC6Twitch28ChatEmoteAutocompleteManagerP33_CEF95AD68D7B2CB9CDF93771963981BE9EmoteInfo"
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
@@ -147,6 +148,7 @@ typedef struct {
     BOOL library_snapshot_valid;
     BOOL busy,scheduled,preview_scheduled;
     id details_attachment; /* retained only until deferred UIKit presentation */
+    id editor_hold; /* owned recognizer; its view is weak inside UIKit */
     PreviewFrame *animation_frames;
     U animation_count;
     id animation_link;
@@ -174,6 +176,7 @@ static id observe_recent_heading(State *s,id content);
 static void schedule_preview(id delegate);
 static BOOL visible_in_window(id view);
 static void sync_preview_clock(id delegate,id editor);
+static void install_editor_hold(id delegate,id editor);
 
 /* Twitch 30.4.2's autocomplete publication bypasses its ObjC wrappers.
  * Read its catalog on its serial backgroundQueue, using the runtime's own
@@ -870,6 +873,13 @@ static void choose(id delegate,id metadata,BOOL suggestion) {
 static void target(id control,id delegate,const char *action,U events) {
     ((void (*)(id,SEL,id,SEL,U))objc_msgSend)(control,sel_registerName("addTarget:action:forControlEvents:"),delegate,sel_registerName(action),events);
 }
+static BOOL present_composer_details(State *s,id owner,id metadata) {
+    BOOL hidden=yes(s->strip,"isHidden");
+    vb(s->strip,"setHidden:",YES); /* Before UIKit begins the sheet transition. */
+    BOOL shown=tas_emote_ui_present_details(owner,metadata);
+    if (!shown) vb(s->strip,"setHidden:",hidden);
+    return shown;
+}
 static void emote_hold(id self,SEL sel,id gesture) {
     (void)sel;
     /* Began, not Changed/Ended: one sheet per hold. Recognition cancels the
@@ -878,11 +888,12 @@ static void emote_hold(id self,SEL sel,id gesture) {
     id metadata=objc_getAssociatedObject(m0(gesture,"view"),&button_key);
     State *s=state(self); if (!s || !metadata || key(metadata,"native")) return;
     id owner=objc_loadWeakRetained(&s->owner);
-    if (owner && m0(owner,"window") && tas_emote_ui_present_details(owner,metadata)) INC(details_holds);
+    if (owner && m0(owner,"window") && present_composer_details(s,owner,metadata)) INC(details_holds);
     objc_release(owner);
 }
 static void add_emote_hold(id button,id delegate) {
     id gesture=((id (*)(id,SEL,id,SEL))objc_msgSend)(m0((id)objc_getClass("UILongPressGestureRecognizer"),"alloc"),sel_registerName("initWithTarget:action:"),delegate,sel_registerName("ssEmoteHold:"));
+    ((void (*)(id,SEL,double))objc_msgSend)(gesture,sel_registerName("setMinimumPressDuration:"),EMOTE_HOLD_SECONDS);
     vb(gesture,"setCancelsTouchesInView:",YES);
     v1(button,"addGestureRecognizer:",gesture); objc_release(gesture);
 }
@@ -1435,6 +1446,9 @@ static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rec
     if (!s->strip) return;
     id window=m0(owner,"window");
     if (!window) { m0(s->strip,"removeFromSuperview"); return; }
+    /* This strip is a window child to preserve hit testing above the input.
+     * Never raise it over a presented sheet, even on image/timer/layout ticks. */
+    if (s->details_attachment || tas_emote_ui_modal_visible(owner)) { vb(s->strip,"setHidden:",YES); return; }
     Rect strip={{position.origin.x,position.origin.y-48},{position.size.width,48}};
     BOOL contained=strip.size.width>0 && strip.origin.x>=bounds.origin.x && strip.origin.y>=bounds.origin.y &&
         strip.origin.x+strip.size.width<=bounds.origin.x+bounds.size.width &&
@@ -1451,6 +1465,7 @@ static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rec
 static void layout(id delegate) {
     State *s=state(delegate); if (!s) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),window=m0(owner,"window");
+    install_editor_hold(delegate,editor);
     sync_preview_clock(delegate,editor);
     if (!owner || !window) { s->recent_menu_open=NO; m0(s->strip,"removeFromSuperview"); restore_native(s); objc_release(owner); return; }
     if (s->strip) {
@@ -1634,6 +1649,8 @@ static void delegate_dealloc(id self,SEL sel) {
     ((void (*)(id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:"),self);
     v1(m0((id)objc_getClass("NSNotificationCenter"),"defaultCenter"),"removeObserver:",self);
     if (s) {
+        id hold_view=m0(s->editor_hold,"view"); v1(hold_view,"removeGestureRecognizer:",s->editor_hold);
+        objc_release(s->editor_hold);
         stop_preview_clock(s); clear_preview_frames(s);
         s->colon_selector=NO;
         id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); associate(selector,&selector_key,nil); objc_release(selector);
@@ -1943,7 +1960,7 @@ static void composer_details(id self,SEL sel,id object) {
     if (attachment && owner && m0(editor,"window")) {
         U length=number(m0(editor,"attributedText"),"length");
         for (U i=0;i<length && i<4096;i++) if (owned_attachment_at(owner,editor,attachment,(Range){i,1})) {
-            if (tas_emote_ui_present_details(owner,objc_getAssociatedObject(attachment,&attachment_metadata_key))) INC(details_holds);
+            if (present_composer_details(s,owner,objc_getAssociatedObject(attachment,&attachment_metadata_key))) INC(details_holds);
             break;
         }
     }
@@ -1962,10 +1979,61 @@ static BOOL queue_composer_details(id owner,id editor,id attachment,Range range)
     }
     return YES;
 }
+static id composer_attachment_under_hold(id delegate,id gesture,Range *range) {
+    State *s=state(delegate); if (!s || gesture!=s->editor_hold) return nil;
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),attachment=nil;
+    if (!editor || m0(gesture,"view")!=editor || !m0(editor,"window") || m0(editor,"markedTextRange")) { objc_release(owner); return nil; }
+    Point point=((Point (*)(id,SEL,id))objc_msgSend)(gesture,sel_registerName("locationInView:"),editor);
+    Insets inset=((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"));
+    point.x-=inset.left; point.y-=inset.top;
+    id manager=m0(editor,"layoutManager"),container=m0(editor,"textContainer");
+    if (manager && container) {
+        U glyph=((U (*)(id,SEL,Point,id))objc_msgSend)(manager,sel_registerName("glyphIndexForPoint:inTextContainer:"),point,container);
+        if (glyph<number(manager,"numberOfGlyphs")) {
+            U index=((U (*)(id,SEL,U))objc_msgSend)(manager,sel_registerName("characterIndexForGlyphAtIndex:"),glyph);
+            Rect bounds=((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container);
+            /* TextKit returns the nearest glyph outside text as well. Require
+             * an actual hit, so holding whitespace keeps native selection. */
+            id text=m0(editor,"attributedText");
+            if (index<number(text,"length") && point.x>=bounds.origin.x && point.y>=bounds.origin.y &&
+                point.x<bounds.origin.x+bounds.size.width && point.y<bounds.origin.y+bounds.size.height) {
+                id candidate=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(text,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),index,NULL);
+                if (owned_attachment_at(owner,editor,candidate,(Range){index,1})) { attachment=candidate; *range=(Range){index,1}; }
+            }
+        }
+    }
+    objc_release(owner); return attachment;
+}
+static BOOL composer_hold_should_begin(id self,SEL sel,id gesture) {
+    (void)sel; Range range={0}; State *s=state(self);
+    return !s || gesture!=s->editor_hold || composer_attachment_under_hold(self,gesture,&range)!=nil;
+}
+static BOOL composer_hold_simultaneous(id self,SEL sel,id gesture,id other) {
+    (void)sel; State *s=state(self);
+    /* UIKit's earlier selection/image recognizers must not prevent our 0.5s
+     * hold. Its image-menu callbacks below only suppress generic actions. */
+    return s && (gesture==s->editor_hold || other==s->editor_hold);
+}
+static void composer_hold(id self,SEL sel,id gesture) {
+    (void)sel; if (number(gesture,"state")!=1) return;
+    Range range={0}; id attachment=composer_attachment_under_hold(self,gesture,&range);
+    State *s=state(self); if (!attachment || !s) return;
+    id owner=objc_loadWeakRetained(&s->owner);
+    queue_composer_details(owner,editor_for(owner),attachment,range); objc_release(owner);
+}
+static void install_editor_hold(id delegate,id editor) {
+    State *s=state(delegate); if (!s || !editor) return;
+    if (s->editor_hold && m0(s->editor_hold,"view")==editor) return;
+    v1(m0(s->editor_hold,"view"),"removeGestureRecognizer:",s->editor_hold); objc_release(s->editor_hold);
+    s->editor_hold=((id (*)(id,SEL,id,SEL))objc_msgSend)(m0((id)objc_getClass("UILongPressGestureRecognizer"),"alloc"),sel_registerName("initWithTarget:action:"),delegate,sel_registerName("ssComposerHold:"));
+    ((void (*)(id,SEL,double))objc_msgSend)(s->editor_hold,sel_registerName("setMinimumPressDuration:"),EMOTE_HOLD_SECONDS);
+    vb(s->editor_hold,"setCancelsTouchesInView:",NO);
+    v1(s->editor_hold,"setDelegate:",delegate); v1(editor,"addGestureRecognizer:",s->editor_hold);
+}
 static id composer_item_menu(id owner,SEL sel,id editor,id item,id menu) {
     if (responds(item,"textAttachment") && responds(item,"range")) {
         Range range=((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"));
-        if (queue_composer_details(owner,editor,m0(item,"textAttachment"),range)) return nil;
+        if (owned_attachment_at(owner,editor,m0(item,"textAttachment"),range)) return nil;
     }
     if (original_item_menu) return ((id (*)(id,SEL,id,id,id))original_item_menu)(owner,sel,editor,item,menu);
     /* Preserve UIKit's default menu/preview for links and foreign attachments
@@ -1974,7 +2042,6 @@ static id composer_item_menu(id owner,SEL sel,id editor,id item,id menu) {
 }
 static BOOL composer_attachment_interaction(id owner,SEL sel,id editor,id attachment,Range range,I interaction) {
     if (owned_attachment_at(owner,editor,attachment,range)) {
-        if (interaction==1 || interaction==2) queue_composer_details(owner,editor,attachment,range);
         return NO; /* Never invoke UIKit's generic image actions for our preview. */
     }
     return original_attachment_interaction ? ((BOOL (*)(id,SEL,id,id,Range,I))original_attachment_interaction)(owner,sel,editor,attachment,range,interaction) : YES;
@@ -2033,6 +2100,9 @@ void ss_composer_retry_hooks(void) {
             {"ssScope:",(IMP)scope_changed,"v@:@"}, {"ssThirdParty:",(IMP)third_party_tab,"v@:@"},
             {"ssGridPick:",(IMP)grid_button,"v@:@"},
             {"ssEmoteHold:",(IMP)emote_hold,"v@:@"}, {"ssDetails:",(IMP)composer_details,"v@:@"},
+            {"ssComposerHold:",(IMP)composer_hold,"v@:@"},
+            {"gestureRecognizerShouldBegin:",(IMP)composer_hold_should_begin,"B@:@"},
+            {"gestureRecognizer:shouldRecognizeSimultaneouslyWithGestureRecognizer:",(IMP)composer_hold_simultaneous,"B@:@@"},
             {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"}, {"ssPreview:",(IMP)preview_ready,"v@:@"},
             {"ssAnimate:",(IMP)animate_preview,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},

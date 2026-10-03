@@ -14,11 +14,13 @@ struct Fake {
     id value,host,metadata,window,attachment,gesture,target,native,image,button,label;
     id codes[8],attachments[8]; uint16_t units[8];
     U count,gesture_state; Range range; State *context;
-    IMP imp; BOOL cancels;
+    IMP imp; BOOL cancels,hidden,marked;
+    double duration; Point point; Insets inset; Rect bounds;
     unsigned refs;
 };
 static struct Fake objects[256],classes[32],owner,editor,delegate,source,attachment,foreign,metadata,window,item,menu,fallback,other;
 static struct Fake reused_cell;
+static struct Fake manager,container,strip;
 static id expected_metadata=&metadata;
 static U used,class_count,scheduled,shown,forwarded,added,replaced;
 static BOOL has_method,accept_sheet=YES;
@@ -58,7 +60,18 @@ Range ss_test_item_range(id o) { return o->range; }
 BOOL tas_emote_ui_present_details(id view,id data) {
     assert(view==&owner && data==expected_metadata);
     assert(!context.details_attachment); /* Suppression returned before presentation. */
+    assert(strip.hidden); /* Hidden before presentation, not a later timer tick. */
     if(accept_sheet)shown++;return accept_sheet;
+}
+Point ss_test_hold_point(id gesture,id view) { assert(view==&editor);return gesture->point; }
+Insets ss_test_hold_inset(id view) { assert(view==&editor);return view->inset; }
+U ss_test_hold_glyph(id layout,Point point,id text_container) {
+    assert(layout==&manager && text_container==&container);
+    assert(point.x==context.editor_hold->point.x-editor.inset.left && point.y==context.editor_hold->point.y-editor.inset.top);
+    return manager.range.location;
+}
+Rect ss_test_hold_bounds(id layout,Range range,id text_container) {
+    assert(layout==&manager && range.length==1 && text_container==&container);return manager.bounds;
 }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
@@ -86,6 +99,13 @@ static id dispatch(id o,SEL sel,...) {
         if(!strcmp(k->text,ATTACHMENT_KEY))result=o->codes[i];else {assert(!strcmp(k->text,"NSAttachment"));result=o->attachments[i];}
     }
     else if(!strcmp(sel,"window"))result=o->window;
+    else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
+    else if(!strcmp(sel,"setHidden:"))o->hidden=va_arg(args,int);
+    else if(!strcmp(sel,"markedTextRange"))result=o->marked ? &other : nil;
+    else if(!strcmp(sel,"layoutManager"))result=&manager;
+    else if(!strcmp(sel,"textContainer"))result=&container;
+    else if(!strcmp(sel,"numberOfGlyphs"))result=(id)(uintptr_t)o->count;
+    else if(!strcmp(sel,"characterIndexForGlyphAtIndex:"))result=(id)(uintptr_t)va_arg(args,U);
     else if(!strcmp(sel,"textAttachment"))result=o->attachment;
     else if(!strcmp(sel,"performSelector:withObject:afterDelay:")){
         assert(o==&delegate && !strcmp(va_arg(args,SEL),"ssDetails:"));assert(!va_arg(args,id));assert(va_arg(args,double)==0);scheduled++;
@@ -94,6 +114,9 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
     else if(!strcmp(sel,"initWithTarget:action:")){o->target=va_arg(args,id);o->action=va_arg(args,SEL);result=o;}
     else if(!strcmp(sel,"setCancelsTouchesInView:"))o->cancels=va_arg(args,int);
+    else if(!strcmp(sel,"setMinimumPressDuration:"))o->duration=va_arg(args,double);
+    else if(!strcmp(sel,"setDelegate:"))assert(va_arg(args,id)==&delegate);
+    else if(!strcmp(sel,"removeGestureRecognizer:")){assert(o->gesture==va_arg(args,id));o->gesture->value=nil;o->gesture=nil;}
     else if(!strcmp(sel,"addGestureRecognizer:")){assert(!o->gesture);o->gesture=va_arg(args,id);o->gesture->value=o;}
     else if(!strcmp(sel,"view"))result=o->value;
     else if(!strcmp(sel,"state"))result=(id)(uintptr_t)o->gesture_state;
@@ -117,18 +140,37 @@ BOOL class_addMethod(Class c,SEL sel,IMP imp,const char *types) {
 IMP method_setImplementation(Method m,IMP imp) { IMP previous=((id)m)->imp;((id)m)->imp=imp;replaced++;return previous; }
 int main(void) {
     owner.cls=INPUT;owner.value=&editor;owner.host=&delegate;owner.window=&window;
-    editor.cls="UITextView";editor.window=&window;delegate.context=&context;delegate_class=objc_getClass("SSComposerDelegate");context.owner=&owner;
+    editor.cls="UITextView";editor.window=&window;delegate.context=&context;delegate_class=objc_getClass("SSComposerDelegate");context.owner=&owner;context.strip=&strip;
     source.count=3;source.units[0]='x';source.units[1]=0xfffc;source.units[2]=0xfffc;
     source.codes[1]=&metadata;source.attachments[1]=&attachment;source.attachments[2]=&foreign;
     attachment.metadata=&metadata;item.attachment=&attachment;item.range=(Range){1,1};
-    /* Modern menus suppress the generic image actions; duplicate callbacks
-     * coalesce and presentation happens after UIKit returns. No editor writes. */
+    /* UIKit requests its image menu early. Suppression must never schedule or
+     * present details: only the matching 0.5s gesture can authorize that. */
     assert(!composer_item_menu(&owner,"menu",&editor,&item,&menu));
     assert(!composer_item_menu(&owner,"menu",&editor,&item,&menu));
-    assert(scheduled==1 && shown==0 && attachment.refs==1);
+    assert(scheduled==0 && shown==0 && !attachment.refs);
+    install_editor_hold(&delegate,&editor);id editor_gesture=context.editor_hold;
+    assert(editor_gesture==editor.gesture && editor_gesture->duration==0.5 && !editor_gesture->cancels);
+    install_editor_hold(&delegate,&editor);assert(context.editor_hold==editor_gesture);
+    editor.inset=(Insets){4,7,0,0};editor_gesture->point=(Point){25,15};
+    manager.count=3;manager.range.location=1;manager.bounds=(Rect){{10,5},{24,20}};
+    assert(composer_hold_should_begin(&delegate,"begin",editor_gesture));
+    editor_gesture->gesture_state=0;composer_hold(&delegate,"hold",editor_gesture);assert(!scheduled && !shown);
+    editor_gesture->gesture_state=1;composer_hold(&delegate,"hold",editor_gesture);
+    composer_hold(&delegate,"hold",editor_gesture);assert(scheduled==1 && !shown && attachment.refs==1);
     composer_details(&delegate,"ssDetails:",nil);
     assert(shown==1 && !context.details_attachment && !attachment.refs);
     assert(source.count==3 && source.units[1]==0xfffc && source.attachments[1]==&attachment);
+    editor_gesture->gesture_state=2;composer_hold(&delegate,"hold",editor_gesture);assert(scheduled==1);
+    assert(composer_hold_simultaneous(&delegate,"simultaneous",editor_gesture,&other));
+    assert(composer_hold_simultaneous(&delegate,"simultaneous",&other,editor_gesture));
+    assert(!composer_hold_simultaneous(&delegate,"simultaneous",&other,&item));
+    editor_gesture->point.x=70;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Nearest glyph, outside image. */
+    editor_gesture->point.x=25;manager.range.location=0;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Ordinary text. */
+    manager.range.location=2;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Foreign attachment. */
+    manager.range.location=3;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Past final glyph. */
+    manager.range.location=1;editor.marked=YES;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture));editor.marked=NO;
+    assert(composer_hold_should_begin(&delegate,"begin",editor_gesture));
     /* Foreign attachments, links and stale/out-of-bounds attachment ranges
      * retain the native implementation (or UIKit's default menu/preview). */
     item.attachment=&foreign;item.range=(Range){2,1};
@@ -140,17 +182,18 @@ int main(void) {
     item.range=(Range){1,2};assert(composer_item_menu(&owner,"menu",&editor,&item,&menu)==&other);
     item.range=(Range){1,1};assert(composer_item_menu(&owner,"menu",&other,&item,&menu)==&other);
     /* A removed attachment or detached input cannot present a stale sheet. */
-    assert(!composer_item_menu(&owner,"menu",&editor,&item,&menu));source.attachments[1]=&foreign;
+    assert(queue_composer_details(&owner,&editor,&attachment,item.range));source.attachments[1]=&foreign;
     composer_details(&delegate,"ssDetails:",nil);assert(shown==1 && !attachment.refs);
     source.attachments[1]=&attachment;
-    assert(!composer_item_menu(&owner,"menu",&editor,&item,&menu));editor.window=nil;
+    assert(queue_composer_details(&owner,&editor,&attachment,item.range));editor.window=nil;
     composer_details(&delegate,"ssDetails:",nil);assert(shown==1 && !attachment.refs);editor.window=&window;
-    /* iOS 16 attachment delegate: no sheet on a plain tap, holds/preview open
-     * the same details; native attachments still receive Twitch's answer. */
+    /* Legacy UIKit attachment requests also only suppress its image menu.
+     * They cannot shorten the shared hold threshold. */
     U before=scheduled;
     assert(!composer_attachment_interaction(&owner,"interact",&editor,&attachment,(Range){1,1},0));assert(scheduled==before);
     assert(!composer_attachment_interaction(&owner,"interact",&editor,&attachment,(Range){1,1},1));
-    assert(!composer_attachment_interaction(&owner,"interact",&editor,&attachment,(Range){1,1},2));assert(scheduled==before+1);
+    assert(!composer_attachment_interaction(&owner,"interact",&editor,&attachment,(Range){1,1},2));assert(scheduled==before);
+    editor_gesture->gesture_state=1;composer_hold(&delegate,"hold",editor_gesture);assert(scheduled==before+1);
     composer_details(&delegate,"ssDetails:",nil);assert(shown==2);
     assert(composer_attachment_interaction(&owner,"interact",&editor,&foreign,(Range){2,1},1));
     original_attachment_interaction=(IMP)native_interact;
@@ -160,6 +203,7 @@ int main(void) {
     struct Fake button={.cls="UIButton",.metadata=&metadata};
     add_emote_hold(&button,&delegate);id gesture=button.gesture;
     assert(gesture && gesture->cancels && gesture->target==&delegate && !strcmp(gesture->action,"ssEmoteHold:"));
+    assert(gesture->duration==editor_gesture->duration && gesture->duration==0.5);
     gesture->gesture_state=0;emote_hold(&delegate,"hold",gesture);assert(shown==2);
     gesture->gesture_state=1;emote_hold(&delegate,"hold",gesture);assert(shown==3);
     gesture->gesture_state=2;emote_hold(&delegate,"hold",gesture);
@@ -167,7 +211,7 @@ int main(void) {
     button.metadata=nil;gesture->gesture_state=1;emote_hold(&delegate,"hold",gesture);assert(shown==3);
     button.metadata=&metadata;metadata.native=&foreign;emote_hold(&delegate,"hold",gesture);assert(shown==3);metadata.native=nil;
     owner.window=nil;emote_hold(&delegate,"hold",gesture);assert(shown==3);owner.window=&window;
-    accept_sheet=NO;emote_hold(&delegate,"hold",gesture);assert(shown==3 && GET(details_holds)==3);
+    strip.hidden=NO;accept_sheet=NO;emote_hold(&delegate,"hold",gesture);assert(shown==3 && GET(details_holds)==3 && !strip.hidden);
     assert(strip_cancel_touch(nil,NULL,&button));
     accept_sheet=YES;
     struct Fake entries={.count=2,.codes={&metadata,&foreign}},collection={0},path={0};
@@ -180,6 +224,10 @@ int main(void) {
     assert(cell(&delegate,"cell",&collection,&path)==&reused_cell);
     assert(reused_cell.button==library_button && library_button->gesture==library_gesture && library_button->metadata==&foreign);
     library_gesture->gesture_state=1;emote_hold(&delegate,"hold",library_gesture);assert(shown==4);
+    struct Fake replacement_editor={.cls="UITextView",.window=&window};
+    install_editor_hold(&delegate,&replacement_editor);
+    assert(!editor.gesture && !editor_gesture->value && replacement_editor.gesture==context.editor_hold);
+    assert(context.editor_hold!=editor_gesture && context.editor_hold->duration==0.5 && !context.editor_hold->cancels);
     /* Optional hooks add absent methods, chain compatible implementations,
      * and leave an unknown native ABI completely untouched. */
     IMP original=NULL;Class input=objc_getClass(INPUT);
@@ -205,6 +253,18 @@ class ComposerDetailsTests(unittest.TestCase):
         # objc_msgSend; adapt only that boundary, not routing or ownership logic.
         source = source.replace('Range range=((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"));',
                                 'extern Range ss_test_item_range(id); Range range=ss_test_item_range(item);')
+        for before, after in (
+            ('Point point=((Point (*)(id,SEL,id))objc_msgSend)(gesture,sel_registerName("locationInView:"),editor);',
+             'extern Point ss_test_hold_point(id,id); Point point=ss_test_hold_point(gesture,editor);'),
+            ('Insets inset=((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"));',
+             'extern Insets ss_test_hold_inset(id); Insets inset=ss_test_hold_inset(editor);'),
+            ('U glyph=((U (*)(id,SEL,Point,id))objc_msgSend)(manager,sel_registerName("glyphIndexForPoint:inTextContainer:"),point,container);',
+             'extern U ss_test_hold_glyph(id,Point,id); U glyph=ss_test_hold_glyph(manager,point,container);'),
+            ('Rect bounds=((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container);',
+             'extern Rect ss_test_hold_bounds(id,Range,id); Rect bounds=ss_test_hold_bounds(manager,(Range){glyph,1},container);'),
+        ):
+            self.assertIn(before, source)
+            source = source.replace(before, after)
         composer.ComposerTests().compile_run(HARNESS.replace('#include "SSComposer.c"', source),
                                              [zig, "cc", "-fblocks"], runtime=True)
 
@@ -223,7 +283,7 @@ SHEET = r'''
 #include <assert.h>
 #include <stdarg.h>
 #include "TASEmoteUI.c"
-struct Fake { const char *cls; id next,value,metadata; unsigned refs; };
+struct Fake { const char *cls; id next,value,metadata,parent; unsigned refs; };
 static struct Fake classes[8],objects[16],root,child,metadata;
 static unsigned class_count,used,presentations,copies;
 Class objc_getClass(const char *name) {
@@ -248,6 +308,7 @@ static id dispatch(id o,SEL sel,...) {
     if(!strcmp(sel,"isKindOfClass:"))result=(id)(uintptr_t)!strcmp(o->cls,va_arg(args,Class)->cls);
     else if(!strcmp(sel,"nextResponder"))result=o->next;
     else if(!strcmp(sel,"presentedViewController"))result=o->value;
+    else if(!strcmp(sel,"parentViewController"))result=o->parent;
     else if(!strcmp(sel,"alloc")){assert(used<16);result=&objects[used++];result->cls=o->cls;result->refs=1;}
     else if(!strcmp(sel,"initWithStyle:")){assert(va_arg(args,NSInteger)==0);result=o;}
     else if(!strcmp(sel,"initWithRootViewController:")){o->value=objc_retain(va_arg(args,id));result=o;}
@@ -266,10 +327,15 @@ int main(void) {
     assert(!tas_emote_ui_present_details(nil,&metadata));
     assert(!tas_emote_ui_present_details(&child,nil));
     assert(metadata.refs==1 && !presentations);
+    assert(!tas_emote_ui_modal_visible(&child));
     assert(tas_emote_ui_present_details(&child,&metadata));
     assert(presentations==1 && metadata.refs==2 && root.value->value->metadata==&metadata);
+    assert(tas_emote_ui_modal_visible(&child));
     assert(!tas_emote_ui_present_details(&child,&metadata));assert(metadata.refs==2);
     objc_release(root.value);root.value=nil;assert(metadata.refs==1);
+    assert(!tas_emote_ui_modal_visible(&child));
+    struct Fake parent={.cls="UIViewController",.value=&metadata};root.parent=&parent;
+    assert(tas_emote_ui_modal_visible(&child));root.parent=nil;
     assert(show_details(&child,9000000001ULL));assert(copies==1 && presentations==2 && metadata.refs==2);
     objc_release(root.value);root.value=nil;assert(metadata.refs==1);
     child.next=nil;assert(!show_details(&child,9000000001ULL));assert(copies==2 && metadata.refs==1);

@@ -313,8 +313,9 @@ TOUCHES = r'''
 #include <stdarg.h>
 #include <assert.h>
 #include "SSComposer.c"
-struct Fake { id parent,window; Rect frame; BOOL hidden,responder; U count; };
+struct Fake { id parent,window; Rect frame; BOOL hidden,responder,modal; U count; };
 static unsigned adds,fronts;
+BOOL tas_emote_ui_modal_visible(id view) { return view->modal; }
 SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;
@@ -351,6 +352,16 @@ int main(void) {
     assert(contains(window.frame,tap) && contains(strip.frame,tap));
     assert(!contains(strip.frame,(Point){40,610})); /* input remains outside overlay */
     place_suggestion_strip(&s,&owner,&input,position,bounds);assert(adds==1);
+    unsigned raises=fronts;
+    owner.modal=YES;
+    for(unsigned i=0;i<100;i++) {
+        place_suggestion_strip(&s,&owner,&input,position,bounds);
+        assert(strip.hidden && fronts==raises); /* Timer/image/layout repaints. */
+    }
+    owner.modal=NO;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(!strip.hidden);
+    s.details_attachment=&input;raises=fronts;
+    place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden && fronts==raises);
+    s.details_attachment=nil;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(!strip.hidden);
     input.responder=NO;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden);
     input.responder=YES;items.count=0;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden);
     items.count=5;position.origin.y=20;place_suggestion_strip(&s,&owner,&input,position,bounds);assert(strip.hidden);
@@ -730,6 +741,7 @@ RECENT_ACTIONS = RECENT_ACTIONS.replace('else if(!strcmp(sel,"count"))', '''else
     else if(!strcmp(sel,"initWithFrame:")) { o->frame=va_arg(args,Rect);result=o; }
     else if(!strcmp(sel,"initWithTarget:action:")) { assert(va_arg(args,id));assert(!strcmp(va_arg(args,SEL),"ssEmoteHold:"));result=o; }
     else if(!strcmp(sel,"setCancelsTouchesInView:"))assert(va_arg(args,int));
+    else if(!strcmp(sel,"setMinimumPressDuration:"))assert(va_arg(args,double)==0.5);
     else if(!strcmp(sel,"addGestureRecognizer:")) { assert(!strcmp(o->cls,"UIButton"));assert(!o->gesture);o->gesture=va_arg(args,id); }
     else if(!strcmp(sel,"copy")) { result=fresh(o->cls);*result=*o; }
     else if(!strcmp(sel,"systemFontOfSize:") || !strcmp(sel,"secondaryLabelColor"))result=o;
@@ -875,6 +887,10 @@ class ComposerTests(unittest.TestCase):
             harness=directory / "composer.c"; binary=directory / "composer"
             if runtime:
                 content += '\nvoid *_NSConcreteGlobalBlock[32];\n'
+                if 'BOOL tas_emote_ui_modal_visible(' not in content and '#include "TASEmoteUI.c"' not in content:
+                    # Neutral modal boundary for harnesses testing unrelated
+                    # editing/geometry behavior; dedicated cases simulate sheets.
+                    content += '\nBOOL tas_emote_ui_modal_visible(id view) { (void)view;return NO; }\n'
             harness.write_text(content)
             compiled = subprocess.run(compiler + ["-Wall", "-Wextra", "-Werror", "-ffunction-sections", "-fdata-sections",
                 "-Wl,--gc-sections", *(["-Wno-cast-function-type-mismatch"] if runtime else []), "-I", str(directory), "-I", str(ROOT / "src"), str(harness), "-o", str(binary)],

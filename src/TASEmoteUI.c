@@ -413,6 +413,12 @@ static id presenter_for_view(id view) {
         if (kind(responder,"UIViewController")) return responder;
     return nil;
 }
+BOOL tas_emote_ui_modal_visible(id view) {
+    id controller=presenter_for_view(view);
+    for (unsigned i=0;controller && i<24;i++,controller=m0(controller,"parentViewController"))
+        if (m0(controller,"presentedViewController")) return YES;
+    return NO;
+}
 BOOL tas_emote_ui_present_details(id view, id metadata) {
     if (!metadata) return NO;
     id presenter = presenter_for_view(view);

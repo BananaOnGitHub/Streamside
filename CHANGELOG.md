@@ -120,7 +120,19 @@
   and ignore removed attachments/detached inputs. Cancel tile tracking when a
   hold recognizes, preventing an extra insertion on release. Read current cell
   metadata after reuse without changing tap insertion or horizontal scrolling.
-- Candidate bundle build: `3.0.0.34`; hold-to-details awaits device verification.
+- Device-confirmed build 34 library holds; composer details opened too early
+  and its window-level suggestions overlaid the sheet. Give the composer an
+  owned long-press recognizer with the same explicit 0.5-second duration as
+  library tiles. UIKit image-menu callbacks only suppress generic actions and
+  cannot authorize presentation. Hit-test actual owned attachment glyph bounds,
+  retain native selection/scroll gestures, and replace the recognizer when the
+  editor changes. Hide suggestions before presenting details; pending details
+  and any modal in the owning controller chain block subsequent layout raises.
+  Restore normal suggestion placement after dismissal. Cover early callbacks,
+  gesture states, shared timing, whitespace/native/IME rejection, editor reuse,
+  failed presentation, parent modals and repeated sheet-time layout ticks.
+- Candidate bundle build: `3.0.0.35`; composer hold timing and sheet layering
+  await device verification.
 
 ## 2.3.1 (prepared; not published)
 

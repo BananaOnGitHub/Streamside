@@ -129,6 +129,23 @@ image refreshes preserve it. Strip scrolling does not dismiss the keyboard. Each
 suggestion or Recent action at creation; UIKit scroll indicators are never
 passed target/action APIs during history refreshes.
 
+Provider tiles also own a cancelling `UILongPressGestureRecognizer`: only its
+Began event presents the same `TASEmoteUI.c` details sheet used by chat taps,
+reading the current button metadata after cell reuse. Hold recognition cancels
+touch-up insertion; failed holds/drags keep the existing scroll cancellation.
+Composer image interactions use the documented iOS 17 text-item menu delegate
+and the older attachment-interaction delegate on the exact `ChatInputView`.
+Optional methods are added when absent, or chained only after a full ABI check.
+Only a private-code U+FFFC whose attachment identity and metadata match the live
+editor suppresses UIKit's generic image menu. Return nil/NO first, then defer
+the shared details sheet to the next run-loop turn, coalescing requests and
+rechecking the attachment and visible weak owner. Native/foreign attachments
+and links retain Twitch's implementation or UIKit's default menu/preview;
+selection, text storage, undo and animation bindings are not modified.
+API references: [text-item menus](https://developer.apple.com/documentation/uikit/uitextviewdelegate/textview(_:menuconfigurationfor:defaultmenu:)),
+[text items](https://developer.apple.com/documentation/uikit/uitextitem), and
+[attachment interactions](https://developer.apple.com/documentation/uikit/uitextiteminteraction).
+
 The suggestion strip also adapts Twitch's per-chat autocomplete catalog into
 the same metadata/result model. Native codes retain their native IDs and use
 Twitch's validated input/change/send path. Scoped hooks suppress the stock

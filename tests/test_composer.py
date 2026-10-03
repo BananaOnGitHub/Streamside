@@ -714,7 +714,7 @@ int main(void) {
 # Exercise the real strip/button builders with UIKit-owned indicator subviews.
 # Image decoding/networking are stubbed; target/action and hierarchy are real.
 RECENT_ACTIONS = RECENTS.split('int main(void) {')[0]
-RECENT_ACTIONS = RECENT_ACTIONS.replace('BOOL hidden;', 'BOOL hidden; id metadata; const char *text,*action; unsigned targets;')
+RECENT_ACTIONS = RECENT_ACTIONS.replace('BOOL hidden;', 'BOOL hidden; id metadata,gesture; const char *text,*action; unsigned targets;')
 RECENT_ACTIONS = RECENT_ACTIONS.replace('classes[8]', 'classes[16]').replace('class_count<8', 'class_count<16')
 RECENT_ACTIONS = RECENT_ACTIONS.replace('static State *current;', '''static State *current;
 static struct Fake objects[96];static U object_count;
@@ -728,6 +728,9 @@ RECENT_ACTIONS = RECENT_ACTIONS.replace('else if(!strcmp(sel,"count"))', '''else
     else if(!strcmp(sel,"objectForKey:")) { id key=va_arg(args,id);result=!strcmp(key->text,"name") ? o->tint : nil; }
     else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
     else if(!strcmp(sel,"initWithFrame:")) { o->frame=va_arg(args,Rect);result=o; }
+    else if(!strcmp(sel,"initWithTarget:action:")) { assert(va_arg(args,id));assert(!strcmp(va_arg(args,SEL),"ssEmoteHold:"));result=o; }
+    else if(!strcmp(sel,"setCancelsTouchesInView:"))assert(va_arg(args,int));
+    else if(!strcmp(sel,"addGestureRecognizer:")) { assert(!strcmp(o->cls,"UIButton"));assert(!o->gesture);o->gesture=va_arg(args,id); }
     else if(!strcmp(sel,"copy")) { result=fresh(o->cls);*result=*o; }
     else if(!strcmp(sel,"systemFontOfSize:") || !strcmp(sel,"secondaryLabelColor"))result=o;
     else if(!strcmp(sel,"setContentMode:") || !strcmp(sel,"setTextAlignment:")) (void)va_arg(args,I);
@@ -759,6 +762,7 @@ int main(void) {
     id first=row.children[2],second=row.children[3];
     assert(first->metadata==&metadata_a && second->metadata==&metadata_b);
     assert(first->targets==1 && second->targets==1 && !strcmp(first->action,"ssRecent:") && !strcmp(second->action,"ssRecent:"));
+    assert(first->gesture && second->gesture && !horizontal.gesture && !vertical.gesture);
     /* Selecting Second moves it to the front. The subsequent history refresh
      * replaces only owned buttons while both UIKit indicators remain alive. */
     items.children[0]=&metadata_b;items.children[1]=&metadata_a;

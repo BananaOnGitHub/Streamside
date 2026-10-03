@@ -4,6 +4,7 @@
 #include "SSComposerModel.h"
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
+#include "TASEmoteUI.h"
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <stdint.h>
@@ -52,6 +53,8 @@ static IMP original_footer_apply,original_footer_move,original_footer_layout,ori
 static IMP original_flow_elements,original_flow_header,original_flow_item,original_flow_size;
 static IMP original_palette_scroll;
 static IMP original_footer_tint,original_footer_background;
+static IMP original_item_menu,original_attachment_interaction;
+static BOOL item_menu_installed,attachment_interaction_installed;
 static IMP original_selector_layout;
 static IMP original_footer_actions[5],original_copy,original_cut,original_paste,original_undo,original_redo;
 static IMP original_text,original_storage;
@@ -61,6 +64,7 @@ static uint64_t grid_taps,strip_taps,selection_missing,lookup_misses,validation_
 static uint64_t native_snapshots,native_catalog_count,native_catalog_misses,native_insertions,selector_suppressions;
 static uint64_t library_tab_creations,library_tab_repairs;
 static uint64_t footer_paint_blocks;
+static uint64_t details_holds;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 
@@ -142,6 +146,7 @@ typedef struct {
     int library_provider_snapshot,library_scope_snapshot;
     BOOL library_snapshot_valid;
     BOOL busy,scheduled,preview_scheduled;
+    id details_attachment; /* retained only until deferred UIKit presentation */
     PreviewFrame *animation_frames;
     U animation_count;
     id animation_link;
@@ -865,6 +870,22 @@ static void choose(id delegate,id metadata,BOOL suggestion) {
 static void target(id control,id delegate,const char *action,U events) {
     ((void (*)(id,SEL,id,SEL,U))objc_msgSend)(control,sel_registerName("addTarget:action:forControlEvents:"),delegate,sel_registerName(action),events);
 }
+static void emote_hold(id self,SEL sel,id gesture) {
+    (void)sel;
+    /* Began, not Changed/Ended: one sheet per hold. Recognition cancels the
+     * button's tracking, so releasing a hold cannot also insert the emote. */
+    if (number(gesture,"state")!=1) return;
+    id metadata=objc_getAssociatedObject(m0(gesture,"view"),&button_key);
+    State *s=state(self); if (!s || !metadata || key(metadata,"native")) return;
+    id owner=objc_loadWeakRetained(&s->owner);
+    if (owner && m0(owner,"window") && tas_emote_ui_present_details(owner,metadata)) INC(details_holds);
+    objc_release(owner);
+}
+static void add_emote_hold(id button,id delegate) {
+    id gesture=((id (*)(id,SEL,id,SEL))objc_msgSend)(m0((id)objc_getClass("UILongPressGestureRecognizer"),"alloc"),sel_registerName("initWithTarget:action:"),delegate,sel_registerName("ssEmoteHold:"));
+    vb(gesture,"setCancelsTouchesInView:",YES);
+    v1(button,"addGestureRecognizer:",gesture); objc_release(gesture);
+}
 static id thumbnail_button(id delegate,id metadata,Rect r,const char *action) {
     id button=view("UIButton",r); associate(button,&button_key,metadata);
     id image=view(objc_getClass("FLAnimatedImageView") ? "FLAnimatedImageView" : "UIImageView",(Rect){{6,3},{r.size.width-12,30}});
@@ -874,7 +895,9 @@ static id thumbnail_button(id delegate,id metadata,Rect r,const char *action) {
     v1(label,"setText:",key(metadata,"name")); vi(label,"setTextAlignment:",1);
     v1(label,"setFont:",((id (*)(id,SEL,double))objc_msgSend)((id)objc_getClass("UIFont"),sel_registerName("systemFontOfSize:"),10.0));
     v1(label,"setTextColor:",color("secondaryLabelColor")); v1(button,"addSubview:",label); objc_release(label);
-    v1(button,"setAccessibilityLabel:",key(metadata,"name")); target(button,delegate,action,1UL<<6); return button;
+    v1(button,"setAccessibilityLabel:",key(metadata,"name")); target(button,delegate,action,1UL<<6);
+    if (!key(metadata,"native")) add_emote_hold(button,delegate);
+    return button;
 }
 static BOOL strip_cancel_touch(id self,SEL sel,id content) {
     (void)self;(void)sel;(void)content;
@@ -957,6 +980,7 @@ static id cell(id self,SEL sel,id collection,id path) {
         v1(label,"setTextColor:",color("secondaryLabelColor")); v1(content,"addSubview:",label); objc_release(label);
         id button=view("UIButton",(Rect){{0,0},{56,56}});
         target(button,self,"ssGridPick:",1UL<<6);
+        add_emote_hold(button,self);
         v1(content,"addSubview:",button); associate(c,&grid_button_key,button); objc_release(button);
     }
     id metadata=index<number(s->entries,"count") ? at(s->entries,index) : nil;
@@ -1614,7 +1638,7 @@ static void delegate_dealloc(id self,SEL sel) {
         s->colon_selector=NO;
         id selector=objc_loadWeakRetained(&s->stock_selector); stock_update(s,selector); associate(selector,&selector_key,nil); objc_release(selector);
         restore_native(s); detach_recents(s); m0(s->strip,"removeFromSuperview");
-        id values[]={s->room,s->library_room,s->strip,s->suggestions,s->panel,s->library_title,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_clip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot};
+        id values[]={s->room,s->library_room,s->strip,s->suggestions,s->panel,s->library_title,s->grid,s->provider,s->scope,s->entries,s->empty,s->recent_strip,s->recent_clip,s->recent_entries,s->native_entries,s->native_by_code,s->native_snapshot,s->details_attachment};
         for (size_t i=0;i<sizeof(values)/sizeof(values[0]);i++) if (values[i]) objc_release(values[i]);
         objc_destroyWeak(&s->owner); objc_destroyWeak(&s->footer); objc_destroyWeak(&s->recent_content);
         objc_destroyWeak(&s->native_manager); objc_destroyWeak(&s->stock_selector); free(s);
@@ -1901,6 +1925,60 @@ static void footer_action(id footer,SEL sel) {
     start_tick(delegate);
 }
 static id editor_delegate(id editor) { id owner=owner_above(editor); return owner ? objc_getAssociatedObject(owner,&state_key) : nil; }
+static BOOL owned_attachment_at(id owner,id editor,id attachment,Range range) {
+    if (!attachment || editor!=editor_for(owner) || range.length!=1 ||
+        !objc_getAssociatedObject(attachment,&attachment_metadata_key)) return NO;
+    id text=m0(editor,"attributedText"); U length=number(text,"length");
+    if (range.location>=length || ((unsigned short (*)(id,SEL,U))objc_msgSend)(m0(text,"string"),sel_registerName("characterAtIndex:"),range.location)!=0xfffc) return NO;
+    id code=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(text,sel_registerName("attribute:atIndex:effectiveRange:"),str(ATTACHMENT_KEY),range.location,NULL);
+    id current=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(text,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),range.location,NULL);
+    return code && current==attachment;
+}
+static void composer_details(id self,SEL sel,id object) {
+    (void)sel;(void)object; State *s=state(self); if (!s) return;
+    id attachment=s->details_attachment; s->details_attachment=nil;
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
+    /* The input can be edited, removed or replaced before the next turn. Do
+     * not show stale metadata or present from a detached chat. */
+    if (attachment && owner && m0(editor,"window")) {
+        U length=number(m0(editor,"attributedText"),"length");
+        for (U i=0;i<length && i<4096;i++) if (owned_attachment_at(owner,editor,attachment,(Range){i,1})) {
+            if (tas_emote_ui_present_details(owner,objc_getAssociatedObject(attachment,&attachment_metadata_key))) INC(details_holds);
+            break;
+        }
+    }
+    objc_release(attachment); objc_release(owner);
+}
+static BOOL queue_composer_details(id owner,id editor,id attachment,Range range) {
+    if (!owned_attachment_at(owner,editor,attachment,range)) return NO;
+    id delegate=objc_getAssociatedObject(owner,&state_key); State *s=state(delegate);
+    if (!s) return NO;
+    if (!s->details_attachment) {
+        s->details_attachment=objc_retain(attachment);
+        /* Return nil/NO to UIKit first, suppressing its image context menu.
+         * Present the shared sheet on the next run-loop turn, not while UIKit
+         * is still constructing a context-menu interaction. */
+        ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(delegate,sel_registerName("performSelector:withObject:afterDelay:"),sel_registerName("ssDetails:"),nil,0.0);
+    }
+    return YES;
+}
+static id composer_item_menu(id owner,SEL sel,id editor,id item,id menu) {
+    if (responds(item,"textAttachment") && responds(item,"range")) {
+        Range range=((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"));
+        if (queue_composer_details(owner,editor,m0(item,"textAttachment"),range)) return nil;
+    }
+    if (original_item_menu) return ((id (*)(id,SEL,id,id,id))original_item_menu)(owner,sel,editor,item,menu);
+    /* Preserve UIKit's default menu/preview for links and foreign attachments
+     * when Twitch did not implement this optional delegate method. */
+    return m1((id)objc_getClass("UITextItemMenuConfiguration"),"configurationWithMenu:",menu);
+}
+static BOOL composer_attachment_interaction(id owner,SEL sel,id editor,id attachment,Range range,I interaction) {
+    if (owned_attachment_at(owner,editor,attachment,range)) {
+        if (interaction==1 || interaction==2) queue_composer_details(owner,editor,attachment,range);
+        return NO; /* Never invoke UIKit's generic image actions for our preview. */
+    }
+    return original_attachment_interaction ? ((BOOL (*)(id,SEL,id,id,Range,I))original_attachment_interaction)(owner,sel,editor,attachment,range,interaction) : YES;
+}
 static void copy_text(id editor,SEL sel,id sender) {
     id delegate=editor_delegate(editor); if (delegate) expand(delegate);
     ((void (*)(id,SEL,id))original_copy)(editor,sel,sender); if (delegate) render(delegate);
@@ -1931,6 +2009,14 @@ static BOOL hook(const char *classname,const char *name,const char *encoding,IMP
     if (!class_addMethod(c,sel,replacement,method_getTypeEncoding(m))) method_setImplementation(m,replacement);
     return YES;
 }
+/* Optional documented delegate methods may be absent on Twitch. Add only to
+ * its exact input class; an existing method must pass the same full ABI check. */
+static BOOL optional_input_hook(const char *name,const char *encoding,IMP replacement,IMP *original) {
+    Class c=objc_getClass(INPUT); if (!c) return NO;
+    SEL sel=sel_registerName(name);
+    if (class_getInstanceMethod(c,sel)) return hook(INPUT,name,encoding,replacement,original);
+    return class_addMethod(c,sel,replacement,encoding);
+}
 void ss_composer_retry_hooks(void) {
     if (!tas_emotes_enabled_this_launch()) return;
     hook(NATIVE_SELECTOR,"viewWillLayoutSubviews","v16@0:8",(IMP)selector_layout,&original_selector_layout);
@@ -1946,6 +2032,7 @@ void ss_composer_retry_hooks(void) {
             {"ssRecent:",(IMP)recent_button,"v@:@"}, {"ssProvider:",(IMP)provider_changed,"v@:@"},
             {"ssScope:",(IMP)scope_changed,"v@:@"}, {"ssThirdParty:",(IMP)third_party_tab,"v@:@"},
             {"ssGridPick:",(IMP)grid_button,"v@:@"},
+            {"ssEmoteHold:",(IMP)emote_hold,"v@:@"}, {"ssDetails:",(IMP)composer_details,"v@:@"},
             {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"}, {"ssPreview:",(IMP)preview_ready,"v@:@"},
             {"ssAnimate:",(IMP)animate_preview,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},
@@ -1976,6 +2063,8 @@ void ss_composer_retry_hooks(void) {
     hook(INPUT,required[1],types[1],(IMP)did_select,&original_selection);
     hook(INPUT,required[2],types[2],(IMP)should_change,&original_should_change);
     hook(INPUT,required[3],types[3],(IMP)send_message,&original_send);
+    if (!item_menu_installed && objc_getClass("UITextItem")) item_menu_installed=optional_input_hook("textView:menuConfigurationForTextItem:defaultMenu:","@40@0:8@16@24@32",(IMP)composer_item_menu,&original_item_menu);
+    if (!attachment_interaction_installed) attachment_interaction_installed=optional_input_hook("textView:shouldInteractWithTextAttachment:inRange:interaction:","B56@0:8@16@24{_NSRange=QQ}32q48",(IMP)composer_attachment_interaction,&original_attachment_interaction);
     hook(INPUT,"textViewDidBeginEditing:","v24@0:8@16",(IMP)did_begin,&original_begin);
     hook(INPUT,"textViewDidEndEditing:","v24@0:8@16",(IMP)did_end,&original_end);
     hook(INPUT,"emoticonButtonTapped","v16@0:8",(IMP)emoticon_tapped,&original_emoticon);
@@ -2008,6 +2097,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         "Hooks (editor/selection/validation/send/footer/copy/undo): %s/%s/%s/%s/%s/%s/%s\n"
         "Mode: %s\nEdits/previews/insertions/picker opens: %llu/%llu/%llu/%llu\n"
         "Native text snapshot hooks (text/storage): %s/%s\n"
+        "Composer emote hold hooks (item menu/attachment)/details shown: %s/%s/%llu\n"
         "Native library scrolling hook: %s\n"
         "Native library header hooks (elements/header): %s/%s\n"
         "Library footer layout hook: %s; tabs created/restored: %llu/%llu\n"
@@ -2023,6 +2113,7 @@ void ss_composer_status(char *buffer,size_t capacity) {
         ss_composer_suggestion_mode()==0 ? "automatic" : ss_composer_suggestion_mode()==1 ? "colon":"off",
         (unsigned long long)GET(edited),(unsigned long long)GET(previewed),(unsigned long long)GET(insertions),(unsigned long long)GET(palette_opens),
         original_text ? "installed":"missing",original_storage ? "installed":"missing",
+        item_menu_installed ? "installed":"missing",attachment_interaction_installed ? "installed":"missing",(unsigned long long)GET(details_holds),
         original_collection_layout ? "installed":"missing",
         original_flow_elements ? "installed":"missing",original_flow_header ? "installed":"missing",
         original_footer_layout ? "installed":"missing",(unsigned long long)GET(library_tab_creations),(unsigned long long)GET(library_tab_repairs),

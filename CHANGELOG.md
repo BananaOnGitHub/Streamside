@@ -111,8 +111,16 @@
   Test every rendering-boundary write across 200 independent native repaints,
   theme updates, native handoff and stale/unbound view associations. Report
   guard installation and blocked-write counts without user/channel identifiers.
-- Candidate bundle build: `3.0.0.33`; guarded library selection awaits device
-  verification.
+- Device-confirmed build 33's guarded library highlight. Reuse the chat emote
+  details sheet when holding a provider preview in the composer or a provider
+  library, Recent or suggestion tile. Suppress UIKit's generic image actions
+  only for verified owned composer attachments, with modern text-item and
+  legacy attachment delegate paths; preserve native/foreign attachment and
+  link menus. Defer presentation until UIKit returns, coalesce repeated requests,
+  and ignore removed attachments/detached inputs. Cancel tile tracking when a
+  hold recognizes, preventing an extra insertion on release. Read current cell
+  metadata after reuse without changing tap insertion or horizontal scrolling.
+- Candidate bundle build: `3.0.0.34`; hold-to-details awaits device verification.
 
 ## 2.3.1 (prepared; not published)
 

@@ -413,12 +413,12 @@ static id presenter_for_view(id view) {
         if (kind(responder,"UIViewController")) return responder;
     return nil;
 }
-static BOOL show_details(id view, uint64_t number) {
-    id metadata = tas_emotes_metadata_copy(number); if (!metadata) return NO;
+BOOL tas_emote_ui_present_details(id view, id metadata) {
+    if (!metadata) return NO;
     id presenter = presenter_for_view(view);
-    if (!presenter || m0(presenter,"presentedViewController") || !register_details()) { objc_release(metadata); return NO; }
+    if (!presenter || m0(presenter,"presentedViewController") || !register_details()) return NO;
     id details = ((id (*)(id,SEL,NSInteger))objc_msgSend)(m0((id)g_details_class,"alloc"),sel_registerName("initWithStyle:"),(NSInteger)0);
-    objc_setAssociatedObject(details,&g_metadata_key,metadata,1); objc_release(metadata);
+    objc_setAssociatedObject(details,&g_metadata_key,metadata,1);
     id nav = m1(m0((id)objc_getClass("UINavigationController"),"alloc"),"initWithRootViewController:",details);
     objc_release(details); integer_value(nav,"setModalPresentationStyle:",1);
     id sheet = responds(nav,"sheetPresentationController") ? m0(nav,"sheetPresentationController") : nil;
@@ -430,6 +430,11 @@ static BOOL show_details(id view, uint64_t number) {
     }
     ((void (*)(id,SEL,id,BOOL,id))objc_msgSend)(presenter,sel_registerName("presentViewController:animated:completion:"),nav,YES,nil);
     objc_release(nav); INC(g_details); return YES;
+}
+static BOOL show_details(id view, uint64_t number) {
+    id metadata=tas_emotes_metadata_copy(number);
+    BOOL shown=tas_emote_ui_present_details(view,metadata);
+    objc_release(metadata); return shown;
 }
 
 /* Hit-test an independent TextKit snapshot so the tap does not mutate Twitch's

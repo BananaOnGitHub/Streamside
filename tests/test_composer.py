@@ -499,7 +499,8 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"collectionViewLayout"))result=o;
     else if(!strcmp(sel,"invalidateLayout")) { }
     else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
-    else if(!strcmp(sel,"stringWithUTF8String:")) { (void)va_arg(args,const char *);result=objc_getClass("NSString"); }
+    else if(!strcmp(sel,"stringWithUTF8String:")) { const char *text=va_arg(args,const char *);result=objc_getClass("NSString");result->count=strlen(text); }
+    else if(!strcmp(sel,"length"))result=(id)(uintptr_t)o->count;
     else if(!strcmp(sel,"indexPathForItem:inSection:")) { (void)va_arg(args,I);(void)va_arg(args,I);result=o; }
     else if(!strcmp(sel,"isEqual:"))result=(id)(uintptr_t)(o==va_arg(args,id));
     else if(!strcmp(sel,"subviews"))result=o;
@@ -558,7 +559,7 @@ int main(void) {
     place_recent_strip(&s,&native);
     assert(s.recent_header_height==44 && clip.frame.origin.y==-4 && row.frame.origin.y==0);
     assert(native.inset.top==56 && offset_sets==offsets && row.offset.x==192);
-    title.tint=&ordinary;place_recent_strip(&s,&native); /* A Channel header is never moved. */
+    struct Fake channel_title={.cls="NSString",.count=7};title.tint=&channel_title;place_recent_strip(&s,&native); /* A Channel header is never moved. */
     assert(!s.recent_header_height && clip.frame.origin.y==-48 && row.frame.origin.y==0 && offset_sets==offsets);
     title.tint=objc_getClass("NSString");place_recent_strip(&s,&native);
     assert(s.recent_header_height==44 && clip.frame.origin.y==-4 && row.frame.origin.y==0 && offset_sets==offsets);

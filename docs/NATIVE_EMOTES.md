@@ -147,6 +147,14 @@ cell geometry, section models, navigation and sticky-header push-off stay intact
 If Twitch has no native Frequently Used header, the row keeps its preceding
 position rather than borrowing a Channel heading. The row has a transparent
 background so it shares the section's appearance.
+The inline library waits for the first native header's title and geometry before
+choosing its section boundary. An unrealized, empty-title or zero-height header
+is pending, rather than proof that Recent is absent. Pending native layout is
+completed before reserving the library gap; otherwise insertion is deferred to
+a subsequent layout. This avoids moving native Recent cells behind the library
+before their header appears. Observations survive offscreen header recycling and
+reset when the palette is rebound. Prepared headerless and empty collections
+still receive the library without creating native section models.
 An owned transparent UIView clips the row at the rendered Frequently Used
 header's lower edge during vertical scrolling. The pinned title therefore stays
 clear even with a transparent native header. The full-height scroll view moves

@@ -74,7 +74,14 @@
   loading images with a shared transparent RGBA pixel so UIKit does not draw a
   white missing-image box. Keep reserved bounds, image requests and whole-code
   deletion intact; verify alpha bytes and placeholder-to-image replacement.
-- Candidate bundle build: `3.0.0.28`; transparent loading previews await device
+- Device-confirmed build 28 transparent loading previews. Distinguish an
+  unrealized native header from an observed Channel/headerless section when
+  placing the inline library. Finish pending native layout before inserting
+  the provider gap; defer insertion while its title/geometry are unavailable.
+  Keep the observation while headers are offscreen and clear it when rebinding
+  the palette. Add initial-layout, empty-title, zero-height, headerless and empty
+  collection regressions so native Recent cells retain their opening position.
+- Candidate bundle build: `3.0.0.29`; initial native Recent layout awaits device
   verification.
 
 ## 2.3.1 (prepared; not published)

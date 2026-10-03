@@ -116,6 +116,7 @@ typedef struct {
     id footer; /* objc weak storage: the emote keyboard may be recreated */
     id recent_content; /* objc weak storage: follows the native scroll view */
     double recent_height,recent_header_height,recent_header_start;
+    BOOL recent_heading_observed; /* A missing first-layout view is not a Channel heading. */
     BOOL placing_recents,recent_highlight_active,recent_menu_open;
     id recent_colors[6]; /* retained native footer appearance while overridden */
     BOOL library_highlight_active;
@@ -947,14 +948,36 @@ static void place_library_panel(State *s,id content) {
     if (!s || !s->panel || !content || s->placing_library ||
         !original_flow_item || !original_flow_size || !original_flow_header || !original_flow_elements) return;
     s->placing_library=YES;
+    I sections=(I)number(content,"numberOfSections");
     observe_recent_heading(s,content);
+    if (!s->recent_heading_observed && sections>0) {
+        /* The native supplementary view can be absent until UIKit's first
+         * layout. Inserting at section zero then moves Recent offscreen and
+         * prevents its title from being observed until the user scrolls. */
+        m0(content,"layoutIfNeeded");
+        observe_recent_heading(s,content);
+        if (!s->recent_heading_observed) {
+            id flow=m0(content,"collectionViewLayout"),paths=(id)objc_getClass("NSIndexPath");
+            id path=((id (*)(id,SEL,I,I))objc_msgSend)(paths,sel_registerName("indexPathForItem:inSection:"),0,0);
+            id header=((id (*)(id,SEL,id,id))original_flow_header)(flow,sel_registerName("layoutAttributesForSupplementaryViewOfKind:atIndexPath:"),str("UICollectionElementKindSectionHeader"),path);
+            I first_section=0;
+            while (first_section<sections && ((I (*)(id,SEL,I))objc_msgSend)(content,sel_registerName("numberOfItemsInSection:"),first_section)<=0) first_section++;
+            path=((id (*)(id,SEL,I,I))objc_msgSend)(paths,sel_registerName("indexPathForItem:inSection:"),0,first_section);
+            id first=first_section<sections ? ((id (*)(id,SEL,id))original_flow_item)(flow,sel_registerName("layoutAttributesForItemAtIndexPath:"),path) : nil;
+            /* Prepared headerless sections remain supported. A positive
+             * header needs its native title before choosing Recent vs Channel. */
+            if ((header && rect(header,"frame").size.height>0) || !first) {
+                vb(s->panel,"setHidden:",YES); s->placing_library=NO; return;
+            }
+            s->recent_heading_observed=YES;
+        }
+    }
     Rect bounds=rect(content,"bounds"); double width=bounds.size.width-8;
     /* Five 56-point cells with four 4-point gaps. More emotes add columns,
      * never vertical space; the native sections stay within easy reach. */
     double grid_height=number(s->entries,"count") ? 5*56+4*4 : 64;
     double height=106+grid_height+8;
     I section=s->recent_header_height ? 1 : 0;
-    I sections=(I)number(content,"numberOfSections");
     id flow=m0(content,"collectionViewLayout");
     /* Native section indexes can include empty sets, and a header can have
      * zero height. Find the first actual cells after Recent and measure their
@@ -1103,10 +1126,14 @@ static id observe_recent_heading(State *s,id content) {
     if (!kind(heading,PALETTE_HEADER)) return nil; /* Offscreen/reused headers retain the last observation. */
     id title=object_field(heading,"titleLabel","UILabel");
     if (!title) return nil;
+    id text=m0(title,"text");
+    if (!kind(text,"NSString") || !number(text,"length")) return nil;
     id name=str("Frequently Used");
     id localized=((id (*)(id,SEL,id,id,id))objc_msgSend)(m0((id)objc_getClass("NSBundle"),"mainBundle"),sel_registerName("localizedStringForKey:value:table:"),name,name,nil);
-    double height=equal(m0(title,"text"),localized) ? rect(heading,"bounds").size.height : 0;
-    if (height<=0 || height>200) height=0;
+    BOOL recent=equal(text,localized);
+    double height=recent ? rect(heading,"bounds").size.height : 0;
+    if (recent && (height<=0 || height>200)) return nil; /* Wait for usable native geometry. */
+    s->recent_heading_observed=YES;
     if (s->recent_header_height!=height) {
         s->recent_header_height=height;
         s->recent_header_start=0;
@@ -1177,7 +1204,7 @@ static void detach_recents(State *s) {
         }
         if (s->library_height) invalidate_picker_metrics(content);
     }
-    s->recent_height=0; s->recent_header_height=0; s->recent_header_start=0;
+    s->recent_height=0; s->recent_header_height=0; s->recent_header_start=0; s->recent_heading_observed=NO;
     s->library_height=0; s->library_start=0;
     objc_release(s->library_generation); s->library_generation=nil;
     m0(s->panel,"removeFromSuperview");

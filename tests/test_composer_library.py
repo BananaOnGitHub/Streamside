@@ -13,7 +13,7 @@ HARNESS = r'''
 struct Fake {
     const char *cls,*text,*action;
     id parent,host,button,highlight,stack,highlights,container,palette,views[6],children[16],front;
-    id flow,collection,heading,title,native_header,first,last,path,element_kind,marker;
+    id flow,collection,heading,deferred_heading,title,native_header,first,last,path,element_kind,marker;
     const char *encoding;
     State *context;
     Rect frame,bounds,applied_first;
@@ -35,6 +35,7 @@ struct Fake {
 };
 static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions,metric_invalidations;
+static unsigned initial_header_layouts;
 static int last_provider,last_scope;
 static id expected_room;
 static uint64_t catalog_revision=1;
@@ -197,6 +198,12 @@ static id dispatch(id o,SEL sel,...) {
         o->needs_metrics=YES;metric_invalidations++;
     } else if(!strcmp(sel,"setNeedsLayout")) { }
     else if(!strcmp(sel,"layoutIfNeeded")) {
+        if(!o->heading && o->deferred_heading) {
+            /* The supplementary view exists only after the first native
+             * layout. A provider gap must not already have shifted Recent. */
+            assert(!o->host->context->library_height);
+            o->heading=o->deferred_heading;o->deferred_heading=nil;initial_header_layouts++;
+        }
         id flow=o->flow;
         if(flow && flow->needs_metrics) {
             flow->needs_metrics=NO;
@@ -213,6 +220,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"mainBundle"))result=o;
     else if(!strcmp(sel,"localizedStringForKey:value:table:")) { result=va_arg(args,id);(void)va_arg(args,id);(void)va_arg(args,id); }
     else if(!strcmp(sel,"text")) { result=create("NSString");result->text=o->text; }
+    else if(!strcmp(sel,"length"))result=(id)(uintptr_t)(o->text ? strlen(o->text) : 0);
     else if(!strcmp(sel,"supplementaryViewForElementKind:atIndexPath:")) { (void)va_arg(args,id);(void)va_arg(args,id);result=o->heading; }
     else if(!strcmp(sel,"indexPathForItem:inSection:")) { result=create("NSIndexPath");result->selected=(U)va_arg(args,I);result->section=va_arg(args,I); }
     else if(!strcmp(sel,"numberOfItemsInSection:")) { I section=va_arg(args,I);result=(id)(uintptr_t)o->item_counts[section]; }
@@ -296,7 +304,7 @@ int main(void) {
     struct Fake flow={.cls="UICollectionViewFlowLayout",.collection=&native,.first=&first,.last=&last,.native_header=&header,.content_size={390,472}};
     for(U i=0;i<4;i++)flow.cached_sections[i]=(Insets){8,0,8,0};
     struct Fake title={.cls="UILabel",.text="Frequently Used"},heading={.cls=PALETTE_HEADER,.title=&title,.bounds={{0,0},{390,44}}};
-    native.flow=&flow;native.heading=&heading;native.bounds=(Rect){{0,0},{390,300}};native.sections=2;
+    native.flow=&flow;native.bounds=(Rect){{0,0},{390,300}};native.sections=2;
     native.encoding="{UIEdgeInsets=dddd}40@0:8@16@24q32";native.host=&delegate;
     for(U i=0;i<4;i++) { native.item_counts[i]=3;native.header_heights[i]=44; }
     s.recent_content=&native;original_flow_item=(IMP)raw_item;original_flow_header=(IMP)raw_header;
@@ -326,6 +334,16 @@ int main(void) {
     /* The library exists inline before selecting its footer shortcut. */
     rebuilt_stack(&buttons,button,&views[0],&views[1],&views[2]);rebuilt_stack(&highlights,highlight,&views[3],&views[4],&views[5]);
     install_footer(&footer,&owner);make_panel(&delegate);refresh_library(&s);place_library_panel(&s,&native);
+    /* No realized heading yet: leave native Recent in its own coordinates,
+     * then complete the initial layout without requiring a user scroll. */
+    assert(!s.library_height && s.panel->hidden && !metric_invalidations);
+    title.text=NULL;native.deferred_heading=&heading;place_library_panel(&s,&native);
+    assert(initial_header_layouts==1 && !s.library_height && s.panel->hidden && !s.recent_heading_observed);
+    title.text="";place_library_panel(&s,&native);assert(!s.library_height && !s.recent_heading_observed);
+    title.text="Frequently Used";heading.bounds.size.height=0;place_library_panel(&s,&native);
+    assert(!s.library_height && s.panel->hidden && !s.recent_heading_observed);
+    heading.bounds.size.height=44;place_library_panel(&s,&native);
+    assert(initial_header_layouts==1 && s.library_section==1 && s.library_start==236);
     /* Image arrivals and timer ticks reuse the display snapshot. */
     U initial_queries=queries,initial_reloads=s.grid->reloads;
     for(int i=0;i<100;i++)refresh_library(&s);
@@ -337,6 +355,9 @@ int main(void) {
     s.room=&room;expected_room=&room;refresh_library(&s);assert(queries==initial_queries+3);
     assert(s.panel->parent==&native && !native.hidden && !s.tab && !button->selected);
     assert(s.library_section==1 && s.library_start==236 && s.library_height==410);
+    native.heading=nil;place_library_panel(&s,&native);
+    assert(s.library_section==1 && s.library_start==236 && initial_header_layouts==1); /* offscreen header recycling keeps the observation */
+    native.heading=&heading;
     assert(metric_invalidations && s.panel->clips && s.grid->clips);
     assert(flow.cached_sections[1].top==8 && flow.applied_first.origin.y==698);
     assert(flow.applied_size.height==882 && flow.applied_size.width==390);
@@ -434,6 +455,14 @@ int main(void) {
     native.sections=0;flow.content_size.height=0;place_library_panel(&s,&native);
     assert(native.inset.bottom==12 && flow_size(&flow,"size").height==178);
     detach_recents(&s);assert(!s.panel->parent && !native.hidden && !s.library_height && native.inset.bottom==12);
+    /* Cold headerless and empty collections still get an inline library. */
+    assert(!s.recent_heading_observed);native.heading=nil;native.sections=2;
+    native.header_heights[0]=0;native.item_counts[0]=3;flow.content_size.height=472;
+    bind_recents(&delegate,&container);place_library_panel(&s,&native);
+    assert(s.recent_heading_observed && s.library_section==0 && s.library_start==0 && s.library_height==178 && !s.panel->hidden);
+    detach_recents(&s);native.sections=0;flow.content_size.height=0;
+    bind_recents(&delegate,&container);place_library_panel(&s,&native);
+    assert(s.library_height==178 && !s.panel->hidden && s.library_start==0);
     return 0;
 }
 '''

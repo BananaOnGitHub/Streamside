@@ -129,13 +129,20 @@ missing-image box while loading; it never counts as a completed download.
 Image replacement invalidates layout/display, preserving the live text and caret.
 Provider GIF previews retain their cached animation record and share one 30-fps
 display link per visible input. It follows the GIF's per-frame delays, requests
-frames through FLAnimatedImage's bounded lazy cache and invalidates only the
+frames through an attachment-local FLAnimatedImage decoder capped at four cached
+frames and invalidates only the
 changed attachment character's display. Frame updates do not rebuild attributed
 text, recalculate layout or move the caret. Playheads survive ordinary edits,
 image refreshes and cache eviction; active keyboard/IME transactions are skipped.
 Hidden/detached editors stop their clock, while deletion and clipboard/send
 expansion drop their playback bindings. Static and native attachments do not
 enter this provider animation path.
+Each attachment's decoder reuses the downloaded GIF data; it never shares the
+thumbnail decoder's moving frame-cache window. Suggestions beside the caret and
+repeated copies of an emote can therefore play at independent positions without
+evicting one another's frames. Ordinary refreshes reuse the attachment decoder;
+only replacing its source animation creates another. A failed local decode
+keeps the static preview instead of borrowing the thumbnail decoder.
 A caret inside a literal word or an overlapping selection keeps that word editable;
 marked composition is never substituted. Typing beyond an exact code restores
 literal text if the resulting word no longer matches.

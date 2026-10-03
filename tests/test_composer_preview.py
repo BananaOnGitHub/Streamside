@@ -20,7 +20,8 @@ struct Fake {
     U length;
     uint16_t units[256];
     id codes[256],attachments[256];
-    id value,host,metadata,record,bitmap,name,url,identifier,animation,children[8];
+    id value,host,metadata,record,bitmap,name,url,identifier,animation,preview_animation,children[32];
+    U requested;
     State *context;
     Range selected;
     Rect bounds;
@@ -31,8 +32,8 @@ static struct Fake objects[8192],classes[32],editor,owner,delegate,footer,source
 static U used,class_count;
 static unsigned requests,storage_edits,selection_sets,layouts,displays,notified,validated,fallbacks;
 static unsigned placeholder_decodes;
-static unsigned clocks,stopped;
-static BOOL decoder_pending;
+static unsigned clocks,stopped,decoder_copies,cache_misses;
+static BOOL decoder_pending,bounded_cache,clone_fail;
 static BOOL available,accept=YES,emit_change=YES;
 static Range validated_range;
 static id last_plain;
@@ -60,11 +61,11 @@ void objc_release(id o) { (void)o; }
 id objc_loadWeakRetained(id *p) { return *p; }
 id objc_getAssociatedObject(id o,const void *k) {
     if(!o)return nil;
-    return k==&attachment_metadata_key ? o->metadata : k==&attachment_record_key ? o->record : o->host;
+    return k==&attachment_metadata_key ? o->metadata : k==&attachment_record_key ? o->record : k==&attachment_animation_key ? o->preview_animation : o->host;
 }
 void objc_setAssociatedObject(id o,const void *k,id v,uintptr_t policy) {
     assert(policy==1);
-    if(k==&attachment_metadata_key)o->metadata=v;else {assert(k==&attachment_record_key);o->record=v;}
+    if(k==&attachment_metadata_key)o->metadata=v;else if(k==&attachment_animation_key)o->preview_animation=v;else {assert(k==&attachment_record_key);o->record=v;}
 }
 static void ss_test_request(id metadata) { assert(metadata==&meta);requests++; }
 static Range ss_test_selection(id o) { return o->selected; }
@@ -104,6 +105,9 @@ static void keyboard_delete(void) {
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
     if(!strcmp(sel,"new") || !strcmp(sel,"alloc"))result=create(o->cls);
+    else if(!strcmp(sel,"data"))result=o->host;
+    else if(!strcmp(sel,"initWithAnimatedGIFData:")){id data=va_arg(args,id);assert(data && !strcmp(data->cls,"FLAnimatedImage"));if(!clone_fail){memcpy(o,data,sizeof(*o));result=o;decoder_copies++;}}
+    else if(!strcmp(sel,"setFrameCacheSizeMax:"))assert(va_arg(args,I)==4);
     else if(!strcmp(sel,"copy") || !strcmp(sel,"mutableCopy"))result=duplicate(o,o->cls);
     else if(!strcmp(sel,"initWithAttributedString:")){id v=va_arg(args,id);const char *cls=o->cls;memcpy(o,v,sizeof(*o));o->cls=cls;result=o;}
     else if(!strcmp(sel,"attributedText"))result=&source;
@@ -145,8 +149,8 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"objectForKey:")){
         id k=va_arg(args,id);
         if(o==&meta){if(matches(k,"name"))result=o->name;else if(matches(k,"id"))result=o->identifier;else if(matches(k,"url"))result=o->url;}
-        else if(o==&cache){if(matches(k,"image"))result=&bitmap;else if(matches(k,"animation"))result=o->animation;}
-        else if(o->cls && !strcmp(o->cls,"FrameDelays")){assert(k->length<8);result=o->children[k->length];}
+        else if(o==&cache || (o->cls && !strcmp(o->cls,"ImageRecord"))){if(matches(k,"image"))result=&bitmap;else if(matches(k,"animation"))result=o->animation;}
+        else if(o->cls && !strcmp(o->cls,"FrameDelays")){assert(k->length<32);result=o->children[k->length];}
         else if(o==images && available)result=&cache;
     }
     else if(!strcmp(sel,"image"))result=o->bitmap;
@@ -159,7 +163,14 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"posterImageFrameIndex"))result=nil;
     else if(!strcmp(sel,"delayTimesForIndexes"))result=o->value;
     else if(!strcmp(sel,"numberWithUnsignedInteger:")){result=create("NSNumber");result->length=va_arg(args,U);}
-    else if(!strcmp(sel,"imageLazilyCachedAtIndex:")){U index=va_arg(args,U);assert(index<o->length);result=decoder_pending ? nil : o->children[index];}
+    else if(!strcmp(sel,"imageLazilyCachedAtIndex:")){
+        U index=va_arg(args,U);assert(index<o->length);
+        /* The real decoder retains four forward frames and its poster. A
+         * distant consumer moves that window and forces a lazy-decode wait. */
+        BOOL miss=bounded_cache && index && (index+o->length-o->requested)%o->length>=4;
+        if(miss)cache_misses++;o->requested=index;
+        result=decoder_pending || miss ? nil : o->children[index];
+    }
     else if(!strcmp(sel,"displayLinkWithTarget:selector:")){result=create("CADisplayLink");result->value=va_arg(args,id);assert(!strcmp(va_arg(args,SEL),"ssAnimate:"));clocks++;}
     else if(!strcmp(sel,"setPreferredFramesPerSecond:"))assert(va_arg(args,I)==30);
     else if(!strcmp(sel,"mainRunLoop"))result=o;
@@ -257,7 +268,7 @@ int main(void) {
     original_text=(IMP)raw_text;original_storage=(IMP)raw_text;original_should_change=(IMP)validate;original_change=(IMP)notify;original_footer_actions[4]=(IMP)fallback;
     struct Fake animation={.cls="FLAnimatedImage",.length=3},delays={.cls="FrameDelays"};
     struct Fake d0={.seconds=0.1},d1={.seconds=0.2},d2={.seconds=0.05};
-    delays.children[0]=&d0;delays.children[1]=&d1;delays.children[2]=&d2;animation.value=&delays;
+    delays.children[0]=&d0;delays.children[1]=&d1;delays.children[2]=&d2;animation.value=&delays;animation.host=&animation;
     id frame1=create("UIImage"),frame2=create("UIImage");animation.children[0]=&bitmap;animation.children[1]=frame1;animation.children[2]=frame2;
     cache.animation=&animation;reset("Wide",4,YES);available=YES;render(&delegate);
     assert(source.length==1 && context.animation_count==1 && clocks==1);
@@ -307,6 +318,48 @@ int main(void) {
 '''
 
 
+ISOLATION = ANIMATION[:ANIMATION.index('    struct Fake animation=')] + r'''
+    struct Fake animation={.cls="FLAnimatedImage",.length=12},delays={.cls="FrameDelays"},delay={.seconds=0.1};
+    animation.value=&delays;animation.host=&animation;
+    for(U i=0;i<12;i++){delays.children[i]=&delay;animation.children[i]=create("UIImage");}
+    cache.animation=&animation;available=YES;bounded_cache=YES;
+    reset("Wide Wide",9,YES);available=YES;render(&delegate);
+    id first=source.attachments[0],second=source.attachments[2];
+    id first_decoder=first->preview_animation,second_decoder=second->preview_animation;
+    assert(first_decoder && second_decoder && first_decoder!=&animation && second_decoder!=&animation && first_decoder!=second_decoder);
+    assert(first_decoder->host==animation.host && second_decoder->host==animation.host && decoder_copies==2);
+    /* Put the suggestion six frames ahead of the caret-adjacent composer.
+     * Each consumer advances sequentially, but sharing the four-frame window
+     * would make their interleaved requests repeatedly evict one another. */
+    pulse(100);animation.requested=6;
+    unsigned writes=storage_edits,carets=selection_sets;
+    for(U i=1;i<=60;i++) {
+        U thumbnail=(i+6)%12;
+        assert(((id (*)(id,SEL,U))objc_msgSend)(&animation,"imageLazilyCachedAtIndex:",thumbnail)==animation.children[thumbnail]);
+        pulse(100+i*0.100001);
+        assert(context.animation_frames[0].index==i%12 && context.animation_frames[1].index==i%12);
+        assert(first->bitmap==animation.children[i%12] && second->bitmap==first->bitmap);
+        render(&delegate); /* caret beside completed emote, no space */
+    }
+    assert(!cache_misses && decoder_copies==2 && clocks==1 && storage_edits==writes && selection_sets==carets);
+    /* Spacing hides the suggestion without changing playback identities. */
+    replace(&source,(Range){3,0},ascii(" "),NO);editor.selected=(Range){4,0};render(&delegate);
+    available=NO;image_changed(&delegate,"ssImages:",nil);ready();
+    assert(first->preview_animation==first_decoder && second->preview_animation==second_decoder && decoder_copies==2 && !requests);
+    /* Only an actual decoder/source replacement starts a new local cache. */
+    first->record=second->record=duplicate(&cache,"ImageRecord");
+    struct Fake replacement=animation;cache.animation=&replacement;available=YES;render(&delegate);
+    assert(first->preview_animation!=first_decoder && second->preview_animation!=second_decoder && decoder_copies==4);
+    assert(context.animation_frames[0].index==0 && context.animation_frames[1].index==0);
+    /* A failed local decode stays static rather than borrowing a thumbnail's
+     * decoder and reintroducing interference. Whole-code deletion still works. */
+    expand(&delegate);clone_fail=YES;render(&delegate);assert(!context.animation_count && !context.animation_link);
+    menu();ready();menu();ready();assert(source.length==2 && source.codes[0] && source.units[1]==' ');
+    clear_preview_frames(&context);return 0;
+}
+'''
+
+
 class PreviewTests(unittest.TestCase):
     def test_loading_placeholder_is_a_fully_transparent_rgba_pixel(self):
         source = (composer.ROOT / "src/SSComposer.c").read_text()
@@ -330,6 +383,9 @@ class PreviewTests(unittest.TestCase):
 
     def test_animation_timing_refresh_deletion_and_visibility(self):
         self.run_preview(ANIMATION)
+
+    def test_independent_suggestion_and_composer_frame_cache_windows(self):
+        self.run_preview(ISOLATION)
 
     def run_preview(self, harness):
         zig = os.environ.get("ZIG", shutil.which("zig"))

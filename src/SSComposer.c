@@ -43,7 +43,7 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
 static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key,inline_attributes_key;
 static char selector_key;
-static char thumbnail_url_key,thumbnail_record_key,attachment_record_key;
+static char thumbnail_url_key,thumbnail_record_key,attachment_record_key,attachment_animation_key;
 static Class delegate_class,attachment_class,strip_class,grid_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
 static IMP original_begin,original_end,original_send,original_apply,original_move,original_layout,original_emoticon;
@@ -607,9 +607,20 @@ static void update_preview_frames(id delegate,id editor) {
     if (length<=4096) for (U i=0;i<length && count<MAX_TOKENS;i++) {
         if (((uint16_t (*)(id,SEL,U))objc_msgSend)(text,sel_registerName("characterAtIndex:"),i)!=0xfffc) continue;
         id attachment=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),i,NULL);
-        id record=objc_getAssociatedObject(attachment,&attachment_record_key),animation=key(record,"animation");
-        if (!objc_getAssociatedObject(attachment,&attachment_metadata_key) || !animation ||
-            number(animation,"frameCount")<2 || !responds(animation,"imageLazilyCachedAtIndex:")) continue;
+        id record=objc_getAssociatedObject(attachment,&attachment_record_key),shared=key(record,"animation");
+        if (!objc_getAssociatedObject(attachment,&attachment_metadata_key) || !shared || number(shared,"frameCount")<2) continue;
+        id animation=objc_getAssociatedObject(attachment,&attachment_animation_key);
+        if (!animation) {
+            /* FLAnimatedImage purges its small frame cache around the most
+             * recently requested index. Independent composer/thumbnail clocks
+             * must not steer the same decoder, nor may repeated attachments.
+             * Reuse the downloaded NSData, but keep each playback cache local. */
+            id data=responds(shared,"data") ? m0(shared,"data") : nil;
+            if (data) animation=m1(m0((id)objc_getClass("FLAnimatedImage"),"alloc"),"initWithAnimatedGIFData:",data);
+            if (animation && responds(animation,"setFrameCacheSizeMax:")) vi(animation,"setFrameCacheSizeMax:",4);
+            associate(attachment,&attachment_animation_key,animation); objc_release(animation);
+        }
+        if (!animation || number(animation,"frameCount")<2 || !responds(animation,"imageLazilyCachedAtIndex:")) continue;
         PreviewFrame frame={attachment,animation,i,number(animation,"posterImageFrameIndex"),0};
         for (U j=0;j<s->animation_count;j++) if (s->animation_frames[j].attachment==attachment && s->animation_frames[j].animation==animation) {
             frame.index=s->animation_frames[j].index; frame.elapsed=s->animation_frames[j].elapsed; break;
@@ -718,7 +729,10 @@ static void render(id delegate) {
             id bitmap=key(cached,"image"),animation=key(cached,"animation"),current=m0(attachment,"image");
             BOOL playing=animation && animation==key(previous_record,"animation") && current && current!=placeholder;
             if (bitmap && !playing && bitmap!=current) { v1(attachment,"setImage:",bitmap); image_updated=YES; }
-            if (cached!=previous_record) associate(attachment,&attachment_record_key,cached);
+            if (cached!=previous_record) {
+                if (animation!=key(previous_record,"animation")) associate(attachment,&attachment_animation_key,nil);
+                associate(attachment,&attachment_record_key,cached);
+            }
             if (!m0(attachment,"image")) v1(attachment,"setImage:",placeholder);
             if (!cached && m0(attachment,"image")==placeholder) image_request(metadata);
             double height=22, width=22,aspect=((double (*)(id,SEL))objc_msgSend)(key(metadata,"aspect"),sel_registerName("doubleValue"));

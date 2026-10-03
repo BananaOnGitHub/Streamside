@@ -88,7 +88,14 @@
   Preserve playheads across edits/image refreshes/cache eviction; stop on
   detachment, hiding or expansion and remove deleted previews from playback.
   Add timing, looping, pending-decoder, edit/IME, deletion and lifecycle regressions.
-- Candidate bundle build: `3.0.0.30`; animated composer previews await device
+- Device-observed build 30 animation interference when the caret-adjacent
+  suggestion and composer use the same GIF at different playback positions.
+  Give each composer attachment its own four-frame decoder using the existing
+  downloaded data, retaining it across edits and cache/image refreshes. Avoid
+  competing for the thumbnail decoder's moving cache window, including repeated
+  copies of one emote in the input. Add interleaved playback, decoder reuse,
+  source replacement, static fallback and whole-code deletion regressions.
+- Candidate bundle build: `3.0.0.31`; independent preview playback awaits device
   verification.
 
 ## 2.3.1 (prepared; not published)

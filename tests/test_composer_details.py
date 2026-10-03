@@ -22,7 +22,8 @@ static struct Fake objects[256],classes[32],owner,editor,delegate,source,attachm
 static struct Fake reused_cell;
 static struct Fake manager,container,strip;
 static id expected_metadata=&metadata;
-static U used,class_count,scheduled,shown,forwarded,added,replaced;
+static U used,class_count,scheduled,shown,forwarded,added,replaced,impacts;
+static Point hit_point;
 static BOOL has_method,accept_sheet=YES;
 static State context;
 static id fresh(const char *cls) { assert(used<256);id o=&objects[used++];o->cls=cls;return o; }
@@ -63,11 +64,11 @@ BOOL tas_emote_ui_present_details(id view,id data) {
     assert(strip.hidden); /* Hidden before presentation, not a later timer tick. */
     if(accept_sheet)shown++;return accept_sheet;
 }
-Point ss_test_hold_point(id gesture,id view) { assert(view==&editor);return gesture->point; }
+Point ss_test_hold_point(id location,id view) { assert(view==&editor);hit_point=location->point;return hit_point; }
 Insets ss_test_hold_inset(id view) { assert(view==&editor);return view->inset; }
 U ss_test_hold_glyph(id layout,Point point,id text_container) {
     assert(layout==&manager && text_container==&container);
-    assert(point.x==context.editor_hold->point.x-editor.inset.left && point.y==context.editor_hold->point.y-editor.inset.top);
+    assert(point.x==hit_point.x-editor.inset.left && point.y==hit_point.y-editor.inset.top);
     return manager.range.location;
 }
 Rect ss_test_hold_bounds(id layout,Range range,id text_container) {
@@ -113,12 +114,15 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"configurationWithMenu:")){assert(va_arg(args,id)==&menu);result=&fallback;}
     else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
     else if(!strcmp(sel,"initWithTarget:action:")){o->target=va_arg(args,id);o->action=va_arg(args,SEL);result=o;}
+    else if(!strcmp(sel,"initWithStyle:")){assert(!strcmp(o->cls,"UIImpactFeedbackGenerator") && va_arg(args,I)==0);result=o;}
+    else if(!strcmp(sel,"impactOccurred")){assert(!strcmp(o->cls,"UIImpactFeedbackGenerator") && shown==impacts+1);impacts++;}
     else if(!strcmp(sel,"setCancelsTouchesInView:"))o->cancels=va_arg(args,int);
     else if(!strcmp(sel,"setMinimumPressDuration:"))o->duration=va_arg(args,double);
     else if(!strcmp(sel,"setDelegate:"))assert(va_arg(args,id)==&delegate);
     else if(!strcmp(sel,"removeGestureRecognizer:")){assert(o->gesture==va_arg(args,id));o->gesture->value=nil;o->gesture=nil;}
     else if(!strcmp(sel,"addGestureRecognizer:")){assert(!o->gesture);o->gesture=va_arg(args,id);o->gesture->value=o;}
     else if(!strcmp(sel,"view"))result=o->value;
+    else if(!strcmp(sel,"superview"))result=o->value;
     else if(!strcmp(sel,"state"))result=(id)(uintptr_t)o->gesture_state;
     else assert(!"unexpected details selector");
     va_end(args);return result;
@@ -154,17 +158,30 @@ int main(void) {
     install_editor_hold(&delegate,&editor);assert(context.editor_hold==editor_gesture);
     editor.inset=(Insets){4,7,0,0};editor_gesture->point=(Point){25,15};
     manager.count=3;manager.range.location=1;manager.bounds=(Rect){{10,5},{24,20}};
+    struct Fake touch={.point={25,15}},native_gesture={.value=&editor},child={.value=&editor},child_gesture={.value=&child};
+    editor_gesture->point=(Point){0,0}; /* Touch-down must use UITouch, not the recognizer's uninitialized location. */
+    assert(composer_hold_receive_touch(&delegate,"receive",editor_gesture,&touch));
+    assert(composer_hold_priority(&delegate,"priority",editor_gesture,&native_gesture));
+    assert(composer_hold_priority(&delegate,"priority",editor_gesture,&child_gesture));
+    assert(!composer_hold_priority(&delegate,"priority",editor_gesture,&other));
+    assert(!composer_hold_priority(&delegate,"priority",&native_gesture,editor_gesture));
+    assert(!composer_hold_priority(&delegate,"priority",editor_gesture,editor_gesture));
+    editor_gesture->point=touch.point;
     assert(composer_hold_should_begin(&delegate,"begin",editor_gesture));
     editor_gesture->gesture_state=0;composer_hold(&delegate,"hold",editor_gesture);assert(!scheduled && !shown);
     editor_gesture->gesture_state=1;composer_hold(&delegate,"hold",editor_gesture);
     composer_hold(&delegate,"hold",editor_gesture);assert(scheduled==1 && !shown && attachment.refs==1);
     composer_details(&delegate,"ssDetails:",nil);
-    assert(shown==1 && !context.details_attachment && !attachment.refs);
+    assert(shown==1 && impacts==1 && !context.details_attachment && !attachment.refs);
+    composer_details(&delegate,"ssDetails:",nil);assert(shown==1 && impacts==1);
     assert(source.count==3 && source.units[1]==0xfffc && source.attachments[1]==&attachment);
     editor_gesture->gesture_state=2;composer_hold(&delegate,"hold",editor_gesture);assert(scheduled==1);
-    assert(composer_hold_simultaneous(&delegate,"simultaneous",editor_gesture,&other));
-    assert(composer_hold_simultaneous(&delegate,"simultaneous",&other,editor_gesture));
-    assert(!composer_hold_simultaneous(&delegate,"simultaneous",&other,&item));
+    touch.point.x=70;assert(!composer_hold_receive_touch(&delegate,"receive",editor_gesture,&touch));
+    assert(!composer_hold_priority(&delegate,"priority",editor_gesture,&native_gesture));
+    touch.point.x=25;manager.range.location=0;assert(!composer_hold_receive_touch(&delegate,"receive",editor_gesture,&touch));
+    manager.range.location=2;assert(!composer_hold_receive_touch(&delegate,"receive",editor_gesture,&touch));
+    manager.range.location=1;editor.marked=YES;assert(!composer_hold_receive_touch(&delegate,"receive",editor_gesture,&touch));editor.marked=NO;
+    assert(composer_hold_receive_touch(&delegate,"receive",&other,&touch)); /* Library recognizers are untouched. */
     editor_gesture->point.x=70;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Nearest glyph, outside image. */
     editor_gesture->point.x=25;manager.range.location=0;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Ordinary text. */
     manager.range.location=2;assert(!composer_hold_should_begin(&delegate,"begin",editor_gesture)); /* Foreign attachment. */
@@ -194,7 +211,11 @@ int main(void) {
     assert(!composer_attachment_interaction(&owner,"interact",&editor,&attachment,(Range){1,1},1));
     assert(!composer_attachment_interaction(&owner,"interact",&editor,&attachment,(Range){1,1},2));assert(scheduled==before);
     editor_gesture->gesture_state=1;composer_hold(&delegate,"hold",editor_gesture);assert(scheduled==before+1);
-    composer_details(&delegate,"ssDetails:",nil);assert(shown==2);
+    composer_details(&delegate,"ssDetails:",nil);assert(shown==2 && impacts==2);
+    accept_sheet=NO;strip.hidden=NO;
+    assert(queue_composer_details(&owner,&editor,&attachment,(Range){1,1}));
+    composer_details(&delegate,"ssDetails:",nil);assert(shown==2 && impacts==2 && !strip.hidden);
+    accept_sheet=YES;
     assert(composer_attachment_interaction(&owner,"interact",&editor,&foreign,(Range){2,1},1));
     original_attachment_interaction=(IMP)native_interact;
     assert(!composer_attachment_interaction(&owner,"interact",&editor,&foreign,(Range){2,1},1));
@@ -223,7 +244,7 @@ int main(void) {
     path.count=1;expected_metadata=&foreign;
     assert(cell(&delegate,"cell",&collection,&path)==&reused_cell);
     assert(reused_cell.button==library_button && library_button->gesture==library_gesture && library_button->metadata==&foreign);
-    library_gesture->gesture_state=1;emote_hold(&delegate,"hold",library_gesture);assert(shown==4);
+    library_gesture->gesture_state=1;emote_hold(&delegate,"hold",library_gesture);assert(shown==4 && impacts==2);
     struct Fake replacement_editor={.cls="UITextView",.window=&window};
     install_editor_hold(&delegate,&replacement_editor);
     assert(!editor.gesture && !editor_gesture->value && replacement_editor.gesture==context.editor_hold);
@@ -254,8 +275,8 @@ class ComposerDetailsTests(unittest.TestCase):
         source = source.replace('Range range=((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"));',
                                 'extern Range ss_test_item_range(id); Range range=ss_test_item_range(item);')
         for before, after in (
-            ('Point point=((Point (*)(id,SEL,id))objc_msgSend)(gesture,sel_registerName("locationInView:"),editor);',
-             'extern Point ss_test_hold_point(id,id); Point point=ss_test_hold_point(gesture,editor);'),
+            ('Point point=((Point (*)(id,SEL,id))objc_msgSend)(location,sel_registerName("locationInView:"),editor);',
+             'extern Point ss_test_hold_point(id,id); Point point=ss_test_hold_point(location,editor);'),
             ('Insets inset=((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"));',
              'extern Insets ss_test_hold_inset(id); Insets inset=ss_test_hold_inset(editor);'),
             ('U glyph=((U (*)(id,SEL,Point,id))objc_msgSend)(manager,sel_registerName("glyphIndexForPoint:inTextContainer:"),point,container);',

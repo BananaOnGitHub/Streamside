@@ -141,15 +141,23 @@ editor suppresses UIKit's generic image menu. These callbacks never open the
 sheet: UIKit can request them before the library's hold threshold. Both tile
 and editor recognizers explicitly use 0.5 seconds. The editor recognizer hit-tests
 TextKit glyph bounds and private attachment identity, ignoring whitespace,
-ordinary/native text and marked input. It coexists with native gestures and
-does not cancel text-view touches. Only its Began event queues the shared sheet
+ordinary/native text and marked input. At touch-down it accepts only owned
+attachment hits. For those touches, recognizers inside the editor wait for its
+long press to fail, rather than recognizing the native image gesture alongside
+it and producing extra context-menu haptics. Short taps and movement still fail
+the standard long press. It does not cancel text-view touches. Only its Began event queues the shared sheet
 on the next run-loop turn, coalescing requests and rechecking the attachment and
 visible weak owner. Native/foreign attachments
 and links retain Twitch's implementation or UIKit's default menu/preview;
 selection, text storage, undo and animation bindings are not modified.
+Successful composer presentation emits one light `UIImpactFeedbackGenerator`
+impact; stale, cancelled, duplicate or failed requests do not. Tile holds and
+the shared chat details presenter retain their existing feedback behavior.
 API references: [text-item menus](https://developer.apple.com/documentation/uikit/uitextviewdelegate/textview(_:menuconfigurationfor:defaultmenu:)),
 [text items](https://developer.apple.com/documentation/uikit/uitextitem), and
 [attachment interactions](https://developer.apple.com/documentation/uikit/uitextiteminteraction).
+Gesture priority uses the documented
+[dynamic failure requirement](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate/gesturerecognizer(_:shouldberequiredtofailby:)).
 
 Hide the window-level suggestion strip before presenting details. Its placement
 function returns without raising it while a details request is pending or the

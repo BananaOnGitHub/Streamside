@@ -131,8 +131,14 @@
   Restore normal suggestion placement after dismissal. Cover early callbacks,
   gesture states, shared timing, whitespace/native/IME rejection, editor reuse,
   failed presentation, parent modals and repeated sheet-time layout ticks.
-- Candidate bundle build: `3.0.0.35`; composer hold timing and sheet layering
-  await device verification.
+- Device-confirmed build 35 composer hold timing and sheet layering. Give the
+  owned composer hold priority over native image gestures on provider previews,
+  and emit one light haptic only after successfully opening details. Reject
+  ordinary/native text and marked input at touch-down so native editing gestures
+  keep their behavior. Library feedback is unchanged. Cover touch location,
+  scoped gesture priority, duplicate/stale/failed requests and haptic counts.
+- Candidate bundle build: `3.0.0.36`; single composer haptic awaits device
+  verification.
 
 ## 2.3.1 (prepared; not published)
 

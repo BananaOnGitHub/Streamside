@@ -149,6 +149,7 @@ typedef struct {
     BOOL busy,scheduled,preview_scheduled;
     id details_attachment; /* retained only until deferred UIKit presentation */
     id editor_hold; /* owned recognizer; its view is weak inside UIKit */
+    BOOL editor_hold_touch; /* only an owned attachment touch can take priority */
     PreviewFrame *animation_frames;
     U animation_count;
     id animation_link;
@@ -1960,7 +1961,13 @@ static void composer_details(id self,SEL sel,id object) {
     if (attachment && owner && m0(editor,"window")) {
         U length=number(m0(editor,"attributedText"),"length");
         for (U i=0;i<length && i<4096;i++) if (owned_attachment_at(owner,editor,attachment,(Range){i,1})) {
-            if (present_composer_details(s,owner,objc_getAssociatedObject(attachment,&attachment_metadata_key))) INC(details_holds);
+            if (present_composer_details(s,owner,objc_getAssociatedObject(attachment,&attachment_metadata_key))) {
+                INC(details_holds);
+                /* Composer only: native image gestures no longer recognize
+                 * alongside this hold. Emit one light tap after opening. */
+                id feedback=((id (*)(id,SEL,I))objc_msgSend)(m0((id)objc_getClass("UIImpactFeedbackGenerator"),"alloc"),sel_registerName("initWithStyle:"),0);
+                m0(feedback,"impactOccurred"); objc_release(feedback);
+            }
             break;
         }
     }
@@ -1979,11 +1986,11 @@ static BOOL queue_composer_details(id owner,id editor,id attachment,Range range)
     }
     return YES;
 }
-static id composer_attachment_under_hold(id delegate,id gesture,Range *range) {
+static id composer_attachment_at_point(id delegate,id gesture,id location,Range *range) {
     State *s=state(delegate); if (!s || gesture!=s->editor_hold) return nil;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),attachment=nil;
     if (!editor || m0(gesture,"view")!=editor || !m0(editor,"window") || m0(editor,"markedTextRange")) { objc_release(owner); return nil; }
-    Point point=((Point (*)(id,SEL,id))objc_msgSend)(gesture,sel_registerName("locationInView:"),editor);
+    Point point=((Point (*)(id,SEL,id))objc_msgSend)(location,sel_registerName("locationInView:"),editor);
     Insets inset=((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"));
     point.x-=inset.left; point.y-=inset.top;
     id manager=m0(editor,"layoutManager"),container=m0(editor,"textContainer");
@@ -2004,15 +2011,32 @@ static id composer_attachment_under_hold(id delegate,id gesture,Range *range) {
     }
     objc_release(owner); return attachment;
 }
+static id composer_attachment_under_hold(id delegate,id gesture,Range *range) {
+    return composer_attachment_at_point(delegate,gesture,gesture,range);
+}
+static BOOL composer_hold_receive_touch(id self,SEL sel,id gesture,id touch) {
+    (void)sel; State *s=state(self); Range range={0};
+    if (!s || gesture!=s->editor_hold) return YES;
+    /* Reject ordinary text at touch-down, before setting any failure
+     * requirement. Native caret, selection and scrolling then proceed freely. */
+    s->editor_hold_touch=composer_attachment_at_point(self,gesture,touch,&range)!=nil;
+    return s->editor_hold_touch;
+}
 static BOOL composer_hold_should_begin(id self,SEL sel,id gesture) {
     (void)sel; Range range={0}; State *s=state(self);
     return !s || gesture!=s->editor_hold || composer_attachment_under_hold(self,gesture,&range)!=nil;
 }
-static BOOL composer_hold_simultaneous(id self,SEL sel,id gesture,id other) {
+static BOOL composer_hold_priority(id self,SEL sel,id gesture,id other) {
     (void)sel; State *s=state(self);
-    /* UIKit's earlier selection/image recognizers must not prevent our 0.5s
-     * hold. Its image-menu callbacks below only suppress generic actions. */
-    return s && (gesture==s->editor_hold || other==s->editor_hold);
+    if (!s || gesture!=s->editor_hold || other==gesture || !s->editor_hold_touch) return NO;
+    id editor=m0(gesture,"view");
+    /* Only recognizers inside this editor wait for our owned-emote hold to
+     * fail. A short tap or movement still fails the standard long press.
+     * Native image recognition must not fire its own context-menu haptics. */
+    id view=m0(other,"view");
+    for (U depth=0;view && editor && depth<12;depth++,view=m0(view,"superview"))
+        if (view==editor) return YES;
+    return NO;
 }
 static void composer_hold(id self,SEL sel,id gesture) {
     (void)sel; if (number(gesture,"state")!=1) return;
@@ -2025,6 +2049,7 @@ static void install_editor_hold(id delegate,id editor) {
     State *s=state(delegate); if (!s || !editor) return;
     if (s->editor_hold && m0(s->editor_hold,"view")==editor) return;
     v1(m0(s->editor_hold,"view"),"removeGestureRecognizer:",s->editor_hold); objc_release(s->editor_hold);
+    s->editor_hold_touch=NO;
     s->editor_hold=((id (*)(id,SEL,id,SEL))objc_msgSend)(m0((id)objc_getClass("UILongPressGestureRecognizer"),"alloc"),sel_registerName("initWithTarget:action:"),delegate,sel_registerName("ssComposerHold:"));
     ((void (*)(id,SEL,double))objc_msgSend)(s->editor_hold,sel_registerName("setMinimumPressDuration:"),EMOTE_HOLD_SECONDS);
     vb(s->editor_hold,"setCancelsTouchesInView:",NO);
@@ -2102,7 +2127,8 @@ void ss_composer_retry_hooks(void) {
             {"ssEmoteHold:",(IMP)emote_hold,"v@:@"}, {"ssDetails:",(IMP)composer_details,"v@:@"},
             {"ssComposerHold:",(IMP)composer_hold,"v@:@"},
             {"gestureRecognizerShouldBegin:",(IMP)composer_hold_should_begin,"B@:@"},
-            {"gestureRecognizer:shouldRecognizeSimultaneouslyWithGestureRecognizer:",(IMP)composer_hold_simultaneous,"B@:@@"},
+            {"gestureRecognizer:shouldReceiveTouch:",(IMP)composer_hold_receive_touch,"B@:@@"},
+            {"gestureRecognizer:shouldBeRequiredToFailByGestureRecognizer:",(IMP)composer_hold_priority,"B@:@@"},
             {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"}, {"ssPreview:",(IMP)preview_ready,"v@:@"},
             {"ssAnimate:",(IMP)animate_preview,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},

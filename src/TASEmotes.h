@@ -23,7 +23,8 @@ id tas_emotes_metadata_copy(uint64_t synthetic_id);
 id tas_emotes_local_matches_copy(id channel, id content);
 /* Provider: 0 All, 1 7TV, 2 BTTV, 3 FFZ. Scope: -1 suggestions, 0 channel, 1 global.
  * Channel must be the composer's identity; no background-chat fallback.
- * Display snapshots sort by name ignoring case, then apply the result limit. */
+ * Queries match case-insensitive fragments anywhere in a name. Display snapshots
+ * sort by name ignoring case, then apply the result limit. */
 id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t limit);
 /* Cheap invalidation token. Image arrivals do not change the catalog. */
 uint64_t tas_emotes_catalog_revision(void);

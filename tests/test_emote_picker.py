@@ -105,7 +105,7 @@ int main(void) {
     expect(tas_emotes_picker_copy(channel,2,1,nil,6500),"aardvark");
     expect(tas_emotes_picker_copy(channel,3,1,nil,6500),"aaaa zglobal");
     expect(tas_emotes_picker_copy(channel,0,-1,nil,6500),"aaaa aardvark Alpha alpha Beta beta YouKnow ZAMN ZGlobal zglobal");
-    expect(tas_emotes_picker_copy(channel,0,-1,string("A"),6500),"aaaa aardvark Alpha alpha");
+    expect(tas_emotes_picker_copy(channel,0,-1,string("A"),6500),"aaaa aardvark Alpha alpha Beta beta ZAMN ZGlobal zglobal");
     expect(tas_emotes_picker_copy(channel,0,-1,nil,2),"aaaa aardvark");
     expect(tas_emotes_picker_copy(channel,0,0,nil,0),"");
     expect(tas_emotes_picker_copy(nil,0,1,nil,6500),"aaaa aardvark ZGlobal zglobal");
@@ -116,6 +116,13 @@ int main(void) {
     exact=tas_emotes_named_copy(channel,string("alpha"));assert(dict(exact,"id")->number==find_word(room,"alpha")->fake_id);
     assert(!tas_emotes_named_copy(channel,string("ALPHA")));
     assert(tas_emotes_catalog_revision()==before); /* reading/sorting never invalidates */
+    add(room,"wawa",0,false);add(&g_global,"WawaGlobal",1,true);
+    expect(tas_emotes_picker_copy(channel,0,-1,string("AWA"),6500),"wawa WawaGlobal");
+    expect(tas_emotes_picker_copy(channel,1,0,string("awa"),6500),"wawa");
+    expect(tas_emotes_picker_copy(channel,2,1,string("awa"),6500),"WawaGlobal");
+    expect(tas_emotes_picker_copy(channel,0,-1,string("ww"),6500),"");
+    assert(!tas_emotes_named_copy(channel,string("awa"))); /* insertion still resolves exact codes */
+    before=tas_emotes_catalog_revision();
     add(room,"Beta",0,false);assert(tas_emotes_catalog_revision()>before); /* provider precedence replacement */
     before=tas_emotes_catalog_revision();
     for(size_t i=1;i<room->size;i++)assert(strcmp(room->items[i-1].name,room->items[i].name)<0);

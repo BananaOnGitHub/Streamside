@@ -899,8 +899,8 @@ static Room *picker_room_locked(id channel) {
 
 id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t limit) {
     if (!g_enabled || provider < 0 || provider > 3 || scope < -1 || scope > 1) return nil;
-    const char *prefix = kind(query,"NSString") ? text(query) : "";
-    if (!prefix || strlen(prefix) > 96) return nil;
+    const char *fragment = kind(query,"NSString") ? text(query) : "";
+    if (!fragment || strlen(fragment) > 96) return nil;
     if (limit > MAX_ROOM + MAX_GLOBAL) limit = MAX_ROOM + MAX_GLOBAL;
     id result = call0((id)objc_getClass("NSMutableArray"),"new");
     if (!limit) return result;
@@ -912,7 +912,7 @@ id tas_emotes_picker_copy(id channel, int provider, int scope, id query, size_t 
         if (!r || (scope >= 0 && scope != library)) continue;
         for (size_t i=0;i<r->size;i++) {
             Emote *e=&r->items[i];
-            if (!ss_provider_matches(e->provider,provider) || !ss_ascii_prefix(e->name,prefix)) continue;
+            if (!ss_provider_matches(e->provider,provider) || !ss_ascii_contains(e->name,fragment)) continue;
             /* Suggestions use the same channel-over-global precedence as chat. */
             if (scope == -1 && library && room && find_word(room,e->name)) continue;
             id metadata=metadata_locked(e); ((void (*)(id,SEL,id))objc_msgSend)(result,sel_registerName("addObject:"),metadata);

@@ -71,7 +71,7 @@ static id providers;
 id tas_emotes_picker_copy(id room,int provider,int scope,id query,size_t limit) {
     (void)room;assert(provider==0 && scope==-1 && limit==6500);
     id result=fresh("NSMutableArray");
-    for(U i=0;i<providers->count;i++)if(ss_ascii_prefix(providers->children[i]->name->text,query->text))result->children[result->count++]=providers->children[i];
+    for(U i=0;i<providers->count;i++)if(ss_ascii_contains(providers->children[i]->name->text,query->text))result->children[result->count++]=providers->children[i];
     return result;
 }
 static id item(const char *name,BOOL native) {
@@ -92,6 +92,15 @@ int main(void) {
     result=unified_matches(&s,text_value("kek"));assert(result->count==1 && result->children[0]==provider);
     result=unified_matches(&s,text_value("nothing"));assert(!result->count);
     result=unified_matches(&s,text_value(""));assert(result->count==3); /* bare colon */
+    result=unified_matches(&s,text_value("ppa"));assert(result->count==1 && result->children[0]==kappa);
+    result=unified_matches(&s,text_value("ekw"));assert(result->count==1 && result->children[0]==provider);
+    id native_wawa=item("WawaNative",YES),provider_wawa=item("wawaProvider",NO);
+    native->children[native->count++]=native_wawa;catalog->children[catalog->count++]=native_wawa;
+    providers->children[providers->count++]=provider_wawa;
+    result=unified_matches(&s,text_value("AWA"));
+    assert(result->count==2 && result->children[0]==native_wawa && result->children[1]==provider_wawa);
+    result=unified_matches(&s,text_value("ww"));assert(!result->count); /* contiguous, not subsequence matching */
+    native->count=2;catalog->count=2;providers->count=2;
     /* Empty/unknown native catalogs continue to expose provider results. */
     s.native_entries=nil;s.native_by_code=nil;result=unified_matches(&s,text_value("k"));assert(result->count==2);
     /* A large shared prefix cannot starve either catalog or overflow the strip. */

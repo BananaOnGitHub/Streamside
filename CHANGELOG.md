@@ -57,7 +57,11 @@
 - Reuse the emote library's sorted metadata snapshot until its catalog revision,
   channel, provider or scope changes. Image completions and periodic refreshes
   update visible thumbnails without rebuilding thousands of metadata objects.
-- Candidate bundle build: `3.0.0.25`; playback impact awaits device observation.
+- Device-observed the build 25 playback pause fix. Match composer suggestions
+  against case-insensitive fragments anywhere in native and provider emote names,
+  following Frosty's substring rule: `awa` finds `wawa`. Keep exact emote-code
+  lookup, provider/scope filters, result interleaving and the 64-item limit.
+- Candidate bundle build: `3.0.0.26`; suggestion matching awaits device verification.
 
 ## 2.3.1 (prepared; not published)
 

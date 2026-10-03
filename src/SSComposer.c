@@ -353,11 +353,11 @@ static void request_native_catalog(id delegate,id owner) {
 static id native_named(State *s,id name) { return m1(s->native_by_code,"objectForKey:",name); }
 static id unified_matches(State *s,id query) {
     id native=m0((id)objc_getClass("NSMutableArray"),"new");
-    const char *prefix=((const char *(*)(id,SEL))objc_msgSend)(query,sel_registerName("UTF8String"));
+    const char *fragment=((const char *(*)(id,SEL))objc_msgSend)(query,sel_registerName("UTF8String"));
     for (U i=0;i<number(s->native_entries,"count");i++) {
         id item=at(s->native_entries,i);
         const char *name=((const char *(*)(id,SEL))objc_msgSend)(key(item,"name"),sel_registerName("UTF8String"));
-        if (ss_ascii_prefix(name,prefix)) v1(native,"addObject:",item);
+        if (ss_ascii_contains(name,fragment)) v1(native,"addObject:",item);
     }
     /* Stable native ordering, then interleave both catalogs so one provider
      * cannot fill the entire compact result window. Native codes win overlap. */

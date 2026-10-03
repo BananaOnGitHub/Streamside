@@ -46,6 +46,11 @@ int main(void) {
     assert(!ss_provider_matches(0,4));
     assert(ss_ascii_prefix("MODCHECK","mod") && ss_ascii_prefix("modCheck","MOD"));
     assert(!ss_ascii_prefix("mo","mod") && !ss_ascii_prefix("mod","moo"));
+    assert(ss_ascii_contains("wawa","awa") && ss_ascii_contains("WaWa","AWA"));
+    assert(ss_ascii_contains("Kappa","ppa") && ss_ascii_contains("MODCHECK","dcH"));
+    assert(!ss_ascii_contains("wawa","ww") && !ss_ascii_contains("awa","wawa"));
+    assert(ss_ascii_contains("","") && ss_ascii_contains("wawa","") && !ss_ascii_contains("","awa"));
+    assert(!ss_ascii_contains(NULL,"awa") && !ss_ascii_contains("wawa",NULL));
     unsigned char identity[56]={0}; uint32_t room=12345; uint64_t presence=1;
     memcpy(identity,&room,4); assert(!ss_identity_room(identity,56));
     memcpy(identity+16,&presence,8); identity[4]=255; /* padding is irrelevant */

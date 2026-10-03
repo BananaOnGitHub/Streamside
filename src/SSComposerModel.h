@@ -75,4 +75,12 @@ static inline bool ss_ascii_prefix(const char *name, const char *prefix) {
     }
     return true;
 }
+/* Suggestions match a contiguous fragment anywhere, as Frosty's contains()
+ * does. Preserve exact case-sensitive lookup when inserting/rendering codes. */
+static inline bool ss_ascii_contains(const char *name, const char *query) {
+    if (!name || !query) return false;
+    if (!*query) return true;
+    for (; *name; name++) if (ss_ascii_prefix(name,query)) return true;
+    return false;
+}
 #endif

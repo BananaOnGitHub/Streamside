@@ -95,7 +95,14 @@
   competing for the thumbnail decoder's moving cache window, including repeated
   copies of one emote in the input. Add interleaved playback, decoder reuse,
   source replacement, static fallback and whole-code deletion regressions.
-- Candidate bundle build: `3.0.0.31`; independent preview playback awaits device
+- Device-confirmed build 31 independent preview playback. Decide inline library
+  highlight ownership before Twitch's scroll callback publishes a native tab.
+  Suppress that native selection publication only while the provider section
+  leads the viewport and its footer highlight is available; restore native
+  callbacks at both boundaries, for closed menus and unrelated collections.
+  Add rapid-scroll, entry/exit, unavailable-footer and native-fallback regressions
+  to prevent Recent from competing with the provider shortcut.
+- Candidate bundle build: `3.0.0.32`; stable library selection awaits device
   verification.
 
 ## 2.3.1 (prepared; not published)

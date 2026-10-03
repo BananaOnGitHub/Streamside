@@ -36,6 +36,7 @@ struct Fake {
 static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions,metric_invalidations;
 static unsigned initial_header_layouts;
+static unsigned native_scroll_calls,native_scroll_paints;
 static int last_provider,last_scope;
 static id expected_room;
 static uint64_t catalog_revision=1;
@@ -291,6 +292,20 @@ static void native_footer_apply(id footer,SEL sel,id theme) {
     footer->views[1]->tint=theme;
     footer->views[3]->background=nil;footer->views[4]->background=theme;
 }
+static void native_scroll(id palette,SEL sel,id content) {
+    (void)palette;(void)sel;native_scroll_calls++;
+    if(!content->host)return;
+    State *s=content->host->context;id footer=s->footer;
+    /* This models the inspected native callback's section publication and
+     * subsequent footer paint. Repainting after it cannot retract a queued
+     * native selection: the publication must never happen inside our gap. */
+    native_scroll_paints++;
+    id active=footer->views[0]->tint;
+    if(s->library_highlight_active)active=s->library_colors[3] ? s->library_colors[3] : s->library_colors[4];
+    double leading=content->bounds.origin.y+content->adjusted.top-s->recent_height;
+    U selected=leading<s->library_start+s->library_height ? 0 : 1;
+    for(U i=0;i<3;i++)footer->views[i+3]->background=i==selected ? active : nil;
+}
 int main(void) {
     (void)preview_placeholder_image; /* Composer rendering is mocked in this library-only harness. */
     (void)update_preview_frames;
@@ -377,6 +392,30 @@ int main(void) {
     assert((s.grid->frame.size.height+s.grid->flow->interitem_spacing)/
         (s.grid->flow->bounds.size.height+s.grid->flow->interitem_spacing)==5);
     assert(button->selected && highlight->background==&active && !views[3].background && views[0].tint==&normal);
+    original_palette_scroll=(IMP)native_scroll;
+    /* Entering from Recent must suppress even the first native publication,
+     * then remain solely on the library across rapid scroll callbacks. */
+    ss_test_offset(&native,(Point){0,s.library_start-1});place_library_panel(&s,&native);assert(!s.tab);
+    for(U i=0;i<100;i++) {
+        double y=s.library_start+(i%3)*(s.library_height-1)/2;
+        ss_test_offset(&native,(Point){0,y});palette_scrolled(&native,"scrollViewDidScroll:",&native);
+        assert(s.tab==1 && button->selected && highlight->background==&active);
+        for(U j=0;j<3;j++)assert(!views[j+3].background && views[j].tint==&normal);
+    }
+    assert(!native_scroll_calls && !native_scroll_paints);
+    /* Exact end/start boundaries, unrelated collections, a closed menu and
+     * an unavailable footer retain native callbacks. Re-entry takes ownership. */
+    ss_test_offset(&native,(Point){0,s.library_start+s.library_height});palette_scrolled(&native,"scrollViewDidScroll:",&native);
+    assert(native_scroll_calls==1 && native_scroll_paints==1 && !s.tab && !button->selected && views[4].background==&active);
+    ss_test_offset(&native,(Point){0,s.library_start-1});palette_scrolled(&native,"scrollViewDidScroll:",&native);
+    assert(native_scroll_calls==2 && !s.tab && views[3].background==&active);
+    palette_scrolled(&native,"scrollViewDidScroll:",&decoy);assert(native_scroll_calls==3 && native_scroll_paints==2);
+    s.recent_menu_open=NO;ss_test_offset(&native,(Point){0,s.library_start});palette_scrolled(&native,"scrollViewDidScroll:",&native);
+    assert(native_scroll_calls==4 && !s.tab);
+    s.recent_menu_open=YES;footer.button=nil;palette_scrolled(&native,"scrollViewDidScroll:",&native);
+    assert(native_scroll_calls==5 && !s.library_highlight_active);
+    footer.button=button;palette_scrolled(&native,"scrollViewDidScroll:",&native);
+    assert(native_scroll_calls==5 && s.tab==1 && button->selected && !views[3].background);
     for(int p=0;p<4;p++) {
         ss_test_offset(s.grid,(Point){600,0});
         s.scope->selected=1;scope_changed(&delegate,"ssScope:",s.scope);assert(last_scope==1);

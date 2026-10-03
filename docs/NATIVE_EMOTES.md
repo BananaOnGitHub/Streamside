@@ -92,6 +92,19 @@ that bypass the Objective-C apply wrapper. Owned slots use the inspected native
 UIKit appearance, never Twitch's Swift selected-section model. Diagnostics
 include the footer layout hook and creation/restoration counts.
 
+Twitch 30.4.2's `EmoticonPaletteView.scrollViewDidScroll:` Objective-C wrapper
+(`0x102fff498`) calls the Swift worker at `0x102ffe780`. The worker calculates
+native section anchors and publishes a native selection byte (`0`, `1` or `2`)
+through the reactive subject at its tail (`0x102ffefb4`–`0x102ffefc8`). It has no
+provider-section value. Allowing that publication inside the added gap and then
+repainting our shortcut made Recent compete with the provider highlight.
+The scoped scroll hook therefore measures the current inline section first and
+returns before the native callback only while the library owns the visible
+section and its shortcut highlight exists. Native callbacks resume immediately
+before/after the section, when the menu closes, and when the shortcut is missing.
+Other collections retain their original callback. Native section models and
+footer actions are preserved; no new Swift selection byte is fabricated.
+
 Both composer modes search the complete captured native catalog and existing
 provider libraries with case-insensitive prefixes. Native codes win exact
 name collisions. Sorted native results alternate with provider results in a

@@ -1795,8 +1795,17 @@ static void collection_layout(id content,SEL sel) {
     }
 }
 static void palette_scrolled(id self,SEL sel,id content) {
-    ((void (*)(id,SEL,id))original_palette_scroll)(self,sel,content);
     State *s=state(objc_getAssociatedObject(content,&recent_host_key));
+    if (s) {
+        place_library_panel(s,content); update_inline_selection(s,content);
+        /* Twitch 30.4.2's callback publishes only a native section selection.
+         * The inline provider gap has no native section: publishing Recent
+         * here races our own highlight through Twitch's reactive footer updates.
+         * Decide ownership before that publication, including the entry frame.
+         * Native scrolling/navigation resumes at either end of the gap. */
+        if (s->tab==1 && s->library_highlight_active) return;
+    }
+    ((void (*)(id,SEL,id))original_palette_scroll)(self,sel,content);
     if (s) { place_library_panel(s,content); update_inline_selection(s,content); }
 }
 static void container_layout(id container,SEL sel) {

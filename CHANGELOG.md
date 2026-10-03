@@ -61,7 +61,17 @@
   against case-insensitive fragments anywhere in native and provider emote names,
   following Frosty's substring rule: `awa` finds `wawa`. Keep exact emote-code
   lookup, provider/scope filters, result interleaving and the 64-item limit.
-- Candidate bundle build: `3.0.0.26`; suggestion matching awaits device verification.
+- Device-confirmed build 26 suggestion matching. Preview exact provider codes
+  on the next run-loop turn after UIKit finishes the edit, without a typing
+  debounce or waiting for the image. Reserve attachment bounds immediately;
+  fill arriving images in place without rewriting text or moving the caret.
+- Route the emote-menu backspace through the text editor's deletion path so
+  completed provider previews delete as whole codes, including unloaded
+  placeholders. Preserve keyboard deletion, native validation, selected ranges,
+  ordinary text/emoji deletion and marked composition. Add production-code
+  regression coverage for image arrivals, both backspaces and native serialization.
+- Candidate bundle build: `3.0.0.27`; immediate previews and menu backspace
+  await device verification.
 
 ## 2.3.1 (prepared; not published)
 

@@ -120,6 +120,22 @@ tokenization to Twitch. Provider choices continue through the existing registry,
 preview, send and Recent implementations. Native names are excluded from
 provider preview substitution, including names that collide with provider codes.
 
+Exact provider codes at the caret's end become attachments on the next run-loop
+turn after UIKit applies the edit and selection. There is no typing debounce or
+image-download gate: bounds and the original code attribute reserve the space
+immediately, even without a bitmap. Image completion fills the same attachment
+and invalidates layout/display, preserving the live text and caret. A caret
+inside a literal word or an overlapping selection keeps that word editable;
+marked composition is never substituted. Typing beyond an exact code restores
+literal text if the resulting word no longer matches.
+
+Keyboard backspace deletes the one displayed attachment while native validation
+sees its full code in an isolated expanded snapshot. The emote-menu backspace
+flushes pending previews, then uses the editor's `deleteBackward` rather than
+expanding codes and deleting a single letter. It retains UIKit's selection and
+composed-character deletion. If an unfocused editor omits its didChange callback,
+the resulting logical text is forwarded once to Twitch's native change handler.
+
 The third-party Recent row sits below Twitch's native Frequently Used title
 and above its native history cells. The rendered first header's title is checked
 against the app's localized `Frequently Used` string; Channel/other headers are

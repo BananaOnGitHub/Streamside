@@ -56,9 +56,10 @@ int main(void) {
     memcpy(identity+16,&presence,8); identity[4]=255; /* padding is irrelevant */
     assert(ss_identity_room(identity,56)==12345);
     assert(!ss_identity_room(identity,55) && !ss_identity_room(NULL,56));
-    /* A provider name at the caret remains text while it is being typed or
-     * selected. Space commits it; UTF-16 offsets still include emoji. */
-    assert(!ss_preview_token_safe(3,12,16,12,0));
+    /* Exact names at the caret reserve space immediately; an interior caret
+     * or overlapping selection keeps literal text editable. */
+    assert(ss_preview_token_safe(3,12,16,12,0));
+    assert(ss_preview_token_safe(3,12,16,3,0));
     assert(!ss_preview_token_safe(3,12,16,6,0));
     assert(!ss_preview_token_safe(3,12,16,2,4));
     assert(ss_preview_token_safe(3,12,16,13,0));

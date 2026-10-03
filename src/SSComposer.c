@@ -564,7 +564,7 @@ static void render(id delegate) {
     State *s=state(delegate); if (!s || s->busy || s->preview_scheduled || native_read) return;
     id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
     if (!editor || m0(editor,"markedTextRange")) { objc_release(owner); return; }
-    Range r=selection(editor); SSSpan old[MAX_TOKENS],spans[MAX_TOKENS]; size_t old_n,n=0;
+    Range r=selection(editor); SSSpan old[MAX_TOKENS],spans[MAX_TOKENS]; size_t old_n,n=0; BOOL image_updated=NO;
     id plain=expanded_copy(editor,&r,old,&old_n),text=m0(plain,"string"); U length=number(text,"length");
     if (length>4096) { objc_release(plain); objc_release(owner); return; }
     uint16_t units[4096]; ((void (*)(id,SEL,uint16_t *,Range))objc_msgSend)(text,sel_registerName("getCharacters:range:"),units,(Range){0,length});
@@ -572,8 +572,8 @@ static void render(id delegate) {
     for (U start=0;start<length && n<MAX_TOKENS;) {
         if (ss_space(units[start]) || units[start]==0xfffc) { start++; continue; }
         U end=start; while (end<length && !ss_space(units[end]) && units[end]!=0xfffc) end++;
-        /* Leave the word being typed/selected intact until a delimiter commits
-         * it. A provider name can also be the prefix of an ordinary word. */
+        /* Exact names preview at the word's end, including before a delimiter.
+         * A caret/selection inside literal text must remain editable. */
         BOOL existing=NO;
         for (size_t j=0;j<old_n;j++) if (old[j].start==start && old[j].length==end-start) { existing=YES; break; }
         if (!existing && yes(editor,"isFirstResponder") && !ss_preview_token_safe(start,end,length,r.location,r.length)) { start=end; continue; }
@@ -589,9 +589,13 @@ static void render(id delegate) {
             id previous_metadata=objc_getAssociatedObject(previous,&attachment_metadata_key);
             if (previous_metadata && equal(key(previous_metadata,"id"),key(metadata,"id"))) { attachment=objc_retain(previous); reused=YES; }
         }
-        if (metadata && !attachment) image_request(metadata);
-        if (cached || attachment) {
-            if (!attachment) { attachment=m0((id)attachment_class,"new"); v1(attachment,"setImage:",key(cached,"image")); associate(attachment,&attachment_metadata_key,metadata); }
+        if (metadata) {
+            /* Reserve the emote's geometry before its image is available. The
+             * code attribute gives even a blank placeholder atomic deletion. */
+            if (!attachment) { attachment=m0((id)attachment_class,"new"); associate(attachment,&attachment_metadata_key,metadata); }
+            id bitmap=key(cached,"image");
+            if (bitmap && bitmap!=m0(attachment,"image")) { v1(attachment,"setImage:",bitmap); image_updated=YES; }
+            if (!cached && !m0(attachment,"image")) image_request(metadata);
             double height=22, width=22,aspect=((double (*)(id,SEL))objc_msgSend)(key(metadata,"aspect"),sel_registerName("doubleValue"));
             if (aspect<=0) { Size z=((Size (*)(id,SEL))objc_msgSend)(m0(attachment,"image"),sel_registerName("size")); if (z.height>0) aspect=z.width/z.height; }
             tas_emote_proportions(&width,&height,aspect);
@@ -616,6 +620,14 @@ static void render(id delegate) {
         __atomic_add_fetch(&previewed,n,__ATOMIC_RELAXED);
         /* Attachment attributes must not leak into subsequent ordinary typing. */
         clean_typing_attributes(editor);
+    }
+    if (image_updated) {
+        /* Filling an existing attachment does not change attributed text, so
+         * explicitly invalidate its display/layout without replacing the code
+         * or moving the caret. This also covers an aspect-ratio fallback. */
+        id manager=m0(editor,"layoutManager"); Range all={0,number(m0(editor,"attributedText"),"length")};
+        ((void (*)(id,SEL,Range,Range *))objc_msgSend)(manager,sel_registerName("invalidateLayoutForCharacterRange:actualCharacterRange:"),all,NULL);
+        ((void (*)(id,SEL,Range))objc_msgSend)(manager,sel_registerName("invalidateDisplayForCharacterRange:"),all);
     }
     objc_release(output); objc_release(plain); objc_release(owner);
 }
@@ -1375,7 +1387,9 @@ static void schedule_preview(id delegate) {
     SEL action=sel_registerName("ssPreview:");
     ((void (*)(id,SEL,id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:selector:object:"),delegate,action,nil);
     s->preview_scheduled=YES;
-    ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(delegate,sel_registerName("performSelector:withObject:afterDelay:"),action,nil,0.35);
+    /* Next run-loop turn, after UIKit has applied the edit and selection.
+     * Never convert the live text from shouldChange's validation callback. */
+    ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(delegate,sel_registerName("performSelector:withObject:afterDelay:"),action,nil,0.0);
 }
 static void start_tick(id delegate) {
     State *s=state(delegate); if (!s || s->scheduled) return;
@@ -1633,11 +1647,29 @@ static void scroll_to_recents(State *s) {
         objc_release(content);
     }
 }
+static BOOL menu_backspace(id delegate) {
+    State *s=state(delegate); if (!s || s->busy || native_read) return NO;
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
+    if (!editor || m0(editor,"markedTextRange") || !responds(editor,"deleteBackward")) { objc_release(owner); return NO; }
+    /* Flush a pending preview so a newly completed code is already one
+     * character, even when the emote menu has left the editor unfocused. */
+    ((void (*)(id,SEL,id,SEL,id))objc_msgSend)((id)objc_getClass("NSObject"),sel_registerName("cancelPreviousPerformRequestsWithTarget:selector:object:"),delegate,sel_registerName("ssPreview:"),nil);
+    s->preview_scheduled=NO; render(delegate);
+    id before=m0(m0(editor,"attributedText"),"copy"); uint64_t edits=GET(edited);
+    m0(editor,"deleteBackward");
+    /* Some unfocused UITextInput implementations omit didChange for a
+     * programmatic key. Serialize the resulting value once in that case. */
+    if (edits==GET(edited) && !((BOOL (*)(id,SEL,id))objc_msgSend)(before,sel_registerName("isEqualToAttributedString:"),m0(editor,"attributedText"))) {
+        native_changed(owner,sel_registerName("textViewDidChange:"),editor); INC(edited);
+    }
+    objc_release(before); objc_release(owner); schedule_preview(delegate); return YES;
+}
 static void footer_action(id footer,SEL sel) {
     const char *names[]={"keyboardButtonPressed","recentEmotesButtonPressed","channelEmotesButtonPressed","allEmotesButtonPressed","backspaceButtonPressed"};
     size_t action=0; for (;action<5;action++) if (!strcmp(sel_getName(sel),names[action])) break;
     if (action==5) return;
     id delegate=objc_getAssociatedObject(footer,&footer_key); State *s=state(delegate);
+    if (s && action==4 && menu_backspace(delegate)) { refresh(delegate); start_tick(delegate); return; }
     if (s) { if (action!=4) { restore_native(s); s->tab=0; } expand(delegate); }
     ((void (*)(id,SEL))original_footer_actions[action])(footer,sel);
     if (!s) return;

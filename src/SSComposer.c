@@ -388,6 +388,23 @@ void ss_composer_set_suggestion_mode(int mode) {
 }
 
 static id cached_image(id metadata) { id url=key(metadata,"url"); return url ? m1(images,"objectForKey:",url) : nil; }
+static id preview_placeholder_image(void) {
+    static id image;
+    if (!image) {
+        /* UIKit draws a missing-image box for an attachment with a nil image.
+         * Share one transparent RGBA pixel; attachment bounds reserve its size. */
+        static const unsigned char png[]={
+            0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x00,0x00,0x00,0x0d,0x49,0x48,0x44,0x52,
+            0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x01,0x08,0x06,0x00,0x00,0x00,0x1f,0x15,0xc4,
+            0x89,0x00,0x00,0x00,0x0b,0x49,0x44,0x41,0x54,0x78,0x9c,0x63,0x60,0x00,0x02,0x00,
+            0x00,0x05,0x00,0x01,0x7a,0x5e,0xab,0x3f,0x00,0x00,0x00,0x00,0x49,0x45,0x4e,0x44,
+            0xae,0x42,0x60,0x82
+        };
+        id data=((id (*)(id,SEL,const void *,U))objc_msgSend)((id)objc_getClass("NSData"),sel_registerName("dataWithBytes:length:"),png,(U)sizeof(png));
+        image=objc_retain(m1((id)objc_getClass("UIImage"),"imageWithData:",data));
+    }
+    return image;
+}
 static void image_request(id metadata) {
     id url=key(metadata,"url"); const char *utf8=((const char *(*)(id,SEL))objc_msgSend)(url,sel_registerName("UTF8String"));
     if (!utf8 || !(tas_emotes_is_provider_image_url(utf8) || (key(metadata,"native") && native_image_url(url))) || cached_image(metadata) || key(pending,utf8) || number(pending,"count")>=8) return;
@@ -595,7 +612,9 @@ static void render(id delegate) {
             if (!attachment) { attachment=m0((id)attachment_class,"new"); associate(attachment,&attachment_metadata_key,metadata); }
             id bitmap=key(cached,"image");
             if (bitmap && bitmap!=m0(attachment,"image")) { v1(attachment,"setImage:",bitmap); image_updated=YES; }
-            if (!cached && !m0(attachment,"image")) image_request(metadata);
+            id placeholder=preview_placeholder_image();
+            if (!m0(attachment,"image")) v1(attachment,"setImage:",placeholder);
+            if (!cached && m0(attachment,"image")==placeholder) image_request(metadata);
             double height=22, width=22,aspect=((double (*)(id,SEL))objc_msgSend)(key(metadata,"aspect"),sel_registerName("doubleValue"));
             if (aspect<=0) { Size z=((Size (*)(id,SEL))objc_msgSend)(m0(attachment,"image"),sel_registerName("size")); if (z.height>0) aspect=z.width/z.height; }
             tas_emote_proportions(&width,&height,aspect);

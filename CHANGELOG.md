@@ -70,8 +70,12 @@
   placeholders. Preserve keyboard deletion, native validation, selected ranges,
   ordinary text/emoji deletion and marked composition. Add production-code
   regression coverage for image arrivals, both backspaces and native serialization.
-- Candidate bundle build: `3.0.0.27`; immediate previews and menu backspace
-  await device verification.
+- Device-confirmed build 27 immediate previews and menu backspace. Replace nil
+  loading images with a shared transparent RGBA pixel so UIKit does not draw a
+  white missing-image box. Keep reserved bounds, image requests and whole-code
+  deletion intact; verify alpha bytes and placeholder-to-image replacement.
+- Candidate bundle build: `3.0.0.28`; transparent loading previews await device
+  verification.
 
 ## 2.3.1 (prepared; not published)
 

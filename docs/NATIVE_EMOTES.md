@@ -124,8 +124,10 @@ Exact provider codes at the caret's end become attachments on the next run-loop
 turn after UIKit applies the edit and selection. There is no typing debounce or
 image-download gate: bounds and the original code attribute reserve the space
 immediately, even without a bitmap. Image completion fills the same attachment
-and invalidates layout/display, preserving the live text and caret. A caret
-inside a literal word or an overlapping selection keeps that word editable;
+with the downloaded image. A shared transparent RGBA pixel hides UIKit's
+missing-image box while loading; it never counts as a completed download.
+Image replacement invalidates layout/display, preserving the live text and caret.
+A caret inside a literal word or an overlapping selection keeps that word editable;
 marked composition is never substituted. Typing beyond an exact code restores
 literal text if the resulting word no longer matches.
 

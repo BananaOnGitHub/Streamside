@@ -1,7 +1,10 @@
 """Run production preview/deletion code against a deferred image/UIKit boundary."""
 import os
+import re
 import shutil
+import struct
 import unittest
+import zlib
 import test_composer as composer
 from test_composer_library import replace_body
 
@@ -23,9 +26,10 @@ struct Fake {
     Rect bounds;
     BOOL marked,responder;
 };
-static struct Fake objects[8192],classes[32],editor,owner,delegate,footer,source,typing,meta,cache,bitmap;
+static struct Fake objects[8192],classes[32],editor,owner,delegate,footer,source,typing,meta,cache,bitmap,transparent;
 static U used,class_count;
 static unsigned requests,storage_edits,selection_sets,layouts,displays,notified,validated,fallbacks;
+static unsigned placeholder_decodes;
 static BOOL available,accept=YES,emit_change=YES;
 static Range validated_range;
 static id last_plain;
@@ -102,6 +106,8 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"textStorage"))result=editor_storage(o,sel);
     else if(!strcmp(sel,"string"))result=o;
     else if(!strcmp(sel,"stringWithUTF8String:"))result=ascii(va_arg(args,const char *));
+    else if(!strcmp(sel,"dataWithBytes:length:")){const unsigned char *p=va_arg(args,const unsigned char *);assert(va_arg(args,U)==68 && p[0]==0x89 && p[25]==6);result=&transparent;}
+    else if(!strcmp(sel,"imageWithData:")){assert(va_arg(args,id)==&transparent);placeholder_decodes++;result=&transparent;}
     else if(!strcmp(sel,"length"))result=(id)(uintptr_t)o->length;
     else if(!strcmp(sel,"isKindOfClass:")){Class c=va_arg(args,Class);result=(id)(uintptr_t)!strcmp(o->cls,c->cls);}
     else if(!strcmp(sel,"isMainThread"))result=(id)(uintptr_t)YES;
@@ -183,14 +189,15 @@ int main(void) {
      * the next run-loop turn, never in the active UIKit edit callback. */
     reset("Wide",4,YES);schedule_preview(&delegate);render(&delegate);assert(source.length==4 && !storage_edits);
     ready();assert(source.length==1 && source.units[0]==0xfffc && editor.selected.location==1 && requests==1);
-    id placeholder=source.attachments[0];assert(!placeholder->bitmap && matches(source.codes[0],"Wide"));
+    id placeholder=source.attachments[0];assert(placeholder->bitmap==&transparent && placeholder_decodes==1 && matches(source.codes[0],"Wide"));
     assert(placeholder->bounds.size.width==66 && placeholder->bounds.size.height==22);
+    render(&delegate);assert(requests==2 && placeholder->bitmap==&transparent && placeholder_decodes==1);
     unsigned writes=storage_edits,carets=selection_sets;
     /* A later bitmap hydrates the same character, leaving storage and caret
      * untouched; cache eviction does not cause another download. */
     available=YES;image_changed(&delegate,"ssImages:",nil);ready();
     assert(source.attachments[0]==placeholder && placeholder->bitmap==&bitmap && storage_edits==writes && selection_sets==carets && layouts==1 && displays==1);
-    available=NO;render(&delegate);assert(requests==1 && source.attachments[0]==placeholder);
+    available=NO;render(&delegate);assert(requests==2 && source.attachments[0]==placeholder);
     /* Typing past an exact match turns the expanded, no-longer-exact word
      * back into literal text. Partial words stay editable. */
     replace(&source,(Range){1,0},ascii("X"),NO);editor.selected=(Range){2,0};render(&delegate);
@@ -213,12 +220,29 @@ int main(void) {
      * literal. The existing native footer handles marked composition. */
     reset("Wide",2,YES);render(&delegate);assert(matches(&source,"Wide"));editor.selected=(Range){1,2};render(&delegate);assert(matches(&source,"Wide"));
     reset("Wide",4,YES);editor.marked=YES;render(&delegate);menu();assert(matches(&source,"Wide") && fallbacks==1);
-    assert(validated>=10 && !native_read && !context.busy);return 0;
+    assert(validated>=10 && placeholder_decodes==1 && !native_read && !context.busy);return 0;
 }
 '''
 
 
 class PreviewTests(unittest.TestCase):
+    def test_loading_placeholder_is_a_fully_transparent_rgba_pixel(self):
+        source = (composer.ROOT / "src/SSComposer.c").read_text()
+        body = source.split("static const unsigned char png[]={", 1)[1].split("};", 1)[0]
+        png = bytes(int(value, 16) for value in re.findall(r"0x[0-9a-f]{2}", body))
+        self.assertEqual(png[:8], b"\x89PNG\r\n\x1a\n")
+        offset, compressed = 8, b""
+        while offset < len(png):
+            length = struct.unpack(">I", png[offset:offset+4])[0]
+            tag, data = png[offset+4:offset+8], png[offset+8:offset+8+length]
+            self.assertEqual(struct.unpack(">I", png[offset+8+length:offset+12+length])[0], zlib.crc32(tag+data))
+            if tag == b"IHDR":
+                self.assertEqual(struct.unpack(">IIBBBBB", data), (1, 1, 8, 6, 0, 0, 0))
+            if tag == b"IDAT":
+                compressed += data
+            offset += length + 12
+        self.assertEqual(zlib.decompress(compressed), b"\x00\x00\x00\x00\x00")
+
     def test_immediate_placeholders_image_hydration_and_both_backspace_paths(self):
         zig = os.environ.get("ZIG", shutil.which("zig"))
         if not zig:

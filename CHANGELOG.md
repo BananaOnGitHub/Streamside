@@ -137,8 +137,14 @@
   ordinary/native text and marked input at touch-down so native editing gestures
   keep their behavior. Library feedback is unchanged. Cover touch location,
   scoped gesture priority, duplicate/stale/failed requests and haptic counts.
-- Candidate bundle build: `3.0.0.36`; single composer haptic awaits device
-  verification.
+- Device-confirmed build 36 single composer haptic. Fix the browser handoff
+  starting before the emote sheet's animated dismissal: dismiss only our owned
+  navigation wrapper and open the URL from its completion. Coalesce repeat taps,
+  preserve the URL across sheet destruction, and skip launch if another event
+  has made Twitch inactive. No dismissals are initiated after leaving Twitch.
+  Cover action ordering, detached/wrong wrappers, lifecycle interruption, URL
+  lifetime, repeat taps and unchanged Copy/Done actions at the UIKit boundary.
+- Candidate bundle build: `3.0.0.37`; browser-return fix awaits device testing.
 
 ## 2.3.1 (prepared; not published)
 

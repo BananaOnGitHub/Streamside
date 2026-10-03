@@ -220,7 +220,8 @@ class EmoteImageTests(unittest.TestCase):
         test_composer.ComposerTests().compile_run(THUMBNAILS.replace('#include "SSComposer.c"',source),[zig,"cc","-fblocks"],runtime=True)
 
     def test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged(self):
-        test_composer.ComposerTests().compile_run(ANIMATIONS,["cc","-Wno-cast-function-type","-fsanitize=address,undefined"],runtime=True)
+        zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
+        test_composer.ComposerTests().compile_run(ANIMATIONS,[zig,"cc","-fblocks","-fsanitize=address,undefined"],runtime=True)
 
 
 if __name__=="__main__":unittest.main()

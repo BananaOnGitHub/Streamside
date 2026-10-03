@@ -26,7 +26,7 @@ extern void objc_setAssociatedObject(id, const void *, id, uintptr_t);
 static IMP g_receive, g_size, g_base_size, g_bounds, g_set_bounds, g_textkit_bounds, g_chat_textkit_bounds, g_layer_frame, g_layer_layout, g_tap;
 static IMP g_animated_image;
 static Class g_details_class;
-static char g_metadata_key, g_snapshot_message_key;
+static char g_metadata_key, g_snapshot_message_key, g_details_dismissing_key;
 static char g_animation_key;
 static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
 static uint64_t g_size_calls, g_bounds_calls, g_textkit_calls, g_resolved_ids;
@@ -310,9 +310,21 @@ static void integer_value(id o, const char *s, NSInteger value) {
 static id frame_view(const char *class_name, Rect frame) {
     return ((id (*)(id,SEL,Rect))objc_msgSend)(m0((id)objc_getClass(class_name),"alloc"),sel_registerName("initWithFrame:"),frame);
 }
+static BOOL details_dismiss(id self, id completion) {
+    id nav = m0(self,"navigationController");
+    /* Dismiss only our presented wrapper, never a stream controller or an
+     * ancestor after the details controller has already been detached. */
+    if (!kind(nav,"UINavigationController") || m0(m0(nav,"viewControllers"),"firstObject") != self ||
+        m0(m0(nav,"presentingViewController"),"presentedViewController") != nav ||
+        ((BOOL (*)(id,SEL))objc_msgSend)(nav,sel_registerName("isBeingPresented")) ||
+        ((BOOL (*)(id,SEL))objc_msgSend)(nav,sel_registerName("isBeingDismissed")) ||
+        objc_getAssociatedObject(self,&g_details_dismissing_key)) return NO;
+    objc_setAssociatedObject(self,&g_details_dismissing_key,string("yes"),1);
+    ((void (*)(id,SEL,BOOL,id))objc_msgSend)(nav,sel_registerName("dismissViewControllerAnimated:completion:"),YES,completion);
+    return YES;
+}
 static void details_close(id self, SEL sel, id sender) {
-    (void)sel; (void)sender;
-    ((void (*)(id,SEL,BOOL,id))objc_msgSend)(self,sel_registerName("dismissViewControllerAnimated:completion:"),YES,nil);
+    (void)sel; (void)sender; details_dismiss(self,nil);
 }
 static id html_escape(id value) {
     const char *from[] = {"&", "\"", "'", "<", ">"};
@@ -385,13 +397,26 @@ static id details_cell(id self, SEL sel, id table, id path) {
 }
 static void details_select(id self, SEL sel, id table, id path) {
     (void)sel;
+    if (objc_getAssociatedObject(self,&g_details_dismissing_key)) return;
     ((void (*)(id,SEL,id,BOOL))objc_msgSend)(table,sel_registerName("deselectRowAtIndexPath:animated:"),path,YES);
     NSInteger row = ((NSInteger (*)(id,SEL))objc_msgSend)(path,sel_registerName("row"));
     id metadata = objc_getAssociatedObject(self,&g_metadata_key);
     if (row == 0 || row == 1) v1(m0((id)objc_getClass("UIPasteboard"),"generalPasteboard"),"setString:",key(metadata,row == 0 ? "name" : "url"));
     else if (row == 2) {
         id url = m1((id)objc_getClass("NSURL"),"URLWithString:",key(metadata,"url"));
-        ((void (*)(id,SEL,id,id,id))objc_msgSend)(m0((id)objc_getClass("UIApplication"),"sharedApplication"),sel_registerName("openURL:options:completionHandler:"),url,m0((id)objc_getClass("NSDictionary"),"dictionary"),nil);
+        if (!url) return;
+        /* UIKit owns the copied completion. C block captures are not owning
+         * Objective-C references: keep the URL alive without retaining the
+         * sheet, presenter, composer or stream across the browser handoff. */
+        id held = objc_retain(url);
+        BOOL closing = details_dismiss(self,(id)^{
+            id application = m0((id)objc_getClass("UIApplication"),"sharedApplication");
+            if (((NSInteger (*)(id,SEL))objc_msgSend)(application,sel_registerName("applicationState")) == 0)
+                ((void (*)(id,SEL,id,id,id))objc_msgSend)(application,sel_registerName("openURL:options:completionHandler:"),held,m0((id)objc_getClass("NSDictionary"),"dictionary"),nil);
+            objc_release(held);
+        });
+        if (!closing) objc_release(held);
+        return; /* No UIKit transition is initiated after opening the browser. */
     } else return;
     details_close(self,sel,nil);
 }

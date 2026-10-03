@@ -290,6 +290,8 @@ class ComposerDetailsTests(unittest.TestCase):
                                              [zig, "cc", "-fblocks"], runtime=True)
 
     def test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig)
         source = (composer.ROOT / "src" / "TASEmoteUI.c").read_text()
         # Registration is UIKit infrastructure. Exercise the real presenter,
         # navigation-sheet construction, associations and chat-ID adapter.
@@ -297,8 +299,121 @@ class ComposerDetailsTests(unittest.TestCase):
                               '(void)g_details_load;(void)details_load;(void)details_close;'
                               '(void)details_rows;(void)details_cell;(void)details_select;return YES;')
         composer.ComposerTests().compile_run(SHEET.replace('#include "TASEmoteUI.c"', source),
-                                             ["cc", "-std=gnu11", "-Wno-cast-function-type"], runtime=True)
+                                             [zig, "cc", "-fblocks"], runtime=True)
 
+    def test_browser_handoff_waits_for_owned_sheet_dismissal(self):
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig)
+        composer.ComposerTests().compile_run(BROWSER, [zig, "cc", "-fblocks"], runtime=True)
+
+
+BROWSER = r'''
+#include <assert.h>
+#include <stdarg.h>
+#include "TASEmoteUI.c"
+struct Fake {
+    const char *cls,*text;
+    id nav,presenter,presented,root,metadata,pending;
+    unsigned refs; NSInteger row;
+    BOOL presenting,dismissing;
+};
+struct Block { void *isa; int flags,reserved; void (*invoke)(struct Block *); struct Descriptor { uintptr_t reserved,size; } *descriptor; };
+void *_NSConcreteStackBlock[32];
+static struct Fake classes[16],strings[64],details,nav,stream,home,table,path,metadata,url,url_text,name,application,pasteboard;
+static unsigned class_count,string_count,dismissals,opens,copies;
+static NSInteger application_state;
+static BOOL invalid_url;
+static struct Block *completion;
+Class objc_getClass(const char *name_value) {
+    for(unsigned i=0;i<class_count;i++)if(!strcmp(classes[i].cls,name_value))return &classes[i];
+    assert(class_count<16);classes[class_count].cls=name_value;return &classes[class_count++];
+}
+SEL sel_registerName(const char *s) { return s; }
+id objc_retain(id o) { if(o)o->refs++;return o; }
+void objc_release(id o) { if(o){assert(o->refs);o->refs--;} }
+id objc_getAssociatedObject(id o,const void *k) {
+    if(!o)return nil;
+    if(k==&g_metadata_key)return o->metadata;
+    assert(k==&g_details_dismissing_key);return o->pending;
+}
+void objc_setAssociatedObject(id o,const void *k,id v,uintptr_t policy) {
+    assert(o==&details && k==&g_details_dismissing_key && policy==1);o->pending=v;
+}
+static id dispatch(id o,SEL sel,...) {
+    if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
+    if(!strcmp(sel,"stringWithUTF8String:")){assert(string_count<64);result=&strings[string_count++];result->cls="NSString";result->text=va_arg(args,const char *);}
+    else if(!strcmp(sel,"isKindOfClass:"))result=(id)(uintptr_t)!strcmp(o->cls,va_arg(args,Class)->cls);
+    else if(!strcmp(sel,"objectForKey:")){id k=va_arg(args,id);assert(o==&metadata);result=!strcmp(k->text,"url") ? &url_text : &name;}
+    else if(!strcmp(sel,"navigationController"))result=o->nav;
+    else if(!strcmp(sel,"viewControllers"))result=o;
+    else if(!strcmp(sel,"firstObject"))result=o->root;
+    else if(!strcmp(sel,"presentingViewController"))result=o->presenter;
+    else if(!strcmp(sel,"presentedViewController"))result=o->presented;
+    else if(!strcmp(sel,"isBeingPresented"))result=(id)(uintptr_t)o->presenting;
+    else if(!strcmp(sel,"isBeingDismissed"))result=(id)(uintptr_t)o->dismissing;
+    else if(!strcmp(sel,"deselectRowAtIndexPath:animated:")){assert(o==&table && va_arg(args,id)==&path && va_arg(args,int));}
+    else if(!strcmp(sel,"row"))result=(id)(uintptr_t)o->row;
+    else if(!strcmp(sel,"URLWithString:")){assert(va_arg(args,id)==&url_text);result=invalid_url ? nil : &url;}
+    else if(!strcmp(sel,"sharedApplication"))result=&application;
+    else if(!strcmp(sel,"applicationState"))result=(id)(uintptr_t)application_state;
+    else if(!strcmp(sel,"dictionary"))result=o;
+    else if(!strcmp(sel,"generalPasteboard"))result=&pasteboard;
+    else if(!strcmp(sel,"setString:")){id value=va_arg(args,id);assert(value==&name || value==&url_text);copies++;}
+    else if(!strcmp(sel,"dismissViewControllerAnimated:completion:")){
+        /* A Twitch stream/root dismissal is always a regression. */
+        assert(o==&nav && stream.presented==&nav && !completion && va_arg(args,int));
+        struct Block *block=(struct Block *)va_arg(args,id);
+        if(block){completion=malloc(block->descriptor->size);assert(completion);memcpy(completion,block,block->descriptor->size);}
+        o->dismissing=YES;dismissals++;
+    }
+    else if(!strcmp(sel,"openURL:options:completionHandler:")){
+        assert(o==&application && !stream.presented && !details.nav && !nav.dismissing);
+        assert(va_arg(args,id)==&url && url.refs==1 && va_arg(args,id));assert(!va_arg(args,id));
+        assert(home.presented==&stream);opens++;application_state=2; /* Leave the app only AFTER sheet dismissal. */
+    }
+    else assert(!"unexpected browser action selector");
+    va_end(args);return result;
+}
+id (*objc_msgSend)(id,SEL,...)=dispatch;
+static void setup(void) {
+    assert(!completion);
+    details=(struct Fake){.cls="TASProviderEmoteController",.nav=&nav,.metadata=&metadata};
+    nav=(struct Fake){.cls="UINavigationController",.presenter=&stream,.root=&details};
+    stream=(struct Fake){.cls="UIViewController",.presented=&nav};
+    home=(struct Fake){.cls="UIViewController",.presented=&stream};
+    metadata.cls="NSDictionary";url.refs=1;application_state=0;invalid_url=NO;path.row=2;
+}
+static void finish(void) {
+    /* The sheet and metadata are detached before UIKit invokes its copied
+     * completion. Its URL must survive without a controller reference. */
+    stream.presented=nil;details.nav=nil;details.metadata=nil;nav.dismissing=NO;
+    if(completion){struct Block *block=completion;completion=NULL;objc_release(&url);block->invoke(block);free(block);assert(!url.refs);}
+    assert(home.presented==&stream);
+}
+int main(void) {
+    setup();details_select(&details,"select",&table,&path);
+    assert(dismissals==1 && opens==0 && url.refs==2 && completion);
+    details_select(&details,"select",&table,&path);details_close(&details,"close",nil);
+    assert(dismissals==1 && opens==0 && url.refs==2);
+    finish();assert(opens==1 && application_state==2);
+    application_state=0;details_close(&details,"close",nil);assert(dismissals==1); /* Return cannot dismiss stream. */
+    setup();application_state=1;details_select(&details,"select",&table,&path);
+    finish();assert(dismissals==2 && opens==1); /* Independent interruption: do not launch from inactive app. */
+    setup();invalid_url=YES;details_select(&details,"select",&table,&path);assert(dismissals==2 && url.refs==1 && !details.pending);
+    setup();nav.presenting=YES;details_select(&details,"select",&table,&path);assert(dismissals==2 && url.refs==1);
+    setup();nav.dismissing=YES;details_select(&details,"select",&table,&path);assert(dismissals==2 && url.refs==1);
+    setup();nav.root=&home;details_select(&details,"select",&table,&path);assert(dismissals==2 && url.refs==1);
+    setup();stream.presented=&home;details_select(&details,"select",&table,&path);assert(dismissals==2 && url.refs==1);
+    setup();details.nav=nil;details_select(&details,"select",&table,&path);assert(dismissals==2 && url.refs==1);
+    setup();path.row=0;details_select(&details,"select",&table,&path);
+    assert(copies==1 && dismissals==3 && !completion && opens==1);finish();
+    setup();path.row=1;details_select(&details,"select",&table,&path);
+    assert(copies==2 && dismissals==4 && !completion && opens==1);finish();
+    setup();details_close(&details,"close",nil);assert(dismissals==5 && !completion && opens==1);finish();
+    setup();path.row=3;details_select(&details,"select",&table,&path);assert(dismissals==5 && opens==1 && !details.pending);
+    return 0;
+}
+'''
 
 SHEET = r'''
 #include <assert.h>

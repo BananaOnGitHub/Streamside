@@ -159,6 +159,17 @@ API references: [text-item menus](https://developer.apple.com/documentation/uiki
 Gesture priority uses the documented
 [dynamic failure requirement](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate/gesturerecognizer(_:shouldberequiredtofailby:)).
 
+Details actions dismiss only their owned, currently presented navigation wrapper,
+not Twitch's stream controller or an ancestor. Open in browser waits for the
+[dismissal completion](https://developer.apple.com/documentation/uikit/uiviewcontroller/dismiss(animated:completion:))
+before calling `UIApplication.openURL:options:completionHandler:`. This prevents
+initiating a sheet transition while Twitch is leaving the foreground. An owned
+association coalesces repeated actions during dismissal. The completion retains
+only the URL (explicitly, because this is a C block), releasing it after launch
+or skipping launch if the application is no longer active. It does not capture
+any sheet/composer/stream controller or run dismissal on return. Copy and Done
+retain their immediate-dismiss behavior and share the scoped wrapper guard.
+
 Hide the window-level suggestion strip before presenting details. Its placement
 function returns without raising it while a details request is pending or the
 owning view controller (or a parent) presents any modal. This prevents image,

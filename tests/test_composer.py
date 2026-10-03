@@ -886,6 +886,15 @@ class ComposerTests(unittest.TestCase):
                     (directory / "objc" / h).write_text(RUNTIME + '\nsize_t class_getInstanceSize(Class);\nBOOL class_addIvar(Class,const char *,size_t,uint8_t,const char *);\nconst char *sel_getName(SEL);\n')
             harness=directory / "composer.c"; binary=directory / "composer"
             if runtime:
+                # The host mock is a variadic C function, not arm64's special
+                # objc_msgSend. Fixed floating-argument casts omit x86_64's
+                # variadic vector-register count and make va_arg read garbage.
+                # Adapt only dispatch ABI, keeping production logic unchanged.
+                for result_type in ("id", "void"):
+                    for argument_types in ("id,SEL,double", "id,SEL,SEL,id,double"):
+                        content = content.replace(
+                            f'(({result_type} (*)({argument_types}))objc_msgSend)',
+                            f'(({result_type} (*)(id,SEL,...))objc_msgSend)')
                 content += '\nvoid *_NSConcreteGlobalBlock[32];\n'
                 if 'BOOL tas_emote_ui_modal_visible(' not in content and '#include "TASEmoteUI.c"' not in content:
                     # Neutral modal boundary for harnesses testing unrelated

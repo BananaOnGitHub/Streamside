@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -158,6 +159,8 @@ int main(void) {
 
 class EmoteUITests(unittest.TestCase):
     def test_token_map_sender_bridge_and_scoped_image_frames(self) -> None:
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "objc").mkdir()
@@ -166,8 +169,8 @@ class EmoteUITests(unittest.TestCase):
             (root / "objc/message.h").write_text('#include "runtime.h"\n')
             harness, binary = root / "ui.c", root / "ui"
             harness.write_text(HARNESS)
-            subprocess.run(["cc", "-std=gnu11", "-Wall", "-Wextra", "-Werror",
-                            "-Wno-cast-function-type", "-ffunction-sections", "-fdata-sections",
+            subprocess.run([zig, "cc", "-fblocks", "-std=gnu11", "-Wall", "-Wextra", "-Werror",
+                            "-Wno-cast-function-type-mismatch", "-ffunction-sections", "-fdata-sections",
                             "-fsanitize=address,undefined", "-I", str(root),
                             "-I", str(ROOT / "src"), str(harness), "-Wl,--gc-sections", "-o", str(binary)],
                            check=True, capture_output=True)

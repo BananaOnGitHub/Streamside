@@ -2,6 +2,14 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 42 adds diagnostic-only playback sampling for the selected emote.
+  Count native refresh callbacks and frame changes; report link state, native
+  animation flags, frame/contents presence, loop countdown and visibility gate.
+  Sample already cached animations with a separate main-thread observer; keep
+  32 playback observations apart from sizing/layout traffic. Weak references,
+  a ten-minute sampling window and fixed identity slots bound its lifetime.
+  Normal builds compile it out. Playback/recovery behavior is unchanged; device
+  validation pending.
 - Build 41 retains each channel identifier through its asynchronous emote-catalog
   completion. Plain C blocks do not retain captured object pointers; reading an
   expired string caused the build 40 BTTV callback crash. Release the identifier

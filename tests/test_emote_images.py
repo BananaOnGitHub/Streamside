@@ -259,6 +259,63 @@ int main(void) {
 '''
 
 
+PLAYBACK_MAIN = r"""
+static void test_probe_fire(struct Block *block,id timer) { (void)block;probe_sample_all(timer); }
+static struct Block test_probe_block={.invoke=test_probe_fire};
+id ss_test_probe_block(void) { return (id)&test_probe_block; }
+static uint64_t test_generation=1;
+static unsigned samples,refresh_calls;
+static char playback[320];
+uint64_t tas_emote_probe_generation(uint64_t number) { return number==900123456789012ULL ? test_generation : 0; }
+void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
+    assert(generation==test_generation && number==900123456789012ULL);
+    samples++;snprintf(playback,sizeof(playback),"%s",state);
+}
+void tas_emote_probe_stage(uint64_t number,const char *stage) { (void)number; (void)stage; }
+static void native_refresh(id o,SEL sel,id link) {
+    assert(!strcmp(sel,"displayDidRefresh:") && link==o->link); refresh_calls++;
+    if (!link->paused && o->advance) o->index=(o->index+1)%4;
+}
+int main(void) {
+    struct Fake url={.cls="NSURL",.value="/emoticons/v2/900123456789012/default/dark/1.0"};
+    struct Fake data={.cls="_TtC6Twitch22MessageStringImageData",.inner=&url};
+    struct Fake animation={.cls="FLAnimatedImage",.length=4},link={.cls="CADisplayLink"};
+    struct Fake window_layer={.cls="CALayer",.opacity=1,.bounds={{0,0},{300,600}}},window={.cls="UIWindow",.inner=&window_layer};
+    struct Fake view={.cls="UIView",.window=&window},root={.cls="CALayer",.opacity=1,.parent=&window_layer,.delegate=&view};
+    struct Fake layer={.cls="TWAnimatedImageLayer",.animation=&animation,.inner=&animation,.link=&link,.opacity=1,
+        .advance=YES,.loops=UINT64_MAX,.bounds={{0,0},{28,28}},.projected={{10,10},{28,28}}};
+    struct FakeAttachment attachment={.base={.cls="_TtC6Twitch20ImageAttachmentLayer",.opacity=1,.parent=&root},.data=&data,.animated=&layer};
+    (void)native_set;
+    layer.parent=(id)&attachment;g_probe_refresh=(IMP)native_refresh;
+    /* The animation is already cached; starting tracing must not need setter/layout events. */
+    g_animation_layers=&weak_set;weak_set.members[0]=&layer;weak_set.length=1;
+    tas_emote_ui_probe_start(); assert(samples==1 && strstr(playback,"ticks=0 advances=0"));
+    assert(strstr(playback,"frames=4") && strstr(playback,"contents=1") && strstr(playback,"visibility=visible"));
+    assert(!bindings && !resumes && !set_calls);
+    for (int i=0;i<4;i++) probe_display_refresh(&layer,"displayDidRefresh:",&link);
+    fire(g_probe_timer); assert(refresh_calls==4 && layer.index==0);
+    assert(strstr(playback,"ticks=4 advances=4 index=0")); /* Full loop does not alias as stalled. */
+    layer.advance=NO;
+    for (int i=0;i<3;i++) probe_display_refresh(&layer,"displayDidRefresh:",&link);
+    fire(g_probe_timer); assert(strstr(playback,"ticks=7 advances=4"));
+    link.paused=YES;fire(g_probe_timer);assert(strstr(playback,"link=paused") && strstr(playback,"gate=resume-eligible") && link.paused);
+    layer.link=nil;fire(g_probe_timer);assert(strstr(playback,"link=missing") && strstr(playback,"gate=no-link") && !layer.link);
+    root.hidden=YES;fire(g_probe_timer);assert(strstr(playback,"visibility=hidden"));root.hidden=NO;
+    app_state=2;fire(g_probe_timer);assert(strstr(playback,"visibility=background"));app_state=0;
+    layer.parent=nil;fire(g_probe_timer);assert(strstr(playback,"visibility=detached"));layer.parent=(id)&attachment;
+    layer.projected.origin.y=700;fire(g_probe_timer);assert(strstr(playback,"visibility=offscreen"));layer.projected.origin.y=10;
+    url.value="/emoticons/v2/25/default/dark/1.0";unsigned before=samples;fire(g_probe_timer);assert(samples==before && !g_probe_playheads[0].layer);
+    url.value="/emoticons/v2/900123456789012/default/dark/1.0";fire(g_probe_timer);assert(samples==before+1);
+    id stale=g_probe_timer;test_generation++;tas_emote_ui_probe_start();assert(strstr(playback,"ticks=0 advances=0"));
+    before=samples;fire(stale);assert(samples==before);
+    weak_set.length=0;fire(g_probe_timer);assert(!g_probe_playheads[0].layer);
+    g_probe_started.tv_sec-=600;id last=g_probe_timer;fire(last);assert(!g_probe_timer && last->invalid);
+    assert(!bindings && !resumes && !set_calls); /* Every read is observational. */
+    return 0;
+}
+"""
+
+
 class EmoteImageTests(unittest.TestCase):
     def test_disk_cache_identity_survives_relaunch_order_changes(self):
         zig=os.environ.get("ZIG") or shutil.which("zig")
@@ -295,6 +352,30 @@ class EmoteImageTests(unittest.TestCase):
         source=source.replace('((id (*)(id,SEL,double,BOOL,id))objc_msgSend)','((id (*)(id,SEL,...))objc_msgSend)')
         source=source.replace('static void animation_check(id timer);','extern float ss_test_opacity(id);\nextern Rect ss_test_bounds(id);\nextern Rect ss_test_projection(id,Rect,id);\nstatic void animation_check(id timer);')
         test_composer.ComposerTests().compile_run(ANIMATIONS.replace('#include "TASEmoteUI.c"',source),[zig,"cc","-fblocks","-fsanitize=address,undefined"],runtime=True)
+
+
+    def test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links(self):
+        zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
+        source=(ROOT/"src"/"TASEmoteUI.c").read_text()
+        source=source.replace('((float (*)(id,SEL))objc_msgSend)(ancestor,sel_registerName("opacity"))','ss_test_opacity(ancestor)')
+        for name in ('layer','target'):
+            source=source.replace(f'((Rect (*)(id,SEL))objc_msgSend)({name},sel_registerName("bounds"))',f'ss_test_bounds({name})')
+        source=source.replace('((Rect (*)(id,SEL,Rect,id))objc_msgSend)(layer,sel_registerName("convertRect:toLayer:"),bounds,target)','ss_test_projection(layer,bounds,target)')
+        source=source.replace('((id (*)(id,SEL,double,BOOL,id))objc_msgSend)','((id (*)(id,SEL,...))objc_msgSend)')
+        source=source.replace('static void animation_check(id timer);','extern float ss_test_opacity(id);\nextern Rect ss_test_bounds(id);\nextern Rect ss_test_projection(id,Rect,id);\nstatic void animation_check(id timer);')
+        # Adapt only NSTimer's block packaging: Zig's host backend cannot emit
+        # a global block in this externally visible C entry point. The iOS
+        # artifact compiles the real block; its callback body is exercised here.
+        source=source.replace('(id)^(id fired) { probe_sample_all(fired); }','ss_test_probe_block()')
+        source=source.replace('void tas_emote_ui_probe_start(void) {','extern id ss_test_probe_block(void);\nvoid tas_emote_ui_probe_start(void) {')
+        harness=ANIMATIONS[:ANIMATIONS.index('int main(void) {')]+PLAYBACK_MAIN
+        harness=harness.replace('BOOL hidden,paused,invalid,clips;', 'BOOL hidden,paused,invalid,clips,advance; NSUInteger index;')
+        harness=harness.replace('else if(!strcmp(sel,"displayLink"))', 'else if(!strcmp(sel,"currentFrame"))result=o->inner;\n    else if(!strcmp(sel,"contents"))result=o->inner;\n    else if(!strcmp(sel,"currentFrameIndex"))result=(id)(uintptr_t)o->index;\n    else if(!strcmp(sel,"frameCount"))result=(id)(uintptr_t)o->length;\n    else if(!strcmp(sel,"shouldAnimate"))result=(id)(uintptr_t)YES;\n    else if(!strcmp(sel,"needsDisplayUpdate"))result=nil;\n    else if(!strcmp(sel,"displayLink"))')
+        harness=harness.replace('timer==g_animation_timer', '(timer==g_animation_timer || timer==g_probe_timer)')
+        harness=harness.replace('assert(!o || (o->invalid && !strcmp(o->cls,"NSTimer")))', 'assert(!o || o==&weak_set || (o->invalid && !strcmp(o->cls,"NSTimer")))')
+        # The shared fake weak table models already live rows; no objects are retained by it.
+        harness=harness.replace('#include "TASEmoteUI.c"',source)
+        test_composer.ComposerTests().compile_run(harness,[zig,"cc","-fblocks","-DTAS_EMOTE_DIAGNOSTIC=1","-fsanitize=address,undefined"],runtime=True)
 
 
 if __name__=="__main__":unittest.main()

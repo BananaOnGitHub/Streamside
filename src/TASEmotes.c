@@ -237,6 +237,40 @@ static uint64_t g_probe_last_id;
 static unsigned g_probe_trace_count, g_probe_trace_next;
 static struct { char stage[40], outcome[96]; uint64_t count; } g_probe_counts[24];
 static unsigned g_probe_count_used;
+static uint64_t g_probe_generation;
+static char g_probe_playback[32][416];
+static unsigned g_probe_playback_count, g_probe_playback_next;
+static uint64_t g_probe_playback_samples;
+/* Independent ring: layout traffic cannot evict playback evidence. */
+static uint64_t probe_generation_locked(uint64_t number) {
+    if (!number) return 0;
+    uint64_t result=0;
+    if (g_probe_code[0]) for (size_t r=0;r<=MAX_ROOMS;r++) {
+        Emote *emote=find_word(r==MAX_ROOMS ? &g_global : &g_rooms[r],g_probe_code);
+        if (emote && emote->fake_id==number) { result=g_probe_generation; break; }
+    }
+    if (!result && g_probe_code[0] && number==g_probe_last_id) result=g_probe_generation;
+    return result;
+}
+uint64_t tas_emote_probe_generation(uint64_t number) {
+    pthread_mutex_lock(&g_emote_lock);
+    uint64_t result=probe_generation_locked(number);
+    pthread_mutex_unlock(&g_emote_lock);
+    return result;
+}
+void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
+    if (!generation || !state) return;
+    pthread_mutex_lock(&g_emote_lock);
+    if (generation==g_probe_generation && generation==probe_generation_locked(number)) {
+        g_probe_playback_samples++;
+        snprintf(g_probe_playback[g_probe_playback_next],sizeof(g_probe_playback[0]),
+                 "Playback #%llu id=%llu %s",(unsigned long long)g_probe_playback_samples,
+                 (unsigned long long)number,state);
+        g_probe_playback_next=(g_probe_playback_next+1)%32;
+        if (g_probe_playback_count<32) g_probe_playback_count++;
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+}
 static void probe_append_locked(const char *stage, const char *outcome,
                                 Room *room, Emote *emote, size_t bytes,
                                 size_t position) {
@@ -284,6 +318,9 @@ bool tas_emote_probe_set(const char *code) {
     memset(g_probe_trace,0,sizeof(g_probe_trace));
     memset(g_probe_counts,0,sizeof(g_probe_counts)); g_probe_count_used=0;
     g_probe_events=0; g_probe_last_id=0; g_probe_trace_count=0; g_probe_trace_next=0;
+    g_probe_generation++; if (!g_probe_generation) g_probe_generation++;
+    g_probe_playback_count=g_probe_playback_next=0; g_probe_playback_samples=0;
+    memset(g_probe_playback,0,sizeof(g_probe_playback));
     pthread_mutex_unlock(&g_emote_lock); return true;
 }
 void tas_emote_probe_observe(const char *stage,const char *code,const char *channel,const char *outcome) {
@@ -361,6 +398,15 @@ void tas_emote_probe_status(char *buffer,size_t capacity) {
         g_global.size,g_global.loaded[0],g_global.loaded[1],g_global.loaded[2],
         g_global.pending[0],g_global.pending[1],g_global.pending[2],(unsigned long long)g_probe_events,g_probe_trace_count);
     size_t used=n>0 && (size_t)n<capacity ? (size_t)n : capacity-1;
+    n=snprintf(buffer+used,capacity-used,"Playback samples: %llu; retained: %u (oldest first)\n",
+               (unsigned long long)g_probe_playback_samples,g_probe_playback_count);
+    if (n>0 && (size_t)n<capacity-used) used+=(size_t)n;
+    for (unsigned i=0;i<g_probe_playback_count && used<capacity-1;i++) {
+        unsigned slot=(g_probe_playback_next+32-g_probe_playback_count+i)%32;
+        n=snprintf(buffer+used,capacity-used,"%s\n",g_probe_playback[slot]);
+        if (n<0 || (size_t)n>=capacity-used) break;
+        used+=(size_t)n;
+    }
     for (unsigned i=0;i<g_probe_count_used && used<capacity-1;i++) {
         n=snprintf(buffer+used,capacity-used,"Stage %s %s: %llu\n",g_probe_counts[i].stage,g_probe_counts[i].outcome,
                    (unsigned long long)g_probe_counts[i].count);

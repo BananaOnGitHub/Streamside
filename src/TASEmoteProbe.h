@@ -11,6 +11,8 @@
 #if TAS_EMOTE_DIAGNOSTIC
 bool tas_emote_probe_set(const char *code);
 void tas_emote_probe_status(char *buffer, size_t capacity);
+uint64_t tas_emote_probe_generation(uint64_t number);
+void tas_emote_probe_playback(uint64_t generation, uint64_t number, const char *state);
 void tas_emote_probe_stage(uint64_t number, const char *stage);
 void tas_emote_probe_observe(const char *stage, const char *code,
                             const char *channel, const char *outcome);

@@ -15,7 +15,7 @@ int main(void) {
     room->loaded[0]=true;room->pending[1]=true;room->failures[2]=2;
     add(room,"MissingEmote",0,false);
     uint64_t number=find_word(room,"MissingEmote")->fake_id;
-    char report[24576],tiny[9];
+    char report[32768],tiny[9];
     assert(!tas_emote_probe_set(NULL) && !tas_emote_probe_set(""));
     assert(!tas_emote_probe_set("two words") && !tas_emote_probe_set("line\nbreak"));
     char oversized[98];memset(oversized,'x',97);oversized[97]=0;
@@ -85,6 +85,25 @@ int main(void) {
     assert(!strstr(report,"https://") && !strstr(report,"privateChannel"));
     image_probe_url("https://cdn.7tv.app/emote/unrelated/2x","image-response","unrelated");
     tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"unrelated"));
+    /* Playback is independently bounded, selected, and generation scoped. */
+    uint64_t generation=tas_emote_probe_generation(number); assert(generation);
+    assert(!tas_emote_probe_generation(25));
+    tas_emote_probe_playback(generation,25,"unrelated-playback");
+    for (int i=0;i<80;i++) tas_emote_probe_playback(generation,number,"ticks=80 advances=4 link=running");
+    for (int i=0;i<100;i++) tas_emote_probe_stage(number,i%2 ? "chat-token-sizing" : "chat-image-layer-layout");
+    tas_emote_probe_status(report,sizeof(report));
+    assert(strstr(report,"Playback samples: 80; retained: 32"));
+    assert(!strstr(report,"unrelated-playback"));
+    assert(strstr(report,"Playback #49") && strstr(report,"Playback #80"));
+    assert(!strstr(report,"Playback #48 "));
+    assert(strstr(report,"ticks=80 advances=4 link=running"));
+    memset(tiny,0xff,sizeof(tiny));tas_emote_probe_status(tiny,sizeof(tiny));assert(tiny[8]==0);
+    assert(tas_emote_probe_set("MissingEmote"));
+    tas_emote_probe_playback(generation,number,"stale-sample");
+    tas_emote_probe_status(report,sizeof(report));
+    assert(strstr(report,"Playback samples: 0") && !strstr(report,"stale-sample"));
+    assert(tas_emote_probe_generation(number)!=generation);
+    tas_emote_probe_observe("named-lookup","MissingEmote","123","catalog-hit");
     /* Recovery/eviction evidence does not keep metadata or a channel alive. */
     reset_room_locked(room,true,time(NULL));
     tas_emote_probe_stage(number,"image-request-missing");

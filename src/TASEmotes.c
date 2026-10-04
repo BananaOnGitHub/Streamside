@@ -686,11 +686,14 @@ static void fetch_provider(const char *room_id, uint64_t generation, unsigned ch
                                  "https://api.frankerfacez.com/v1/room/id/%s"};
         snprintf(url, sizeof(url), formats[provider], room_id);
     }
-    id room_string = room_id ? str(room_id) : nil;
+    /* Plain C blocks borrow captured id pointers. Own the autoreleased room
+     * string until completion, including cancellation and stale responses. */
+    id room_string = room_id ? objc_retain(str(room_id)) : nil;
     id session = call0((id)objc_getClass("NSURLSession"), "sharedSession");
     id endpoint = call1((id)objc_getClass("NSURL"), "URLWithString:", str(url));
     if (!session || !endpoint) {
         finish_provider(room_string, generation, provider, 0, 0, 0, TAS_FETCH_UNAVAILABLE, nil);
+        objc_release(room_string);
         return;
     }
     id task = ((id (*)(id, SEL, id, id))objc_msgSend)(
@@ -708,9 +711,13 @@ static void fetch_provider(const char *room_id, uint64_t generation, unsigned ch
                     (id)objc_getClass("NSJSONSerialization"), sel_registerName("JSONObjectWithData:options:error:"),
                     data, (NSUInteger)0, NULL);
             finish_provider(room_string, generation, provider, status, bytes, code, result, parsed);
+            objc_release(room_string);
         });
     if (task) call0(task, "resume");
-    else finish_provider(room_string, generation, provider, 0, 0, 0, TAS_FETCH_UNAVAILABLE, nil);
+    else {
+        finish_provider(room_string, generation, provider, 0, 0, 0, TAS_FETCH_UNAVAILABLE, nil);
+        objc_release(room_string);
+    }
 }
 
 static void ensure_loaded(const char *room_id, bool force) {

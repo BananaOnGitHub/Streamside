@@ -1,10 +1,12 @@
-# Temporary missing-emote diagnostics (builds 39–40)
+# Temporary missing-emote diagnostics (builds 39–41)
 
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
 retained state and the Inspect Emote settings row are absent from normal builds.
 Build 39 only observes the matching/rendering path. Build 40 also separates image
 and HLS transport queues, and observes canceled requests and URL-less failures.
+Build 41 retains channel identifiers until catalog requests finish, fixing the
+expired-string callback crash while preserving build 40's transport separation.
 
 ## Device procedure
 

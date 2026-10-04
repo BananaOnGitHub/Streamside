@@ -2,6 +2,12 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 41 retains each channel identifier through its asynchronous emote-catalog
+  completion. Plain C blocks do not retain captured object pointers; reading an
+  expired string caused the build 40 BTTV callback crash. Release the identifier
+  after completion, cancellation, obsolete responses and task-creation failures.
+  Add a deferred-completion regression that drains the creating autorelease pool
+  and checks all three providers and every release path. Device validation pending.
 - Build 40 gives provider images a separate URL-protocol transport session from
   HLS. Alternate token/manifest downloads in HLS's serial completion queue can
   no longer block emote responses. Keep asynchronous cancellation and recursion

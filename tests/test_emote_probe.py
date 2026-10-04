@@ -70,6 +70,21 @@ int main(void) {
     for (int i=0;i<100;i++) tas_emote_probe_observe("composer","MissingEmote","123",i%2 ? "provider-preview" : "literal-text");
     tas_emote_probe_status(report,sizeof(report));assert(strstr(report,"retained: 48"));
     memset(tiny,0xff,sizeof(tiny));tas_emote_probe_status(tiny,sizeof(tiny));assert(tiny[8]==0);
+    /* Attribute starts, cancellation and URL-less failures by the request,
+     * without publishing the asset URL or NSError's private descriptions. */
+    assert(tas_emote_probe_set("MissingEmote"));
+    const char *url=find_word(room,"MissingEmote")->url;
+    tas_emotes_image_protocol_request(url);
+    tas_emotes_image_protocol_cancel(url);
+    id error=fresh("NSError");error->number=(uint64_t)(int64_t)-1001;
+    tas_emotes_image_result_for_url(url,nil,nil,error);
+    tas_emote_probe_status(report,sizeof(report));
+    assert(strstr(report,"Stage image-protocol-start reached: 1"));
+    assert(strstr(report,"Stage image-protocol-cancel cancelled-before-completion: 1"));
+    assert(strstr(report,"http=0 error=-1001 body=0 type=other"));
+    assert(!strstr(report,"https://") && !strstr(report,"privateChannel"));
+    image_probe_url("https://cdn.7tv.app/emote/unrelated/2x","image-response","unrelated");
+    tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"unrelated"));
     /* Recovery/eviction evidence does not keep metadata or a channel alive. */
     reset_room_locked(room,true,time(NULL));
     tas_emote_probe_stage(number,"image-request-missing");
@@ -87,6 +102,7 @@ class EmoteProbeTests(unittest.TestCase):
         # Replace only the HTTP launch boundary; keep matching and IRC output real.
         source = replace_body(source, "static void ensure_loaded(const char *room_id, bool force)", "    (void)room_id; (void)force;\n")
         harness = HARNESS[:HARNESS.index("int main(void) {")] + MAIN
+        harness = harness.replace('if(!strcmp(sel,"new"))', 'if(!strcmp(sel,"code"))result=(id)(intptr_t)o->number;\n    else if(!strcmp(sel,"new"))')
         harness = harness.replace('#include "TASEmotes.c"', '#include <objc/runtime.h>\nMethod *class_copyMethodList(Class,unsigned *);\nSEL method_getName(Method);\n' + source)
         composer.ComposerTests().compile_run(harness, [zig, "cc", "-fblocks", "-DTAS_EMOTE_DIAGNOSTIC=1", "-fsanitize=address,undefined"], runtime=True)
 

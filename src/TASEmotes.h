@@ -16,8 +16,10 @@ id tas_emotes_rewrite_request_copy(id request);
 void tas_emotes_status(char *buffer, size_t capacity);
 void tas_emotes_image_request(bool has_completion);
 void tas_emotes_image_result(id data, id response, id error);
+void tas_emotes_image_result_for_url(const char *url, id data, id response, id error);
 bool tas_emotes_is_provider_image_url(const char *url);
-void tas_emotes_image_protocol_request(void);
+void tas_emotes_image_protocol_request(const char *url);
+void tas_emotes_image_protocol_cancel(const char *url);
 /* Retained snapshots; callers release them. No chat text is retained. */
 id tas_emotes_metadata_copy(uint64_t synthetic_id);
 id tas_emotes_local_matches_copy(id channel, id content);

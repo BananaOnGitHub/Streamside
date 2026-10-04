@@ -13,6 +13,8 @@ private Twitch symbols.
   Each protocol instance owns its active task; stopping cancels that task and
   prevents further client callbacks, including during reentrant response delivery.
   Manifest processing remains in the completion path, outside `startLoading`.
+  Provider images use a separate session and completion queue from HLS: alternate
+  token/manifest downloads cannot block emote delivery on the HLS queue.
 
 Authenticated startup GraphQL responses are never proxied.
 

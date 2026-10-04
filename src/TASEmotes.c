@@ -132,7 +132,7 @@ static char g_wrapped_key;
 static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
 static uint64_t g_rewritten_frames, g_image_rewrites;
 static uint64_t g_image_with_completion, g_image_without_completion;
-static uint64_t g_image_protocol_requests, g_match_words, g_native_overlaps;
+static uint64_t g_image_protocol_requests, g_image_protocol_cancelled, g_match_words, g_native_overlaps;
 static uint64_t g_words_scanned, g_punctuation_matches;
 static uint64_t g_image_http_ok, g_image_http_error, g_image_transport_error;
 static uint64_t g_image_empty, g_image_gif, g_image_webp, g_image_other;
@@ -391,7 +391,15 @@ bool tas_emotes_is_provider_image_url(const char *url) {
     return false;
 }
 
-void tas_emotes_image_protocol_request(void) { PROBE_INC(g_image_protocol_requests); }
+static void image_probe_url(const char *url, const char *stage, const char *outcome);
+void tas_emotes_image_protocol_request(const char *url) {
+    PROBE_INC(g_image_protocol_requests);
+    image_probe_url(url,"image-protocol-start","reached");
+}
+void tas_emotes_image_protocol_cancel(const char *url) {
+    PROBE_INC(g_image_protocol_cancelled);
+    image_probe_url(url,"image-protocol-cancel","cancelled-before-completion");
+}
 
 /* Twitch persists decoded images under the synthetic CDN URL, before our
  * request rewrite. Launch-order counters therefore reused yesterday's bitmap
@@ -1281,7 +1289,28 @@ static void update_image_aspect(id data, id response) {
     pthread_mutex_unlock(&g_emote_lock);
 }
 
+static void image_probe_url(const char *url, const char *stage, const char *outcome) {
+#if TAS_EMOTE_DIAGNOSTIC
+    if (!url) return;
+    pthread_mutex_lock(&g_emote_lock);
+    if (g_probe_code[0]) for (size_t r=0;r<=MAX_ROOMS;r++) {
+        Room *room=r==MAX_ROOMS ? &g_global : &g_rooms[r];
+        Emote *emote=find_word(room,g_probe_code);
+        if (emote && !strcmp(emote->url,url)) {
+            probe_word_locked(stage,emote->name,strlen(emote->name),r==MAX_ROOMS ? NULL : room,emote,outcome,0);
+            break;
+        }
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+#else
+    (void)url; (void)stage; (void)outcome;
+#endif
+}
+
 void tas_emotes_image_result(id data, id response, id error) {
+    tas_emotes_image_result_for_url(text(call0(call0(response,"URL"),"absoluteString")),data,response,error);
+}
+void tas_emotes_image_result_for_url(const char *request_url, id data, id response, id error) {
     if (error) PROBE_INC(g_image_transport_error);
     else {
         NSInteger status = response && ((BOOL (*)(id, SEL, SEL))objc_msgSend)(
@@ -1298,24 +1327,15 @@ void tas_emotes_image_result(id data, id response, id error) {
     else if (mime && strcmp(mime, "image/webp") == 0) PROBE_INC(g_image_webp);
     else PROBE_INC(g_image_other);
 #if TAS_EMOTE_DIAGNOSTIC
-    const char *url=text(call0(call0(response,"URL"),"absoluteString"));
-    if (url) {
-        pthread_mutex_lock(&g_emote_lock);
-        if (g_probe_code[0]) for (size_t r=0;r<=MAX_ROOMS;r++) {
-            Room *room=r==MAX_ROOMS ? &g_global : &g_rooms[r];
-            Emote *emote=find_word(room,g_probe_code);
-            if (emote && !strcmp(emote->url,url)) {
-                NSInteger status=response && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(response,sel_registerName("respondsToSelector:"),sel_registerName("statusCode"))
-                    ? ((NSInteger (*)(id,SEL))objc_msgSend)(response,sel_registerName("statusCode")) : 0;
-                char result[96];
-                snprintf(result,sizeof(result),"http=%ld error=%d body=%lu type=%s",(long)status,error!=nil,(unsigned long)length,
-                         mime && !strcmp(mime,"image/gif") ? "GIF" : mime && !strcmp(mime,"image/webp") ? "WebP" : "other");
-                probe_append_locked("image-response",result,r==MAX_ROOMS ? NULL : room,emote,length,0);
-                break;
-            }
-        }
-        pthread_mutex_unlock(&g_emote_lock);
-    }
+    NSInteger status=response && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(response,sel_registerName("respondsToSelector:"),sel_registerName("statusCode"))
+        ? ((NSInteger (*)(id,SEL))objc_msgSend)(response,sel_registerName("statusCode")) : 0;
+    NSInteger code=error ? ((NSInteger (*)(id,SEL))objc_msgSend)(error,sel_registerName("code")) : 0;
+    char result[96];
+    snprintf(result,sizeof(result),"http=%ld error=%ld body=%lu type=%s",(long)status,(long)code,(unsigned long)length,
+             mime && !strcmp(mime,"image/gif") ? "GIF" : mime && !strcmp(mime,"image/webp") ? "WebP" : "other");
+    image_probe_url(request_url,"image-response",result);
+#else
+    (void)request_url;
 #endif
 }
 
@@ -1448,6 +1468,7 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "Rewritten frames/image requests: %llu/%llu\n"
         "Image tasks (completion/delegate): %llu/%llu\n"
         "Provider image protocol requests: %llu\n"
+        "Provider image protocol cancellations before completion: %llu\n"
         "Image responses (HTTP 2xx/other/transport error/empty): %llu/%llu/%llu/%llu\n"
         "Image MIME (GIF/WebP/other): %llu/%llu/%llu\n"
         "Matched emote words/native overlaps: %llu/%llu\n"
@@ -1475,6 +1496,7 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_image_with_completion),
         (unsigned long long)PROBE_GET(g_image_without_completion),
         (unsigned long long)PROBE_GET(g_image_protocol_requests),
+        (unsigned long long)PROBE_GET(g_image_protocol_cancelled),
         (unsigned long long)PROBE_GET(g_image_http_ok),
         (unsigned long long)PROBE_GET(g_image_http_error),
         (unsigned long long)PROBE_GET(g_image_transport_error),

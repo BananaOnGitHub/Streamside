@@ -187,7 +187,7 @@ static TASAdSegment g_ad_segments[TAS_MAX_AD_SEGMENTS];
 static size_t g_next_ad_segment;
 
 static char g_association_key;
-static char g_protocol_task_key, g_protocol_stopped_key;
+static char g_protocol_task_key, g_protocol_stopped_key, g_protocol_completed_key;
 static id g_protocol_session;
 static IMP g_original_asset_init;
 static IMP g_original_default_configuration;
@@ -600,11 +600,12 @@ static void protocol_complete(id self, id data, id response, id error) {
     const char *original_url = utf8(msg0(msg0(original, "URL"), "absoluteString"));
     objc_sync_enter(self);
     bool stopped = objc_getAssociatedObject(self, &g_protocol_stopped_key) != nil;
+    objc_setAssociatedObject(self, &g_protocol_completed_key, nsstr("completed"), 1);
     objc_sync_exit(self);
     if (stopped) return;
 
     if (original_url && tas_emotes_is_provider_image_url(original_url))
-        tas_emotes_image_result(data, response, error);
+        tas_emotes_image_result_for_url(original_url, data, response, error);
     id output_data = data, output_response = response, rewritten_response = nil;
     if (original_url && is_twitch_hls_url(original_url)) {
         char detail[256];
@@ -632,13 +633,18 @@ static void protocol_complete(id self, id data, id response, id error) {
     if (rewritten_response) objc_release(rewritten_response);
 }
 
-static id protocol_session(void) {
+static id protocol_session(bool provider_image) {
+    static id image_session;
+    /* HLS completions synchronously fetch alternate tokens/manifests. A
+     * separate session gives images their own serial completion queue, so
+     * those fetches cannot hold image delivery behind an ad-bearing playlist. */
     pthread_mutex_lock(&g_lock);
-    if (!g_protocol_session) {
+    id *slot = provider_image ? &image_session : &g_protocol_session;
+    if (!*slot) {
         id config = msg0((id)objc_getClass("NSURLSessionConfiguration"), "defaultSessionConfiguration");
-        g_protocol_session = objc_retain(msg1((id)objc_getClass("NSURLSession"), "sessionWithConfiguration:", config));
+        *slot = objc_retain(msg1((id)objc_getClass("NSURLSession"), "sessionWithConfiguration:", config));
     }
-    id session = g_protocol_session;
+    id session = *slot;
     pthread_mutex_unlock(&g_lock);
     return session;
 }
@@ -675,13 +681,13 @@ static void protocol_start_loading(id self, SEL command) {
     }
 
     bool provider_image = original_url && tas_emotes_is_provider_image_url(original_url);
-    if (provider_image) tas_emotes_image_protocol_request();
     /* Mark the inner request before it enters our swizzled session factory,
      * so the protocol cannot intercept its own transport recursively. */
-    id session = protocol_session();
+    id session = protocol_session(provider_image);
     objc_sync_enter(self);
     if (!objc_getAssociatedObject(self, &g_protocol_stopped_key)) {
         id held = objc_retain(self);
+        if (provider_image) tas_emotes_image_protocol_request(original_url);
         id task = ((id (*)(id, SEL, id, id))objc_msgSend)(session,
             sel_registerName("dataTaskWithRequest:completionHandler:"), request,
             (id)^(id data, id response, id error) {
@@ -693,6 +699,7 @@ static void protocol_start_loading(id self, SEL command) {
             msg0(task, "resume");
         } else {
             objc_release(held);
+            if (provider_image) tas_emotes_image_result_for_url(original_url, nil, nil, nil);
             protocol_deliver(self, nil, nil, nil);
         }
     }
@@ -706,6 +713,10 @@ static void protocol_stop_loading(id self, SEL command) {
     objc_setAssociatedObject(self, &g_protocol_stopped_key, nsstr("stopped"), 1);
     id task = objc_retain(objc_getAssociatedObject(self, &g_protocol_task_key));
     objc_setAssociatedObject(self, &g_protocol_task_key, nil, 1);
+    if (task && !objc_getAssociatedObject(self, &g_protocol_completed_key)) {
+        const char *url = utf8(msg0(msg0(msg0(self, "request"), "URL"), "absoluteString"));
+        if (tas_emotes_is_provider_image_url(url)) tas_emotes_image_protocol_cancel(url);
+    }
     msg0(task, "cancel");
     objc_release(task);
     objc_sync_exit(self);

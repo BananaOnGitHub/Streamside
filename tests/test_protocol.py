@@ -16,6 +16,7 @@ PRELUDE = r'''
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 typedef struct Fake *id;
 typedef id Class;
 typedef const char *SEL;
@@ -32,22 +33,25 @@ typedef signed char BOOL;
 struct Block { void *isa;int flags,reserved;void (*invoke)(void *,id,id,id);struct {uintptr_t reserved,size;} *descriptor; };
 struct Fake {
     const char *text;
-    id request,client,task,stopped,url,header;
+    id request,client,task,stopped,completed,url,header,session;
     struct Block *completion;
     unsigned resumes,cancels,responses,loads,finishes,failures;
     bool stop_on_response;
     pthread_mutex_t monitor;
 };
-static struct Fake objects[128],session_class,config_class,error_class,session,config;
+static struct Fake objects[256],session_class,config_class,error_class,config;
 static size_t used;
-static unsigned starts,results,rewrites;
+static unsigned starts,results,rewrites,cancellations;
+static bool block_manifest,manifest_entered,release_manifest;
+static pthread_mutex_t manifest_lock=PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t manifest_condition=PTHREAD_COND_INITIALIZER;
 static bool fail_task;
-static char g_protocol_task_key,g_protocol_stopped_key;
+static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key;
 static id g_protocol_session;
 static pthread_mutex_t g_lock=PTHREAD_MUTEX_INITIALIZER;
 void *_NSConcreteStackBlock[32];
 static id fresh(const char *text) {
-    assert(used<128);id o=&objects[used++];o->text=text;
+    assert(used<256);id o=&objects[used++];o->text=text;
     pthread_mutexattr_t attr;pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&o->monitor,&attr);pthread_mutexattr_destroy(&attr);return o;
@@ -65,9 +69,13 @@ static id objc_retain(id o) { return o; }
 static void objc_release(id o) { (void)o; }
 static int objc_sync_enter(id o) { return pthread_mutex_lock(&o->monitor); }
 static int objc_sync_exit(id o) { return pthread_mutex_unlock(&o->monitor); }
-static id objc_getAssociatedObject(id o,const void *k) { return k==&g_protocol_task_key ? o->task:o->stopped; }
+static id objc_getAssociatedObject(id o,const void *k) {
+    return k==&g_protocol_task_key ? o->task : k==&g_protocol_completed_key ? o->completed : o->stopped;
+}
 static void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t policy) {
-    assert(policy==1);if(k==&g_protocol_task_key)o->task=value;else { assert(k==&g_protocol_stopped_key);o->stopped=value; }
+    assert(policy==1);if(k==&g_protocol_task_key)o->task=value;
+    else if(k==&g_protocol_completed_key)o->completed=value;
+    else { assert(k==&g_protocol_stopped_key);o->stopped=value; }
 }
 static void protocol_stop_loading(id,SEL);
 static id dispatch(id o,SEL s,...) {
@@ -82,11 +90,11 @@ static id dispatch(id o,SEL s,...) {
     else if(!strcmp(s,"setURL:"))o->url=va_arg(a,id);
     else if(!strcmp(s,"HTTPBody"))r=nil;
     else if(!strcmp(s,"defaultSessionConfiguration"))r=&config;
-    else if(!strcmp(s,"sessionWithConfiguration:")) { assert(va_arg(a,id)==&config);r=&session; }
+    else if(!strcmp(s,"sessionWithConfiguration:")) { assert(va_arg(a,id)==&config);r=fresh("session"); }
     else if(!strcmp(s,"dataTaskWithRequest:completionHandler:")) {
         id request=va_arg(a,id);struct Block *b=va_arg(a,void *);
         assert(request->header && !strcmp(request->header->text,"1"));
-        if(!fail_task) { r=fresh("task");r->request=request;r->completion=malloc(b->descriptor->size);
+        if(!fail_task) { r=fresh("task");r->session=o;r->request=request;r->completion=malloc(b->descriptor->size);
             memcpy(r->completion,b,b->descriptor->size);starts++; }
     } else if(!strcmp(s,"resume"))o->resumes++;
     else if(!strcmp(s,"cancel"))o->cancels++;
@@ -114,8 +122,11 @@ static bool starts_with(const char *s,const char *part) { return s && !strncmp(s
 static bool is_twitch_hls_url(const char *s) { return contains(s,".m3u8"); }
 static bool is_cached_ad_segment(const char *s) { return contains(s,"blank-ad"); }
 static bool tas_emotes_is_provider_image_url(const char *s) { return contains(s,"cdn.7tv.app"); }
-static void tas_emotes_image_result(id d,id r,id e) { (void)d;(void)r;(void)e;results++; }
-static void tas_emotes_image_protocol_request(void) {}
+static void tas_emotes_image_result_for_url(const char *u,id d,id r,id e) {
+    assert(tas_emotes_is_provider_image_url(u));(void)d;(void)r;(void)e;results++;
+}
+static void tas_emotes_image_protocol_request(const char *u) { assert(tas_emotes_is_provider_image_url(u)); }
+static void tas_emotes_image_protocol_cancel(const char *u) { assert(tas_emotes_is_provider_image_url(u));cancellations++; }
 static void tas_diag_metric(int k,int n) { (void)k;(void)n; }
 static void tas_diag_log_url(const char *k,const char *u,const char *d) { (void)k;(void)u;(void)d; }
 static void cache_twitch_headers(id r) { (void)r; }
@@ -123,7 +134,14 @@ static id normalized_graphql_body(id d) { return d; }
 static char *remove_query_parameter(const char *s,const char *k) { (void)k;return strdup(s); }
 static char *copy_data_text(id d) { return strdup(d->text); }
 static char *process_manifest(const char *u,const char *s,bool custom) {
-    assert(is_twitch_hls_url(u) && starts_with(s,"#EXTM3U") && !custom);rewrites++;return strdup("rewritten");
+    assert(is_twitch_hls_url(u) && starts_with(s,"#EXTM3U") && !custom);
+    pthread_mutex_lock(&manifest_lock);
+    if(block_manifest) {
+        manifest_entered=true;pthread_cond_broadcast(&manifest_condition);
+        while(!release_manifest)pthread_cond_wait(&manifest_condition,&manifest_lock);
+    }
+    pthread_mutex_unlock(&manifest_lock);
+    rewrites++;return strdup("rewritten");
 }
 static size_t data_length(id d) { return strlen(d->text); }
 static id data_from_bytes(const void *p,size_t n) { (void)n;return fresh(p); }
@@ -137,7 +155,14 @@ static id protocol(const char *url) {
     id p=fresh("protocol");p->request=fresh("request");p->request->url=fresh(url);p->client=fresh("client");return p;
 }
 static void complete(id task,id data,id response,id error) {
+    /* Foundation serializes a session's completion handlers on its queue. */
+    pthread_mutex_lock(&task->session->monitor);
     struct Block *b=task->completion;b->invoke(b,data,response,error);free(b);task->completion=NULL;
+    pthread_mutex_unlock(&task->session->monitor);
+}
+struct Completion { id task,data,response; };
+static void *complete_hls(void *context) {
+    struct Completion *c=context;complete(c->task,c->data,c->response,nil);return NULL;
 }
 int main(void) {
     id image=protocol("https://cdn.7tv.app/emote/a/2x.gif");
@@ -150,12 +175,12 @@ int main(void) {
     id cancelled=protocol("https://cdn.7tv.app/emote/b/2x.gif");protocol_start_loading(cancelled,nil);task=cancelled->task;
     protocol_stop_loading(cancelled,nil);assert(!cancelled->task && task->cancels==1);
     complete(task,data,response,nil);assert(!cancelled->client->responses && !cancelled->client->finishes && results==1);
-    protocol_stop_loading(cancelled,nil);assert(task->cancels==1); /* stop is idempotent */
+    protocol_stop_loading(cancelled,nil);assert(task->cancels==1 && cancellations==1); /* stop is idempotent */
     unsigned before=starts;id early=protocol("https://cdn.7tv.app/emote/c/2x.gif");
     protocol_stop_loading(early,nil);protocol_start_loading(early,nil);assert(starts==before && !early->task);
     id reentrant=protocol("https://cdn.7tv.app/emote/d/2x.gif");reentrant->client->stop_on_response=true;
     protocol_start_loading(reentrant,nil);task=reentrant->task;complete(task,data,response,nil);
-    assert(reentrant->client->responses==1 && !reentrant->client->loads && !reentrant->client->finishes && task->cancels==1);
+    assert(reentrant->client->responses==1 && !reentrant->client->loads && !reentrant->client->finishes && task->cancels==1 && cancellations==1);
     id failed=protocol("https://cdn.7tv.app/emote/e/2x.gif");protocol_start_loading(failed,nil);
     complete(failed->task,nil,nil,error);assert(failed->client->failures==1 && !failed->client->finishes && !failed->task);
     fail_task=true;id unavailable=protocol("https://cdn.7tv.app/emote/f/2x.gif");protocol_start_loading(unavailable,nil);
@@ -165,6 +190,25 @@ int main(void) {
     complete(hls->task,manifest,response,nil);assert(rewrites==1 && hls->client->loads==1 && hls->client->finishes==1);
     id blank=protocol("https://video.example/blank-ad.ts");before=starts;protocol_start_loading(blank,nil);
     assert(starts==before && blank->client->loads==1 && blank->client->finishes==1);
+    /* Hold an HLS completion in alternate-network processing. Images must
+     * complete before we release it, with both sessions retaining reuse. The
+     * alarm makes a shared-queue regression fail instead of hanging tests. */
+    alarm(10);block_manifest=true;
+    id blocked=protocol("https://video.example/ad.m3u8");protocol_start_loading(blocked,nil);
+    struct Completion c={blocked->task,manifest,response};pthread_t thread;
+    assert(!pthread_create(&thread,NULL,complete_hls,&c));
+    pthread_mutex_lock(&manifest_lock);
+    while(!manifest_entered)pthread_cond_wait(&manifest_condition,&manifest_lock);
+    pthread_mutex_unlock(&manifest_lock);
+    id independent=protocol("https://cdn.7tv.app/emote/independent/2x.gif");protocol_start_loading(independent,nil);
+    assert(independent->task->session==task->session);
+    assert(blocked->task->session==g_protocol_session);
+    id image_transport=independent->task->session;
+    complete(independent->task,data,response,nil);
+    assert(independent->client->loads==1 && independent->client->finishes==1 && !blocked->client->finishes);
+    assert(image_transport!=blocked->task->session);
+    pthread_mutex_lock(&manifest_lock);release_manifest=true;pthread_cond_broadcast(&manifest_condition);pthread_mutex_unlock(&manifest_lock);
+    assert(!pthread_join(thread,NULL) && blocked->client->finishes==1);alarm(0);
     return 0;
 }
 '''

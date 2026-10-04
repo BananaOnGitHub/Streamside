@@ -1,9 +1,10 @@
-# Temporary missing-emote diagnostic build (39)
+# Temporary missing-emote diagnostics (builds 39–40)
 
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
 retained state and the Inspect Emote settings row are absent from normal builds.
-This build observes the existing matching/rendering path; it does not fix it.
+Build 39 only observes the matching/rendering path. Build 40 also separates image
+and HLS transport queues, and observes canceled requests and URL-less failures.
 
 ## Device procedure
 
@@ -34,12 +35,13 @@ observations plus stage totals; consecutive identical observations coalesce.
 | native-delivery emote-token / literal-text-token | The native delivery callback saw the selected code as an emote or ordinary text, where this callback is used. |
 | named-lookup, local-match, composer | Exact lookup, own-message matching and composer preview decisions. |
 | image-request-mapped, image-response | Target request mapping and observed HTTP/error/byte/image type result. |
+| image-protocol-start / image-protocol-cancel | The selected asset reached transport, or its client canceled before transport completion. Cancellation can be normal when a chat row leaves the screen. |
 | chat-token-sizing, chat-image-layer-frame/layout | Native chat created/accessed the emote token and its image layer. |
 | chat-animation-decoded, chat-layer-has-image | The native animation setter received a decoded object, or the static attachment layer had image contents. |
 
 An absent image request does not itself prove a failure: Twitch can use its
-existing decoded/disk cache. Image responses without a URL cannot be attributed
-to the selected code. A layer-layout event establishes layout, not a successful
+existing decoded/disk cache. Build 40 attributes protocol results using the
+original request, including errors with no response URL. A layer-layout event establishes layout, not a successful
 paint on the device. No selected-code event is also useful when compared with
 the existing WebSocket/native-delivery counters and the screenshot: the affected
 message may have taken another path, such as history, or never passed these hooks.

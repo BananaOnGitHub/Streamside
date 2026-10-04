@@ -2,6 +2,12 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 40 gives provider images a separate URL-protocol transport session from
+  HLS. Alternate token/manifest downloads in HLS's serial completion queue can
+  no longer block emote responses. Keep asynchronous cancellation and recursion
+  guards. Extend the opt-in probe with protocol start/cancel stages and original
+  request attribution for failures without response URLs, including error codes.
+  Device validation of the missing-emote symptom remains pending.
 - Prepare temporary build 39 diagnostics for provider codes that remain text.
   Opt in with `EMOTE_DIAGNOSTIC=1`; normal builds compile out the probe and its
   settings row. Inspect Emote selects one code explicitly, then the copied report

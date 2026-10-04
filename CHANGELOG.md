@@ -2,6 +2,14 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Prepare temporary build 39 diagnostics for provider codes that remain text.
+  Opt in with `EMOTE_DIAGNOSTIC=1`; normal builds compile out the probe and its
+  settings row. Inspect Emote selects one code explicitly, then the copied report
+  includes catalog presence/readiness, case variants, IRC match/rejection/native
+  overlap, native delivery token type, composer lookup, image transport and chat
+  layout/decoded-animation stages. Keep 48 observations and stage totals in
+  memory, reset on a new target or relaunch, and retain no surrounding chat,
+  sender/channel identifiers or URLs. No matching/rendering fix is included.
 - Rename the project and current documentation to Streamside; the sideload app
   and package display name are Twitch Streamside. Both native artifacts now use
   Streamside identities. Keep the jailbreak package ID for upgrade continuity.

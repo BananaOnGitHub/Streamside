@@ -3,6 +3,7 @@
 #include "TASEmoteUI.h"
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
+#include "TASEmoteProbe.h"
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <stdint.h>
@@ -173,6 +174,9 @@ static void animation_check(id timer) {
 }
 static void animated_set_image(id self, SEL sel, id image) {
     ((void (*)(id,SEL,id))g_animated_image)(self,sel,image);
+#if TAS_EMOTE_DIAGNOSTIC
+    if (image) tas_emote_probe_stage(image_layer_id(m0(self,"superlayer")),"chat-animation-decoded");
+#endif
     /* The setter resets its countdown even if a reused layer keeps its URL. */
     if (image!=objc_getAssociatedObject(self,&g_animation_key))
         objc_setAssociatedObject(self,&g_animation_key,nil,1);
@@ -199,7 +203,9 @@ static Rect proportional_layer_frame(Rect rect, uint64_t number) {
 static void layer_set_frame(id self, SEL sel, Rect rect) {
     if (kind(self,"_TtC6Twitch20ImageAttachmentLayer")) {
         INC(g_layer_calls);
-        rect = proportional_layer_frame(rect,image_layer_id(self));
+        uint64_t number=image_layer_id(self);
+        tas_emote_probe_stage(number,"chat-image-layer-frame");
+        rect = proportional_layer_frame(rect,number);
     }
     ((void (*)(id,SEL,Rect))g_layer_frame)(self,sel,rect);
 }
@@ -208,6 +214,10 @@ static void image_layer_layout(id self, SEL sel) {
     INC(g_layer_layouts);
     uint64_t number = image_layer_id(self);
     if (!number) return;
+    tas_emote_probe_stage(number,"chat-image-layer-layout");
+#if TAS_EMOTE_DIAGNOSTIC
+    if (m0(self,"contents")) tas_emote_probe_stage(number,"chat-layer-has-image");
+#endif
     Rect frame = ((Rect (*)(id,SEL))objc_msgSend)(self,sel_registerName("frame"));
     Rect adjusted = proportional_layer_frame(frame,number);
     if (frame.size.width != adjusted.size.width || frame.size.height != adjusted.size.height)
@@ -219,6 +229,7 @@ static uint64_t message_id_at(id message, NSInteger index) {
     if (!responds(message,"emoteLocationsMap")) return 0;
     id number = ((id (*)(id,SEL,NSInteger))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithInteger:"),index);
     uint64_t result = synthetic_id(m1(m0(message,"emoteLocationsMap"),"objectForKey:",number));
+    tas_emote_probe_stage(result,"chat-token-sizing");
     if (result) INC(g_resolved_ids);
     return result;
 }
@@ -352,6 +363,23 @@ static void receive_messages(id self, SEL sel, id manager, id messages, uint32_t
             objc_release(replacement);
         }
     }
+#if TAS_EMOTE_DIAGNOSTIC
+    id delivered=rewritten ?: messages;
+    char channel_number[16]; snprintf(channel_number,sizeof(channel_number),"%u",channel);
+    if (kind(delivered,"NSArray")) for (NSUInteger i=0;i<count(delivered) && i<256;i++) {
+        id message=at(delivered,i);
+        id tokens=responds(message,"messageTokens") ? m0(message,"messageTokens") : nil;
+        if (!kind(tokens,"NSArray")) continue;
+        for (NSUInteger j=0;j<count(tokens) && j<128;j++) {
+            id token=at(tokens,j);
+            BOOL emote=responds(token,"emoteText");
+            id value=emote ? m0(token,"emoteText") : responds(token,"text") ? m0(token,"text") : nil;
+            if (!kind(value,"NSString")) continue;
+            const char *body=((const char *(*)(id,SEL))objc_msgSend)(value,sel_registerName("UTF8String"));
+            tas_emote_probe_text("native-delivery",body,channel_number,emote ? "emote-token" : "literal-text-token");
+        }
+    }
+#endif
     ((void (*)(id,SEL,id,id,uint32_t,uint32_t))g_receive)(self,sel,manager,rewritten ?: messages,user,channel);
     if (rewritten) objc_release(rewritten);
 }

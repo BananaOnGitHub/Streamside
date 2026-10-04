@@ -3,6 +3,7 @@
 #include "TASEmotes.h"
 #include "TASEmoteUI.h"
 #include "SSComposer.h"
+#include "TASEmoteProbe.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -38,7 +39,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.38"
+#define TAS_REPORT_VERSION "3.0.0-build.39"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -51,6 +52,9 @@ static pthread_mutex_t g_diag_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t g_metrics[TAS_DIAG_METRIC_COUNT];
 static uint64_t g_logged_events;
 static id g_diagnostics_path;
+#if TAS_EMOTE_DIAGNOSTIC
+static char g_probe_notice_key;
+#endif
 static Class g_settings_class;
 static Class g_log_class;
 static IMP g_settings_super_view_did_load;
@@ -350,6 +354,11 @@ static id diagnostic_report_create(void) {
              navigation_top[0] ? navigation_top : "none",
              navigation_visible[0] ? navigation_visible : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
+#if TAS_EMOTE_DIAGNOSTIC
+    char probe_status[24576];
+    tas_emote_probe_status(probe_status,sizeof(probe_status));
+    vmsg1(report,"appendString:",nsstr(probe_status));
+#endif
     char ui_status[1024];
     tas_emote_ui_status(ui_status, sizeof(ui_status));
     vmsg1(report, "appendString:", nsstr(ui_status));
@@ -441,7 +450,8 @@ static NSInteger settings_rows_in_section(id self, SEL command, id table, NSInte
     (void)self;
     (void)command;
     (void)table;
-    if (section == 0 || section == 2) return 1;
+    if (section == 0) return 1;
+    if (section == 2) return TAS_EMOTE_DIAGNOSTIC ? 2 : 1;
     if (section == 1) return 3;
     if (section == 3) return 3;
     return 0;
@@ -466,7 +476,11 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
         return nsstr("7TV, BTTV and FFZ emotes in chat. The emote keyboard includes a third-party tab and recents. Suggestions can be automatic, colon-triggered, or off. Changes to the enable switch take effect after relaunching Twitch.");
     }
     if (section == 2) {
+#if TAS_EMOTE_DIAGNOSTIC
+        return nsstr("Inspect Emote traces one code you enter until Twitch restarts. That code is included in the copied report; chat messages are not stored. The trace works while Diagnostic Logging is off.");
+#else
         return nsstr("Logging is off by default. When enabled, channel names and playlist URLs appear as temporary labels (for example, channel-a1b2). Labels reset when Twitch restarts. The log holds up to 512 KiB.");
+#endif
     }
     return nil;
 }
@@ -512,6 +526,12 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
         vmsg1(control, "setAccessibilityLabel:", nsstr("Emote suggestion mode"));
         vmsg1(cell, "setAccessoryView:", control); vmsg_integer(cell, "setSelectionStyle:", 0);
         objc_release(control);
+#if TAS_EMOTE_DIAGNOSTIC
+    } else if (section == 2 && row == 1) {
+        set_cell_text(cell,"Inspect Emote","Trace one code that remains text");
+        id notice=objc_getAssociatedObject(self,&g_probe_notice_key);
+        if (notice) vmsg1(msg0(cell,"detailTextLabel"),"setText:",notice);
+#endif
     } else if (section == 2) {
         set_cell_text(cell, "Diagnostic Logging", diagnostics_enabled() ? "Enabled" : "Disabled");
         id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
@@ -614,6 +634,36 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
     NSInteger row = imsg0(index_path, "row");
     ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
         table, sel_registerName("deselectRowAtIndexPath:animated:"), index_path, YES);
+#if TAS_EMOTE_DIAGNOSTIC
+    if (section==2 && row==1) {
+        id alert=((id (*)(id,SEL,id,id,NSInteger))objc_msgSend)((id)objc_getClass("UIAlertController"),
+            sel_registerName("alertControllerWithTitle:message:preferredStyle:"),nsstr("Inspect Emote"),
+            nsstr("Enter the exact code that stays as text. Return to the affected chat, reproduce it, then copy the diagnostic report. This trace resets when Twitch restarts."),(NSInteger)1);
+        ((void (*)(id,SEL,id))objc_msgSend)(alert,sel_registerName("addTextFieldWithConfigurationHandler:"),(id)^(id field) {
+            vmsg1(field,"setPlaceholder:",nsstr("Emote code (case sensitive)"));
+            vmsg_integer(field,"setAutocorrectionType:",1);
+            vmsg_integer(field,"setAutocapitalizationType:",0);
+        });
+        id field=objc_retain(msg0(msg0(alert,"textFields"),"firstObject"));
+        id controller=objc_retain(self);
+        id start=((id (*)(id,SEL,id,NSInteger,id))objc_msgSend)((id)objc_getClass("UIAlertAction"),
+            sel_registerName("actionWithTitle:style:handler:"),nsstr("Start Trace"),(NSInteger)0,(id)^(id action) {
+                (void)action;
+                bool started=tas_emote_probe_set(utf8(msg0(field,"text")));
+                objc_setAssociatedObject(controller,&g_probe_notice_key,
+                    nsstr(started ? "Trace ready; reproduce in chat" : "Invalid code; tap to retry"),1);
+                msg0(msg0(controller,"tableView"),"reloadData");
+                objc_release(field); objc_release(controller);
+            });
+        id cancel=((id (*)(id,SEL,id,NSInteger,id))objc_msgSend)((id)objc_getClass("UIAlertAction"),
+            sel_registerName("actionWithTitle:style:handler:"),nsstr("Cancel"),(NSInteger)1,(id)^(id action) {
+                (void)action; objc_release(field); objc_release(controller);
+            });
+        vmsg1(alert,"addAction:",start); vmsg1(alert,"addAction:",cancel);
+        ((void (*)(id,SEL,id,BOOL,id))objc_msgSend)(self,sel_registerName("presentViewController:animated:completion:"),alert,YES,nil);
+        return;
+    }
+#endif
     if (section == 1 && row == 1) {
         tas_emotes_clear_cache();
         show_notice(self, "Emote Cache Cleared",

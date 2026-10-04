@@ -5,6 +5,7 @@
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
 #include "TASEmoteUI.h"
+#include "TASEmoteProbe.h"
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <stdint.h>
@@ -727,6 +728,11 @@ static void render(id delegate) {
         if (!existing && yes(editor,"isFirstResponder") && !ss_preview_token_safe(start,end,length,r.location,r.length)) { start=end; continue; }
         id word=sub(text,(Range){start,end-start});
         id metadata=native_named(s,word) ? nil : tas_emotes_named_copy(s->room,word);
+#if TAS_EMOTE_DIAGNOSTIC
+        tas_emote_probe_observe("composer",((const char *(*)(id,SEL))objc_msgSend)(word,sel_registerName("UTF8String")),
+            kind(s->room,"NSString") ? ((const char *(*)(id,SEL))objc_msgSend)(s->room,sel_registerName("UTF8String")) : NULL,
+            metadata ? "provider-preview" : native_named(s,word) ? "native-code" : "literal-text");
+#endif
         id cached=metadata ? cached_image(metadata) : nil,attachment=nil;
         BOOL reused=NO;
         /* Reuse our existing decoded preview after cache eviction; do not keep

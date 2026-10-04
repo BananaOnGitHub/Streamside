@@ -12,6 +12,7 @@
 #include "TASEmoteGeometry.h"
 #include "TASEmoteFetch.h"
 #include "TASDiagnostics.h"
+#include "TASEmoteProbe.h"
 
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -222,6 +223,159 @@ static Emote *find_word(Room *room, const char *word) {
     }
     return NULL;
 }
+
+#if TAS_EMOTE_DIAGNOSTIC
+#define PROBE_TRACE_LIMIT 48
+/* Only the explicitly selected code is retained. No message bodies, user
+ * identities, channel names/IDs or image URLs are copied into the report. */
+static char g_probe_code[97], g_probe_room[32];
+static char g_probe_trace[PROBE_TRACE_LIMIT][224];
+static char g_probe_last[192];
+static bool g_probe_observed;
+static uint64_t g_probe_events;
+static uint64_t g_probe_last_id;
+static unsigned g_probe_trace_count, g_probe_trace_next;
+static struct { char stage[40], outcome[96]; uint64_t count; } g_probe_counts[24];
+static unsigned g_probe_count_used;
+static void probe_append_locked(const char *stage, const char *outcome,
+                                Room *room, Emote *emote, size_t bytes,
+                                size_t position) {
+    g_probe_events++;
+    for (unsigned i=0;i<=g_probe_count_used && i<24;i++) {
+        if (i==g_probe_count_used) {
+            snprintf(g_probe_counts[i].stage,sizeof(g_probe_counts[i].stage),"%s",stage);
+            snprintf(g_probe_counts[i].outcome,sizeof(g_probe_counts[i].outcome),"%s",outcome);
+            g_probe_count_used++;
+        }
+        if (!strcmp(g_probe_counts[i].stage,stage) && !strcmp(g_probe_counts[i].outcome,outcome)) {
+            g_probe_counts[i].count++; break;
+        }
+    }
+    char detail[192];
+    snprintf(detail, sizeof(detail),
+        "%s %s room=%s entries=%zu loaded=%d%d%d pending=%d%d%d id=%llu bytes=%zu pos=%zu rev=%llu",
+        stage, outcome, room ? "resolved" : "missing",
+        room ? room->size : 0, room ? room->loaded[0] : 0, room ? room->loaded[1] : 0,
+        room ? room->loaded[2] : 0, room ? room->pending[0] : 0, room ? room->pending[1] : 0,
+        room ? room->pending[2] : 0, (unsigned long long)(emote ? emote->fake_id : 0),
+        bytes, position, (unsigned long long)tas_emotes_catalog_revision());
+    /* Repeated layout/refresh observations must not evict the useful path. */
+    if (!strcmp(detail,g_probe_last)) return;
+    snprintf(g_probe_last,sizeof(g_probe_last),"%s",detail);
+    snprintf(g_probe_trace[g_probe_trace_next],sizeof(g_probe_trace[0]),"#%llu %s",(unsigned long long)g_probe_events,detail);
+    g_probe_trace_next=(g_probe_trace_next+1)%PROBE_TRACE_LIMIT;
+    if (g_probe_trace_count<PROBE_TRACE_LIMIT) g_probe_trace_count++;
+}
+static void probe_word_locked(const char *stage, const char *word, size_t bytes,
+                              Room *room, Emote *emote, const char *outcome,
+                              size_t position) {
+    if (!g_probe_code[0] || bytes!=strlen(g_probe_code) || memcmp(word,g_probe_code,bytes)) return;
+    snprintf(g_probe_room,sizeof(g_probe_room),"%s",room ? room->id : "");
+    g_probe_observed=true;
+    if (emote) g_probe_last_id=emote->fake_id;
+    probe_append_locked(stage,outcome,room,emote,bytes,position);
+}
+bool tas_emote_probe_set(const char *code) {
+    size_t bytes=code ? strnlen(code,97) : 0;
+    if (!bytes || bytes>96) return false;
+    for (size_t i=0;i<bytes;i++) if ((unsigned char)code[i]<=32 || (unsigned char)code[i]==127) return false;
+    pthread_mutex_lock(&g_emote_lock);
+    memcpy(g_probe_code,code,bytes+1); g_probe_room[0]=0; g_probe_last[0]=0; g_probe_observed=false;
+    memset(g_probe_trace,0,sizeof(g_probe_trace));
+    memset(g_probe_counts,0,sizeof(g_probe_counts)); g_probe_count_used=0;
+    g_probe_events=0; g_probe_last_id=0; g_probe_trace_count=0; g_probe_trace_next=0;
+    pthread_mutex_unlock(&g_emote_lock); return true;
+}
+void tas_emote_probe_observe(const char *stage,const char *code,const char *channel,const char *outcome) {
+    if (!code) return;
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room=NULL;
+    if (channel) for (size_t i=0;i<MAX_ROOMS;i++)
+        if (g_rooms[i].occupied && (!strcmp(g_rooms[i].id,channel) || !strcmp(g_rooms[i].login,channel))) room=&g_rooms[i];
+    Emote *emote=room ? find_word(room,code) : NULL;
+    if (!emote) emote=find_word(&g_global,code);
+    probe_word_locked(stage,code,strlen(code),room,emote,outcome,0);
+    pthread_mutex_unlock(&g_emote_lock);
+}
+void tas_emote_probe_stage(uint64_t number, const char *stage) {
+    if (!number) return;
+    pthread_mutex_lock(&g_emote_lock);
+    bool found=false;
+    if (g_probe_code[0]) for (size_t r=0;r<=MAX_ROOMS;r++) {
+        Room *room=r==MAX_ROOMS ? &g_global : &g_rooms[r];
+        Emote *emote=find_word(room,g_probe_code);
+        if (emote && emote->fake_id==number) {
+            probe_append_locked(stage,"reached",r==MAX_ROOMS ? NULL : room,emote,strlen(g_probe_code),0);
+            found=true;
+            break;
+        }
+    }
+    if (!found && g_probe_code[0] && number==g_probe_last_id) {
+        Emote retired={.fake_id=number};
+        probe_append_locked(stage,"target-no-longer-in-catalog",NULL,&retired,strlen(g_probe_code),0);
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+}
+/* Case variants are evidence only, never used to replace exact lookup. */
+static bool probe_case_equal(const char *a,const char *b) {
+    for (;*a && *b;a++,b++) {
+        unsigned char x=(unsigned char)*a,y=(unsigned char)*b;
+        if (x>='A' && x<='Z') x+='a'-'A';
+        if (y>='A' && y<='Z') y+='a'-'A';
+        if (x!=y) return false;
+    }
+    return *a==*b;
+}
+void tas_emote_probe_status(char *buffer,size_t capacity) {
+    if (!buffer || !capacity) return;
+    pthread_mutex_lock(&g_emote_lock);
+    if (!g_probe_code[0]) {
+        snprintf(buffer,capacity,"\nTemporary emote rendering probe: enabled\nSelect Inspect Emote in Streamside settings, then reproduce and copy this report.\n");
+        pthread_mutex_unlock(&g_emote_lock); return;
+    }
+    Room *room=NULL;
+    const char *context=g_probe_observed ? g_probe_room : g_last_room;
+    for (size_t r=0;r<MAX_ROOMS;r++) if (g_rooms[r].occupied && !strcmp(g_rooms[r].id,context)) room=&g_rooms[r];
+    Emote *local=room ? find_word(room,g_probe_code) : NULL,*global=find_word(&g_global,g_probe_code);
+    size_t elsewhere=0,case_variants=0;
+    for (size_t r=0;r<=MAX_ROOMS;r++) {
+        Room *other=r==MAX_ROOMS ? &g_global : &g_rooms[r];
+        if (other!=room && other!=&g_global && find_word(other,g_probe_code)) elsewhere++;
+        if (other==room || other==&g_global) for (size_t i=0;i<other->size;i++)
+            if (strcmp(other->items[i].name,g_probe_code) && probe_case_equal(other->items[i].name,g_probe_code)) case_variants++;
+    }
+    int n=snprintf(buffer,capacity,
+        "\nTemporary emote rendering probe\nSelected code (entered by tester): %s\n"
+        "Emotes enabled: %s; context: %s\n"
+        "Exact catalog hit channel/global: %s/%s; provider channel/global: %d/%d (0=7TV,1=BTTV,2=FFZ)\n"
+        "Other cached rooms with code: %zu; case variants in current scope: %zu\n"
+        "Context entries: %zu; loaded 7TV/BTTV/FFZ: %d/%d/%d; pending: %d/%d/%d; failures: %u/%u/%u\n"
+        "Global entries: %zu; loaded: %d/%d/%d; pending: %d/%d/%d\n"
+        "Target events: %llu; retained: %u (oldest first)\n",
+        g_probe_code,g_enabled ? "yes" : "no",room ? "resolved" : "missing",
+        local ? "yes" : "no",global ? "yes" : "no",local ? local->provider : -1,global ? global->provider : -1,
+        elsewhere,case_variants,room ? room->size : 0,
+        room ? room->loaded[0] : 0,room ? room->loaded[1] : 0,room ? room->loaded[2] : 0,
+        room ? room->pending[0] : 0,room ? room->pending[1] : 0,room ? room->pending[2] : 0,
+        room ? room->failures[0] : 0,room ? room->failures[1] : 0,room ? room->failures[2] : 0,
+        g_global.size,g_global.loaded[0],g_global.loaded[1],g_global.loaded[2],
+        g_global.pending[0],g_global.pending[1],g_global.pending[2],(unsigned long long)g_probe_events,g_probe_trace_count);
+    size_t used=n>0 && (size_t)n<capacity ? (size_t)n : capacity-1;
+    for (unsigned i=0;i<g_probe_count_used && used<capacity-1;i++) {
+        n=snprintf(buffer+used,capacity-used,"Stage %s %s: %llu\n",g_probe_counts[i].stage,g_probe_counts[i].outcome,
+                   (unsigned long long)g_probe_counts[i].count);
+        if (n<0 || (size_t)n>=capacity-used) break;
+        used+=(size_t)n;
+    }
+    for (unsigned i=0;i<g_probe_trace_count && used<capacity-1;i++) {
+        unsigned slot=(g_probe_trace_next+PROBE_TRACE_LIMIT-g_probe_trace_count+i)%PROBE_TRACE_LIMIT;
+        n=snprintf(buffer+used,capacity-used,"%s\n",g_probe_trace[slot]);
+        if (n<0 || (size_t)n>=capacity-used) break;
+        used+=(size_t)n;
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+}
+#endif
 
 static bool permitted_url(const char *url, unsigned char provider) {
     const char *prefix = provider == 0 ? "https://cdn.7tv.app/emote/" :
@@ -636,15 +790,73 @@ static bool boundary_punctuation(unsigned char c) {
            c == '\'' || c == '"' || c == '<' || c == '>';
 }
 
+#if TAS_EMOTE_DIAGNOSTIC
+void tas_emote_probe_text(const char *stage,const char *body,const char *channel,const char *outcome) {
+    if (!body || strnlen(body,MAX_FRAME+1)>MAX_FRAME) return;
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room=NULL;
+    if (channel) for (size_t i=0;i<MAX_ROOMS;i++)
+        if (g_rooms[i].occupied && (!strcmp(g_rooms[i].id,channel) || !strcmp(g_rooms[i].login,channel))) room=&g_rooms[i];
+    Emote *emote=g_probe_code[0] && room ? find_word(room,g_probe_code) : NULL;
+    if (!emote && g_probe_code[0]) emote=find_word(&g_global,g_probe_code);
+    if (g_probe_code[0]) for (const char *p=body;*p;) {
+        while (*p==' ' || *p=='\t' || *p=='\r' || *p=='\n') p++;
+        const char *word=p;
+        while (*p && *p!=' ' && *p!='\t' && *p!='\r' && *p!='\n') p++;
+        size_t bytes=(size_t)(p-word),start=0,finish=bytes;
+        probe_word_locked(stage,word,bytes,room,emote,outcome,(size_t)(word-body));
+        while (start<finish && boundary_punctuation((unsigned char)word[start])) start++;
+        while (finish>start && boundary_punctuation((unsigned char)word[finish-1])) finish--;
+        if (start || finish!=bytes) probe_word_locked(stage,word+start,finish-start,room,emote,outcome,(size_t)(word-body)+start);
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+}
+/* Observe a rejected IRC line only when its PRIVMSG body contains the selected
+ * code. Never collect the rest of the line, or create a replacement here. */
+static void probe_gate_line(const char *line,size_t length,const char *outcome) {
+    const char *command=strstr(line," PRIVMSG #"),*end=line+length;
+    const char *body=command ? strstr(command," :") : NULL;
+    if (!body || body+2>=end) return;
+    body+=2;
+    pthread_mutex_lock(&g_emote_lock);
+    if (g_probe_code[0]) for (const char *p=body;p<end;) {
+        while (p<end && (*p==' ' || *p=='\t')) p++;
+        const char *word=p;
+        while (p<end && *p!=' ' && *p!='\t') p++;
+        size_t bytes=(size_t)(p-word),start=0,finish=bytes;
+        probe_word_locked("incoming-gate",word,bytes,NULL,NULL,outcome,(size_t)(word-body));
+        while (start<finish && boundary_punctuation((unsigned char)word[start])) start++;
+        while (finish>start && boundary_punctuation((unsigned char)word[finish-1])) finish--;
+        if (start || finish!=bytes) probe_word_locked("incoming-gate",word+start,finish-start,NULL,NULL,outcome,(size_t)(word-body)+start);
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+}
+#endif
+
 /* Returns a replacement for one IRC line, or NULL if it is unchanged. */
 static char *rewrite_line(const char *line, size_t length) {
-    if (length < 3 || line[0] != '@') return NULL;
+    if (length < 3 || line[0] != '@') {
+#if TAS_EMOTE_DIAGNOSTIC
+        probe_gate_line(line,length,"untagged-line");
+#endif
+        return NULL;
+    }
     const char *end = line + length;
     const char *tags_end = strstr(line, " :");
-    if (!tags_end || tags_end >= end) return NULL;
+    if (!tags_end || tags_end >= end) {
+#if TAS_EMOTE_DIAGNOSTIC
+        probe_gate_line(line,length,"tag-boundary-missing");
+#endif
+        return NULL;
+    }
     char room_id[32];
     if (!tag_value(line + 1, tags_end, "room-id", room_id, sizeof(room_id)) ||
-        !valid_room(room_id)) return NULL;
+        !valid_room(room_id)) {
+#if TAS_EMOTE_DIAGNOSTIC
+        probe_gate_line(line,length,"room-id-missing-or-invalid");
+#endif
+        return NULL;
+    }
     const char *privmsg = strstr(tags_end, " PRIVMSG #");
     bool message = privmsg && privmsg < end;
     if (!message && !strstr(tags_end, " ROOMSTATE #")) return NULL;
@@ -713,6 +925,9 @@ static char *rewrite_line(const char *line, size_t length) {
                 size_t first = position + codepoints(word, trim_start);
                 size_t matched_span = codepoints(word + trim_start, trim_end - trim_start);
                 if (overlaps_native(line + 1, tags_end, first, first + matched_span - 1)) {
+#if TAS_EMOTE_DIAGNOSTIC
+                    probe_word_locked("incoming",word+trim_start,trim_end-trim_start,room,emote,"native-overlap",first);
+#endif
                     PROBE_INC(g_native_overlaps);
                     position += span;
                     continue;
@@ -721,9 +936,25 @@ static char *rewrite_line(const char *line, size_t length) {
                 int n = snprintf(additions + written, sizeof(additions) - written,
                                  "%s%llu:%zu-%zu", written ? "/" : "",
                                  (unsigned long long)emote->fake_id, first, first + matched_span - 1);
-                if (n > 0 && (size_t)n < sizeof(additions) - written) written += (size_t)n;
-                else break;
+                if (n > 0 && (size_t)n < sizeof(additions) - written) {
+                    written += (size_t)n;
+#if TAS_EMOTE_DIAGNOSTIC
+                    probe_word_locked("incoming",word+trim_start,trim_end-trim_start,room,emote,"tag-appended",first);
+#endif
+                } else {
+#if TAS_EMOTE_DIAGNOSTIC
+                    probe_word_locked("incoming",word+trim_start,trim_end-trim_start,room,emote,"tag-capacity",first);
+#endif
+                    break;
+                }
             }
+#if TAS_EMOTE_DIAGNOSTIC
+            else {
+                probe_word_locked("incoming",word,bytes,room,NULL,"catalog-miss",position);
+                if (trim_start || trim_end!=bytes)
+                    probe_word_locked("incoming-trimmed",word+trim_start,trim_end-trim_start,room,NULL,"catalog-miss",position+codepoints(word,trim_start));
+            }
+#endif
         }
         position += span;
     }
@@ -764,7 +995,12 @@ static id rewrite_message(id message) {
     const char *input = text(call0(message, "string"));
     if (!input) return nil;
     size_t length = strnlen(input, MAX_FRAME + 1);
-    if (length > MAX_FRAME || input[0] != '@') return nil;
+    if (length > MAX_FRAME || input[0] != '@') {
+#if TAS_EMOTE_DIAGNOSTIC
+        if (length<=MAX_FRAME) probe_gate_line(input,length,"untagged-frame");
+#endif
+        return nil;
+    }
     PROBE_INC(g_tagged_frames);
     char *output = malloc(length * 2 + 4096);
     if (!output) return nil;
@@ -941,6 +1177,9 @@ id tas_emotes_named_copy(id channel, id name) {
     Room *room=picker_room_locked(channel);
     Emote *e=room ? find_word(room,word) : NULL;
     if (!e) e=find_word(&g_global,word);
+#if TAS_EMOTE_DIAGNOSTIC
+    probe_word_locked("named-lookup",word,strlen(word),room,e,e ? "catalog-hit" : "catalog-miss",0);
+#endif
     id result=e ? metadata_locked(e) : nil;
     pthread_mutex_unlock(&g_emote_lock); return result;
 }
@@ -969,6 +1208,9 @@ id tas_emotes_local_matches_copy(id channel, id content) {
         char word[97]; memcpy(word, start, n); word[n] = 0;
         Emote *e = room ? find_word(room, word) : NULL;
         if (!e) e = find_word(&g_global, word);
+#if TAS_EMOTE_DIAGNOSTIC
+        probe_word_locked("local-match",word,n,room,e,e ? "catalog-hit" : "catalog-miss",(size_t)(start-body));
+#endif
         if (e) {
             char number[32]; snprintf(number, sizeof(number), "%llu", (unsigned long long)e->fake_id);
             ((void (*)(id, SEL, id, id))objc_msgSend)(matches, sel_registerName("setObject:forKey:"), str(number), str(e->name));
@@ -1006,6 +1248,7 @@ id tas_emotes_rewrite_request_copy(id request) {
     pthread_mutex_lock(&g_emote_lock);
     char *image = url_for_id_locked(fake_id, time(NULL));
     pthread_mutex_unlock(&g_emote_lock);
+    tas_emote_probe_stage(fake_id,image ? "image-request-mapped" : "image-request-missing");
     if (!image) return nil;
     PROBE_INC(g_image_rewrites);
     id destination = call1((id)objc_getClass("NSURL"), "URLWithString:", str(image));
@@ -1054,6 +1297,26 @@ void tas_emotes_image_result(id data, id response, id error) {
     if (mime && strcmp(mime, "image/gif") == 0) PROBE_INC(g_image_gif);
     else if (mime && strcmp(mime, "image/webp") == 0) PROBE_INC(g_image_webp);
     else PROBE_INC(g_image_other);
+#if TAS_EMOTE_DIAGNOSTIC
+    const char *url=text(call0(call0(response,"URL"),"absoluteString"));
+    if (url) {
+        pthread_mutex_lock(&g_emote_lock);
+        if (g_probe_code[0]) for (size_t r=0;r<=MAX_ROOMS;r++) {
+            Room *room=r==MAX_ROOMS ? &g_global : &g_rooms[r];
+            Emote *emote=find_word(room,g_probe_code);
+            if (emote && !strcmp(emote->url,url)) {
+                NSInteger status=response && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(response,sel_registerName("respondsToSelector:"),sel_registerName("statusCode"))
+                    ? ((NSInteger (*)(id,SEL))objc_msgSend)(response,sel_registerName("statusCode")) : 0;
+                char result[96];
+                snprintf(result,sizeof(result),"http=%ld error=%d body=%lu type=%s",(long)status,error!=nil,(unsigned long)length,
+                         mime && !strcmp(mime,"image/gif") ? "GIF" : mime && !strcmp(mime,"image/webp") ? "WebP" : "other");
+                probe_append_locked("image-response",result,r==MAX_ROOMS ? NULL : room,emote,length,0);
+                break;
+            }
+        }
+        pthread_mutex_unlock(&g_emote_lock);
+    }
+#endif
 }
 
 static id private_task(id self, SEL command, id request) {

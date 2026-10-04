@@ -318,6 +318,29 @@ int main(void) {
 '''
 
 
+LONG_DELAY = ANIMATION[:ANIMATION.index('    struct Fake animation=')] + r'''
+    (void)menu;(void)ready;
+    struct Fake animation={.cls="FLAnimatedImage",.length=3},delays={.cls="FrameDelays"};
+    struct Fake d0={.seconds=0.1},d1={.seconds=0.2},d2={.seconds=12.5};
+    delays.children[0]=&d0;delays.children[1]=&d1;delays.children[2]=&d2;animation.value=&delays;animation.host=&animation;
+    id frame1=create("UIImage"),frame2=create("UIImage");animation.children[0]=&bitmap;animation.children[1]=frame1;animation.children[2]=frame2;
+    cache.animation=&animation;reset("Wide",4,YES);available=YES;render(&delegate);
+    id attachment=source.attachments[0];unsigned writes=storage_edits,carets=selection_sets;
+    assert(preview_frame_delay(&animation,2)==12.5);
+    pulse(100);pulse(100.11);pulse(100.32);assert(attachment->bitmap==frame2);
+    for(unsigned i=1;i<=49;i++){pulse(100.32+i*0.25);assert(attachment->bitmap==frame2 && context.animation_frames[0].index==2);}
+    pulse(112.82);assert(attachment->bitmap==&bitmap && context.animation_frames[0].index==0);
+    assert(storage_edits==writes && selection_sets==carets);
+    d2.seconds=0.01999999955;assert(preview_frame_delay(&animation,2)==d2.seconds); /* ImageIO float rounding at 20 ms. */
+    d2.seconds=INFINITY;assert(preview_frame_delay(&animation,2)==0.1);
+    d2.seconds=NAN;assert(preview_frame_delay(&animation,2)==0.1);
+    d2.seconds=-1;assert(preview_frame_delay(&animation,2)==0.1);
+    d2.seconds=0.001;assert(preview_frame_delay(&animation,2)==0.1);
+    delays.children[2]=nil;assert(preview_frame_delay(&animation,2)==0.1);
+    clear_preview_frames(&context);return 0;
+}
+'''
+
 ISOLATION = ANIMATION[:ANIMATION.index('    struct Fake animation=')] + r'''
     struct Fake animation={.cls="FLAnimatedImage",.length=12},delays={.cls="FrameDelays"},delay={.seconds=0.1};
     animation.value=&delays;animation.host=&animation;
@@ -383,6 +406,9 @@ class PreviewTests(unittest.TestCase):
 
     def test_animation_timing_refresh_deletion_and_visibility(self):
         self.run_preview(ANIMATION)
+
+    def test_final_frame_long_hold_and_float_precision_are_preserved(self):
+        self.run_preview(LONG_DELAY)
 
     def test_independent_suggestion_and_composer_frame_cache_windows(self):
         self.run_preview(ISOLATION)

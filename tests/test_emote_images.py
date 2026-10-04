@@ -125,13 +125,16 @@ ANIMATIONS = r'''
 #include <stdarg.h>
 #include <assert.h>
 #include "TASEmoteUI.c"
-struct Fake { const char *cls,*value; id inner,animation,link,parent,bound; BOOL hidden,paused; NSUInteger loops; };
+struct Block { void *isa; int flags,reserved; void (*invoke)(struct Block *,id); };
+struct Fake { const char *cls,*value; id inner,animation,link,parent,bound,delegate,window,members[16]; BOOL hidden,paused,invalid,clips; NSUInteger loops,length; float opacity; Rect bounds,projected; double interval,tolerance; struct Block *block; };
 struct FakeAttachment { struct Fake base; Rect content; id data,requester,animated; };
 static struct Fake classes[]={{.cls="NSString"},{.cls="_TtC6Twitch20ImageAttachmentLayer"},
-    {.cls="_TtC6Twitch22MessageStringImageData"},{.cls="TWAnimatedImageLayer"}};
+    {.cls="_TtC6Twitch22MessageStringImageData"},{.cls="TWAnimatedImageLayer"},{.cls="UIApplication"},
+    {.cls="UIView"},{.cls="NSHashTable"},{.cls="NSTimer"},{.cls="NSRunLoop"}};
 static struct Fake host={.cls="NSString",.value="static-cdn.jtvnw.net"},temporary;
-static unsigned bindings,resumes;
-Class objc_getClass(const char *name) { for(size_t i=0;i<4;i++)if(!strcmp(classes[i].cls,name))return &classes[i];return nil; }
+static struct Fake weak_set,snapshot,application,runloop,timers[16];
+static unsigned bindings,resumes,created,invalidated,set_calls; static NSInteger app_state;
+Class objc_getClass(const char *name) { for(size_t i=0;i<sizeof(classes)/sizeof(classes[0]);i++)if(!strcmp(classes[i].cls,name))return &classes[i];return nil; }
 Class object_getClass(id o) { return o; }
 SEL sel_registerName(const char *name) { return name; }
 static ptrdiff_t offsets[]={offsetof(struct FakeAttachment,content),offsetof(struct FakeAttachment,requester),offsetof(struct FakeAttachment,animated)};
@@ -156,24 +159,58 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"staticURL"))result=o->inner;
     else if(!strcmp(sel,"animatedURL"))result=nil;
     else if(!strcmp(sel,"superlayer"))result=o->parent;
+    else if(!strcmp(sel,"delegate"))result=o->delegate;
+    else if(!strcmp(sel,"window"))result=o->window;
+    else if(!strcmp(sel,"layer"))result=o->inner;
+    else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
+    else if(!strcmp(sel,"masksToBounds"))result=(id)(uintptr_t)o->clips;
     else if(!strcmp(sel,"animatedImage"))result=o->animation;
     else if(!strcmp(sel,"displayLink"))result=o->link;
     else if(!strcmp(sel,"isPaused"))result=(id)(uintptr_t)o->paused;
     else if(!strcmp(sel,"setLoopCountdown:")) { o->loops=va_arg(args,NSUInteger);bindings++; }
+    else if(!strcmp(sel,"loopCountdown"))result=(id)(uintptr_t)o->loops;
+    else if(!strcmp(sel,"sharedApplication"))result=&application;
+    else if(!strcmp(sel,"applicationState"))result=(id)(uintptr_t)app_state;
+    else if(!strcmp(sel,"weakObjectsHashTable"))result=&weak_set;
+    else if(!strcmp(sel,"addObject:")) {
+        id value=va_arg(args,id);NSUInteger i=0;for(;i<o->length;i++)if(o->members[i]==value)break;
+        if(i==o->length){assert(i<16);o->members[o->length++]=value;}
+    }
+    else if(!strcmp(sel,"removeObject:")) {
+        id value=va_arg(args,id);for(NSUInteger i=0;i<o->length;i++)if(o->members[i]==value){memmove(o->members+i,o->members+i+1,(o->length-i-1)*sizeof(id));o->length--;break;}
+    }
+    else if(!strcmp(sel,"allObjects")){snapshot=*o;result=&snapshot;}
+    else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->length;
+    else if(!strcmp(sel,"objectAtIndex:")){NSUInteger i=va_arg(args,NSUInteger);assert(i<o->length);result=o->members[i];}
+    else if(!strcmp(sel,"timerWithTimeInterval:repeats:block:")){
+        assert(created<16);result=&timers[created++];result->cls="NSTimer";result->interval=va_arg(args,double);assert(va_arg(args,int));result->block=(struct Block *)va_arg(args,id);assert(result->interval==1.0 && result->block);
+    }
+    else if(!strcmp(sel,"setTolerance:")){o->tolerance=va_arg(args,double);assert(o->tolerance==0.25);}
+    else if(!strcmp(sel,"mainRunLoop"))result=&runloop;
+    else if(!strcmp(sel,"addTimer:forMode:")){id timer=va_arg(args,id),mode=va_arg(args,id);assert(timer==g_animation_timer && !strcmp(mode->value,"kCFRunLoopCommonModes"));}
+    else if(!strcmp(sel,"invalidate")){assert(!o->invalid);o->invalid=YES;invalidated++;}
     else if(!strcmp(sel,"updateAnimationState")) { if(o->parent && !o->hidden && o->animation) { o->link->paused=NO;resumes++; } }
     else assert(!"unexpected animation selector");
     va_end(args);return result;
 }
 id (*objc_msgSend)(id,SEL,...)=dispatch;
+id objc_retain(id o) { assert(!o || o==&weak_set || !strcmp(o->cls,"NSTimer"));return o; }
+void objc_release(id o) { assert(!o || (o->invalid && !strcmp(o->cls,"NSTimer"))); }
+float ss_test_opacity(id layer) { return layer->opacity; }
+Rect ss_test_bounds(id layer) { return layer->bounds; }
+Rect ss_test_projection(id layer,Rect bounds,id destination) { (void)bounds;assert(destination);return layer->projected; }
 id objc_getAssociatedObject(id o,const void *k) { assert(k==&g_animation_key);return o->bound; }
 void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t policy) { assert(k==&g_animation_key && policy==1);o->bound=value; }
-static void native_set(id o,SEL sel,id image) { (void)sel;if(o->animation!=image){o->animation=image;o->loops=3;o->link->paused=YES;} }
+static void native_set(id o,SEL sel,id image) { (void)sel;set_calls++;if(o->animation!=image){o->animation=image;o->loops=3;o->link->paused=YES;} }
+static void fire(id timer) { timer->block->invoke(timer->block,timer); }
 int main(void) {
     struct Fake url={.cls="NSURL",.value="/emoticons/v2/900123456789012/default/dark/1.0"};
     struct Fake data={.cls="_TtC6Twitch22MessageStringImageData",.inner=&url};
     struct Fake animation={.cls="FLAnimatedImage"},replacement={.cls="FLAnimatedImage"},link={.cls="CADisplayLink",.paused=YES};
-    struct Fake layer={.cls="TWAnimatedImageLayer",.link=&link};
-    struct FakeAttachment attachment={.base={.cls="_TtC6Twitch20ImageAttachmentLayer"},.data=&data,.animated=&layer};
+    struct Fake window_layer={.cls="CALayer",.opacity=1,.bounds={{0,0},{300,600}}},window={.cls="UIWindow",.inner=&window_layer,.bounds={{0,0},{300,600}}};
+    struct Fake view={.cls="UIView",.window=&window},root={.cls="CALayer",.opacity=1,.parent=&window_layer,.delegate=&view};
+    struct Fake layer={.cls="TWAnimatedImageLayer",.link=&link,.opacity=1,.bounds={{0,0},{28,28}},.projected={{10,10},{28,28}}};
+    struct FakeAttachment attachment={.base={.cls="_TtC6Twitch20ImageAttachmentLayer",.opacity=1,.parent=&root},.data=&data,.animated=&layer};
     layer.parent=(id)&attachment;g_animated_image=(IMP)native_set;
     animated_set_image(&layer,"setAnimatedImage:",&animation);
     assert(bindings==1 && layer.loops==UINT64_MAX && !link.paused && resumes==1);
@@ -188,6 +225,35 @@ int main(void) {
     animated_set_image(&layer,"setAnimatedImage:",&animation);assert(layer.loops==3 && link.paused && bindings==2);
     url.value="/emoticons/v2/900123456789012/default/dark/1.0";
     animated_set_image(&layer,"setAnimatedImage:",nil);assert(!layer.bound && !layer.animation);
+    assert(created==1 && weak_set.length==0);fire(g_animation_timer);assert(!g_animation_timer && invalidated==1);
+    animated_set_image(&layer,"setAnimatedImage:",&animation);assert(created==2 && weak_set.length==1);
+    unsigned before=resumes,writes=set_calls;link.paused=YES;fire(g_animation_timer);
+    assert(!link.paused && resumes==before+1 && set_calls==writes); /* No layout/image event required; no decoder reset. */
+    NSUInteger before_bindings=bindings;layer.loops=0;link.paused=YES;fire(g_animation_timer);
+    assert(layer.loops==UINT64_MAX && !link.paused && bindings==before_bindings+1 && set_calls==writes);
+    before=resumes;root.hidden=YES;link.paused=YES;provider_animation((id)&attachment);assert(link.paused && resumes==before);fire(g_animation_timer);
+    assert(link.paused && resumes==before && !g_animation_timer);
+    root.hidden=NO;provider_animation((id)&attachment);assert(g_animation_timer && !link.paused);
+    layer.projected.origin.y=700;link.paused=YES;before=resumes;fire(g_animation_timer);
+    assert(link.paused && resumes==before && !g_animation_timer); /* Offscreen viewport. */
+    layer.projected.origin.y=10;provider_animation((id)&attachment);
+    root.clips=YES;root.bounds=(Rect){{0,0},{5,5}};link.paused=YES;before=resumes;fire(g_animation_timer);
+    assert(link.paused && resumes==before && !g_animation_timer); /* Inside window but outside chat viewport. */
+    root.clips=NO;provider_animation((id)&attachment);
+    root.opacity=0;link.paused=YES;before=resumes;fire(g_animation_timer);
+    assert(link.paused && resumes==before && !g_animation_timer);
+    root.opacity=1;provider_animation((id)&attachment);
+    app_state=2;link.paused=YES;before=resumes;fire(g_animation_timer);assert(link.paused && resumes==before && !g_animation_timer);
+    app_state=0;animation_check(nil);assert(!link.paused && g_animation_timer); /* Existing foreground callback restarts recovery. */
+    before=resumes;view.window=nil;link.paused=YES;fire(g_animation_timer);assert(link.paused && resumes==before && !g_animation_timer);
+    view.window=&window;animation_check(nil);assert(g_animation_timer && !link.paused);
+    layer.parent=nil;link.paused=YES;before=resumes;fire(g_animation_timer);
+    assert(!g_animation_timer && resumes==before && weak_set.length==1); /* Weak entry survives detach. */
+    layer.parent=(id)&attachment;animation_check(nil);assert(g_animation_timer && !link.paused);
+    url.value="/emoticons/v2/25/default/dark/1.0";layer.loops=3;link.paused=YES;before=resumes;fire(g_animation_timer);
+    assert(!g_animation_timer && weak_set.length==0 && layer.loops==3 && link.paused && resumes==before);
+    url.value="/emoticons/v2/900123456789012/default/dark/1.0";provider_animation((id)&attachment);id stale=g_animation_timer;
+    weak_set.length=0;fire(stale);assert(!g_animation_timer);before=resumes;fire(stale);assert(resumes==before); /* Weak deallocation and stale timer. */
     return 0;
 }
 '''
@@ -221,7 +287,14 @@ class EmoteImageTests(unittest.TestCase):
 
     def test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged(self):
         zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
-        test_composer.ComposerTests().compile_run(ANIMATIONS,[zig,"cc","-fblocks","-fsanitize=address,undefined"],runtime=True)
+        source=(ROOT/"src"/"TASEmoteUI.c").read_text()
+        source=source.replace('((float (*)(id,SEL))objc_msgSend)(ancestor,sel_registerName("opacity"))','ss_test_opacity(ancestor)')
+        for name in ('layer','target'):
+            source=source.replace(f'((Rect (*)(id,SEL))objc_msgSend)({name},sel_registerName("bounds"))',f'ss_test_bounds({name})')
+        source=source.replace('((Rect (*)(id,SEL,Rect,id))objc_msgSend)(layer,sel_registerName("convertRect:toLayer:"),bounds,target)','ss_test_projection(layer,bounds,target)')
+        source=source.replace('((id (*)(id,SEL,double,BOOL,id))objc_msgSend)','((id (*)(id,SEL,...))objc_msgSend)')
+        source=source.replace('static void animation_check(id timer);','extern float ss_test_opacity(id);\nextern Rect ss_test_bounds(id);\nextern Rect ss_test_projection(id,Rect,id);\nstatic void animation_check(id timer);')
+        test_composer.ComposerTests().compile_run(ANIMATIONS.replace('#include "TASEmoteUI.c"',source),[zig,"cc","-fblocks","-fsanitize=address,undefined"],runtime=True)
 
 
 if __name__=="__main__":unittest.main()

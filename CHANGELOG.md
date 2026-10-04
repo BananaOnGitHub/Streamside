@@ -144,7 +144,20 @@
   has made Twitch inactive. No dismissals are initiated after leaving Twitch.
   Cover action ordering, detached/wrong wrappers, lifecycle interruption, URL
   lifetime, repeat taps and unchanged Copy/Done actions at the UIKit boundary.
-- Candidate bundle build: `3.0.0.37`; browser-return fix awaits device testing.
+- Device-confirmed build 37 browser return. Recover provider chat animations
+  that pause after their last layout/image event using one one-second timer
+  and weak layer membership. Preserve Twitch's decoder/playhead, repair an
+  exhausted provider countdown, and leave native emotes untouched. Require an
+  active app, visible ancestors, a window and intersection with clipping/chat
+  bounds; stop the timer when no tracked emotes are visible. Existing foreground
+  hook retries restart recovery. Expose count-only recovery checks in diagnostics.
+- Preserve valid composer GIF delays above ten seconds, including final-frame
+  holds, instead of replacing them with 0.1 seconds. Accept ImageIO rounding at
+  20 ms while retaining fallbacks for missing/nonfinite/invalid delays. The
+  inspected chat player already sums every frame's delay; no last-frame exclusion
+  was found in source history. Cover long final-frame playback, rounding, idle
+  recovery, foreground/reattachment, clipping, weak removal and native reuse.
+- Candidate bundle build: `3.0.0.38`; animation edge-case fixes await device testing.
 
 ## 2.3.1 (prepared; not published)
 

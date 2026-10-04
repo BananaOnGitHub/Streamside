@@ -28,10 +28,12 @@ static IMP g_animated_image;
 static Class g_details_class;
 static char g_metadata_key, g_snapshot_message_key, g_details_dismissing_key;
 static char g_animation_key;
+static id g_animation_layers, g_animation_timer; /* weak members; one idle-stopping timer */
 static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
 static uint64_t g_size_calls, g_bounds_calls, g_textkit_calls, g_resolved_ids;
 static uint64_t g_layer_calls, g_layer_ids, g_layer_resizes, g_layer_layouts;
 static uint64_t g_animation_loops, g_animation_resumes;
+static uint64_t g_animation_checks;
 #define INC(x) ((void)__atomic_add_fetch(&(x), 1, __ATOMIC_RELAXED))
 #define GET(x) __atomic_load_n(&(x), __ATOMIC_RELAXED)
 static id m0(id o, const char *s) { return ((id (*)(id,SEL))objc_msgSend)(o, sel_registerName(s)); }
@@ -93,6 +95,45 @@ static uint64_t image_layer_id(id layer) {
     return number;
 }
 
+static void animation_check(id timer);
+static BOOL animation_intersects(id layer,id target) {
+    Rect bounds=((Rect (*)(id,SEL))objc_msgSend)(layer,sel_registerName("bounds"));
+    Rect projected=((Rect (*)(id,SEL,Rect,id))objc_msgSend)(layer,sel_registerName("convertRect:toLayer:"),bounds,target);
+    Rect viewport=((Rect (*)(id,SEL))objc_msgSend)(target,sel_registerName("bounds"));
+    return projected.size.width>0 && projected.size.height>0 &&
+        projected.origin.x<viewport.origin.x+viewport.size.width && projected.origin.y<viewport.origin.y+viewport.size.height &&
+        projected.origin.x+projected.size.width>viewport.origin.x && projected.origin.y+projected.size.height>viewport.origin.y;
+}
+static BOOL animation_visible(id layer) {
+    id application=m0((id)objc_getClass("UIApplication"),"sharedApplication");
+    if (((NSInteger (*)(id,SEL))objc_msgSend)(application,sel_registerName("applicationState"))!=0) return NO;
+    id window=nil,ancestor=layer;
+    for (unsigned depth=0;ancestor && depth<64;depth++,ancestor=m0(ancestor,"superlayer")) {
+        if (((BOOL (*)(id,SEL))objc_msgSend)(ancestor,sel_registerName("isHidden")) ||
+            !(((float (*)(id,SEL))objc_msgSend)(ancestor,sel_registerName("opacity"))>0)) return NO;
+        if (((BOOL (*)(id,SEL))objc_msgSend)(ancestor,sel_registerName("masksToBounds")) && !animation_intersects(layer,ancestor)) return NO;
+        id delegate=m0(ancestor,"delegate");
+        if (kind(delegate,"UIView")) window=m0(delegate,"window") ?: window;
+    }
+    if (ancestor || !window || ((BOOL (*)(id,SEL))objc_msgSend)(window,sel_registerName("isHidden"))) return NO;
+    return animation_intersects(layer,m0(window,"layer"));
+}
+static void animation_stop_check(void) {
+    id timer=g_animation_timer; g_animation_timer=nil;
+    m0(timer,"invalidate"); objc_release(timer);
+}
+static void animation_track(id layer) {
+    if (!g_animation_layers) g_animation_layers=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
+    v1(g_animation_layers,"addObject:",layer);
+    if (g_animation_timer || !animation_visible(layer)) return;
+    /* Recovery only, once a second. Twitch's display link/decoder/playhead
+     * remain untouched. The weak table cannot keep chat rows alive. */
+    id timer=((id (*)(id,SEL,double,BOOL,id))objc_msgSend)((id)objc_getClass("NSTimer"),sel_registerName("timerWithTimeInterval:repeats:block:"),1.0,YES,(id)^(id fired) { animation_check(fired); });
+    if (!timer) return;
+    g_animation_timer=objc_retain(timer);
+    ((void (*)(id,SEL,double))objc_msgSend)(timer,sel_registerName("setTolerance:"),0.25);
+    ((void (*)(id,SEL,id,id))objc_msgSend)(m0((id)objc_getClass("NSRunLoop"),"mainRunLoop"),sel_registerName("addTimer:forMode:"),timer,string("kCFRunLoopCommonModes"));
+}
 /* 30.4.2's TWAnimatedImageLayer copies a GIF's finite loop count and pauses
  * on removal. Reattachment alone does not call updateAnimationState. Scope
  * recovery to a provider attachment and let Twitch check hidden/opacity and
@@ -105,22 +146,37 @@ static void provider_animation(id attachment) {
         !responds(layer,"setLoopCountdown:") || !responds(layer,"displayLink")) return;
     id animation=m0(layer,"animatedImage");
     if (!animation) return;
-    if (animation!=objc_getAssociatedObject(layer,&g_animation_key)) {
+    if (animation!=objc_getAssociatedObject(layer,&g_animation_key) ||
+        (responds(layer,"loopCountdown") && !((NSUInteger (*)(id,SEL))objc_msgSend)(layer,sel_registerName("loopCountdown")))) {
         ((void (*)(id,SEL,NSUInteger))objc_msgSend)(layer,sel_registerName("setLoopCountdown:"),UINT64_MAX);
         objc_setAssociatedObject(layer,&g_animation_key,animation,1);
         INC(g_animation_loops);
     }
+    animation_track(layer);
     id link=m0(layer,"displayLink");
-    if (responds(link,"isPaused") && ((BOOL (*)(id,SEL))objc_msgSend)(link,sel_registerName("isPaused"))) {
+    if (responds(link,"isPaused") && ((BOOL (*)(id,SEL))objc_msgSend)(link,sel_registerName("isPaused")) && animation_visible(layer)) {
         m0(layer,"updateAnimationState");
         if (!((BOOL (*)(id,SEL))objc_msgSend)(link,sel_registerName("isPaused"))) INC(g_animation_resumes);
     }
+}
+static void animation_check(id timer) {
+    if (timer && timer!=g_animation_timer) return;
+    id layers=m0(g_animation_layers,"allObjects"); BOOL visible=NO;
+    for (NSUInteger i=0,n=count(layers);i<n;i++) {
+        id layer=at(layers,i),attachment=m0(layer,"superlayer");
+        if (!m0(layer,"animatedImage") || (attachment && !image_layer_id(attachment))) { v1(g_animation_layers,"removeObject:",layer); continue; }
+        if (!attachment) continue; /* Keep only a weak reference for reattachment/foreground. */
+        if (!animation_visible(layer)) continue;
+        visible=YES; INC(g_animation_checks); provider_animation(attachment);
+    }
+    if (!visible) animation_stop_check();
 }
 static void animated_set_image(id self, SEL sel, id image) {
     ((void (*)(id,SEL,id))g_animated_image)(self,sel,image);
     /* The setter resets its countdown even if a reused layer keeps its URL. */
     if (image!=objc_getAssociatedObject(self,&g_animation_key))
         objc_setAssociatedObject(self,&g_animation_key,nil,1);
+    if (!image) v1(g_animation_layers,"removeObject:",self);
     provider_animation(m0(self,"superlayer"));
 }
 
@@ -531,6 +587,9 @@ void tas_emote_ui_retry_hooks(void) {
     hook(objc_getClass("_TtC6Twitch20ImageAttachmentLayer"),"layoutSublayers",2,(IMP)image_layer_layout,&g_layer_layout);
     hook(objc_getClass("TWAnimatedImageLayer"),"setAnimatedImage:",3,(IMP)animated_set_image,&g_animated_image);
     hook(objc_getClass("_TtC6Twitch17MessageStringView"),"handleTapGesture:",3,(IMP)tap_gesture,&g_tap);
+    /* The existing launch/foreground observer retries these hooks. It also
+     * restarts recovery after a background or no-visible-emote idle stop. */
+    animation_check(nil);
 }
 void tas_emote_ui_status(char *buffer, size_t capacity) {
     if (!buffer || !capacity) return;
@@ -543,12 +602,12 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         "Tap snapshots/provider hits: %llu/%llu\n"
         "Image layer hooks (frame/layout): %s/%s\n"
         "Image layer frame calls/layouts/provider IDs/resizes: %llu/%llu/%llu/%llu\n"
-        "Provider animation hook/loop bindings/resumes: %s/%llu/%llu\n",
+        "Provider animation hook/loop bindings/resumes/checks: %s/%llu/%llu/%llu\n",
         g_receive ? "installed" : "missing",g_size ? "installed" : "missing",g_base_size ? "installed" : "missing",g_bounds && g_set_bounds ? "installed" : "missing",g_textkit_bounds && g_chat_textkit_bounds ? "installed" : "missing",g_tap ? "installed" : "missing",
         (unsigned long long)GET(g_receive_calls),(unsigned long long)GET(g_sent_calls),(unsigned long long)GET(g_sent_matches),
         (unsigned long long)GET(g_size_calls),(unsigned long long)GET(g_bounds_calls),(unsigned long long)GET(g_textkit_calls),(unsigned long long)GET(g_resolved_ids),
         (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits),
         g_layer_frame ? "installed" : "missing",g_layer_layout ? "installed" : "missing",
         (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes),
-        g_animated_image ? "installed" : "missing",(unsigned long long)GET(g_animation_loops),(unsigned long long)GET(g_animation_resumes));
+        g_animated_image ? "installed" : "missing",(unsigned long long)GET(g_animation_loops),(unsigned long long)GET(g_animation_resumes),(unsigned long long)GET(g_animation_checks));
 }

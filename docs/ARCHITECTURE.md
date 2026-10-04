@@ -265,6 +265,15 @@ weak storage, and late image completions notify surviving input views on the
 main queue. Recent names are limited to 40 and are resolved in the current
 channel, without persisting channel IDs, chat text, or URLs.
 
+Chat animation recovery retains weak layer membership and uses a single
+one-second timer only while provider animations are visible. It reuses Twitch's
+player, checks foreground/window/ancestor opacity and clipping, and stops when
+idle. Foreground hook retries resume those checks. It does not retain chat rows,
+fetch images, reset frame positions or change native emote playback. Composer
+GIF playback preserves finite long delays, including final-frame holds, and
+accepts the decoder's 20 ms float rounding. See [NATIVE_EMOTES.md](NATIVE_EMOTES.md)
+for inspected native timing behavior and recovery tests.
+
 The optional 56-byte composer identity was inspected in Twitch 30.4.2: native
 palette selection checks its +16 word for nil and reads its UInt32 ID at +0.
 Only those primitive words are read, after checking the runtime field span.

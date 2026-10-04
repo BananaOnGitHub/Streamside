@@ -21,6 +21,25 @@ when paused. Native Twitch animation behavior remains unchanged. The inspected
 30.4.2 setter (`0x100004644`) copies finite GIF loop counts, the display callback
 (`0x100004808`) stops on countdown exhaustion, and removal (`0x10000452c`)
 pauses the layer; the runtime hooks use selectors, never those addresses.
+Those methods are in the main app executable. Its display callback builds its
+duration table from every `delayTimesForIndexes` entry through `frameCount`,
+including the last frame; no last-frame timing exclusion was found in the
+checked-in source history. Composer playback formerly rejected delays over ten
+seconds. It now retains all finite valid delays and tolerates ImageIO's float
+rounding at the 20 ms decoder minimum; missing/nonfinite/invalid delays still
+fall back to 0.1 seconds.
+
+Layout/image callbacks are insufficient if an attached chat layer pauses later.
+A weak `NSHashTable` tracks only provider animation layers, with one one-second
+timer in common run-loop modes while any are visible. Checks require the active
+application, nonhidden/nontransparent ancestors, a live window and intersection
+with every clipping ancestor and the window. Recovery calls Twitch's existing
+`updateAnimationState`, repairs a zero provider countdown, and never resets the
+decoder, frame index or timing table. The timer invalidates when no tracked
+provider animation is visible; existing foreground hook retries or a subsequent
+provider layout/image callback restart it. Detached members remain weak for
+reattachment; empty/native-reused members are removed. Diagnostics report only
+aggregate bindings/resumes/checks.
 
 ## Twitch 30.4.2 investigation
 

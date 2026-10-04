@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <dlfcn.h>
+#include <math.h>
+#include <float.h>
 
 typedef unsigned long U;
 typedef long I;
@@ -658,7 +660,9 @@ static double preview_frame_delay(id animation,U index) {
     id number_index=((id (*)(id,SEL,U))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedInteger:"),index);
     id delay=m1(m0(animation,"delayTimesForIndexes"),"objectForKey:",number_index);
     double seconds=((double (*)(id,SEL))objc_msgSend)(delay,sel_registerName("doubleValue"));
-    return seconds>=0.02 && seconds<=10 ? seconds : 0.1;
+    /* FLAnimatedImage already normalizes GIF delays. Preserve long holds,
+     * including a final frame's pause, and tolerate ImageIO float rounding. */
+    return isfinite(seconds) && seconds>=0.02-FLT_EPSILON ? seconds : 0.1;
 }
 static void animate_preview(id self,SEL sel,id link) {
     (void)sel; objc_retain(self); State *s=state(self);

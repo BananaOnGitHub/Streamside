@@ -20,6 +20,8 @@ int main(void) {
     tas_emotes_image_protocol_request(early_url);
     tas_emotes_image_result_for_url(early_url,nil,nil,nil);
     tas_emote_probe_image(number,7,"assign-animation-before","early-decoded frames=4");
+    tas_emote_probe_record(number,7,"decode-result","decoder=GIF frames=4",false);
+    tas_emote_probe_record(number,7,"decode-handoff","decision=chat-task-animated-result",false);
     tas_emote_probe_record(number,1,"sample","before-selection ticks=100 advances=99",true);
     tas_emote_probe_record(25,1,"sample","native-emote-must-not-record",true);
     assert(!tas_emote_probe_set(NULL) && !tas_emote_probe_set(""));
@@ -31,6 +33,7 @@ int main(void) {
     tas_emote_probe_status(report,sizeof(report));assert(strstr(report,"before-selection ticks=100"));
     assert(strstr(report,"Image history") && strstr(report,"image-protocol-start") && strstr(report,"image-response"));
     assert(strstr(report,"Assignment") && strstr(report,"early-decoded frames=4"));
+    assert(strstr(report,"Decode age=") && strstr(report,"Handoff age="));
     assert(!strstr(report,"native-emote-must-not-record"));
     const char *line="@room-id=123;emotes= :privateSender!x@y PRIVMSG #privateChannel :SecretRawChatword MissingEmote";
     char *rewritten=rewrite_line(line,strlen(line));assert(rewritten);
@@ -165,6 +168,7 @@ class EmoteProbeTests(unittest.TestCase):
         # Replace only the HTTP launch boundary; keep matching and IRC output real.
         source = replace_body(source, "static void ensure_loaded(const char *room_id, bool force)", "    (void)room_id; (void)force;\n")
         harness = HARNESS[:HARNESS.index("int main(void) {")] + MAIN
+        harness += '\nvoid tas_image_probe_response(uint64_t number,id data) { (void)number;(void)data; }\n'
         harness = harness.replace('if(!strcmp(sel,"new"))', 'if(!strcmp(sel,"code"))result=(id)(intptr_t)o->number;\n    else if(!strcmp(sel,"new"))')
         harness = harness.replace('#include "TASEmotes.c"', '#include <objc/runtime.h>\nMethod *class_copyMethodList(Class,unsigned *);\nSEL method_getName(Method);\n' + source)
         composer.ComposerTests().compile_run(harness, [zig, "cc", "-fblocks", "-DTAS_EMOTE_DIAGNOSTIC=1", "-fsanitize=address,undefined"], runtime=True)

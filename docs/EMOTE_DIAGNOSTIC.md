@@ -1,4 +1,4 @@
-# Temporary missing-emote diagnostics (builds 39–44)
+# Temporary missing-emote diagnostics (builds 39–45)
 
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
@@ -11,6 +11,33 @@ Build 42 adds read-only native playback observations for the selected code.
 Build 43 records recent provider playback before a code is selected.
 Build 44 also retains request mapping, transport outcomes and native assignment
 inputs/results before selection, corrects child roles and exposes tracking gaps.
+Build 45 observes GIF/UIImage decode results, weak result identities, and native
+chat handoff branches. The uncommitted build 45 source was lost in a workspace
+restore; this implementation reconstructs that diagnostic stage from its retained
+design and tested IPA/report. It is not a byte-identical source recovery.
+
+## Build 45 provenance
+
+Read-only hooks forward the original decoder once and return its unchanged
+result. GIF initialization, UIImage data initialization (including scale), and
+the cached GIF poster getter are observed. Private full-body fingerprints match
+response bytes to decodes; neither fingerprint nor bytes are exported or retained.
+The budget is 256 weak result identities, 256 attempts and 64 response keys with
+32 numeric emote IDs each. All expire after 600 monotonic seconds; inputs over
+8 MiB are not fingerprinted. Separate 16-row decode and handoff rings survive
+layer cleanup traffic. Normal builds compile out every provenance hook.
+
+`mode=0` selects the donor's animated child; `wants-animation` reads image-data
+intent and `animated-url` only records URL presence. Native static/animated and
+async-task result branches are labeled only after checking the donor Mach-O UUID
+and exact setter return offset. Other callers remain `unknown`.
+
+`source=observed-object` establishes a weak identity match to an observed decode.
+`reuse=reused` means another observed assignment of that same live result, not a
+proven cache hit. A preceding GIF attempt matched to a still image's response
+body is context, not proof that the GIF object was flattened. Unknown origins
+include older cached objects, unobserved constructors, expired or evicted records.
+The recorder never invokes lazy frame decoding or changes result selection.
 
 ## Device procedure
 

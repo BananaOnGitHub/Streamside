@@ -4,6 +4,7 @@
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
 #include "TASEmoteProbe.h"
+#include "TASEmoteImageProbe.h"
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <stdint.h>
@@ -164,6 +165,24 @@ static uint64_t probe_integer(id object,const char *selector) {
 static int probe_flag(id object,const char *selector) {
     return responds(object,selector) ? ((BOOL (*)(id,SEL))objc_msgSend)(object,sel_registerName(selector)) : -1;
 }
+static id probe_image_data(id attachment) {
+    if (!kind(attachment,"_TtC6Twitch20ImageAttachmentLayer")) return nil;
+    Class cls=object_getClass(attachment);
+    Ivar content=class_getInstanceVariable(cls,"content"),next=class_getInstanceVariable(cls,"networkImageRequester");
+    if (!content || !next || ivar_getOffset(next)-ivar_getOffset(content)!=(ptrdiff_t)(sizeof(Rect)+sizeof(id))) return nil;
+    id data=nil; memcpy(&data,(char *)attachment+ivar_getOffset(content)+sizeof(Rect),sizeof(data));
+    return kind(data,"_TtC6Twitch22MessageStringImageData") ? data : nil;
+}
+static int probe_mode(id attachment) {
+    if (!kind(attachment,"_TtC6Twitch20ImageAttachmentLayer")) return -1;
+    Class cls=object_getClass(attachment); Ivar mode=class_getInstanceVariable(cls,"currentDisplayMode"),next=class_getInstanceVariable(cls,"animatedImageLayer");
+    if (!mode || !next || ivar_getOffset(next)-ivar_getOffset(mode)!=8) return -1;
+    unsigned char value; memcpy(&value,(char *)attachment+ivar_getOffset(mode),1); return value<=2 ? value : -1;
+}
+static void probe_intent(id attachment,id input,char *buffer,size_t capacity) {
+    id data=probe_image_data(attachment); char provenance[256]; tas_image_probe_origin(input,provenance,sizeof(provenance));
+    snprintf(buffer,capacity,"mode=%d wants-animation=%d animated-url=%d %s",probe_mode(attachment),probe_flag(data,"isAnimated"),responds(data,"animatedURL") ? m0(data,"animatedURL")!=nil : -1,provenance);
+}
 static const char *probe_role(id layer) {
     id parent=m0(layer,"superlayer");
     if (!kind(parent,"_TtC6Twitch20ImageAttachmentLayer")) return "unknown";
@@ -258,14 +277,14 @@ static void probe_snapshot(id layer,const char *event) {
     const char *static_visibility=kind(sibling,"CALayer") ? probe_visibility(sibling) : "unavailable";
     id animated=kind(parent,"_TtC6Twitch20ImageAttachmentLayer") ? object_ivar(parent,"animatedImageLayer") : nil;
     const char *animated_visibility=kind(animated,"CALayer") ? probe_visibility(animated) : "unavailable";
-    char state[448];
-    snprintf(state,sizeof(state),"t=%u layer=%u role=%s refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s animated-child=%s static-child=%s",
+    char state[768],intent[320]; probe_intent(parent,image ?: frame,intent,sizeof(intent));
+    snprintf(state,sizeof(state),"t=%u layer=%u role=%s refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s animated-child=%s static-child=%s %s",
         elapsed,g_probe_playheads[slot].serial,g_probe_playheads[slot].role,g_probe_refresh ? "hooked" : "missing",
         (unsigned long long)g_probe_playheads[slot].refreshes,(unsigned long long)g_probe_playheads[slot].advances,
         (unsigned long long)index,(unsigned long long)probe_integer(image,"frameCount"),image!=nil,frame!=nil,m0(layer,"contents")!=nil,
         !link ? "missing" : paused==1 ? "paused" : paused==0 ? "running" : "unknown",
         probe_flag(layer,"shouldAnimate"),probe_flag(layer,"needsDisplayUpdate"),
-        (unsigned long long)probe_integer(layer,"loopCountdown"),visibility,gate,animated_visibility,static_visibility);
+        (unsigned long long)probe_integer(layer,"loopCountdown"),visibility,gate,animated_visibility,static_visibility,intent);
     char signature[160];
     snprintf(signature,sizeof(signature),"%d/%d/%d/%d/%s/%s/%s/%s/%s",image!=nil,frame!=nil,paused,
         probe_flag(layer,"shouldAnimate"),visibility,gate,g_probe_playheads[slot].role,animated_visibility,static_visibility);
@@ -323,7 +342,7 @@ void tas_emote_ui_probe_start(void) {
         if (image_layer_id(m0(layer,"superlayer"))) probe_track(layer);
     }
     probe_sample_all(nil);
-    if (g_probe_timer || !count(g_probe_layers)) return;
+    if (g_probe_timer || !count(m0(g_probe_layers,"allObjects"))) return;
     id timer=((id (*)(id,SEL,double,BOOL,id))objc_msgSend)((id)objc_getClass("NSTimer"),sel_registerName("timerWithTimeInterval:repeats:block:"),1.0,YES,(id)^(id fired) { probe_sample_all(fired); });
     if (!timer) return;
     g_probe_timer=objc_retain(timer);
@@ -345,26 +364,33 @@ static void probe_display_refresh(id self,SEL selector,id link) {
         break;
     }
 }
-static void probe_assignment(id layer,const char *event,id input) {
+static void probe_assignment(id layer,const char *event,id input,const char *branch) {
     uint64_t number=image_layer_id(m0(layer,"superlayer")); unsigned ordinal=0;
     if (!number) return;
     for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==layer && g_probe_playheads[i].number==number) {
         ordinal=g_probe_playheads[i].serial; break;
     }
-    char state[256];
-    snprintf(state,sizeof(state),"layer=%u tracking=%s role=%s visibility=%s input=%d input-frames-readable=%d input-frames=%llu uiimage=%d uiimage-frames=%llu resident-animation=%d resident-frames=%llu current-frame=%d contents=%d",
+    id parent=m0(layer,"superlayer"); char intent[320],decision[128]; probe_intent(parent,input,intent,sizeof(intent));
+    if (strstr(event,"before")) {
+        snprintf(decision,sizeof(decision),"%s/role-%s/mode-%d/wants-animation-%d",branch,probe_role(layer),probe_mode(parent),probe_flag(probe_image_data(parent),"isAnimated"));
+        tas_image_probe_assignment(number,ordinal,input,decision);
+        probe_intent(parent,input,intent,sizeof(intent));
+    }
+    char state[768];
+    snprintf(state,sizeof(state),"layer=%u tracking=%s role=%s visibility=%s input=%d input-frames-readable=%d input-frames=%llu uiimage=%d uiimage-frames=%llu resident-animation=%d resident-frames=%llu current-frame=%d contents=%d branch=%s %s",
         ordinal,ordinal ? "admitted" : "untracked",probe_role(layer),probe_visibility(layer),input!=nil,
         responds(input,"frameCount"),(unsigned long long)probe_integer(input,"frameCount"),kind(input,"UIImage"),
         (unsigned long long)(responds(input,"images") ? count(m0(input,"images")) : 0),m0(layer,"animatedImage")!=nil,
-        (unsigned long long)probe_integer(m0(layer,"animatedImage"),"frameCount"),m0(layer,"currentFrame")!=nil,m0(layer,"contents")!=nil);
+        (unsigned long long)probe_integer(m0(layer,"animatedImage"),"frameCount"),m0(layer,"currentFrame")!=nil,m0(layer,"contents")!=nil,branch,intent);
     tas_emote_probe_image(number,ordinal,event,state);
 }
 static void probe_static_image(id self,SEL selector,id image) {
+    const char *branch=tas_image_probe_caller(__builtin_return_address(0));
     if (image_layer_id(m0(self,"superlayer"))) probe_track(self);
     probe_snapshot(self,"static-set-before");
-    probe_assignment(self,"assign-static-before",image);
+    probe_assignment(self,"assign-static-before",image,branch);
     ((void (*)(id,SEL,id))g_probe_static)(self,selector,image);
-    probe_assignment(self,"assign-static-after",image);
+    probe_assignment(self,"assign-static-after",image,branch);
     probe_snapshot(self,"static-set-after"); tas_emote_ui_probe_start();
 }
 static void probe_remove_layer(id self,SEL selector) {
@@ -433,13 +459,14 @@ static void animation_check(id timer) {
 }
 static void animated_set_image(id self, SEL sel, id image) {
 #if TAS_EMOTE_DIAGNOSTIC
+    const char *branch=tas_image_probe_caller(__builtin_return_address(0));
     if (image_layer_id(m0(self,"superlayer"))) probe_track(self);
     probe_snapshot(self,image ? "animation-set-before" : "animation-clear-before");
-    if (image) probe_assignment(self,"assign-animation-before",image);
+    if (image) probe_assignment(self,"assign-animation-before",image,branch);
 #endif
     ((void (*)(id,SEL,id))g_animated_image)(self,sel,image);
 #if TAS_EMOTE_DIAGNOSTIC
-    if (image) probe_assignment(self,"assign-animation-after",image);
+    if (image) probe_assignment(self,"assign-animation-after",image,branch);
     if (image) tas_emote_probe_stage(image_layer_id(m0(self,"superlayer")),"chat-animation-decoded");
     probe_snapshot(self,image ? "animation-set-after" : "animation-clear-after");
     tas_emote_ui_probe_start();
@@ -890,6 +917,7 @@ void tas_emote_ui_retry_hooks(void) {
     hook(objc_getClass("TWAnimatedImageLayer"),"setAnimatedImage:",3,(IMP)animated_set_image,&g_animated_image);
 #if TAS_EMOTE_DIAGNOSTIC
     /* Verified in Twitch 30.4.2: void displayDidRefresh:(CADisplayLink *). */
+    tas_image_probe_install();
     hook(objc_getClass("TWAnimatedImageLayer"),"displayDidRefresh:",3,(IMP)probe_display_refresh,&g_probe_refresh);
     /* Native 30.4.2 signatures: void setStaticImage:(UIImage *), void removeFromSuperlayer. */
     hook(objc_getClass("TWAnimatedImageLayer"),"setStaticImage:",3,(IMP)probe_static_image,&g_probe_static);
@@ -931,8 +959,9 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
     if (used<capacity) snprintf(buffer+used,capacity-used,
         "Recorder timer/live layers/polls/last poll age: %s/%lu/%llu/%llds\n"
         "Recorder admission denials/visible-priority evictions: %llu/%llu (event counts, not unique layers)\n",
-        g_probe_timer ? "active" : "idle",(unsigned long)count(g_probe_layers),(unsigned long long)g_probe_polls,
+        g_probe_timer ? "active" : "idle",(unsigned long)count(m0(g_probe_layers,"allObjects")),(unsigned long long)g_probe_polls,
         g_probe_last_poll ? (long long)(now.tv_sec-g_probe_last_poll) : -1LL,
         (unsigned long long)g_probe_dropped,(unsigned long long)g_probe_evicted);
+    used=strnlen(buffer,capacity); if (used<capacity) tas_image_probe_status(buffer+used,capacity-used);
 #endif
 }

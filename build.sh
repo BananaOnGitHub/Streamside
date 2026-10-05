@@ -36,7 +36,7 @@ build_binary() {
       --name "$binary_name" \
       -femit-bin="$output_path" \
       -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" -- \
-      src/Streamside.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/SSComposer.c
+      src/Streamside.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmoteImageProbe.c src/SSComposer.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature

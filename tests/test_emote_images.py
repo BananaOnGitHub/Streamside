@@ -159,6 +159,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"path"))result=o;
     else if(!strcmp(sel,"staticURL"))result=o->inner;
     else if(!strcmp(sel,"animatedURL"))result=nil;
+    else if(!strcmp(sel,"isAnimated"))result=(id)(uintptr_t)YES;
     else if(!strcmp(sel,"superlayer"))result=o->parent;
     else if(!strcmp(sel,"delegate"))result=o->delegate;
     else if(!strcmp(sel,"window"))result=o->window;
@@ -430,6 +431,13 @@ class EmoteImageTests(unittest.TestCase):
         source=source.replace('(id)^(id fired) { probe_sample_all(fired); }','ss_test_probe_block()')
         source=source.replace('void tas_emote_ui_probe_start(void) {','extern id ss_test_probe_block(void);\nvoid tas_emote_ui_probe_start(void) {')
         harness=ANIMATIONS[:ANIMATIONS.index('int main(void) {')]+PLAYBACK_MAIN
+        # Provenance has its own real-runtime harness. This case isolates the
+        # layer recorder and models an object without an observed decode.
+        harness += '''
+void tas_image_probe_origin(id image,char *buffer,size_t capacity) { (void)image;snprintf(buffer,capacity,"decode=unknown reuse=unknown source=unknown"); }
+void tas_image_probe_assignment(uint64_t number,unsigned layer,id image,const char *decision) { (void)number;(void)layer;(void)image;(void)decision; }
+const char *tas_image_probe_caller(void *address) { (void)address;return "unknown"; }
+'''
         harness=harness.replace('BOOL hidden,paused,invalid,clips;', 'BOOL hidden,paused,invalid,clips,advance; NSUInteger index;')
         harness=harness.replace('else if(!strcmp(sel,"displayLink"))', 'else if(!strcmp(sel,"currentFrame"))result=o->inner;\n    else if(!strcmp(sel,"contents"))result=o->inner;\n    else if(!strcmp(sel,"images"))result=nil;\n    else if(!strcmp(sel,"currentFrameIndex"))result=(id)(uintptr_t)o->index;\n    else if(!strcmp(sel,"frameCount"))result=(id)(uintptr_t)o->length;\n    else if(!strcmp(sel,"shouldAnimate"))result=(id)(uintptr_t)YES;\n    else if(!strcmp(sel,"needsDisplayUpdate"))result=nil;\n    else if(!strcmp(sel,"displayLink"))')
         harness=harness.replace('timer==g_animation_timer', '(timer==g_animation_timer || timer==g_probe_timer)')

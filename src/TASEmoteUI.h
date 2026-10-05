@@ -9,6 +9,6 @@ BOOL tas_emote_ui_modal_visible(id view);
 void tas_emote_ui_retry_hooks(void);
 void tas_emote_ui_status(char *buffer, size_t capacity);
 #if TAS_EMOTE_DIAGNOSTIC
-void tas_emote_ui_probe_start(void); /* Main thread, after selecting a code. */
+void tas_emote_ui_probe_start(void); /* Main thread; idempotent, does not reset history. */
 #endif
 #endif

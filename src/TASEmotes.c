@@ -238,10 +238,23 @@ static unsigned g_probe_trace_count, g_probe_trace_next;
 static struct { char stage[40], outcome[96]; uint64_t count; } g_probe_counts[24];
 static unsigned g_probe_count_used;
 static uint64_t g_probe_generation;
-static char g_probe_playback[32][416];
-static unsigned g_probe_playback_count, g_probe_playback_next;
-static uint64_t g_probe_playback_samples;
-/* Independent ring: layout traffic cannot evict playback evidence. */
+#define PLAYBACK_EMOTES 32
+#define PLAYBACK_ROWS 16
+#define PLAYBACK_VISIBLE 4
+#define PLAYBACK_SECONDS 600
+typedef struct { uint64_t sequence; unsigned layer; time_t time; char text[512]; } PlaybackRow;
+static struct {
+    uint64_t number, samples, events, sequence;
+    time_t touched;
+    unsigned sample_count, sample_next, event_count, event_next;
+    PlaybackRow samples_ring[PLAYBACK_ROWS], events_ring[PLAYBACK_ROWS], visible[PLAYBACK_VISIBLE];
+} g_playback[PLAYBACK_EMOTES];
+static uint64_t g_playback_sequence;
+static time_t playback_now(void) {
+    struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now); return now.tv_sec;
+}
+/* Independent per-emote rings. Chat pruning cannot erase copied observations;
+ * cleanup cannot replace the last-visible snapshots. No object is retained. */
 static uint64_t probe_generation_locked(uint64_t number) {
     if (!number) return 0;
     uint64_t result=0;
@@ -258,17 +271,56 @@ uint64_t tas_emote_probe_generation(uint64_t number) {
     pthread_mutex_unlock(&g_emote_lock);
     return result;
 }
-void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
-    if (!generation || !state) return;
-    pthread_mutex_lock(&g_emote_lock);
-    if (generation==g_probe_generation && generation==probe_generation_locked(number)) {
-        g_probe_playback_samples++;
-        snprintf(g_probe_playback[g_probe_playback_next],sizeof(g_probe_playback[0]),
-                 "Playback #%llu id=%llu %s",(unsigned long long)g_probe_playback_samples,
-                 (unsigned long long)number,state);
-        g_probe_playback_next=(g_probe_playback_next+1)%32;
-        if (g_probe_playback_count<32) g_probe_playback_count++;
+static void playback_record_locked(uint64_t number,unsigned layer,const char *event,const char *state,bool visible) {
+    if (number<9000000000ULL || !event || !state) return;
+    time_t now=playback_now(); unsigned slot=0;
+    for (unsigned i=0;i<PLAYBACK_EMOTES;i++) {
+        if (g_playback[i].number==number) {
+            slot=i;
+            if (now-g_playback[i].touched>=PLAYBACK_SECONDS) memset(&g_playback[i],0,sizeof(g_playback[i]));
+            goto found;
+        }
+        if (g_playback[i].sequence<g_playback[slot].sequence) slot=i;
     }
+    memset(&g_playback[slot],0,sizeof(g_playback[slot])); g_playback[slot].number=number;
+found:
+    g_playback[slot].number=number;
+    g_playback[slot].touched=now;
+    PlaybackRow row={.sequence=++g_playback_sequence,.layer=layer,.time=now};
+    g_playback[slot].sequence=row.sequence;
+    snprintf(row.text,sizeof(row.text),"Playback #%llu id=%llu event=%s %s",
+        (unsigned long long)row.sequence,(unsigned long long)number,event,state);
+    if (!strcmp(event,"sample")) {
+        g_playback[slot].samples++;
+        if (visible) {
+            g_playback[slot].samples_ring[g_playback[slot].sample_next]=row;
+            g_playback[slot].sample_next=(g_playback[slot].sample_next+1)%PLAYBACK_ROWS;
+            if (g_playback[slot].sample_count<PLAYBACK_ROWS) g_playback[slot].sample_count++;
+        }
+    } else {
+        g_playback[slot].events++;
+        g_playback[slot].events_ring[g_playback[slot].event_next]=row;
+        g_playback[slot].event_next=(g_playback[slot].event_next+1)%PLAYBACK_ROWS;
+        if (g_playback[slot].event_count<PLAYBACK_ROWS) g_playback[slot].event_count++;
+    }
+    if (visible) {
+        unsigned v=0;
+        for (unsigned i=0;i<PLAYBACK_VISIBLE;i++) {
+            if (g_playback[slot].visible[i].sequence && g_playback[slot].visible[i].layer==layer) { v=i; goto last_visible; }
+            if (g_playback[slot].visible[i].sequence<g_playback[slot].visible[v].sequence) v=i;
+        }
+last_visible:
+        g_playback[slot].visible[v]=row;
+    }
+}
+void tas_emote_probe_record(uint64_t number,unsigned layer,const char *event,const char *state,bool visible) {
+    pthread_mutex_lock(&g_emote_lock);
+    playback_record_locked(number,layer,event,state,visible);
+    pthread_mutex_unlock(&g_emote_lock);
+}
+void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
+    pthread_mutex_lock(&g_emote_lock);
+    if (generation && generation==probe_generation_locked(number)) playback_record_locked(number,0,"sample",state,true);
     pthread_mutex_unlock(&g_emote_lock);
 }
 static void probe_append_locked(const char *stage, const char *outcome,
@@ -319,8 +371,6 @@ bool tas_emote_probe_set(const char *code) {
     memset(g_probe_counts,0,sizeof(g_probe_counts)); g_probe_count_used=0;
     g_probe_events=0; g_probe_last_id=0; g_probe_trace_count=0; g_probe_trace_next=0;
     g_probe_generation++; if (!g_probe_generation) g_probe_generation++;
-    g_probe_playback_count=g_probe_playback_next=0; g_probe_playback_samples=0;
-    memset(g_probe_playback,0,sizeof(g_probe_playback));
     pthread_mutex_unlock(&g_emote_lock); return true;
 }
 void tas_emote_probe_observe(const char *stage,const char *code,const char *channel,const char *outcome) {
@@ -367,7 +417,7 @@ void tas_emote_probe_status(char *buffer,size_t capacity) {
     if (!buffer || !capacity) return;
     pthread_mutex_lock(&g_emote_lock);
     if (!g_probe_code[0]) {
-        snprintf(buffer,capacity,"\nTemporary emote rendering probe: enabled\nSelect Inspect Emote in Streamside settings, then reproduce and copy this report.\n");
+        snprintf(buffer,capacity,"\nTemporary emote rendering probe: enabled\nRolling playback recorder active before selection. Select Inspect Emote after a failure, then copy this report.\n");
         pthread_mutex_unlock(&g_emote_lock); return;
     }
     Room *room=NULL;
@@ -398,15 +448,33 @@ void tas_emote_probe_status(char *buffer,size_t capacity) {
         g_global.size,g_global.loaded[0],g_global.loaded[1],g_global.loaded[2],
         g_global.pending[0],g_global.pending[1],g_global.pending[2],(unsigned long long)g_probe_events,g_probe_trace_count);
     size_t used=n>0 && (size_t)n<capacity ? (size_t)n : capacity-1;
-    n=snprintf(buffer+used,capacity-used,"Playback samples: %llu; retained: %u (oldest first)\n",
-               (unsigned long long)g_probe_playback_samples,g_probe_playback_count);
-    if (n>0 && (size_t)n<capacity-used) used+=(size_t)n;
-    for (unsigned i=0;i<g_probe_playback_count && used<capacity-1;i++) {
-        unsigned slot=(g_probe_playback_next+32-g_probe_playback_count+i)%32;
-        n=snprintf(buffer+used,capacity-used,"%s\n",g_probe_playback[slot]);
-        if (n<0 || (size_t)n>=capacity-used) break;
-        used+=(size_t)n;
+    n=snprintf(buffer+used,capacity-used,"Rolling playback: up to 600s; 32 emotes; per ID 16 visible samples + 16 transitions + 4 last-visible layers. Capacity eviction may shorten history. Selection does not reset playback.\n");
+    if (n<0 || (size_t)n>=capacity-used) { pthread_mutex_unlock(&g_emote_lock); return; }
+    used+=(size_t)n;
+    time_t now=playback_now(); unsigned matched=0;
+    /* At most four matching IDs per report, leaving room for rendering stages. */
+    for (unsigned s=0;s<PLAYBACK_EMOTES && matched<4;s++) {
+        if (!probe_generation_locked(g_playback[s].number) || now-g_playback[s].touched>=PLAYBACK_SECONDS) continue;
+        matched++;
+        for (unsigned category=0;category<3;category++) {
+            unsigned limit=category==2 ? PLAYBACK_VISIBLE : PLAYBACK_ROWS;
+            unsigned count=category==0 ? g_playback[s].sample_count : category==1 ? g_playback[s].event_count : limit;
+            unsigned next=category==0 ? g_playback[s].sample_next : g_playback[s].event_next;
+            for (unsigned i=0;i<count;i++) {
+                unsigned j=category==2 ? i : (next+limit-count+i)%limit;
+                PlaybackRow *row=category==0 ? &g_playback[s].samples_ring[j] : category==1 ? &g_playback[s].events_ring[j] : &g_playback[s].visible[j];
+                if (!row->sequence || now-row->time>=PLAYBACK_SECONDS) continue;
+                n=snprintf(buffer+used,capacity-used,"%s age=%llds %s\n",category==2 ? "Last-visible" : category==1 ? "Transition" : "Visible sample",(long long)(now-row->time),row->text);
+                if (n<0 || (size_t)n>=capacity-used) goto playback_done;
+                used+=(size_t)n;
+            }
+        }
     }
+    if (!matched) {
+        n=snprintf(buffer+used,capacity-used,"No retained playback for this code; it may not have been observed, may have expired/been evicted, or its catalog identity may be unavailable.\n");
+        if (n>0 && (size_t)n<capacity-used) used+=(size_t)n;
+    }
+playback_done:
     for (unsigned i=0;i<g_probe_count_used && used<capacity-1;i++) {
         n=snprintf(buffer+used,capacity-used,"Stage %s %s: %llu\n",g_probe_counts[i].stage,g_probe_counts[i].outcome,
                    (unsigned long long)g_probe_counts[i].count);

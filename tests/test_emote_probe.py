@@ -15,13 +15,17 @@ int main(void) {
     room->loaded[0]=true;room->pending[1]=true;room->failures[2]=2;
     add(room,"MissingEmote",0,false);
     uint64_t number=find_word(room,"MissingEmote")->fake_id;
-    char report[32768],tiny[9];
+    char report[98304],tiny[9];
+    tas_emote_probe_record(number,1,"sample","before-selection ticks=100 advances=99",true);
+    tas_emote_probe_record(25,1,"sample","native-emote-must-not-record",true);
     assert(!tas_emote_probe_set(NULL) && !tas_emote_probe_set(""));
     assert(!tas_emote_probe_set("two words") && !tas_emote_probe_set("line\nbreak"));
     char oversized[98];memset(oversized,'x',97);oversized[97]=0;
     assert(!tas_emote_probe_set(oversized));
     tas_emote_probe_status(report,sizeof(report));assert(strstr(report,"Select Inspect Emote"));
     assert(tas_emote_probe_set("MissingEmote"));
+    tas_emote_probe_status(report,sizeof(report));assert(strstr(report,"before-selection ticks=100"));
+    assert(!strstr(report,"native-emote-must-not-record"));
     const char *line="@room-id=123;emotes= :privateSender!x@y PRIVMSG #privateChannel :SecretRawChatword MissingEmote";
     char *rewritten=rewrite_line(line,strlen(line));assert(rewritten);
     assert(strstr(rewritten,"SecretRawChatword MissingEmote"));
@@ -85,24 +89,51 @@ int main(void) {
     assert(!strstr(report,"https://") && !strstr(report,"privateChannel"));
     image_probe_url("https://cdn.7tv.app/emote/unrelated/2x","image-response","unrelated");
     tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"unrelated"));
-    /* Playback is independently bounded, selected, and generation scoped. */
+    /* Playback precedes selection; visible samples and cleanup are separate. */
     uint64_t generation=tas_emote_probe_generation(number); assert(generation);
     assert(!tas_emote_probe_generation(25));
     tas_emote_probe_playback(generation,25,"unrelated-playback");
     for (int i=0;i<80;i++) tas_emote_probe_playback(generation,number,"ticks=80 advances=4 link=running");
     for (int i=0;i<100;i++) tas_emote_probe_stage(number,i%2 ? "chat-token-sizing" : "chat-image-layer-layout");
     tas_emote_probe_status(report,sizeof(report));
-    assert(strstr(report,"Playback samples: 80; retained: 32"));
+    assert(strstr(report,"16 visible samples + 16 transitions + 4 last-visible layers"));
     assert(!strstr(report,"unrelated-playback"));
-    assert(strstr(report,"Playback #49") && strstr(report,"Playback #80"));
-    assert(!strstr(report,"Playback #48 "));
+    assert(strstr(report,"Playback #66") && strstr(report,"Playback #81"));
+    assert(!strstr(report,"Playback #65 "));
     assert(strstr(report,"ticks=80 advances=4 link=running"));
     memset(tiny,0xff,sizeof(tiny));tas_emote_probe_status(tiny,sizeof(tiny));assert(tiny[8]==0);
     assert(tas_emote_probe_set("MissingEmote"));
     tas_emote_probe_playback(generation,number,"stale-sample");
     tas_emote_probe_status(report,sizeof(report));
-    assert(strstr(report,"Playback samples: 0") && !strstr(report,"stale-sample"));
+    assert(strstr(report,"ticks=80 advances=4") && !strstr(report,"stale-sample"));
     assert(tas_emote_probe_generation(number)!=generation);
+    tas_emote_probe_record(number,7,"sample","visible-before-cleanup animation=1",true);
+    for (unsigned i=0;i<100;i++) tas_emote_probe_record(number,7,"state-change","visibility=hidden animation=0",false);
+    tas_emote_probe_record(number,7,"row-released","weak-row=gone",false);
+    tas_emote_probe_status(report,sizeof(report));
+    assert(strstr(report,"Last-visible") && strstr(report,"visible-before-cleanup animation=1"));
+    assert(strstr(report,"row-released") && strstr(report,"weak-row=gone"));
+    assert(tas_emote_probe_set("UnrelatedCode"));
+    tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"visible-before-cleanup"));
+    assert(tas_emote_probe_set("MissingEmote"));
+    tas_emote_probe_status(report,sizeof(report));assert(strstr(report,"visible-before-cleanup"));
+    /* Capacity pressure is per ID; another emote cannot consume its rows. */
+    tas_emote_probe_record(number+1,1,"sample","other-provider",true);
+    tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"other-provider"));
+    for (unsigned i=0;i<PLAYBACK_EMOTES;i++) if (g_playback[i].number==number) {
+        for (unsigned j=0;j<PLAYBACK_VISIBLE;j++) g_playback[i].visible[j].time-=PLAYBACK_SECONDS;
+        for (unsigned j=0;j<PLAYBACK_ROWS;j++) {
+            g_playback[i].samples_ring[j].time-=PLAYBACK_SECONDS;
+            g_playback[i].events_ring[j].time-=PLAYBACK_SECONDS;
+        }
+    }
+    tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"visible-before-cleanup"));
+    tas_emote_probe_record(number,7,"sample","fresh-after-expiry",true);
+    for (unsigned i=0;i<PLAYBACK_EMOTES;i++) if (g_playback[i].number==number) g_playback[i].touched-=PLAYBACK_SECONDS;
+    tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"fresh-after-expiry"));
+    for (unsigned i=0;i<PLAYBACK_EMOTES+5;i++) tas_emote_probe_record(number+10+i,1,"sample","bounded-pressure",true);
+    unsigned occupied=0;for (unsigned i=0;i<PLAYBACK_EMOTES;i++) occupied+=g_playback[i].number!=0;
+    assert(occupied==PLAYBACK_EMOTES);
     tas_emote_probe_observe("named-lookup","MissingEmote","123","catalog-hit");
     /* Recovery/eviction evidence does not keep metadata or a channel alive. */
     reset_room_locked(room,true,time(NULL));

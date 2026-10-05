@@ -264,18 +264,33 @@ static void test_probe_fire(struct Block *block,id timer) { (void)block;probe_sa
 static struct Block test_probe_block={.invoke=test_probe_fire};
 id ss_test_probe_block(void) { return (id)&test_probe_block; }
 static uint64_t test_generation=1;
-static unsigned samples,refresh_calls;
-static char playback[320];
+static unsigned samples,refresh_calls,static_calls,remove_calls,stop_calls,quiet_events,progress_events;
+static char playback[512];
 uint64_t tas_emote_probe_generation(uint64_t number) { return number==900123456789012ULL ? test_generation : 0; }
 void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
     assert(generation==test_generation && number==900123456789012ULL);
     samples++;snprintf(playback,sizeof(playback),"%s",state);
+}
+void tas_emote_probe_record(uint64_t number,unsigned layer,const char *event,const char *state,bool visible) {
+    assert(number==900123456789012ULL && layer);(void)event;(void)visible;
+    samples++;snprintf(playback,sizeof(playback),"%s",state);
+    if (!strcmp(event,"no-frame-change-3s") || !strcmp(event,"no-refresh-3s")) quiet_events++;
+    if (!strcmp(event,"last-frame-progress")) { progress_events++;assert(strstr(state,"advances=4")); }
 }
 void tas_emote_probe_stage(uint64_t number,const char *stage) { (void)number; (void)stage; }
 static void native_refresh(id o,SEL sel,id link) {
     assert(!strcmp(sel,"displayDidRefresh:") && link==o->link); refresh_calls++;
     if (!link->paused && o->advance) o->index=(o->index+1)%4;
 }
+static void native_static(id o,SEL sel,id image) {
+    assert(!strcmp(sel,"setStaticImage:"));static_calls++;
+    o->animation=nil;o->inner=image;o->link->paused=YES;
+}
+static void native_remove(id o,SEL sel) {
+    assert(!strcmp(sel,"removeFromSuperlayer"));remove_calls++;
+    o->parent=nil;o->link->paused=YES;
+}
+static void native_stop(id o,SEL sel) { assert(!strcmp(sel,"stopAnimating"));stop_calls++;o->link->paused=YES; }
 int main(void) {
     struct Fake url={.cls="NSURL",.value="/emoticons/v2/900123456789012/default/dark/1.0"};
     struct Fake data={.cls="_TtC6Twitch22MessageStringImageData",.inner=&url};
@@ -289,7 +304,7 @@ int main(void) {
     layer.parent=(id)&attachment;g_probe_refresh=(IMP)native_refresh;
     /* The animation is already cached; starting tracing must not need setter/layout events. */
     g_animation_layers=&weak_set;weak_set.members[0]=&layer;weak_set.length=1;
-    tas_emote_ui_probe_start(); assert(samples==1 && strstr(playback,"ticks=0 advances=0"));
+    tas_emote_ui_probe_start(); assert(samples==2 && strstr(playback,"ticks=0 advances=0"));
     assert(strstr(playback,"frames=4") && strstr(playback,"contents=1") && strstr(playback,"visibility=visible"));
     assert(!bindings && !resumes && !set_calls);
     for (int i=0;i<4;i++) probe_display_refresh(&layer,"displayDidRefresh:",&link);
@@ -298,6 +313,8 @@ int main(void) {
     layer.advance=NO;
     for (int i=0;i<3;i++) probe_display_refresh(&layer,"displayDidRefresh:",&link);
     fire(g_probe_timer); assert(strstr(playback,"ticks=7 advances=4"));
+    g_probe_playheads[0].last_advance-=4;fire(g_probe_timer);
+    assert(quiet_events==1 && progress_events==1);fire(g_probe_timer);assert(quiet_events==1);
     link.paused=YES;fire(g_probe_timer);assert(strstr(playback,"link=paused") && strstr(playback,"gate=resume-eligible") && link.paused);
     layer.link=nil;fire(g_probe_timer);assert(strstr(playback,"link=missing") && strstr(playback,"gate=no-link") && !layer.link);
     root.hidden=YES;fire(g_probe_timer);assert(strstr(playback,"visibility=hidden"));root.hidden=NO;
@@ -305,11 +322,20 @@ int main(void) {
     layer.parent=nil;fire(g_probe_timer);assert(strstr(playback,"visibility=detached"));layer.parent=(id)&attachment;
     layer.projected.origin.y=700;fire(g_probe_timer);assert(strstr(playback,"visibility=offscreen"));layer.projected.origin.y=10;
     url.value="/emoticons/v2/25/default/dark/1.0";unsigned before=samples;fire(g_probe_timer);assert(samples==before && !g_probe_playheads[0].layer);
-    url.value="/emoticons/v2/900123456789012/default/dark/1.0";fire(g_probe_timer);assert(samples==before+1);
-    id stale=g_probe_timer;test_generation++;tas_emote_ui_probe_start();assert(strstr(playback,"ticks=0 advances=0"));
-    before=samples;fire(stale);assert(samples==before);
-    weak_set.length=0;fire(g_probe_timer);assert(!g_probe_playheads[0].layer);
-    g_probe_started.tv_sec-=600;id last=g_probe_timer;fire(last);assert(!g_probe_timer && last->invalid);
+    url.value="/emoticons/v2/900123456789012/default/dark/1.0";fire(g_probe_timer);assert(samples==before+2);
+    layer.link=&link;probe_display_refresh(&layer,"displayDidRefresh:",&link);fire(g_probe_timer);
+    id same=g_probe_timer;before=samples;test_generation++;tas_emote_ui_probe_start();
+    assert(g_probe_timer==same && samples==before && strstr(playback,"ticks=1")); /* Selection never resets. */
+    layer.link=&link;g_probe_static=(IMP)native_static;g_probe_remove=(IMP)native_remove;
+    g_probe_stop=(IMP)native_stop;probe_stop_animation(&layer,"stopAnimating");assert(stop_calls==1 && link.paused);
+    probe_static_image(&layer,"setStaticImage:",&animation);
+    assert(static_calls==1 && !layer.animation && link.paused && strstr(playback,"animation=0"));
+    assert(strstr(playback,"ticks=1")); /* Clearing an image does not reset cumulative clocks. */
+    probe_remove_layer(&layer,"removeFromSuperlayer");assert(remove_calls==1 && !layer.parent);
+    assert(strstr(playback,"visibility=detached"));
+    g_probe_started.tv_sec-=600;fire(g_probe_timer);assert(g_probe_timer); /* Rolling, not ten minutes after selection. */
+    weak_set.length=0;id stale=g_probe_timer;fire(stale);assert(!g_probe_playheads[0].layer && !g_probe_timer && stale->invalid);
+    assert(strstr(playback,"weak-row=gone"));before=samples;fire(stale);assert(samples==before);
     assert(!bindings && !resumes && !set_calls); /* Every read is observational. */
     return 0;
 }

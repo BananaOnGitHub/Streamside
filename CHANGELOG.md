@@ -2,6 +2,14 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 43 adds diagnostic-only retrospective playback recording before target
+  selection. Keep bounded per-ID visible samples, transitions and separate
+  last-visible snapshots after chat rows disappear; observe native image
+  assignment/clearing, static replacement, stopping and removal. Selection does
+  not reset playback clocks/history. Numeric copied records, weak live layers,
+  capacity limits and ten-minute expiry preserve privacy and bound memory.
+  Normal builds compile it out; playback/recovery behavior is unchanged.
+  Device validation pending.
 - Build 42 adds diagnostic-only playback sampling for the selected emote.
   Count native refresh callbacks and frame changes; report link state, native
   animation flags, frame/contents presence, loop countdown and visibility gate.

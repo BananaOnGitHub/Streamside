@@ -39,7 +39,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.42"
+#define TAS_REPORT_VERSION "3.0.0-build.43"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -355,7 +355,7 @@ static id diagnostic_report_create(void) {
              navigation_visible[0] ? navigation_visible : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
 #if TAS_EMOTE_DIAGNOSTIC
-    char probe_status[32768];
+    char probe_status[98304];
     tas_emote_probe_status(probe_status,sizeof(probe_status));
     vmsg1(report,"appendString:",nsstr(probe_status));
 #endif
@@ -638,7 +638,7 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
     if (section==2 && row==1) {
         id alert=((id (*)(id,SEL,id,id,NSInteger))objc_msgSend)((id)objc_getClass("UIAlertController"),
             sel_registerName("alertControllerWithTitle:message:preferredStyle:"),nsstr("Inspect Emote"),
-            nsstr("Enter the exact code that fails to render or stops animating. Return to the affected chat, reproduce it, then copy the diagnostic report. This trace resets when Twitch restarts."),(NSInteger)1);
+            nsstr("Enter the exact code after you notice a failure. Recent playback is already being recorded; selecting it retrieves retained history. Copy the diagnostic report. Bounded history expires after ten minutes and resets when Twitch restarts."),(NSInteger)1);
         ((void (*)(id,SEL,id))objc_msgSend)(alert,sel_registerName("addTextFieldWithConfigurationHandler:"),(id)^(id field) {
             vmsg1(field,"setPlaceholder:",nsstr("Emote code (case sensitive)"));
             vmsg_integer(field,"setAutocorrectionType:",1);
@@ -652,7 +652,7 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
                 bool started=tas_emote_probe_set(utf8(msg0(field,"text")));
                 if (started) tas_emote_ui_probe_start();
                 objc_setAssociatedObject(controller,&g_probe_notice_key,
-                    nsstr(started ? "Trace ready; reproduce in chat" : "Invalid code; tap to retry"),1);
+                    nsstr(started ? "History selected; copy diagnostic report" : "Invalid code; tap to retry"),1);
                 msg0(msg0(controller,"tableView"),"reloadData");
                 objc_release(field); objc_release(controller);
             });

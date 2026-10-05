@@ -13,15 +13,20 @@
 #include <dlfcn.h>
 #if TAS_EMOTE_DIAGNOSTIC
 #include <time.h>
-static IMP g_probe_refresh;
+static IMP g_probe_refresh, g_probe_static, g_probe_remove, g_probe_stop;
 static id g_probe_timer, g_probe_layers;
 static unsigned g_probe_layer_serial;
 static struct timespec g_probe_started;
 static struct {
     id layer, animation, frame; /* Identity only; never retained or dereferenced here. */
-    uint64_t number, generation, refreshes, advances, index;
+    uint64_t number, refreshes, advances, index;
     unsigned serial;
-} g_probe_playheads[32];
+    char signature[160];
+    time_t last_tick, last_advance;
+    uint64_t observed_ticks, observed_advances;
+    BOOL quiet_reported, was_visible;
+    char progress[448];
+} g_probe_playheads[64];
 #endif
 
 typedef unsigned long NSUInteger;
@@ -158,35 +163,40 @@ static int probe_flag(id object,const char *selector) {
     return responds(object,selector) ? ((BOOL (*)(id,SEL))objc_msgSend)(object,sel_registerName(selector)) : -1;
 }
 static void probe_track(id layer) {
-    if (g_probe_layers && layer) v1(g_probe_layers,"addObject:",layer);
+    if (!g_probe_layers) {
+        g_probe_layers=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
+        clock_gettime(CLOCK_MONOTONIC,&g_probe_started);
+    }
+    if (g_probe_layers && layer && image_layer_id(m0(layer,"superlayer")) && count(g_probe_layers)<64)
+        v1(g_probe_layers,"addObject:",layer);
 }
-static void probe_sample(id layer) {
+static void probe_snapshot(id layer,const char *event) {
     uint64_t number=image_layer_id(m0(layer,"superlayer"));
-    uint64_t generation=tas_emote_probe_generation(number);
-    unsigned slot=32;
-    for (unsigned i=0;i<32;i++) if (g_probe_playheads[i].layer==layer) { slot=i; break; }
+    unsigned slot=64;
+    for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==layer) { slot=i; break; }
     /* Detached layers retain only their numeric identity; the weak table
      * supplies the live object. Reuse in another attachment invalidates it. */
-    if (!number && !m0(layer,"superlayer") && slot<32) {
+    if (!number && !m0(layer,"superlayer") && slot<64) {
         number=g_probe_playheads[slot].number;
-        generation=tas_emote_probe_generation(number);
     }
-    if (!generation) {
-        if (slot<32) memset(&g_probe_playheads[slot],0,sizeof(g_probe_playheads[slot]));
+    if (!number) {
+        if (slot<64) memset(&g_probe_playheads[slot],0,sizeof(g_probe_playheads[slot]));
         return;
     }
-    if (slot==32) for (unsigned i=0;i<32;i++) if (!g_probe_playheads[i].layer) { slot=i; break; }
-    if (slot==32) return; /* Fixed observation budget, never an unbounded map. */
+    if (slot==64) for (unsigned i=0;i<64;i++) if (!g_probe_playheads[i].layer) { slot=i; break; }
+    if (slot==64) return; /* Fixed observation budget, never an unbounded map. */
     id image=m0(layer,"animatedImage"),frame=m0(layer,"currentFrame");
     uint64_t index=probe_integer(layer,"currentFrameIndex");
-    if (g_probe_playheads[slot].generation!=generation || g_probe_playheads[slot].number!=number ||
-        g_probe_playheads[slot].animation!=image) {
+    if (g_probe_playheads[slot].number!=number) {
         memset(&g_probe_playheads[slot],0,sizeof(g_probe_playheads[slot]));
         g_probe_playheads[slot].layer=layer; g_probe_playheads[slot].number=number;
-        g_probe_playheads[slot].generation=generation; g_probe_playheads[slot].animation=image;
         g_probe_playheads[slot].serial=++g_probe_layer_serial;
-        g_probe_playheads[slot].frame=frame; g_probe_playheads[slot].index=index;
     }
+    /* Keep lifetime counters across image clearing/replacement. Refresh
+     * baselines change, but prior ticks must not disappear with the image. */
+    BOOL image_changed=g_probe_playheads[slot].animation!=image;
+    g_probe_playheads[slot].animation=image;
+    g_probe_playheads[slot].frame=frame; g_probe_playheads[slot].index=index;
     id link=m0(layer,"displayLink");
     const char *visibility=probe_visibility(layer);
     int paused=probe_flag(link,"isPaused");
@@ -194,45 +204,84 @@ static void probe_sample(id layer) {
         !link ? "no-link" : paused==1 ? "resume-eligible" : paused==0 ? "running-link" : "unknown-link";
     struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
     unsigned elapsed=(unsigned)(now.tv_sec-g_probe_started.tv_sec);
-    char state[384];
-    snprintf(state,sizeof(state),"t=%u layer=%u refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s",
+    id parent=m0(layer,"superlayer");
+    id sibling=kind(parent,"_TtC6Twitch20ImageAttachmentLayer") ? object_ivar(parent,"staticImageLayer") : nil;
+    const char *static_visibility=kind(sibling,"CALayer") ? probe_visibility(sibling) : "unavailable";
+    char state[448];
+    snprintf(state,sizeof(state),"t=%u layer=%u role=animated refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s static-child=%s",
         elapsed,g_probe_playheads[slot].serial,g_probe_refresh ? "hooked" : "missing",
         (unsigned long long)g_probe_playheads[slot].refreshes,(unsigned long long)g_probe_playheads[slot].advances,
         (unsigned long long)index,(unsigned long long)probe_integer(image,"frameCount"),image!=nil,frame!=nil,m0(layer,"contents")!=nil,
         !link ? "missing" : paused==1 ? "paused" : paused==0 ? "running" : "unknown",
         probe_flag(layer,"shouldAnimate"),probe_flag(layer,"needsDisplayUpdate"),
-        (unsigned long long)probe_integer(layer,"loopCountdown"),visibility,gate);
-    tas_emote_probe_playback(generation,number,state);
+        (unsigned long long)probe_integer(layer,"loopCountdown"),visibility,gate,static_visibility);
+    char signature[160];
+    snprintf(signature,sizeof(signature),"%d/%d/%d/%d/%s/%s/%s",image!=nil,frame!=nil,paused,
+        probe_flag(layer,"shouldAnimate"),visibility,gate,static_visibility);
+    BOOL visible=!strcmp(visibility,"visible");
+    /* Preserve the previous progressing state when clocks go quiet. This is
+     * evidence, not a freeze verdict: long frame holds can also trigger it. */
+    if (image_changed || !visible || !g_probe_playheads[slot].was_visible) {
+        g_probe_playheads[slot].last_tick=g_probe_playheads[slot].last_advance=now.tv_sec;
+        g_probe_playheads[slot].quiet_reported=NO;
+        if (image_changed) g_probe_playheads[slot].progress[0]=0;
+    }
+    if (g_probe_playheads[slot].refreshes!=g_probe_playheads[slot].observed_ticks) g_probe_playheads[slot].last_tick=now.tv_sec;
+    if (g_probe_playheads[slot].advances!=g_probe_playheads[slot].observed_advances) {
+        g_probe_playheads[slot].last_advance=now.tv_sec; g_probe_playheads[slot].quiet_reported=NO;
+        snprintf(g_probe_playheads[slot].progress,sizeof(g_probe_playheads[slot].progress),"%s",state);
+    }
+    g_probe_playheads[slot].observed_ticks=g_probe_playheads[slot].refreshes;
+    g_probe_playheads[slot].observed_advances=g_probe_playheads[slot].advances;
+    g_probe_playheads[slot].was_visible=visible;
+    if (!strcmp(event,"sample")) {
+        if (visible && image && link && paused==0 && probe_integer(image,"frameCount")>1 &&
+            now.tv_sec-g_probe_playheads[slot].last_advance>=3 && !g_probe_playheads[slot].quiet_reported) {
+            if (g_probe_playheads[slot].progress[0])
+                tas_emote_probe_record(number,g_probe_playheads[slot].serial,"last-frame-progress",g_probe_playheads[slot].progress,false);
+            tas_emote_probe_record(number,g_probe_playheads[slot].serial,
+                now.tv_sec-g_probe_playheads[slot].last_tick>=3 ? "no-refresh-3s" : "no-frame-change-3s",state,false);
+            g_probe_playheads[slot].quiet_reported=YES;
+        }
+        if (image_changed || strcmp(signature,g_probe_playheads[slot].signature))
+            tas_emote_probe_record(number,g_probe_playheads[slot].serial,"state-change",state,visible);
+        /* Hidden-row polling cannot evict a useful visible checkpoint. */
+        if (visible) tas_emote_probe_record(number,g_probe_playheads[slot].serial,event,state,true);
+    } else tas_emote_probe_record(number,g_probe_playheads[slot].serial,event,state,visible);
+    snprintf(g_probe_playheads[slot].signature,sizeof(g_probe_playheads[slot].signature),"%s",signature);
 }
 static void probe_sample_all(id timer) {
     if (timer && timer!=g_probe_timer) return;
     id layers=m0(g_probe_layers,"allObjects");
     /* Reclaim identity slots when weakly held rows disappear. */
-    for (unsigned s=0;s<32;s++) {
+    for (unsigned s=0;s<64;s++) {
+        if (!g_probe_playheads[s].layer) continue;
         BOOL found=NO;
         for (NSUInteger i=0,n=count(layers);i<n;i++) if (at(layers,i)==g_probe_playheads[s].layer) { found=YES; break; }
-        if (!found) memset(&g_probe_playheads[s],0,sizeof(g_probe_playheads[s]));
+        if (!found) {
+            char state[64]; snprintf(state,sizeof(state),"layer=%u weak-row=gone",g_probe_playheads[s].serial);
+            tas_emote_probe_record(g_probe_playheads[s].number,g_probe_playheads[s].serial,"row-released",state,false);
+            memset(&g_probe_playheads[s],0,sizeof(g_probe_playheads[s]));
+        }
     }
-    for (NSUInteger i=0,n=count(layers);i<n;i++) probe_sample(at(layers,i));
-    struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
-    if (timer && now.tv_sec-g_probe_started.tv_sec>=600) {
+    for (NSUInteger i=0,n=count(layers);i<n;i++) probe_snapshot(at(layers,i),"sample");
+    if (timer && !count(layers)) {
         id finished=g_probe_timer; g_probe_timer=nil;
         m0(finished,"invalidate"); objc_release(finished);
     }
 }
 void tas_emote_ui_probe_start(void) {
-    id old=g_probe_timer; g_probe_timer=nil; m0(old,"invalidate"); objc_release(old);
-    objc_release(g_probe_layers);
-    g_probe_layers=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
-    memset(g_probe_playheads,0,sizeof(g_probe_playheads)); g_probe_layer_serial=0;
-    clock_gettime(CLOCK_MONOTONIC,&g_probe_started);
+    /* Selection is only a filter. Never clear history or native counters. */
+    if (g_probe_timer) return;
+    probe_track(nil);
     /* Include cached animations that were assigned before Start Trace. */
     id layers=m0(g_animation_layers,"allObjects");
     for (NSUInteger i=0,n=count(layers);i<n;i++) {
         id layer=at(layers,i);
-        if (tas_emote_probe_generation(image_layer_id(m0(layer,"superlayer")))) probe_track(layer);
+        if (image_layer_id(m0(layer,"superlayer"))) probe_track(layer);
     }
     probe_sample_all(nil);
+    if (g_probe_timer || !count(g_probe_layers)) return;
     id timer=((id (*)(id,SEL,double,BOOL,id))objc_msgSend)((id)objc_getClass("NSTimer"),sel_registerName("timerWithTimeInterval:repeats:block:"),1.0,YES,(id)^(id fired) { probe_sample_all(fired); });
     if (!timer) return;
     g_probe_timer=objc_retain(timer);
@@ -243,7 +292,7 @@ static void probe_display_refresh(id self,SEL selector,id link) {
     ((void (*)(id,SEL,id))g_probe_refresh)(self,selector,link);
     /* Count native callbacks, including when the sampled index wraps back to
      * the same value. Never request a decoder frame or alter its playhead. */
-    for (unsigned i=0;i<32;i++) if (g_probe_playheads[i].layer==self) {
+    for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==self) {
         if (m0(self,"animatedImage")!=g_probe_playheads[i].animation) break;
         id attachment=m0(self,"superlayer");
         if (attachment && image_layer_id(attachment)!=g_probe_playheads[i].number) break;
@@ -253,6 +302,22 @@ static void probe_display_refresh(id self,SEL selector,id link) {
         g_probe_playheads[i].index=index; g_probe_playheads[i].frame=frame;
         break;
     }
+}
+static void probe_static_image(id self,SEL selector,id image) {
+    if (image_layer_id(m0(self,"superlayer"))) probe_track(self);
+    probe_snapshot(self,"static-set-before");
+    ((void (*)(id,SEL,id))g_probe_static)(self,selector,image);
+    probe_snapshot(self,"static-set-after"); tas_emote_ui_probe_start();
+}
+static void probe_remove_layer(id self,SEL selector) {
+    probe_snapshot(self,"remove-before");
+    ((void (*)(id,SEL))g_probe_remove)(self,selector);
+    probe_snapshot(self,"remove-after");
+}
+static void probe_stop_animation(id self,SEL selector) {
+    probe_snapshot(self,"stop-before");
+    ((void (*)(id,SEL))g_probe_stop)(self,selector);
+    probe_snapshot(self,"stop-after");
 }
 #endif
 static void animation_stop_check(void) {
@@ -309,9 +374,15 @@ static void animation_check(id timer) {
     if (!visible) animation_stop_check();
 }
 static void animated_set_image(id self, SEL sel, id image) {
+#if TAS_EMOTE_DIAGNOSTIC
+    if (image_layer_id(m0(self,"superlayer"))) probe_track(self);
+    probe_snapshot(self,image ? "animation-set-before" : "animation-clear-before");
+#endif
     ((void (*)(id,SEL,id))g_animated_image)(self,sel,image);
 #if TAS_EMOTE_DIAGNOSTIC
     if (image) tas_emote_probe_stage(image_layer_id(m0(self,"superlayer")),"chat-animation-decoded");
+    probe_snapshot(self,image ? "animation-set-after" : "animation-clear-after");
+    tas_emote_ui_probe_start();
 #endif
     /* The setter resets its countdown even if a reused layer keeps its URL. */
     if (image!=objc_getAssociatedObject(self,&g_animation_key))
@@ -353,10 +424,10 @@ static void image_layer_layout(id self, SEL sel) {
     tas_emote_probe_stage(number,"chat-image-layer-layout");
 #if TAS_EMOTE_DIAGNOSTIC
     if (m0(self,"contents")) tas_emote_probe_stage(number,"chat-layer-has-image");
-    if (g_probe_timer && tas_emote_probe_generation(number)) {
+    {
         id animated=object_ivar(self,"animatedImageLayer");
         if (kind(animated,"TWAnimatedImageLayer")) probe_track(animated);
-        else tas_emote_probe_playback(tas_emote_probe_generation(number),number,"layer=0 animation=0 gate=no-animation-layer");
+        tas_emote_ui_probe_start();
     }
 #endif
     Rect frame = ((Rect (*)(id,SEL))objc_msgSend)(self,sel_registerName("frame"));
@@ -758,6 +829,10 @@ void tas_emote_ui_retry_hooks(void) {
 #if TAS_EMOTE_DIAGNOSTIC
     /* Verified in Twitch 30.4.2: void displayDidRefresh:(CADisplayLink *). */
     hook(objc_getClass("TWAnimatedImageLayer"),"displayDidRefresh:",3,(IMP)probe_display_refresh,&g_probe_refresh);
+    /* Native 30.4.2 signatures: void setStaticImage:(UIImage *), void removeFromSuperlayer. */
+    hook(objc_getClass("TWAnimatedImageLayer"),"setStaticImage:",3,(IMP)probe_static_image,&g_probe_static);
+    hook(objc_getClass("TWAnimatedImageLayer"),"removeFromSuperlayer",2,(IMP)probe_remove_layer,&g_probe_remove);
+    hook(objc_getClass("TWAnimatedImageLayer"),"stopAnimating",2,(IMP)probe_stop_animation,&g_probe_stop);
 #endif
     hook(objc_getClass("_TtC6Twitch17MessageStringView"),"handleTapGesture:",3,(IMP)tap_gesture,&g_tap);
     /* The existing launch/foreground observer retries these hooks. It also
@@ -783,4 +858,11 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         g_layer_frame ? "installed" : "missing",g_layer_layout ? "installed" : "missing",
         (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes),
         g_animated_image ? "installed" : "missing",(unsigned long long)GET(g_animation_loops),(unsigned long long)GET(g_animation_resumes),(unsigned long long)GET(g_animation_checks));
+#if TAS_EMOTE_DIAGNOSTIC
+    size_t used=strnlen(buffer,capacity);
+    if (used<capacity) snprintf(buffer+used,capacity-used,
+        "Rolling recorder hooks (refresh/static/remove/stop): %s/%s/%s/%s; live layer limit: 64\n",
+        g_probe_refresh ? "installed" : "missing",g_probe_static ? "installed" : "missing",
+        g_probe_remove ? "installed" : "missing",g_probe_stop ? "installed" : "missing");
+#endif
 }

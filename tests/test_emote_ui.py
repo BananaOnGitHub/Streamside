@@ -26,6 +26,7 @@ typedef signed char BOOL;
 #define nil ((id)0)
 Class objc_getClass(const char *);
 Class object_getClass(id);
+const char *class_getName(Class);
 SEL sel_registerName(const char *);
 Ivar class_getInstanceVariable(Class,const char *);
 ptrdiff_t ivar_getOffset(Ivar);

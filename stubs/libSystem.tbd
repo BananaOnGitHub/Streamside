@@ -7,7 +7,7 @@ exports:
   - targets:         [ arm64-ios ]
     symbols:         [ ___memcpy_chk, ___stderrp, __Block_copy, __Block_release,
                        __Block_object_assign, __Block_object_dispose, __NSConcreteStackBlock,
-                       __NSConcreteGlobalBlock, __tlv_bootstrap, _dladdr,
+                       __NSConcreteGlobalBlock, __tlv_bootstrap, _dladdr, _backtrace,
                        __availability_version_check, _sys_icache_invalidate,
                        _arc4random_uniform, _bzero,
                        _calloc, _clock_gettime, _dlopen, _dlsym, _dispatch_queue_create, _fprintf, _free,

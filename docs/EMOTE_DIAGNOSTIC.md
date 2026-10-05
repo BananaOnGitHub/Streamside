@@ -1,4 +1,4 @@
-# Temporary missing-emote diagnostics (builds 39–46)
+# Temporary missing-emote diagnostics (builds 39–47)
 
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
@@ -81,6 +81,54 @@ For this stage, relaunch Twitch after installing so construction can be observed
 then reproduce the frozen emote and use the same Inspect Emote procedure below.
 This stage changes diagnostics only; it does not change request selection,
 decoding, cache retrieval or animation playback.
+
+## Build 47 request and cache decisions
+
+Build 46 repeatedly handed the same observed static UIImage to animated chat
+layers. A later WebP download was not identity-linked to that earlier image.
+Build 47 observes selection boundaries rather than assuming that reuse proves
+a cache hit. It does not change URLs, cached values, decoding or playback.
+
+Six Objective-C NetworkImageRequester entries record static, static-with-file,
+or animated entry selection and explicit memory-cache/user-initiated flags.
+Original arguments and results, including nil, are forwarded unchanged once.
+Direct Swift request entries can bypass these wrappers: zero entries do not
+prove that no request occurred.
+
+NSCache reads are filtered before key parsing/unwinding to three exact return
+offsets in TwitchKit UUID `d2206902-f3a0-3dde-84d5-4b6a7a7ceb60`:
+`0x13978` (typed StoredItem), `0x169b0` (task image enum), and `0x2922d4`
+(batched static StoredItem). Other reads remain pass-through. At the shared
+typed accessor, verified stack return sites distinguish the animated cache
+check (`0x294094`) from its subsequent static fallback (`0x29415c`). Unknown
+callers remain unknown. The task cache enum is never interpreted with a guessed
+Swift ABI; its result records only raw empty/nonempty.
+
+For recognized StoredItem UIImage/FLAnimatedImage specializations with a
+sufficient runtime instance size, the donor's pointer payload at +16 is compared
+only to existing live weak image identities. It is never messaged or retained.
+`payload-object` and `decision-handoff-cache` establish that a later assignment
+used a previously observed payload identity, not that the particular lookup was
+accepted. Raw nonempty values can still fail native type or expiry validation;
+`accepted=unknown` is deliberate.
+
+Private full-URL fingerprints, including size/theme/query differences, receive
+launch-local key ordinals. Neither URL nor fingerprint is retained in the report.
+The budgets are 256 private keys and 64 weak cache identities, expiring after
+600 seconds. Only recognized provider synthetic image URLs are observed.
+Each emote has independent 32-row cache-decision and 16-row request-entry rings,
+so layout/cleanup churn cannot erase them. Selection does not reset these rings.
+
+Response history also includes bounded GIF/WebP container frame/animation
+metadata. `complete` describes container traversal, not pixel decoding or asset
+validity; `animated=-1` means unsupported/incomplete metadata. This helps compare
+animation intent with downloaded bytes, but it does not link unrelated downloads
+to an older assigned image. Inputs are neither modified nor retained.
+
+Relaunch after installing. Reproduce any frozen animated emote, then inspect its
+exact code and copy the report. The same code/provider as earlier builds is not
+required. Missing hooks, unknown slots/payloads, and Swift bypasses remain explicit
+coverage gaps rather than inferred explanations.
 
 ## Device procedure
 

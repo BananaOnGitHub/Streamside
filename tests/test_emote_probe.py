@@ -23,6 +23,8 @@ int main(void) {
     tas_emote_probe_record(number,7,"decode-result","decoder=GIF frames=4",false);
     tas_emote_probe_record(number,7,"decode-handoff","decision=chat-task-animated-result",false);
     tas_emote_probe_record(number,7,"result-origin","object=1 creator=native-static-imageio",false);
+    tas_emote_probe_record(number,0,"decision-request-entry","entry=animated key=1",false);
+    tas_emote_probe_record(number,0,"decision-cache-lookup","native-slot=animated raw=empty",false);
     tas_emote_probe_record(number,1,"sample","before-selection ticks=100 advances=99",true);
     tas_emote_probe_record(25,1,"sample","native-emote-must-not-record",true);
     assert(!tas_emote_probe_set(NULL) && !tas_emote_probe_set(""));
@@ -36,6 +38,8 @@ int main(void) {
     assert(strstr(report,"Assignment") && strstr(report,"early-decoded frames=4"));
     assert(strstr(report,"Decode age=") && strstr(report,"Handoff age="));
     assert(strstr(report,"Result origin age=") && strstr(report,"creator=native-static-imageio"));
+    assert(strstr(report,"Request entry age=") && strstr(report,"entry=animated key=1"));
+    assert(strstr(report,"Cache decision age=") && strstr(report,"native-slot=animated raw=empty"));
     assert(!strstr(report,"native-emote-must-not-record"));
     const char *line="@room-id=123;emotes= :privateSender!x@y PRIVMSG #privateChannel :SecretRawChatword MissingEmote";
     char *rewritten=rewrite_line(line,strlen(line));assert(rewritten);
@@ -130,11 +134,29 @@ int main(void) {
     for (unsigned i=0;i<100;i++) tas_emote_probe_image(number,7,"assign-static-after","assignment-churn");
     tas_emote_probe_status(report,sizeof(report));
     assert(strstr(report,"image-response") && strstr(report,"healthy-before-clear"));
+    assert(strstr(report,"native-slot=animated raw=empty") && strstr(report,"entry=animated key=1"));
     assert(strstr(report,"row-released") && strstr(report,"weak-row=gone"));
     assert(tas_emote_probe_set("UnrelatedCode"));
     tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"visible-before-cleanup"));
     assert(tas_emote_probe_set("MissingEmote"));
     tas_emote_probe_status(report,sizeof(report));assert(strstr(report,"visible-before-cleanup"));
+    /* Independent decision/request budgets retain their newest rows in order. */
+    for (unsigned i=0;i<40;i++) {
+        char state[48];snprintf(state,sizeof(state),"cache-marker-%02u",i);
+        tas_emote_probe_record(number,0,"decision-cache-lookup",state,false);
+        snprintf(state,sizeof(state),"request-marker-%02u",i);
+        tas_emote_probe_record(number,0,"decision-request-entry",state,false);
+    }
+    tas_emote_probe_status(report,sizeof(report));
+    assert(strstr(report,"decisions=32 requests=16"));
+    assert(!strstr(report,"cache-marker-07") && strstr(report,"cache-marker-08")<strstr(report,"cache-marker-39"));
+    assert(!strstr(report,"request-marker-23") && strstr(report,"request-marker-24")<strstr(report,"request-marker-39"));
+    for (unsigned i=0;i<PLAYBACK_EMOTES;i++) if (g_playback[i].number==number) {
+        for (unsigned j=0;j<32;j++) g_playback[i].decisions[j].time-=PLAYBACK_SECONDS;
+        for (unsigned j=0;j<PLAYBACK_ROWS;j++) g_playback[i].requests[j].time-=PLAYBACK_SECONDS;
+    }
+    tas_emote_probe_status(report,sizeof(report));
+    assert(!strstr(report,"cache-marker-") && !strstr(report,"request-marker-"));
     /* Capacity pressure is per ID; another emote cannot consume its rows. */
     tas_emote_probe_record(number+1,1,"sample","other-provider",true);
     tas_emote_probe_status(report,sizeof(report));assert(!strstr(report,"other-provider"));

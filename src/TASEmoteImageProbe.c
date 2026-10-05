@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <stdlib.h>
+#include "TASEmoteWire.h"
+extern int backtrace(void **,int);
 extern id objc_storeWeak(id *,id);
 extern id objc_loadWeakRetained(id *);
 extern void objc_release(id);
@@ -20,6 +23,9 @@ typedef struct {
     BodyKey key;
     const char *kind,*creator;
     bool construction,cache_file;
+    uint64_t cache_lookup,cache_number,cache_key;
+    time_t cache_time;
+    const char *cache_slot;
 } Origin;
 /* A borrowed CGImage identity is valid only while its UIImage owner is live.
  * These weak owners never retain a raster or an animated image. */
@@ -35,8 +41,15 @@ static uint64_t serial,calls,unmatched,evictions,oversize,object_serial,cg_calls
 static pthread_mutex_t lock=PTHREAD_MUTEX_INITIALIZER;
 static IMP gif_init,ui_init,ui_scale,poster_get;
 static IMP cg_init,cg_scale,cg_get,response_init,response_get;
+static IMP cache_get,request_imps[6];
+static uint64_t cache_calls,cache_unmapped,cache_payloads,request_calls,lookup_serial,key_serial,cache_serial;
+static struct { BodyKey key; uint64_t ordinal; time_t time; } url_keys[256];
+static unsigned url_next,cache_next;
+static struct { id weak; uint64_t ordinal; time_t time; } cache_ids[64];
+static _Thread_local unsigned decision_depth;
 static _Thread_local unsigned ui_depth,gif_depth;
 static const char *creator(void *address);
+static uintptr_t kit_offset(void *address);
 static id m0(id o,const char *s) { return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }
 static bool responds(id o,const char *s) { return o && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(o,sel_registerName("respondsToSelector:"),sel_registerName(s)); }
 static uint64_t integer(id o,const char *s) { return responds(o,s) ? ((unsigned long (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)) : 0; }
@@ -69,6 +82,10 @@ void tas_image_probe_response(uint64_t number,id data) {
     unsigned i=0; for (;i<body->count;i++) if (body->ids[i]==number) break;
     if (i==body->count && body->count<IDS) body->ids[body->count++]=number;
     pthread_mutex_unlock(&lock);
+    TASWireInfo wire=tas_wire_info((const void *)m0(data,"bytes"),key.bytes);char state[144];
+    snprintf(state,sizeof(state),"wire=%s container-frames=%d animated=%d complete=%s evidence=container-metadata-not-decode",
+        wire.kind,wire.frames,wire.animated,wire.complete ? "yes" : "no");
+    tas_emote_probe_record(number,0,"image-wire-metadata",state,false);
 }
 static Origin *find_locked(id image,time_t t) {
     if (!image) return NULL;
@@ -189,6 +206,14 @@ void tas_image_probe_assignment(uint64_t number,unsigned layer,id image,const ch
     if (first) tas_emote_probe_record(number,layer,"result-origin",creation,false);
     snprintf(state,sizeof(state),"layer=%u decision=%s input=%d %s",layer,decision,image!=nil,provenance);
     tas_emote_probe_record(number,layer,"decode-handoff",state,false);
+    /* An exact weak result match is stronger than temporal proximity, but a
+     * raw cache value still does not establish native expiry/type acceptance. */
+    pthread_mutex_lock(&lock);o=find_locked(image,t);
+    uint64_t lookup=o && o->cache_number==number && t-o->cache_time<EXPIRY ? o->cache_lookup : 0;
+    if (lookup) snprintf(state,sizeof(state),"lookup=%llu key=%llu slot=%s object=%llu lookup-age=%llds evidence=prior-cache-payload-identity accepted=unknown",
+        (unsigned long long)lookup,(unsigned long long)o->cache_key,o->cache_slot,(unsigned long long)o->object,(long long)(t-o->cache_time));
+    pthread_mutex_unlock(&lock);
+    if (lookup) tas_emote_probe_record(number,layer,"decision-handoff-cache",state,false);
     if (latest.serial) { snprintf(state,sizeof(state),"decode=%llu decoder=GIF result=%s frames=%llu evidence=assigned-body-prior-attempt",
         (unsigned long long)latest.serial,latest.success ? "image" : "nil",(unsigned long long)latest.frames);
         tas_emote_probe_record(number,layer,"decode-context",state,false); }
@@ -277,18 +302,139 @@ static bool donor(const unsigned char *base) {
     return uuid_matches(base,uuid);
 }
 static const char *creator(void *address) {
-    static const unsigned char uuid[16]={0xd2,0x20,0x69,0x02,0xf3,0xa0,0x3d,0xde,0x84,0xd5,0x4b,0x6a,0x7a,0x7c,0xeb,0x60};
-    Dl_info info;if (!address || !dladdr(address,&info) || !info.dli_fbase || !uuid_matches(info.dli_fbase,uuid)) return "unknown";
-    uintptr_t offset=(uintptr_t)address-(uintptr_t)info.dli_fbase;
+    uintptr_t offset=kit_offset(address);
     if (offset==0x13ff4) return "native-static-imageio";
     if (offset==0x17994) return "native-task-static-imageio";
     return "unknown";
+}
+static uintptr_t kit_offset(void *address) {
+    static const unsigned char uuid[16]={0xd2,0x20,0x69,0x02,0xf3,0xa0,0x3d,0xde,0x84,0xd5,0x4b,0x6a,0x7a,0x7c,0xeb,0x60};
+    Dl_info info;if (!address || !dladdr(address,&info) || !info.dli_fbase || !uuid_matches(info.dli_fbase,uuid)) return 0;
+    return (uintptr_t)address-(uintptr_t)info.dli_fbase;
 }
 const char *tas_image_probe_caller(void *address) {
     Dl_info info; if (!address || !dladdr(address,&info) || !info.dli_fbase || !donor(info.dli_fbase)) return "unknown";
     uintptr_t offset=(uintptr_t)address-(uintptr_t)info.dli_fbase;
     switch (offset) { case 0x2ccdf94: return "chat-static-result"; case 0x2ccfb84: return "chat-task-static-result";
         case 0x2cd052c: return "chat-animated-result"; case 0x2ccfb00: return "chat-task-animated-result"; default: return "unknown"; }
+}
+typedef struct { uint64_t number; BodyKey key; const char *kind; } RequestKey;
+static const char *utf8(id object) { return responds(object,"UTF8String") ? (const char *)m0(object,"UTF8String") : NULL; }
+static RequestKey request_key(id url) {
+    RequestKey r={.kind="unknown"};
+    if (!responds(url,"host") || !responds(url,"path")) return r;
+    const char *host=utf8(m0(url,"host"));
+    if (!host || strcmp(host,"static-cdn.jtvnw.net")) return r;
+    const char *path=utf8(m0(url,"path"));
+    if (!path || strncmp(path,"/emoticons/v2/",14)) return r;
+    const char *p=path+14;uint64_t n=0;
+    if (*p<'0' || *p>'9') return r;
+    while (*p>='0' && *p<='9') { unsigned digit=*p++-'0';if (n>(UINT64_MAX-digit)/10) return r;n=n*10+digit; }
+    if (*p!='/' || n<9000000000ULL) return r;
+    r.number=n;
+    r.kind=!strncmp(p,"/static/",8) ? "static" : !strncmp(p,"/animated/",10) ? "animated" : !strncmp(p,"/default/",9) ? "default" : "unknown";
+    /* Full URL equality includes size/theme/query. The private hash is never
+     * exported, only a launch-local ordinal; no URL or string is retained. */
+    const char *s=responds(url,"absoluteString") ? utf8(m0(url,"absoluteString")) : NULL;
+    size_t length=s ? strnlen(s,4097) : 0;
+    if (length && length<=4096) {
+        r.key=(BodyKey){1469598103934665603ULL,7809847782465536322ULL,length};
+        for (size_t i=0;i<length;i++) { r.key.a=(r.key.a^(unsigned char)s[i])*1099511628211ULL;r.key.b=(r.key.b+(unsigned char)s[i]+1)*14029467366897019727ULL;r.key.b^=r.key.b>>29; }
+    }
+    return r;
+}
+static uint64_t key_ordinal_locked(BodyKey key,time_t t) {
+    if (!key.bytes) return 0;
+    for (unsigned i=0;i<256;i++) if (equal(url_keys[i].key,key) && t-url_keys[i].time<EXPIRY) { url_keys[i].time=t;return url_keys[i].ordinal; }
+    unsigned s=url_next++%256;url_keys[s].key=key;url_keys[s].time=t;return url_keys[s].ordinal=++key_serial;
+}
+static uint64_t cache_ordinal_locked(id cache,time_t t) {
+    for (unsigned i=0;i<64;i++) if (cache_ids[i].ordinal && t-cache_ids[i].time<EXPIRY) {
+        id live=objc_loadWeakRetained(&cache_ids[i].weak);bool same=live==cache;if (live) objc_release(live);
+        if (same) { cache_ids[i].time=t;return cache_ids[i].ordinal; }
+    }
+    unsigned s=cache_next++%64;objc_storeWeak(&cache_ids[s].weak,cache);cache_ids[s].time=t;return cache_ids[s].ordinal=++cache_serial;
+}
+/* These are returns from the inspected donor's two typed cache accessors.
+ * The animated requester checks GIF storage first, then UIImage storage at
+ * 0x29415c. Other static checks are not labeled animated fallback. */
+static const char *cache_slot_for(uintptr_t offset) {
+    switch (offset) {
+    case 0x294094: case 0x295420: return "animated";
+    case 0x291654: case 0x291ba4: case 0x292cac: case 0x29415c:
+    case 0x29542c: case 0x2964cc: case 0x296b48: case 0x2971d0:
+    case 0x2978a8: case 0x3b5ae0: case 0x3b62b4: return "static";
+    default:return "unknown";
+    }
+}
+static void cache_observed(id self,RequestKey r,id result,const char *slot,const char *path,bool typed_site) {
+    if (!r.number) return;
+    /* No guessed Swift calls. At the UUID-verified StoredItem boundary only,
+     * a recognized specialization permits reading its pointer-sized value at
+     * +16. Never message/store a candidate pointer: match existing live weak
+     * origins instead. Unknown boxes, layouts and callers remain unknown. */
+    id candidate=nil;
+    if (result && typed_site) {
+        Class cls=object_getClass(result);const char *name=class_getName(cls);
+        if (name && strstr(name,"9TwitchKit17NetworkImageCache10StoredItem") &&
+            (strstr(name,"So7UIImageC") || strstr(name,"So15FLAnimatedImageC")) && class_getInstanceSize(cls)>=24)
+            memcpy(&candidate,(const char *)result+16,sizeof(candidate));
+    }
+    char state[320];time_t t=now();pthread_mutex_lock(&lock);cache_calls++;
+    uint64_t lookup=++lookup_serial,key=key_ordinal_locked(r.key,t),cache=cache_ordinal_locked(self,t);
+    Origin *o=find_locked(candidate,t);uint64_t object=o ? o->object : 0;
+    if (!strcmp(slot,"unknown")) cache_unmapped++;
+    if (o) { cache_payloads++;o->cache_lookup=lookup;o->cache_number=r.number;o->cache_key=key;o->cache_time=t;o->cache_slot=slot; }
+    snprintf(state,sizeof(state),"lookup=%llu cache=%llu key=%llu url-kind=%s native-slot=%s path=%s raw=%s payload-object=%llu payload-decoder=%s accepted=unknown",
+        (unsigned long long)lookup,(unsigned long long)cache,(unsigned long long)key,r.kind,slot,path,result ? "nonempty" : "empty",
+        (unsigned long long)object,o ? o->kind : "unknown");
+    pthread_mutex_unlock(&lock);tas_emote_probe_record(r.number,0,"decision-cache-lookup",state,false);
+}
+static id hook_cache_get(id self,SEL sel,id key) {
+    uintptr_t site=kit_offset(__builtin_return_address(0));
+    /* Filter the shared native cache read before parsing any key or unwinding.
+     * Every other application's NSCache lookup stays a direct pass-through. */
+    if (decision_depth || (site!=0x13978 && site!=0x169b0 && site!=0x2922d4))
+        return ((id (*)(id,SEL,id))cache_get)(self,sel,key);
+    decision_depth++;RequestKey r=request_key(key);
+    bool typed_site=site!=0x169b0;
+    const char *slot=site==0x169b0 ? "image-enum" : site==0x2922d4 ? "static" : "unknown";
+    const char *path=site==0x169b0 ? "task-cache-check" : site==0x2922d4 ? "batch-static-cache-check" : "unknown";
+    /* The task cache bridges a Swift image enum, not StoredItem. Observe only
+     * empty/nonempty at that boundary; never interpret its box or enum ABI. */
+    if (r.number && site==0x13978) {
+        void *frames[32];int count=backtrace(frames,32);
+        for (int i=0;i<count;i++) {
+            uintptr_t offset=kit_offset(frames[i]);const char *found=cache_slot_for(offset);
+            if (strcmp(found,"unknown")) { slot=found;path=offset==0x29415c ? "animated-request-static-fallback" : offset==0x294094 ? "animated-request-first-check" : "other-native-check";break; }
+        }
+    }
+    id result=((id (*)(id,SEL,id))cache_get)(self,sel,key);
+    cache_observed(self,r,result,slot,path,typed_site);decision_depth--;return result;
+}
+static void request_observed(id url,const char *entry,bool store_known,BOOL store,bool user_known,BOOL user) {
+    RequestKey r=request_key(url);if (!r.number) return;
+    time_t t=now();char state[192];pthread_mutex_lock(&lock);request_calls++;uint64_t key=key_ordinal_locked(r.key,t);pthread_mutex_unlock(&lock);
+    snprintf(state,sizeof(state),"entry=%s key=%llu url-kind=%s store-memory=%s user-initiated=%s",
+        entry,(unsigned long long)key,r.kind,store_known ? store ? "yes" : "no" : "default",user_known ? user ? "yes" : "no" : "default");
+    tas_emote_probe_record(r.number,0,"decision-request-entry",state,false);
+}
+#define REQUEST_BASIC(name,index,label) \
+static id name(id self,SEL sel,id url,double scale,double persist) { \
+    request_observed(url,label,false,NO,false,NO); \
+    return ((id (*)(id,SEL,id,double,double))request_imps[index])(self,sel,url,scale,persist); }
+REQUEST_BASIC(hook_request_static,0,"static")
+REQUEST_BASIC(hook_request_file,2,"static-with-file")
+REQUEST_BASIC(hook_request_animated,4,"animated")
+#define REQUEST_FLAGS(name,index,label) \
+static id name(id self,SEL sel,id url,double scale,double persist,BOOL store,BOOL user) { \
+    request_observed(url,label,true,store,true,user); \
+    return ((id (*)(id,SEL,id,double,double,BOOL,BOOL))request_imps[index])(self,sel,url,scale,persist,store,user); }
+REQUEST_FLAGS(hook_request_static_flags,1,"static")
+REQUEST_FLAGS(hook_request_file_flags,3,"static-with-file")
+static id hook_request_animated_flags(id self,SEL sel,id url,double scale,double persist,BOOL user) {
+    request_observed(url,"animated",false,NO,true,user);
+    return ((id (*)(id,SEL,id,double,double,BOOL))request_imps[5])(self,sel,url,scale,persist,user);
 }
 static void install(Class cls,const char *name,const char *encoding,IMP replacement,IMP *original) {
     Method method=cls ? class_getInstanceMethod(cls,sel_registerName(name)) : NULL;
@@ -305,6 +451,14 @@ void tas_image_probe_install(void) {
     Class response=objc_getClass("_TtCC9TwitchKit21NetworkImageRequester29NetworkImageRequesterResponse");
     install(response,"initWithImage:cacheFileURL:","@32@0:8@16@24",(IMP)hook_response_init,&response_init);
     install(response,"image","@16@0:8",(IMP)hook_response_get,&response_get);
+    install(objc_getClass("NSCache"),"objectForKey:","@24@0:8@16",(IMP)hook_cache_get,&cache_get);
+    Class requester=objc_getClass("_TtC9TwitchKit21NetworkImageRequester");
+    install(requester,"imageAtURL:withScale:persistingFor:","@40@0:8@16d24d32",(IMP)hook_request_static,&request_imps[0]);
+    install(requester,"imageAtURL:withScale:persistingFor:storeInMemoryCache:userInitiated:","@48@0:8@16d24d32B40B44",(IMP)hook_request_static_flags,&request_imps[1]);
+    install(requester,"imageWithCacheFileURLAtURL:withScale:persistingFor:","@40@0:8@16d24d32",(IMP)hook_request_file,&request_imps[2]);
+    install(requester,"imageWithCacheFileURLAtURL:withScale:persistingFor:storeInMemoryCache:userInitiated:","@48@0:8@16d24d32B40B44",(IMP)hook_request_file_flags,&request_imps[3]);
+    install(requester,"animatedImageAtURL:withStaticScale:persistingFor:","@40@0:8@16d24d32",(IMP)hook_request_animated,&request_imps[4]);
+    install(requester,"animatedImageAtURL:withStaticScale:persistingFor:userInitiated:","@44@0:8@16d24d32B40",(IMP)hook_request_animated_flags,&request_imps[5]);
 }
 void tas_image_probe_status(char *buffer,size_t capacity) {
     pthread_mutex_lock(&lock);
@@ -313,6 +467,11 @@ void tas_image_probe_status(char *buffer,size_t capacity) {
         (unsigned long long)calls,(unsigned long long)unmatched,(unsigned long long)evictions,(unsigned long long)__atomic_load_n(&oversize,__ATOMIC_RELAXED),
         cg_init ? "installed" : "missing",cg_scale ? "installed" : "missing",cg_get ? "installed" : "missing",response_init ? "installed" : "missing",response_get ? "installed" : "missing",
         (unsigned long long)cg_calls,(unsigned long long)cg_shared,(unsigned long long)response_calls,(unsigned long long)unknown_assignments,(unsigned long long)weak_reuses);
+    size_t used=strnlen(buffer,capacity);
+    if (used<capacity) snprintf(buffer+used,capacity-used,
+        "Decision hooks (native cache/static requests/file requests/animated requests): %s/%s/%s/%s\nDecision observations (cache reads/unknown slots/matched payloads/request entries): %llu/%llu/%llu/%llu\nDecision identities: 256 private URL keys, 64 weak caches; 600s expiry. Raw nonempty cache values may fail native type/expiry checks. Direct Swift request entries can bypass Objective-C hooks; zero entries are not proof of no request.\n",
+        cache_get ? "installed" : "missing",request_imps[0] && request_imps[1] ? "installed" : "missing",request_imps[2] && request_imps[3] ? "installed" : "missing",request_imps[4] && request_imps[5] ? "installed" : "missing",
+        (unsigned long long)cache_calls,(unsigned long long)cache_unmapped,(unsigned long long)cache_payloads,(unsigned long long)request_calls);
     pthread_mutex_unlock(&lock);
 }
 #endif

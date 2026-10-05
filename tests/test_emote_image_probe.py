@@ -10,17 +10,26 @@ HARNESS = r'''
 #include <assert.h>
 #include "TASEmoteImageProbe.c"
 struct Fake { const char *kind; const void *bytes; unsigned long length; id images; };
+Class object_getClass(id object) { return object; }
+const char *class_getName(Class cls) { return cls ? cls->kind : NULL; }
+size_t class_getInstanceSize(Class cls) { (void)cls;return sizeof(struct Fake); }
+static struct Fake host={"NSString","static-cdn.jtvnw.net",0,0};
+static struct Fake path={"NSString","/emoticons/v2/9000000001/animated/dark/2.0",0,0};
 static struct Fake data={"NSData","GIF89aPRIVATE_BYTES",18,0};
 static struct Fake still={"UIImage",0,0,0},animated={"GIF",0,4,0},poster={"UIImage",0,0,0};
 SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id object,SEL sel,...) {
     if (!object) return nil;
     va_list ap;va_start(ap,sel);id result=nil;
-    if (!strcmp(sel,"respondsToSelector:")) { const char *s=va_arg(ap,const char *);result=(id)(uintptr_t)(!strcmp(s,"length") || !strcmp(s,"count") || !strcmp(s,"frameCount")); }
+    if (!strcmp(sel,"respondsToSelector:")) { const char *s=va_arg(ap,const char *);result=(id)(uintptr_t)(!strcmp(s,"length") || !strcmp(s,"count") || !strcmp(s,"frameCount") || (!strcmp(object->kind,"NSString") && !strcmp(s,"UTF8String")) || (!strcmp(object->kind,"NSURL") && (!strcmp(s,"host") || !strcmp(s,"path") || !strcmp(s,"absoluteString")))); }
     else if (!strcmp(sel,"length") || !strcmp(sel,"count") || !strcmp(sel,"frameCount")) result=(id)(uintptr_t)object->length;
     else if (!strcmp(sel,"bytes")) result=(id)object->bytes;
     else if (!strcmp(sel,"images")) result=object->images;
     else if (!strcmp(sel,"posterImage")) result=hook_poster(object,"posterImage");
+    else if (!strcmp(sel,"host")) result=&host;
+    else if (!strcmp(sel,"path")) result=&path;
+    else if (!strcmp(sel,"absoluteString")) result=object->images;
+    else if (!strcmp(sel,"UTF8String")) result=(id)object->bytes;
     else assert(!"unexpected selector");
     va_end(ap);return result;
 }
@@ -70,6 +79,76 @@ int main(void) {
 '''
 
 class ImageProvenanceTests(unittest.TestCase):
+    def test_cache_key_identity_scoping_payload_match_and_request_forwarding(self):
+        extra = r'''
+static struct Fake cache={"NSCache",0,0,0};
+static struct Fake absolute={"NSString","https://static-cdn.jtvnw.net/emoticons/v2/9000000001/animated/dark/2.0?PRIVATE_QUERY",0,0};
+static struct Fake url={"NSURL",0,0,&absolute};
+static struct Fake box={"_TtGCC9TwitchKit17NetworkImageCache10StoredItemSo7UIImageC_",0,0,0};
+static unsigned forwards;
+static id native_request(id self,SEL sel,id u,double scale,double persist) {
+    assert(self==&cache && !strcmp(sel,"request") && u==&url && scale==2.5 && persist==123.75);forwards++;return &still;
+}
+static id native_flags(id self,SEL sel,id u,double scale,double persist,BOOL store,BOOL user) {
+    assert(self==&cache && !strcmp(sel,"request") && u==&url && scale==2.5 && persist==123.75 && !store && user);forwards++;return nil;
+}
+static id native_animated_flags(id self,SEL sel,id u,double scale,double persist,BOOL user) {
+    assert(self==&cache && !strcmp(sel,"request") && u==&url && scale==2.5 && persist==123.75 && user);forwards++;return &still;
+}
+static id native_cache(id self,SEL sel,id key) { assert(self==&cache && !strcmp(sel,"cache") && key==&url);forwards++;return &box; }
+int main(void) {
+    (void)original_gif;(void)original_ui;(void)original_poster;
+    RequestKey r=request_key(&url);assert(r.number==9000000001ULL && !strcmp(r.kind,"animated") && r.key.bytes);
+    uint64_t key=key_ordinal_locked(r.key,now());assert(key && key_ordinal_locked(r.key,now())==key);
+    absolute.bytes="https://static-cdn.jtvnw.net/emoticons/v2/9000000001/animated/dark/3.0?PRIVATE_QUERY";
+    RequestKey other=request_key(&url);assert(key_ordinal_locked(other.key,now())!=key);
+    host.bytes="elsewhere.invalid";assert(!request_key(&url).number);host.bytes="static-cdn.jtvnw.net";
+    path.bytes="/emoticons/v2/25/default/dark/2.0";assert(!request_key(&url).number);
+    path.bytes="/emoticons/v2/184467440737095516160/default/dark/2.0";assert(!request_key(&url).number);
+    path.bytes="/emoticons/v2/9000000001/static/dark/2.0";assert(!strcmp(request_key(&url).kind,"static"));
+    constructed(&still,NULL,"native-static-imageio");box.length=(uintptr_t)&still;
+    cache_observed(&cache,r,&box,"animated","animated-request-first-check",true);
+    cache_observed(&cache,r,&box,"static","animated-request-static-fallback",true);
+    uint64_t object=find_locked(&still,now())->object;
+    tas_image_probe_assignment(r.number,4,&still,"chat-task-static-result");
+    assert(strstr(trace,"native-slot=animated") && strstr(trace,"animated-request-static-fallback"));
+    assert(strstr(trace,"payload-decoder=UIImage-CGImage") && strstr(trace,"prior-cache-payload-identity") && strstr(trace,"accepted=unknown"));
+    assert(find_locked(&still,now())->object==object && cache_payloads==2);
+    trace[0]=0;cache_observed(&cache,r,nil,"animated","unknown",true);assert(strstr(trace,"raw=empty"));
+    trace[0]=0;cache_observed(&cache,r,&box,"image-enum","task-cache-check",false);
+    assert(strstr(trace,"native-slot=image-enum path=task-cache-check raw=nonempty") && strstr(trace,"payload-decoder=unknown"));
+    trace[0]=0;cache_observed(&cache,r,&box,"static","batch-static-cache-check",true);
+    assert(strstr(trace,"batch-static-cache-check") && strstr(trace,"payload-decoder=UIImage-CGImage"));
+    box.kind="unrecognized";trace[0]=0;cache_observed(&cache,r,&box,"static","unknown",true);assert(strstr(trace,"payload-object=0"));
+    box.kind="_TtGCC9TwitchKit17NetworkImageCache10StoredItemSo7UIImageC_";
+    /* A dead weak payload cannot inherit the old result or ordinal. */
+    objc_storeWeak(&find_locked(&still,now())->weak,nil);trace[0]=0;cache_observed(&cache,r,&box,"static","unknown",true);assert(strstr(trace,"payload-object=0"));
+    assert(!strcmp(cache_slot_for(0x294094),"animated") && !strcmp(cache_slot_for(0x29415c),"static") && !strcmp(cache_slot_for(0x123),"unknown"));
+    request_imps[0]=request_imps[2]=request_imps[4]=(IMP)native_request;
+    request_imps[1]=request_imps[3]=(IMP)native_flags;request_imps[5]=(IMP)native_animated_flags;
+    assert(hook_request_static(&cache,"request",&url,2.5,123.75)==&still);
+    assert(hook_request_file(&cache,"request",&url,2.5,123.75)==&still);
+    assert(hook_request_animated(&cache,"request",&url,2.5,123.75)==&still);
+    assert(hook_request_static_flags(&cache,"request",&url,2.5,123.75,NO,YES)==nil);
+    assert(hook_request_file_flags(&cache,"request",&url,2.5,123.75,NO,YES)==nil);
+    assert(hook_request_animated_flags(&cache,"request",&url,2.5,123.75,YES)==&still);
+    cache_get=(IMP)native_cache;unsigned reads=cache_calls;
+    assert(hook_cache_get(&cache,"cache",&url)==&box && cache_calls==reads && forwards==7);
+    /* A cache identity must expire and must not survive weak deallocation. */
+    uint64_t c=cache_ordinal_locked(&cache,now());
+    for (unsigned i=0;i<64;i++) if (cache_ids[i].ordinal==c) objc_storeWeak(&cache_ids[i].weak,nil);
+    assert(cache_ordinal_locked(&cache,now())!=c);
+    for (unsigned i=0;i<256;i++) url_keys[i].time-=EXPIRY;
+    assert(key_ordinal_locked(r.key,now())!=key);
+    assert(!strstr(trace,"PRIVATE_QUERY") && !strstr(trace,"https://") && !strstr(trace,"0x"));
+    return 0;
+}
+'''
+        harness=HARNESS[:HARNESS.index("int main(void)")]+extra
+        zig=os.environ.get("ZIG") or shutil.which("zig")
+        self.assertTrue(zig)
+        composer.ComposerTests().compile_run(harness,[zig,"cc","-fblocks","-DTAS_EMOTE_DIAGNOSTIC=1","-fsanitize=address,undefined"],runtime=True)
+
     def test_original_results_body_match_poster_reuse_expiry_and_weak_identity(self):
         zig=os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)

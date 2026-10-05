@@ -180,7 +180,7 @@ static int probe_mode(id attachment) {
     unsigned char value; memcpy(&value,(char *)attachment+ivar_getOffset(mode),1); return value<=2 ? value : -1;
 }
 static void probe_intent(id attachment,id input,char *buffer,size_t capacity) {
-    id data=probe_image_data(attachment); char provenance[256]; tas_image_probe_origin(input,provenance,sizeof(provenance));
+    id data=probe_image_data(attachment); char provenance[320]; tas_image_probe_origin(input,provenance,sizeof(provenance));
     snprintf(buffer,capacity,"mode=%d wants-animation=%d animated-url=%d %s",probe_mode(attachment),probe_flag(data,"isAnimated"),responds(data,"animatedURL") ? m0(data,"animatedURL")!=nil : -1,provenance);
 }
 static const char *probe_role(id layer) {
@@ -277,7 +277,7 @@ static void probe_snapshot(id layer,const char *event) {
     const char *static_visibility=kind(sibling,"CALayer") ? probe_visibility(sibling) : "unavailable";
     id animated=kind(parent,"_TtC6Twitch20ImageAttachmentLayer") ? object_ivar(parent,"animatedImageLayer") : nil;
     const char *animated_visibility=kind(animated,"CALayer") ? probe_visibility(animated) : "unavailable";
-    char state[768],intent[320]; probe_intent(parent,image ?: frame,intent,sizeof(intent));
+    char state[896],intent[384]; probe_intent(parent,image ?: frame,intent,sizeof(intent));
     snprintf(state,sizeof(state),"t=%u layer=%u role=%s refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s animated-child=%s static-child=%s %s",
         elapsed,g_probe_playheads[slot].serial,g_probe_playheads[slot].role,g_probe_refresh ? "hooked" : "missing",
         (unsigned long long)g_probe_playheads[slot].refreshes,(unsigned long long)g_probe_playheads[slot].advances,
@@ -370,7 +370,7 @@ static void probe_assignment(id layer,const char *event,id input,const char *bra
     for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==layer && g_probe_playheads[i].number==number) {
         ordinal=g_probe_playheads[i].serial; break;
     }
-    id parent=m0(layer,"superlayer"); char intent[320],decision[128]; probe_intent(parent,input,intent,sizeof(intent));
+    id parent=m0(layer,"superlayer"); char intent[384],decision[128]; probe_intent(parent,input,intent,sizeof(intent));
     if (strstr(event,"before")) {
         snprintf(decision,sizeof(decision),"%s/role-%s/mode-%d/wants-animation-%d",branch,probe_role(layer),probe_mode(parent),probe_flag(probe_image_data(parent),"isAnimated"));
         tas_image_probe_assignment(number,ordinal,input,decision);

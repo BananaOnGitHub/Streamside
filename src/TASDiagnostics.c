@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -39,7 +40,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.45"
+#define TAS_REPORT_VERSION "3.0.0-build.46"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -355,11 +356,16 @@ static id diagnostic_report_create(void) {
              navigation_visible[0] ? navigation_visible : "none");
     vmsg1(report, "appendString:", nsstr(emote_status));
 #if TAS_EMOTE_DIAGNOSTIC
-    char probe_status[393216];
-    tas_emote_probe_status(probe_status,sizeof(probe_status));
-    vmsg1(report,"appendString:",nsstr(probe_status));
+    /* Bounded heap storage avoids consuming the UI thread's stack with four
+     * emote histories and the longer result-origin rows. */
+    char *probe_status=calloc(1,786432);
+    if (probe_status) {
+        tas_emote_probe_status(probe_status,786432);
+        vmsg1(report,"appendString:",nsstr(probe_status));
+        free(probe_status);
+    } else vmsg1(report,"appendString:",nsstr("\nEmote probe report unavailable: allocation failed\n"));
 #endif
-    char ui_status[2048];
+    char ui_status[4096];
     tas_emote_ui_status(ui_status, sizeof(ui_status));
     vmsg1(report, "appendString:", nsstr(ui_status));
     char composer_status[1024];

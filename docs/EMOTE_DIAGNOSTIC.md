@@ -1,4 +1,4 @@
-# Temporary missing-emote diagnostics (builds 39–45)
+# Temporary missing-emote diagnostics (builds 39–46)
 
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
@@ -39,6 +39,49 @@ body is context, not proof that the GIF object was flattened. Unknown origins
 include older cached objects, unobserved constructors, expired or evicted records.
 The recorder never invokes lazy frame decoding or changes result selection.
 
+## Build 46 result creation and reuse
+
+The build 45 device report found a four-frame GIF decode while native chat
+repeatedly assigned a still through `chat-task-static-result`, with no resident
+animation even when visible. Its handoff object had unknown provenance. Build 46
+observes UIImage CGImage constructors and the CGImage getter, plus the native
+NetworkImageRequesterResponse initializer/image getter when their Objective-C
+entry points are used. It preserves original arguments, calls each original
+implementation once, and returns its unchanged result. Hook availability and
+observation counts distinguish an unused or unavailable path from evidence.
+
+Two TwitchKit static ImageIO constructor sites are labeled
+`native-static-imageio` and `native-task-static-imageio` only after matching the
+full donor UUID and exact return offset. Other sites remain unknown. This can
+locate actual static image creation without assuming which request or cache path
+selected it. The GIF initializer also reads its verified cached poster getter
+after recording the decode; this does not invoke a lazy frame decoder.
+
+The result budget increases to 1024 weak identities, with 256 weak raster owners.
+An image assigned to provider chat is protected from unrelated construction
+traffic while observed; all records remain bounded and expire after 600 seconds
+without observation. A borrowed raster identity is trusted only while its weak
+UIImage owner and recorded object ordinal still match. `parent` identifies an
+observed poster/copy relationship, not a proven flattening of GIF animation.
+No bitmap, animation, CGImage or response body is retained by this probe.
+
+The first assignment records a separate 16-row `Result origin` history, so later
+handoffs cannot erase creation evidence. `source=observed-construction` reports
+an observed constructor or poster result. `native-response-observed` reports
+only response-wrapper observation. `first-seen-at-handoff` leaves construction
+unknown, but later assignments can still establish reuse of that same live
+object. `body=matched-response` requires the assigned emote's response key;
+`decoded-bytes-only` means the bytes were fingerprinted without that response
+match. `file=1` records an observed nonnil response cache-file URL; zero means no
+such presence was observed. Neither file presence nor repeated identity proves
+a cache hit. Direct Swift cache lookups remain unobserved and
+`cache-hit=unknown` stays explicit.
+
+For this stage, relaunch Twitch after installing so construction can be observed,
+then reproduce the frozen emote and use the same Inspect Emote procedure below.
+This stage changes diagnostics only; it does not change request selection,
+decoding, cache retrieval or animation playback.
+
 ## Device procedure
 
 1. Visit the affected channel so its emote catalog can load.
@@ -62,7 +105,8 @@ while any are tracked, independently of the recovery timer. Empty weak tables
 stop its timer; the next provider layout/assignment restarts it. History is capped
 at 32 emote IDs, each with 16 visible samples, 16 transitions, four last-visible
 layer snapshots, 16 image-loading events, 16 assignments and four last-progress
-layer snapshots. Entries expire after 600 monotonic seconds; capacity pressure
+layer snapshots, plus 16 decodes, 16 handoffs and (build 46) 16 result origins.
+Entries expire after 600 monotonic seconds; capacity pressure
 can evict them sooner. Nothing promises ten minutes of uninterrupted samples.
 Reports include at most four matching IDs, oldest-first within each sample/event
 ring, with last-visible snapshots separately labeled. `age` gives observation age.
@@ -142,7 +186,7 @@ history keeps before/after role, visibility, input presence/frame count and
 resident animation/frame/contents facts separately, so repeated static setters
 cannot erase transport evidence. A nonnil native animation input establishes
 that a decoded object reached the setter; a missing input/request does not prove
-a decoding failure. This probe does not intercept cache hits or decoder internals
+a decoding failure. This probe does not intercept cache retrieval or lazy frame decoding
 and never calls a frame-at-index method. Build 40 attributes protocol results using the
 original request, including errors with no response URL. A layer-layout event establishes layout, not a successful
 paint on the device. No selected-code event is also useful when compared with

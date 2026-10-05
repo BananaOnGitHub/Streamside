@@ -2,6 +2,15 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 44 corrects diagnostic child roles using the attachment's actual fields,
+  observes both native children, and admits visible layers ahead of hidden ones
+  within the 64-layer budget. Report capacity denials, live observer evictions,
+  genuine weak-layer release and recorder heartbeat separately. Retain per-ID
+  transport/mapping, native decoded-input/assignment and last-progress histories
+  independently of cleanup traffic and target selection. No raw image bytes,
+  object descriptions or URLs are retained. Normal builds compile these changes
+  out; native playback/recovery and image transport are unchanged. Device
+  validation pending.
 - Build 43 adds diagnostic-only retrospective playback recording before target
   selection. Keep bounded per-ID visible samples, transitions and separate
   last-visible snapshots after chat rows disappear; observe native image

@@ -126,30 +126,31 @@ ANIMATIONS = r'''
 #include <assert.h>
 #include "TASEmoteUI.c"
 struct Block { void *isa; int flags,reserved; void (*invoke)(struct Block *,id); };
-struct Fake { const char *cls,*value; id inner,animation,link,parent,bound,delegate,window,members[16]; BOOL hidden,paused,invalid,clips; NSUInteger loops,length; float opacity; Rect bounds,projected; double interval,tolerance; struct Block *block; };
-struct FakeAttachment { struct Fake base; Rect content; id data,requester,animated; };
+struct Fake { const char *cls,*value; id inner,animation,link,parent,bound,delegate,window,members[128]; BOOL hidden,paused,invalid,clips; NSUInteger loops,length; float opacity; Rect bounds,projected; double interval,tolerance; struct Block *block; };
+struct FakeAttachment { struct Fake base; Rect content; id data,requester,animated,still; };
 static struct Fake classes[]={{.cls="NSString"},{.cls="_TtC6Twitch20ImageAttachmentLayer"},
     {.cls="_TtC6Twitch22MessageStringImageData"},{.cls="TWAnimatedImageLayer"},{.cls="UIApplication"},
-    {.cls="UIView"},{.cls="NSHashTable"},{.cls="NSTimer"},{.cls="NSRunLoop"}};
+    {.cls="UIView"},{.cls="NSHashTable"},{.cls="NSTimer"},{.cls="NSRunLoop"},{.cls="CALayer"},{.cls="UIImage"}};
 static struct Fake host={.cls="NSString",.value="static-cdn.jtvnw.net"},temporary;
 static struct Fake weak_set,snapshot,application,runloop,timers[16];
 static unsigned bindings,resumes,created,invalidated,set_calls; static NSInteger app_state;
 Class objc_getClass(const char *name) { for(size_t i=0;i<sizeof(classes)/sizeof(classes[0]);i++)if(!strcmp(classes[i].cls,name))return &classes[i];return nil; }
 Class object_getClass(id o) { return o; }
 SEL sel_registerName(const char *name) { return name; }
-static ptrdiff_t offsets[]={offsetof(struct FakeAttachment,content),offsetof(struct FakeAttachment,requester),offsetof(struct FakeAttachment,animated)};
+static ptrdiff_t offsets[]={offsetof(struct FakeAttachment,content),offsetof(struct FakeAttachment,requester),offsetof(struct FakeAttachment,animated),offsetof(struct FakeAttachment,still)};
 Ivar class_getInstanceVariable(Class c,const char *name) {
     if(strcmp(c->cls,"_TtC6Twitch20ImageAttachmentLayer"))return NULL;
     if(!strcmp(name,"content"))return offsets;
     if(!strcmp(name,"networkImageRequester"))return offsets+1;
     if(!strcmp(name,"animatedImageLayer"))return offsets+2;
+    if(!strcmp(name,"staticImageLayer"))return offsets+3;
     return NULL;
 }
 ptrdiff_t ivar_getOffset(Ivar i) { return *(ptrdiff_t *)i; }
 static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;
     va_list args;va_start(args,sel);id result=nil;
-    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(c && !strcmp(c->cls,o->cls)); }
+    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(c && (!strcmp(c->cls,o->cls) || (!strcmp(c->cls,"CALayer") && !strcmp(o->cls,"TWAnimatedImageLayer")))); }
     else if(!strcmp(sel,"respondsToSelector:")) { (void)va_arg(args,SEL);result=(id)(uintptr_t)YES; }
     else if(!strcmp(sel,"stringWithUTF8String:")) { temporary.cls="NSString";temporary.value=va_arg(args,const char *);result=&temporary; }
     else if(!strcmp(sel,"isEqualToString:")) { id b=va_arg(args,id);result=(id)(uintptr_t)(b && !strcmp(o->value,b->value)); }
@@ -174,7 +175,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"weakObjectsHashTable"))result=&weak_set;
     else if(!strcmp(sel,"addObject:")) {
         id value=va_arg(args,id);NSUInteger i=0;for(;i<o->length;i++)if(o->members[i]==value)break;
-        if(i==o->length){assert(i<16);o->members[o->length++]=value;}
+        if(i==o->length){assert(i<128);o->members[o->length++]=value;}
     }
     else if(!strcmp(sel,"removeObject:")) {
         id value=va_arg(args,id);for(NSUInteger i=0;i<o->length;i++)if(o->members[i]==value){memmove(o->members+i,o->members+i+1,(o->length-i-1)*sizeof(id));o->length--;break;}
@@ -265,17 +266,25 @@ static struct Block test_probe_block={.invoke=test_probe_fire};
 id ss_test_probe_block(void) { return (id)&test_probe_block; }
 static uint64_t test_generation=1;
 static unsigned samples,refresh_calls,static_calls,remove_calls,stop_calls,quiet_events,progress_events;
+static unsigned released_events,eviction_events,denial_events,image_events;
 static char playback[512];
+static char assignment[512];
 uint64_t tas_emote_probe_generation(uint64_t number) { return number==900123456789012ULL ? test_generation : 0; }
 void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
     assert(generation==test_generation && number==900123456789012ULL);
     samples++;snprintf(playback,sizeof(playback),"%s",state);
 }
 void tas_emote_probe_record(uint64_t number,unsigned layer,const char *event,const char *state,bool visible) {
-    assert(number==900123456789012ULL && layer);(void)event;(void)visible;
+    assert(number==900123456789012ULL);(void)layer;(void)visible;
     samples++;snprintf(playback,sizeof(playback),"%s",state);
     if (!strcmp(event,"no-frame-change-3s") || !strcmp(event,"no-refresh-3s")) quiet_events++;
-    if (!strcmp(event,"last-frame-progress")) { progress_events++;assert(strstr(state,"advances=4")); }
+    if (!strcmp(event,"last-frame-progress")) { progress_events++;assert(strstr(state,"advances=")); }
+    if (!strcmp(event,"layer-released")) released_events++;
+    if (!strcmp(event,"tracking-evicted")) { eviction_events++;assert(strstr(state,"weak-layer=live")); }
+    if (!strcmp(event,"tracking-limited")) { denial_events++;assert(!layer && strstr(state,"reason=capacity")); }
+}
+void tas_emote_probe_image(uint64_t number,unsigned layer,const char *event,const char *state) {
+    assert(number==900123456789012ULL);(void)layer;(void)event;image_events++;snprintf(assignment,sizeof(assignment),"%s",state);
 }
 void tas_emote_probe_stage(uint64_t number,const char *stage) { (void)number; (void)stage; }
 static void native_refresh(id o,SEL sel,id link) {
@@ -306,6 +315,7 @@ int main(void) {
     g_animation_layers=&weak_set;weak_set.members[0]=&layer;weak_set.length=1;
     tas_emote_ui_probe_start(); assert(samples==2 && strstr(playback,"ticks=0 advances=0"));
     assert(strstr(playback,"frames=4") && strstr(playback,"contents=1") && strstr(playback,"visibility=visible"));
+    assert(strstr(playback,"role=animated") && strstr(playback,"animated-child=visible"));
     assert(!bindings && !resumes && !set_calls);
     for (int i=0;i<4;i++) probe_display_refresh(&layer,"displayDidRefresh:",&link);
     fire(g_probe_timer); assert(refresh_calls==4 && layer.index==0);
@@ -330,12 +340,37 @@ int main(void) {
     g_probe_stop=(IMP)native_stop;probe_stop_animation(&layer,"stopAnimating");assert(stop_calls==1 && link.paused);
     probe_static_image(&layer,"setStaticImage:",&animation);
     assert(static_calls==1 && !layer.animation && link.paused && strstr(playback,"animation=0"));
+    assert(image_events==2 && strstr(assignment,"resident-animation=0"));
     assert(strstr(playback,"ticks=1")); /* Clearing an image does not reset cumulative clocks. */
     probe_remove_layer(&layer,"removeFromSuperlayer");assert(remove_calls==1 && !layer.parent);
     assert(strstr(playback,"visibility=detached"));
     g_probe_started.tv_sec-=600;fire(g_probe_timer);assert(g_probe_timer); /* Rolling, not ten minutes after selection. */
     weak_set.length=0;id stale=g_probe_timer;fire(stale);assert(!g_probe_playheads[0].layer && !g_probe_timer && stale->invalid);
-    assert(strstr(playback,"weak-row=gone"));before=samples;fire(stale);assert(samples==before);
+    assert(strstr(playback,"weak-layer=gone"));before=samples;fire(stale);assert(samples==before);
+    /* A static child is identified by the actual field, even if its class
+     * also implements the native animation selectors. Detach preserves role. */
+    struct Fake still=layer; still.parent=(id)&attachment;still.inner=&animation;
+    attachment.still=&still;probe_snapshot(&still,"static-child-test");
+    assert(strstr(playback,"role=static") && strstr(playback,"static-child=visible"));
+    still.parent=nil;probe_snapshot(&still,"detached-test");assert(strstr(playback,"role=static"));
+    weak_set.length=0;probe_reap(m0(g_probe_layers,"allObjects"));
+    /* 64 live visible layers: no free observation identity may be fabricated
+     * for a denied 65th layer or later reported as released. */
+    struct Fake busy[64];
+    for (unsigned i=0;i<64;i++) { busy[i]=layer;busy[i].parent=(id)&attachment;probe_snapshot(&busy[i],"busy-test"); }
+    assert(weak_set.length==64);
+    unsigned released_before=released_events;before=denial_events;
+    probe_snapshot(&still,"denied-test"); /* Detached, not eligible. */
+    still.parent=(id)&attachment;probe_snapshot(&still,"denied-test");
+    assert(denial_events==before+1 && g_probe_dropped && weak_set.length==64);
+    probe_sample_all(nil);assert(released_events==released_before);
+    for (unsigned i=0;i<64;i++) assert(g_probe_playheads[i].layer!=&still);
+    /* A new visible static child replaces a live hidden observer, explicitly
+     * reporting eviction; its native image setter still runs exactly once. */
+    busy[0].hidden=YES;before=eviction_events;
+    probe_static_image(&still,"setStaticImage:",&animation);
+    assert(static_calls==2 && eviction_events==before+1 && g_probe_evicted==1 && weak_set.length==64);
+    assert(released_events==released_before && strstr(assignment,"role=static") && strstr(assignment,"tracking=admitted"));
     assert(!bindings && !resumes && !set_calls); /* Every read is observational. */
     return 0;
 }
@@ -396,7 +431,7 @@ class EmoteImageTests(unittest.TestCase):
         source=source.replace('void tas_emote_ui_probe_start(void) {','extern id ss_test_probe_block(void);\nvoid tas_emote_ui_probe_start(void) {')
         harness=ANIMATIONS[:ANIMATIONS.index('int main(void) {')]+PLAYBACK_MAIN
         harness=harness.replace('BOOL hidden,paused,invalid,clips;', 'BOOL hidden,paused,invalid,clips,advance; NSUInteger index;')
-        harness=harness.replace('else if(!strcmp(sel,"displayLink"))', 'else if(!strcmp(sel,"currentFrame"))result=o->inner;\n    else if(!strcmp(sel,"contents"))result=o->inner;\n    else if(!strcmp(sel,"currentFrameIndex"))result=(id)(uintptr_t)o->index;\n    else if(!strcmp(sel,"frameCount"))result=(id)(uintptr_t)o->length;\n    else if(!strcmp(sel,"shouldAnimate"))result=(id)(uintptr_t)YES;\n    else if(!strcmp(sel,"needsDisplayUpdate"))result=nil;\n    else if(!strcmp(sel,"displayLink"))')
+        harness=harness.replace('else if(!strcmp(sel,"displayLink"))', 'else if(!strcmp(sel,"currentFrame"))result=o->inner;\n    else if(!strcmp(sel,"contents"))result=o->inner;\n    else if(!strcmp(sel,"images"))result=nil;\n    else if(!strcmp(sel,"currentFrameIndex"))result=(id)(uintptr_t)o->index;\n    else if(!strcmp(sel,"frameCount"))result=(id)(uintptr_t)o->length;\n    else if(!strcmp(sel,"shouldAnimate"))result=(id)(uintptr_t)YES;\n    else if(!strcmp(sel,"needsDisplayUpdate"))result=nil;\n    else if(!strcmp(sel,"displayLink"))')
         harness=harness.replace('timer==g_animation_timer', '(timer==g_animation_timer || timer==g_probe_timer)')
         harness=harness.replace('assert(!o || (o->invalid && !strcmp(o->cls,"NSTimer")))', 'assert(!o || o==&weak_set || (o->invalid && !strcmp(o->cls,"NSTimer")))')
         # The shared fake weak table models already live rows; no objects are retained by it.

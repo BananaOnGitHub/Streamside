@@ -16,16 +16,18 @@
 static IMP g_probe_refresh, g_probe_static, g_probe_remove, g_probe_stop;
 static id g_probe_timer, g_probe_layers;
 static unsigned g_probe_layer_serial;
+static uint64_t g_probe_polls, g_probe_dropped, g_probe_evicted;
+static time_t g_probe_last_poll;
 static struct timespec g_probe_started;
 static struct {
     id layer, animation, frame; /* Identity only; never retained or dereferenced here. */
     uint64_t number, refreshes, advances, index;
     unsigned serial;
+    char role[12];
     char signature[160];
     time_t last_tick, last_advance;
     uint64_t observed_ticks, observed_advances;
     BOOL quiet_reported, was_visible;
-    char progress[448];
 } g_probe_playheads[64];
 #endif
 
@@ -162,13 +164,58 @@ static uint64_t probe_integer(id object,const char *selector) {
 static int probe_flag(id object,const char *selector) {
     return responds(object,selector) ? ((BOOL (*)(id,SEL))objc_msgSend)(object,sel_registerName(selector)) : -1;
 }
-static void probe_track(id layer) {
+static const char *probe_role(id layer) {
+    id parent=m0(layer,"superlayer");
+    if (!kind(parent,"_TtC6Twitch20ImageAttachmentLayer")) return "unknown";
+    if (layer==object_ivar(parent,"animatedImageLayer")) return "animated";
+    if (layer==object_ivar(parent,"staticImageLayer")) return "static";
+    return "unknown";
+}
+static BOOL probe_contains(id layers,id layer) {
+    for (NSUInteger i=0,n=count(layers);i<n;i++) if (at(layers,i)==layer) return YES;
+    return NO;
+}
+static void probe_reap(id layers) {
+    for (unsigned s=0;s<64;s++) {
+        if (!g_probe_playheads[s].layer || probe_contains(layers,g_probe_playheads[s].layer)) continue;
+        char state[80]; snprintf(state,sizeof(state),"layer=%u role=%s weak-layer=gone",g_probe_playheads[s].serial,g_probe_playheads[s].role);
+        tas_emote_probe_record(g_probe_playheads[s].number,g_probe_playheads[s].serial,"layer-released",state,false);
+        memset(&g_probe_playheads[s],0,sizeof(g_probe_playheads[s]));
+    }
+}
+static BOOL probe_track(id layer) {
     if (!g_probe_layers) {
         g_probe_layers=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
         clock_gettime(CLOCK_MONOTONIC,&g_probe_started);
     }
-    if (g_probe_layers && layer && image_layer_id(m0(layer,"superlayer")) && count(g_probe_layers)<64)
-        v1(g_probe_layers,"addObject:",layer);
+    uint64_t number=layer ? image_layer_id(m0(layer,"superlayer")) : 0;
+    if (!g_probe_layers || !number) return NO;
+    id layers=m0(g_probe_layers,"allObjects");
+    if (probe_contains(layers,layer)) return YES;
+    probe_reap(layers); /* Never allocate an identity for an unadmitted layer. */
+    if (count(layers)>=64) {
+        /* Newly visible layers can replace live hidden/offscreen observations.
+         * This is recorder eviction, never evidence of object deallocation. */
+        id victim=nil;
+        if (!strcmp(probe_visibility(layer),"visible")) for (NSUInteger i=0,n=count(layers);i<n;i++) {
+            id candidate=at(layers,i);
+            if (strcmp(probe_visibility(candidate),"visible")) { victim=candidate; break; }
+        }
+        if (!victim) {
+            g_probe_dropped++;
+            char state[96]; snprintf(state,sizeof(state),"layer=untracked role=%s reason=capacity limit=64",probe_role(layer));
+            tas_emote_probe_record(number,0,"tracking-limited",state,false);
+            return NO;
+        }
+        for (unsigned s=0;s<64;s++) if (g_probe_playheads[s].layer==victim) {
+            char state[96]; snprintf(state,sizeof(state),"layer=%u role=%s reason=visible-priority weak-layer=live",g_probe_playheads[s].serial,g_probe_playheads[s].role);
+            tas_emote_probe_record(g_probe_playheads[s].number,g_probe_playheads[s].serial,"tracking-evicted",state,false);
+            memset(&g_probe_playheads[s],0,sizeof(g_probe_playheads[s])); break;
+        }
+        v1(g_probe_layers,"removeObject:",victim); g_probe_evicted++;
+    }
+    v1(g_probe_layers,"addObject:",layer);
+    return YES;
 }
 static void probe_snapshot(id layer,const char *event) {
     uint64_t number=image_layer_id(m0(layer,"superlayer"));
@@ -183,6 +230,7 @@ static void probe_snapshot(id layer,const char *event) {
         if (slot<64) memset(&g_probe_playheads[slot],0,sizeof(g_probe_playheads[slot]));
         return;
     }
+    if (slot==64 && !probe_track(layer)) return;
     if (slot==64) for (unsigned i=0;i<64;i++) if (!g_probe_playheads[i].layer) { slot=i; break; }
     if (slot==64) return; /* Fixed observation budget, never an unbounded map. */
     id image=m0(layer,"animatedImage"),frame=m0(layer,"currentFrame");
@@ -192,6 +240,7 @@ static void probe_snapshot(id layer,const char *event) {
         g_probe_playheads[slot].layer=layer; g_probe_playheads[slot].number=number;
         g_probe_playheads[slot].serial=++g_probe_layer_serial;
     }
+    if (m0(layer,"superlayer")) snprintf(g_probe_playheads[slot].role,sizeof(g_probe_playheads[slot].role),"%s",probe_role(layer));
     /* Keep lifetime counters across image clearing/replacement. Refresh
      * baselines change, but prior ticks must not disappear with the image. */
     BOOL image_changed=g_probe_playheads[slot].animation!=image;
@@ -207,29 +256,32 @@ static void probe_snapshot(id layer,const char *event) {
     id parent=m0(layer,"superlayer");
     id sibling=kind(parent,"_TtC6Twitch20ImageAttachmentLayer") ? object_ivar(parent,"staticImageLayer") : nil;
     const char *static_visibility=kind(sibling,"CALayer") ? probe_visibility(sibling) : "unavailable";
+    id animated=kind(parent,"_TtC6Twitch20ImageAttachmentLayer") ? object_ivar(parent,"animatedImageLayer") : nil;
+    const char *animated_visibility=kind(animated,"CALayer") ? probe_visibility(animated) : "unavailable";
     char state[448];
-    snprintf(state,sizeof(state),"t=%u layer=%u role=animated refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s static-child=%s",
-        elapsed,g_probe_playheads[slot].serial,g_probe_refresh ? "hooked" : "missing",
+    snprintf(state,sizeof(state),"t=%u layer=%u role=%s refresh=%s ticks=%llu advances=%llu index=%llu frames=%llu animation=%d frame=%d contents=%d link=%s should=%d dirty=%d loops=%llu visibility=%s gate=%s animated-child=%s static-child=%s",
+        elapsed,g_probe_playheads[slot].serial,g_probe_playheads[slot].role,g_probe_refresh ? "hooked" : "missing",
         (unsigned long long)g_probe_playheads[slot].refreshes,(unsigned long long)g_probe_playheads[slot].advances,
         (unsigned long long)index,(unsigned long long)probe_integer(image,"frameCount"),image!=nil,frame!=nil,m0(layer,"contents")!=nil,
         !link ? "missing" : paused==1 ? "paused" : paused==0 ? "running" : "unknown",
         probe_flag(layer,"shouldAnimate"),probe_flag(layer,"needsDisplayUpdate"),
-        (unsigned long long)probe_integer(layer,"loopCountdown"),visibility,gate,static_visibility);
+        (unsigned long long)probe_integer(layer,"loopCountdown"),visibility,gate,animated_visibility,static_visibility);
     char signature[160];
-    snprintf(signature,sizeof(signature),"%d/%d/%d/%d/%s/%s/%s",image!=nil,frame!=nil,paused,
-        probe_flag(layer,"shouldAnimate"),visibility,gate,static_visibility);
+    snprintf(signature,sizeof(signature),"%d/%d/%d/%d/%s/%s/%s/%s/%s",image!=nil,frame!=nil,paused,
+        probe_flag(layer,"shouldAnimate"),visibility,gate,g_probe_playheads[slot].role,animated_visibility,static_visibility);
     BOOL visible=!strcmp(visibility,"visible");
     /* Preserve the previous progressing state when clocks go quiet. This is
      * evidence, not a freeze verdict: long frame holds can also trigger it. */
     if (image_changed || !visible || !g_probe_playheads[slot].was_visible) {
         g_probe_playheads[slot].last_tick=g_probe_playheads[slot].last_advance=now.tv_sec;
         g_probe_playheads[slot].quiet_reported=NO;
-        if (image_changed) g_probe_playheads[slot].progress[0]=0;
     }
     if (g_probe_playheads[slot].refreshes!=g_probe_playheads[slot].observed_ticks) g_probe_playheads[slot].last_tick=now.tv_sec;
     if (g_probe_playheads[slot].advances!=g_probe_playheads[slot].observed_advances) {
         g_probe_playheads[slot].last_advance=now.tv_sec; g_probe_playheads[slot].quiet_reported=NO;
-        snprintf(g_probe_playheads[slot].progress,sizeof(g_probe_playheads[slot].progress),"%s",state);
+        if (visible && image) {
+            tas_emote_probe_record(number,g_probe_playheads[slot].serial,"last-frame-progress",state,false);
+        }
     }
     g_probe_playheads[slot].observed_ticks=g_probe_playheads[slot].refreshes;
     g_probe_playheads[slot].observed_advances=g_probe_playheads[slot].advances;
@@ -237,8 +289,6 @@ static void probe_snapshot(id layer,const char *event) {
     if (!strcmp(event,"sample")) {
         if (visible && image && link && paused==0 && probe_integer(image,"frameCount")>1 &&
             now.tv_sec-g_probe_playheads[slot].last_advance>=3 && !g_probe_playheads[slot].quiet_reported) {
-            if (g_probe_playheads[slot].progress[0])
-                tas_emote_probe_record(number,g_probe_playheads[slot].serial,"last-frame-progress",g_probe_playheads[slot].progress,false);
             tas_emote_probe_record(number,g_probe_playheads[slot].serial,
                 now.tv_sec-g_probe_playheads[slot].last_tick>=3 ? "no-refresh-3s" : "no-frame-change-3s",state,false);
             g_probe_playheads[slot].quiet_reported=YES;
@@ -253,17 +303,9 @@ static void probe_snapshot(id layer,const char *event) {
 static void probe_sample_all(id timer) {
     if (timer && timer!=g_probe_timer) return;
     id layers=m0(g_probe_layers,"allObjects");
-    /* Reclaim identity slots when weakly held rows disappear. */
-    for (unsigned s=0;s<64;s++) {
-        if (!g_probe_playheads[s].layer) continue;
-        BOOL found=NO;
-        for (NSUInteger i=0,n=count(layers);i<n;i++) if (at(layers,i)==g_probe_playheads[s].layer) { found=YES; break; }
-        if (!found) {
-            char state[64]; snprintf(state,sizeof(state),"layer=%u weak-row=gone",g_probe_playheads[s].serial);
-            tas_emote_probe_record(g_probe_playheads[s].number,g_probe_playheads[s].serial,"row-released",state,false);
-            memset(&g_probe_playheads[s],0,sizeof(g_probe_playheads[s]));
-        }
-    }
+    struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
+    g_probe_polls++; g_probe_last_poll=now.tv_sec;
+    probe_reap(layers);
     for (NSUInteger i=0,n=count(layers);i<n;i++) probe_snapshot(at(layers,i),"sample");
     if (timer && !count(layers)) {
         id finished=g_probe_timer; g_probe_timer=nil;
@@ -303,10 +345,26 @@ static void probe_display_refresh(id self,SEL selector,id link) {
         break;
     }
 }
+static void probe_assignment(id layer,const char *event,id input) {
+    uint64_t number=image_layer_id(m0(layer,"superlayer")); unsigned ordinal=0;
+    if (!number) return;
+    for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==layer && g_probe_playheads[i].number==number) {
+        ordinal=g_probe_playheads[i].serial; break;
+    }
+    char state[256];
+    snprintf(state,sizeof(state),"layer=%u tracking=%s role=%s visibility=%s input=%d input-frames-readable=%d input-frames=%llu uiimage=%d uiimage-frames=%llu resident-animation=%d resident-frames=%llu current-frame=%d contents=%d",
+        ordinal,ordinal ? "admitted" : "untracked",probe_role(layer),probe_visibility(layer),input!=nil,
+        responds(input,"frameCount"),(unsigned long long)probe_integer(input,"frameCount"),kind(input,"UIImage"),
+        (unsigned long long)(responds(input,"images") ? count(m0(input,"images")) : 0),m0(layer,"animatedImage")!=nil,
+        (unsigned long long)probe_integer(m0(layer,"animatedImage"),"frameCount"),m0(layer,"currentFrame")!=nil,m0(layer,"contents")!=nil);
+    tas_emote_probe_image(number,ordinal,event,state);
+}
 static void probe_static_image(id self,SEL selector,id image) {
     if (image_layer_id(m0(self,"superlayer"))) probe_track(self);
     probe_snapshot(self,"static-set-before");
+    probe_assignment(self,"assign-static-before",image);
     ((void (*)(id,SEL,id))g_probe_static)(self,selector,image);
+    probe_assignment(self,"assign-static-after",image);
     probe_snapshot(self,"static-set-after"); tas_emote_ui_probe_start();
 }
 static void probe_remove_layer(id self,SEL selector) {
@@ -377,9 +435,11 @@ static void animated_set_image(id self, SEL sel, id image) {
 #if TAS_EMOTE_DIAGNOSTIC
     if (image_layer_id(m0(self,"superlayer"))) probe_track(self);
     probe_snapshot(self,image ? "animation-set-before" : "animation-clear-before");
+    if (image) probe_assignment(self,"assign-animation-before",image);
 #endif
     ((void (*)(id,SEL,id))g_animated_image)(self,sel,image);
 #if TAS_EMOTE_DIAGNOSTIC
+    if (image) probe_assignment(self,"assign-animation-after",image);
     if (image) tas_emote_probe_stage(image_layer_id(m0(self,"superlayer")),"chat-animation-decoded");
     probe_snapshot(self,image ? "animation-set-after" : "animation-clear-after");
     tas_emote_ui_probe_start();
@@ -427,6 +487,8 @@ static void image_layer_layout(id self, SEL sel) {
     {
         id animated=object_ivar(self,"animatedImageLayer");
         if (kind(animated,"TWAnimatedImageLayer")) probe_track(animated);
+        id still=object_ivar(self,"staticImageLayer");
+        if (kind(still,"TWAnimatedImageLayer")) probe_track(still);
         tas_emote_ui_probe_start();
     }
 #endif
@@ -864,5 +926,13 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         "Rolling recorder hooks (refresh/static/remove/stop): %s/%s/%s/%s; live layer limit: 64\n",
         g_probe_refresh ? "installed" : "missing",g_probe_static ? "installed" : "missing",
         g_probe_remove ? "installed" : "missing",g_probe_stop ? "installed" : "missing");
+    struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
+    used=strnlen(buffer,capacity);
+    if (used<capacity) snprintf(buffer+used,capacity-used,
+        "Recorder timer/live layers/polls/last poll age: %s/%lu/%llu/%llds\n"
+        "Recorder admission denials/visible-priority evictions: %llu/%llu (event counts, not unique layers)\n",
+        g_probe_timer ? "active" : "idle",(unsigned long)count(g_probe_layers),(unsigned long long)g_probe_polls,
+        g_probe_last_poll ? (long long)(now.tv_sec-g_probe_last_poll) : -1LL,
+        (unsigned long long)g_probe_dropped,(unsigned long long)g_probe_evicted);
 #endif
 }

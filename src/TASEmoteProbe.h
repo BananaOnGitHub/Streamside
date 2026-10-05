@@ -16,6 +16,9 @@ void tas_emote_probe_playback(uint64_t generation, uint64_t number, const char *
 /* Always-on diagnostic recorder: numeric identity and copied state only. */
 void tas_emote_probe_record(uint64_t number, unsigned layer, const char *event,
                             const char *state, bool visible);
+/* Independent loading/assignment ring, unaffected by layer cleanup traffic. */
+void tas_emote_probe_image(uint64_t number, unsigned layer, const char *event,
+                           const char *state);
 void tas_emote_probe_stage(uint64_t number, const char *stage);
 void tas_emote_probe_observe(const char *stage, const char *code,
                             const char *channel, const char *outcome);

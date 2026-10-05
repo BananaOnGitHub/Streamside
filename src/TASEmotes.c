@@ -244,10 +244,11 @@ static uint64_t g_probe_generation;
 #define PLAYBACK_SECONDS 600
 typedef struct { uint64_t sequence; unsigned layer; time_t time; char text[512]; } PlaybackRow;
 static struct {
-    uint64_t number, samples, events, sequence;
+    uint64_t number, samples, events, sequence, denials, evictions;
     time_t touched;
-    unsigned sample_count, sample_next, event_count, event_next;
+    unsigned sample_count, sample_next, event_count, event_next, image_count, image_next, assignment_count, assignment_next;
     PlaybackRow samples_ring[PLAYBACK_ROWS], events_ring[PLAYBACK_ROWS], visible[PLAYBACK_VISIBLE];
+    PlaybackRow images[PLAYBACK_ROWS], assignments[PLAYBACK_ROWS], progress[PLAYBACK_VISIBLE];
 } g_playback[PLAYBACK_EMOTES];
 static uint64_t g_playback_sequence;
 static time_t playback_now(void) {
@@ -290,7 +291,25 @@ found:
     g_playback[slot].sequence=row.sequence;
     snprintf(row.text,sizeof(row.text),"Playback #%llu id=%llu event=%s %s",
         (unsigned long long)row.sequence,(unsigned long long)number,event,state);
-    if (!strcmp(event,"sample")) {
+    if (!strcmp(event,"tracking-limited")) g_playback[slot].denials++;
+    if (!strcmp(event,"tracking-evicted")) g_playback[slot].evictions++;
+    if (!strncmp(event,"image-assign-",13)) {
+        g_playback[slot].assignments[g_playback[slot].assignment_next]=row;
+        g_playback[slot].assignment_next=(g_playback[slot].assignment_next+1)%PLAYBACK_ROWS;
+        if (g_playback[slot].assignment_count<PLAYBACK_ROWS) g_playback[slot].assignment_count++;
+    } else if (!strncmp(event,"image-",6)) {
+        g_playback[slot].images[g_playback[slot].image_next]=row;
+        g_playback[slot].image_next=(g_playback[slot].image_next+1)%PLAYBACK_ROWS;
+        if (g_playback[slot].image_count<PLAYBACK_ROWS) g_playback[slot].image_count++;
+    } else if (!strcmp(event,"last-frame-progress")) {
+        unsigned v=0;
+        for (unsigned i=0;i<PLAYBACK_VISIBLE;i++) {
+            if (g_playback[slot].progress[i].sequence && g_playback[slot].progress[i].layer==layer) { v=i; goto last_progress; }
+            if (g_playback[slot].progress[i].sequence<g_playback[slot].progress[v].sequence) v=i;
+        }
+last_progress:
+        g_playback[slot].progress[v]=row;
+    } else if (!strcmp(event,"sample")) {
         g_playback[slot].samples++;
         if (visible) {
             g_playback[slot].samples_ring[g_playback[slot].sample_next]=row;
@@ -317,6 +336,11 @@ void tas_emote_probe_record(uint64_t number,unsigned layer,const char *event,con
     pthread_mutex_lock(&g_emote_lock);
     playback_record_locked(number,layer,event,state,visible);
     pthread_mutex_unlock(&g_emote_lock);
+}
+void tas_emote_probe_image(uint64_t number,unsigned layer,const char *event,const char *state) {
+    /* Callers supply whitelisted facts only, never native object descriptions. */
+    char name[48]; snprintf(name,sizeof(name),"image-%s",event);
+    tas_emote_probe_record(number,layer,name,state,false);
 }
 void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
     pthread_mutex_lock(&g_emote_lock);
@@ -448,7 +472,7 @@ void tas_emote_probe_status(char *buffer,size_t capacity) {
         g_global.size,g_global.loaded[0],g_global.loaded[1],g_global.loaded[2],
         g_global.pending[0],g_global.pending[1],g_global.pending[2],(unsigned long long)g_probe_events,g_probe_trace_count);
     size_t used=n>0 && (size_t)n<capacity ? (size_t)n : capacity-1;
-    n=snprintf(buffer+used,capacity-used,"Rolling playback: up to 600s; 32 emotes; per ID 16 visible samples + 16 transitions + 4 last-visible layers. Capacity eviction may shorten history. Selection does not reset playback.\n");
+    n=snprintf(buffer+used,capacity-used,"Rolling playback: up to 600s; 32 emotes; per ID 16 visible samples + 16 transitions + 4 last-visible layers + 16 image events + 16 assignments + 4 last-progress layers. Capacity eviction may shorten history. Selection does not reset playback.\n");
     if (n<0 || (size_t)n>=capacity-used) { pthread_mutex_unlock(&g_emote_lock); return; }
     used+=(size_t)n;
     time_t now=playback_now(); unsigned matched=0;
@@ -456,15 +480,24 @@ void tas_emote_probe_status(char *buffer,size_t capacity) {
     for (unsigned s=0;s<PLAYBACK_EMOTES && matched<4;s++) {
         if (!probe_generation_locked(g_playback[s].number) || now-g_playback[s].touched>=PLAYBACK_SECONDS) continue;
         matched++;
-        for (unsigned category=0;category<3;category++) {
-            unsigned limit=category==2 ? PLAYBACK_VISIBLE : PLAYBACK_ROWS;
-            unsigned count=category==0 ? g_playback[s].sample_count : category==1 ? g_playback[s].event_count : limit;
-            unsigned next=category==0 ? g_playback[s].sample_next : g_playback[s].event_next;
+        n=snprintf(buffer+used,capacity-used,"Retained id=%llu samples=%u transitions=%u images=%u assignments=%u (counts include rows awaiting expiry filtering)\n",
+            (unsigned long long)g_playback[s].number,g_playback[s].sample_count,g_playback[s].event_count,g_playback[s].image_count,g_playback[s].assignment_count);
+        if (n<0 || (size_t)n>=capacity-used) goto playback_done;
+        used+=(size_t)n;
+        n=snprintf(buffer+used,capacity-used,"Observed id=%llu visible-polls=%llu admission-denials=%llu observer-evictions=%llu (since retained entry began)\n",
+            (unsigned long long)g_playback[s].number,(unsigned long long)g_playback[s].samples,
+            (unsigned long long)g_playback[s].denials,(unsigned long long)g_playback[s].evictions);
+        if (n<0 || (size_t)n>=capacity-used) goto playback_done;
+        used+=(size_t)n;
+        for (unsigned category=0;category<6;category++) {
+            unsigned limit=category==2 || category==4 ? PLAYBACK_VISIBLE : PLAYBACK_ROWS;
+            unsigned count=category==0 ? g_playback[s].sample_count : category==1 ? g_playback[s].event_count : category==3 ? g_playback[s].image_count : category==5 ? g_playback[s].assignment_count : limit;
+            unsigned next=category==0 ? g_playback[s].sample_next : category==3 ? g_playback[s].image_next : category==5 ? g_playback[s].assignment_next : g_playback[s].event_next;
             for (unsigned i=0;i<count;i++) {
-                unsigned j=category==2 ? i : (next+limit-count+i)%limit;
-                PlaybackRow *row=category==0 ? &g_playback[s].samples_ring[j] : category==1 ? &g_playback[s].events_ring[j] : &g_playback[s].visible[j];
+                unsigned j=category==2 || category==4 ? i : (next+limit-count+i)%limit;
+                PlaybackRow *row=category==0 ? &g_playback[s].samples_ring[j] : category==1 ? &g_playback[s].events_ring[j] : category==2 ? &g_playback[s].visible[j] : category==3 ? &g_playback[s].images[j] : category==4 ? &g_playback[s].progress[j] : &g_playback[s].assignments[j];
                 if (!row->sequence || now-row->time>=PLAYBACK_SECONDS) continue;
-                n=snprintf(buffer+used,capacity-used,"%s age=%llds %s\n",category==2 ? "Last-visible" : category==1 ? "Transition" : "Visible sample",(long long)(now-row->time),row->text);
+                n=snprintf(buffer+used,capacity-used,"%s age=%llds %s\n",category==5 ? "Assignment" : category==4 ? "Last-progress" : category==3 ? "Image history" : category==2 ? "Last-visible" : category==1 ? "Transition" : "Visible sample",(long long)(now-row->time),row->text);
                 if (n<0 || (size_t)n>=capacity-used) goto playback_done;
                 used+=(size_t)n;
             }
@@ -1378,6 +1411,13 @@ id tas_emotes_rewrite_request_copy(id request) {
     char *image = url_for_id_locked(fake_id, time(NULL));
     pthread_mutex_unlock(&g_emote_lock);
     tas_emote_probe_stage(fake_id,image ? "image-request-mapped" : "image-request-missing");
+#if TAS_EMOTE_DIAGNOSTIC
+    char mapping[96];
+    snprintf(mapping,sizeof(mapping),"mapped=%s request-kind=%s asset=%s",image ? "yes" : "no",
+        !strncmp(end,"/static/",8) ? "static" : !strncmp(end,"/animated/",10) ? "animated" : !strncmp(end,"/default/",9) ? "default" : "unknown",
+        image && strstr(image,".gif") ? "GIF" : image && strstr(image,".webp") ? "WebP" : image && strstr(image,".png") ? "PNG" : "other");
+    tas_emote_probe_image(fake_id,0,"request-map",mapping);
+#endif
     if (!image) return nil;
     PROBE_INC(g_image_rewrites);
     id destination = call1((id)objc_getClass("NSURL"), "URLWithString:", str(image));
@@ -1414,6 +1454,22 @@ static void image_probe_url(const char *url, const char *stage, const char *outc
 #if TAS_EMOTE_DIAGNOSTIC
     if (!url) return;
     pthread_mutex_lock(&g_emote_lock);
+    /* A late selection must still see earlier transport evidence. A shared
+     * asset can map to several numeric identities; record each once. */
+    uint64_t recorded[PLAYBACK_EMOTES]; unsigned recorded_count=0;
+    time_t now=time(NULL);
+    for (size_t r=0;r<=MAX_ROOMS+1;r++) {
+        size_t n=r==MAX_ROOMS+1 ? MAX_HISTORY : (r==MAX_ROOMS ? g_global.size : g_rooms[r].size);
+        for (size_t i=0;i<n;i++) {
+            Emote *e=r==MAX_ROOMS+1 ? &g_old[i].emote : &(r==MAX_ROOMS ? &g_global : &g_rooms[r])->items[i];
+            if (!e->url || (r==MAX_ROOMS+1 && now-g_old[i].retired_at>=HISTORY_SECONDS) || strcmp(e->url,url)) continue;
+            unsigned j=0; for (;j<recorded_count;j++) if (recorded[j]==e->fake_id) break;
+            if (j<recorded_count) continue;
+            if (recorded_count==PLAYBACK_EMOTES) break;
+            recorded[recorded_count++]=e->fake_id;
+            playback_record_locked(e->fake_id,0,stage,outcome,false);
+        }
+    }
     if (g_probe_code[0]) for (size_t r=0;r<=MAX_ROOMS;r++) {
         Room *room=r==MAX_ROOMS ? &g_global : &g_rooms[r];
         Emote *emote=find_word(room,g_probe_code);

@@ -144,8 +144,8 @@ rejection distinct when interpreting reports.
   remain byte-identical. The older animation forensic recorder is absent.
 - Output: `Twitch-31.5-Streamside-build51-rn-probe-unsigned.ipa`, 191,821,061 bytes.
   SHA256: `b55c11305d5a44c6216a4325575acf58c181c56d23f8c1f304595d731d9169a8`.
-- Build-51 device evidence is recorded below. Build-52 device behavior remains
-  pending; host checks do not establish actual iOS hook activity.
+- Build-51 and build-52 device evidence is recorded below. Host checks alone
+  do not establish actual iOS hook activity.
 
 
 ## Build 51 device results: same-launch reports A and B
@@ -287,7 +287,7 @@ unvalidated for RN.
   New checks cover exact host surface mode/object forwarding, untouched JS and
   networking completion blocks/results, event and operation allowlists, catalog
   sample bounds, GraphQL body bounds, the rolling sequence bound, and absence of
-  supplied private text in the report. Actual device execution remains pending.
+  supplied private text in the report. Device observations are recorded below.
 - All 44 guarded method encodings match the supplied donor's Objective-C metadata.
 - Probe-disabled and probe-enabled arm64 iOS builds passed. The disabled build
   contains no build-52 probe marker. Framework and dylib artifact guards passed.
@@ -300,3 +300,58 @@ unvalidated for RN.
 - Application integration sources (`TASEmotes`, `TASEmoteUI`,
   `TASEmotePresentation`, `SSComposer`, `Streamside`) are unchanged from build 51.
   Main, compat and the legacy archive remain at their original branch tips.
+
+## Build 52 device results: staged reports A–D
+
+These are cumulative reports from one launch. A is the baseline, B follows
+incoming chat, C follows native picker insertion without sending, and D follows
+the send-button test. The tester confirmed that their message appeared and its
+native Twitch emote rendered. This establishes observed display, not whether
+the message was optimistic, server-delivered, or reconciled between both.
+
+| Observation | A | B | C | D |
+|---|---:|---:|---:|---:|
+| IRC receive deliveries | 0 | 303 | 626 | 880 |
+| IRC PRIVMSG | 0 | 290 | 611 | 856 |
+| Emote-tagged IRC PRIVMSG | 0 | 15 | 22 | 36 |
+| Nested IRC websocketMessage emissions | 0 | 303 | 626 | 880 |
+| Nonempty native composer map / cumulative entries | 0/0 | 1/951 | 1/951 | 1/951 |
+| Empty/nonempty native input value assignments | 0/0 | 1/0 | 1/1 | 2/1 |
+| Native composer square/wide attachment observations | 0/0 | 0/0 | 6/0 | 14/0 |
+| HTTP SendChatMessage request entries | 0 | 0 | 0 | 1 |
+| Outbound IRC PRIVMSG across observed send methods | 0 | 0 | 0 | 0 |
+| Twitch emote URL loader/HTTP requests | 0/0 | 347/343 | 416/412 | 505/501 |
+| Legacy matching/rewrite/presentation/composer activity | 0 | 0 | 0 | 0 |
+
+The observed delegate is RCTWebSocketModule. A captures
+`TwitchRNDiscoveryFeed` and `TwitchRNWarmup`; B adds `TwitchRNTheatre`, which
+remains present in C and D. All reports fingerprint the same embedded
+27,786,480-byte Hermes-98 source body, FNV64 `3c748f1f3e33577c`.
+
+The composer emote map is a dictionary, with all 32 sampled values classified
+as strings. The token-image map is an empty dictionary. No keys or values were
+retained. B observes one request each for ChatEmoteSets,
+ChatChannelLockedEmotes and ChatHistory. D adds one SendChatMessage request.
+These operation counts do not establish response contents or server acceptance.
+
+At D, the combined JS-scheduling socket-event count is 2,232 versus 1,116
+socket events: the two scheduling boundaries each observe the same handoff.
+This is not 2,232 unique events or evidence that JS executed twice. Likewise,
+surface constructors and map setters can be nested or repeated.
+
+RCTEventDispatcher.sendEvent remains zero despite native input focus and
+selection callbacks executing. The current event probe does not observe the
+active direct-block/Fabric input event route. Square attachment observations
+are repeated bounds calls, not a count of distinct inserted emotes. General RN
+image geometry/animation observations remain non-emote-specific.
+
+The provider registry reaches 124 global and 63 room entries without a new room
+fetch during the staged test. That does not establish the active RN stream's
+provider catalog. Provider matching, synthetic metadata and provider image
+redirection remain unexercised, so zero provider image requests do not identify
+a redirect failure.
+
+Local echo investigation is deliberately deferred. The next investigation
+targets the catalog representation and incoming synthetic metadata path; see
+[RN_EMOTE_REPRESENTATION.md](RN_EMOTE_REPRESENTATION.md). No new probe build or RN
+functional implementation accompanies this documentation.

@@ -2,6 +2,14 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Compatibility build 50 enriches the native per-message subscriber-emote
+  definitions on Twitch 31.5. Preserve the original message and tokens; let
+  Twitch construct presentation tokens and attachments using Streamside's
+  existing synthetic IDs. Keep provider image redirection, TextKit spacing and
+  layer proportions unchanged. Gate account/channel scope, native-name
+  conflicts and moderated/shared-channel messages. Host identity/geometry
+  checks cover square, wide, animated and animated-wide fixtures; device
+  local-echo and playback validation remain pending. Forensic probes are off.
 - Build 44 corrects diagnostic child roles using the attachment's actual fields,
   observes both native children, and admits visible layers ahead of hidden ones
   within the 64-layer budget. Report capacity denials, live observer evictions,

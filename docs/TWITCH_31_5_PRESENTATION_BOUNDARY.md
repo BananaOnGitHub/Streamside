@@ -1,5 +1,11 @@
 # Twitch 31.5: native presentation enrichment boundary
 
+This records the initial read-only investigation. The subsequent
+[build-50 trial](TWITCH_31_5_PRESENTATION_TRIAL.md) validates the definition
+identity, native asset-type argument and proportional geometry path, and
+implements the adapter. Statements below about unimplemented work describe
+the state when this investigation was written.
+
 ## Finding
 
 Prefer the **per-message emote-definition response from

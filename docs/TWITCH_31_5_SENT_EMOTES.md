@@ -1,5 +1,10 @@
 # Twitch 31.5: constraint cleanup and sent-emote investigation
 
+This is the historical build-49 investigation. The subsequent
+[build-50 presentation trial](TWITCH_31_5_PRESENTATION_TRIAL.md) implements
+native definition enrichment and checks synthetic identity and variable widths.
+Device validation of that trial is pending.
+
 ## Status
 
 The tester reports that the build-48 IPA is mostly fully functional on Twitch

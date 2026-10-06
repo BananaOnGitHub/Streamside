@@ -94,7 +94,7 @@ Ivar class_getInstanceVariable(Class cls,const char *name) {
 }
 ptrdiff_t ivar_getOffset(Ivar ivar) { return *(ptrdiff_t *)ivar; }
 id objc_getAssociatedObject(id o,const void *key_value) { (void)key_value; return o ? o->inner : nil; }
-double tas_emotes_aspect(uint64_t number) { return number == 9000000001ULL ? 4 : 0; }
+double tas_emotes_aspect(uint64_t number) { return number == 9000000001ULL ? 4 : number == 9000000002ULL || number == 9000000003ULL ? 1 : number == 9000000004ULL ? 3 : 0; }
 static Size native_size(id self,SEL sel,NSInteger index) {
     (void)self; (void)sel; (void)index; return (Size){28,28};
 }
@@ -150,6 +150,28 @@ int main(void) {
     url.value = "/emoticons/v2/9000000001/default/dark/1.0";
     host.value = "example.com"; assert(!image_layer_id((id)&layer));
     host.value = "static-cdn.jtvnw.net";
+    /* Four own-message definition identities use the same downstream sizing
+     * functions as incoming tokens. Native Swift construction is a donor trace,
+     * not executable on this host. Animation must not imply square geometry. */
+    const char *numbers[]={"9000000002","9000000001","9000000003","9000000004"};
+    double widths[]={28,112,28,84};
+    manager.inner=&message;token.inner=&provider;
+    for(unsigned i=0;i<4;i++) {
+        provider.value=numbers[i];
+        assert(message_id_at(&message,12)==strtoull(numbers[i],NULL,10));
+        size=message_size(&message,"sizeOfImageAttachmentAtCharacterIndex:",12);
+        assert(size.width==widths[i] && size.height==28);
+        rect=textkit_bounds_with((IMP)native_attachment,nil,"attachmentBounds",&container,(Rect){0},(Point){0},12);
+        assert(rect.size.width==widths[i] && rect.size.height==28 && rect.origin.y==-7);
+        char path[128];snprintf(path,sizeof(path),"/emoticons/v2/%s/%s/dark/1.0",numbers[i],i>=2 ? "animated" : "static");
+        url.value=path;
+        assert(image_layer_id((id)&layer)==strtoull(numbers[i],NULL,10));
+        layer_set_frame((id)&layer,"setFrame:",layer.content_frame);
+        assert(painted.size.width==widths[i] && painted.size.height==28);
+        layer_set_frame((id)&layer,"setFrame:",painted);
+        assert(painted.size.width==widths[i] && painted.size.height==28);
+    }
+    url.value="/emoticons/v2/9000000001/default/dark/1.0";
     layer.base.value = "unexpected tuple span"; layer.image_data = (id)(uintptr_t)1;
     assert(!image_layer_id((id)&layer));
     return 0;

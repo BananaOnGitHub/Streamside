@@ -13,13 +13,14 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.49`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.50`)
 - Upstream strategy: **VAFT solution 24**
 - Current device-tested app: **Twitch 31.5, arm64** (Streamside build 48)
   - The tester reports mostly functional behavior, including composer previews
     and incoming emotes. Third-party emotes in the tester's sent chat messages
-    do not render. Build 49 removes obsolete version constraints; its native
-    catalog admission still requires runtime ABI checks and device validation.
+    do not render. Build 49 removes obsolete version constraints. Build 50 adds
+    native presentation enrichment for own messages, preserving synthetic IDs
+    and provider proportions; device validation is pending.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -60,9 +61,13 @@ thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
 image requests. It does not clear Twitch’s own image cache.
 
 Incoming emotes and composer previews work in the current compatibility test.
-Own sent-message emotes have a known regression; the old local-delivery adapter
-uses bridges no longer exposed by this donor. See the
-[31.5 sent-emote investigation](docs/TWITCH_31_5_SENT_EMOTES.md).
+Build 50 tests a native presentation adapter for the own sent-message regression.
+It adds provider definitions to Twitch's emote matcher while preserving the
+original message and tokens. Twitch creates its own attachments, whose synthetic
+IDs reach the existing image redirection and proportional geometry hooks.
+Square, wide, animated and animated-wide identities/geometry pass host harnesses;
+actual local-echo rendering and animation still need device validation. See the
+[build-50 implementation and test report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md).
 Historical validation of the
 Reload Emotes row, provider tap details, proportional image widths and sent
 emotes is recorded separately. The detail sheet has a preview,

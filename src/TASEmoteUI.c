@@ -1,6 +1,7 @@
 /* Optional UIKit integration. All hooks are scoped to Twitch's emote/chat
  * classes and synthetic IDs; installation is gated by the launch preference. */
 #include "TASEmoteUI.h"
+#include "TASEmotePresentation.h"
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
 #include "TASEmoteProbe.h"
@@ -902,6 +903,7 @@ static BOOL hook(Class cls, const char *name, unsigned int arguments, IMP replac
 }
 void tas_emote_ui_retry_hooks(void) {
     if (!tas_emotes_enabled_this_launch()) return;
+    tas_emote_presentation_retry_hooks();
     Class identity = objc_getClass("TKIdentity"), text_token = objc_getClass("_TtC9TwitchKit18TWMessageTextToken");
     if (class_getInstanceMethod(identity,sel_registerName("initWithId:name:synthesizedDisplayName:")) &&
         class_getInstanceMethod(text_token,sel_registerName("initWithText:autoModFlags:")))
@@ -948,6 +950,8 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         g_layer_frame ? "installed" : "missing",g_layer_layout ? "installed" : "missing",
         (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes),
         g_animated_image ? "installed" : "missing",(unsigned long long)GET(g_animation_loops),(unsigned long long)GET(g_animation_resumes),(unsigned long long)GET(g_animation_checks));
+    size_t presentation_used=strnlen(buffer,capacity);
+    if (presentation_used<capacity) tas_emote_presentation_status(buffer+presentation_used,capacity-presentation_used);
 #if TAS_EMOTE_DIAGNOSTIC
     size_t used=strnlen(buffer,capacity);
     if (used<capacity) snprintf(buffer+used,capacity-used,

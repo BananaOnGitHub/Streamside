@@ -7,7 +7,6 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
-#include <dlfcn.h>
 extern id objc_storeWeak(id *,id);
 extern id objc_loadWeakRetained(id *);
 extern void objc_release(id);
@@ -135,24 +134,12 @@ void tas_image_probe_assignment(uint64_t number,unsigned layer,id image,const ch
         (unsigned long long)latest.serial,latest.success ? "image" : "nil",(unsigned long long)latest.frames);
         tas_emote_probe_record(number,layer,"decode-context",state,false); }
 }
-/* Only label donor-native callers after verifying the complete Mach-O UUID. */
-static bool donor(const unsigned char *base) {
-    static const unsigned char uuid[16]={0x96,0x0f,0x52,0x32,0x0e,0xb5,0x3e,0xcc,0x80,0x00,0x15,0x74,0x6c,0xb1,0xe3,0x7b};
-    uint32_t magic,n,size; memcpy(&magic,base,4); if (magic!=0xfeedfacf) return false;
-    memcpy(&n,base+16,4); memcpy(&size,base+20,4); if (size>65536 || n>1024) return false;
-    size_t p=32,end=32+size;
-    for (unsigned i=0;i<n;i++) { if (p+8>end) return false; uint32_t cmd,bytes; memcpy(&cmd,base+p,4); memcpy(&bytes,base+p+4,4);
-        if (bytes<8 || p+bytes>end) return false;
-        if (cmd==0x1b) return bytes==24 && !memcmp(base+p+8,uuid,16);
-        p+=bytes;
-    }
-    return false;
-}
+/* Return-site labels require a fresh, UUID-validated map for each donor.
+ * No current map is installed; never apply historical executable offsets to
+ * a different app build. This entire probe remains absent from normal builds. */
 const char *tas_image_probe_caller(void *address) {
-    Dl_info info; if (!address || !dladdr(address,&info) || !info.dli_fbase || !donor(info.dli_fbase)) return "unknown";
-    uintptr_t offset=(uintptr_t)address-(uintptr_t)info.dli_fbase;
-    switch (offset) { case 0x2ccdf94: return "chat-static-result"; case 0x2ccfb84: return "chat-task-static-result";
-        case 0x2cd052c: return "chat-animated-result"; case 0x2ccfb00: return "chat-task-animated-result"; default: return "unknown"; }
+    (void)address;
+    return "unknown";
 }
 static void install(Class cls,const char *name,const char *encoding,IMP replacement,IMP *original) {
     Method method=cls ? class_getInstanceMethod(cls,sel_registerName(name)) : NULL;

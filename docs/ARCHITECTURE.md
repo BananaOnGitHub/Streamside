@@ -188,7 +188,7 @@ the same metadata/result model. Native codes retain their native IDs and use
 Twitch's validated input/change/send path. Scoped hooks suppress the stock
 vertical colon selector in automatic and colon modes after the native catalog
 is ready, while preserving other native completions. See
-[NATIVE_EMOTES.md](NATIVE_EMOTES.md) for the 30.4.2 runtime investigation,
+[NATIVE_EMOTES.md](NATIVE_EMOTES.md) for the runtime investigation,
 queue/Swift bridging guards and device validation requirements.
 
 The complete provider library is an inline section between native Recent and
@@ -276,7 +276,7 @@ GIF playback preserves finite long delays, including final-frame holds, and
 accepts the decoder's 20 ms float rounding. See [NATIVE_EMOTES.md](NATIVE_EMOTES.md)
 for inspected native timing behavior and recovery tests.
 
-The optional 56-byte composer identity was inspected in Twitch 30.4.2: native
+The inspected composer identity occupies an optional 56-byte span. Native
 palette selection checks its +16 word for nil and reads its UInt32 ID at +0.
 Only those primitive words are read, after checking the runtime field span.
 No Swift string is dereferenced or interpreted as an Objective-C object.

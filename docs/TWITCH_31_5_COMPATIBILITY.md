@@ -1,5 +1,10 @@
 # Twitch 31.5 compatibility experiment — build 48
 
+This is the historical build-48 packaging report. Subsequent device results,
+build-49 constraint cleanup and the sent-emote investigation are documented in
+[Twitch 31.5 sent emotes](TWITCH_31_5_SENT_EMOTES.md). Version restrictions below
+describe build 48, not the current compatibility-branch source.
+
 ## Scope and baseline
 
 - Branch: `compat/twitch-31.5`.

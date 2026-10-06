@@ -106,7 +106,7 @@ static id object_field(id o,const char *name,const char *expected) {
     return kind(result,expected) ? result : nil;
 }
 static id editor_for(id owner) { return object_field(owner,"textEntryView","UITextView"); }
-/* Twitch 30.4.2 stores Identity? in a 56-byte span. Its native palette
+/* The inspected composer stores Identity? in a 56-byte span. Its native palette
  * selection checks the word at +16 for nil, then reads UInt32 at +0. Read
  * those primitive words only; never dereference its Swift strings.
  * Unknown layouts fail to globals instead of borrowing a background room. */
@@ -182,7 +182,7 @@ static BOOL visible_in_window(id view);
 static void sync_preview_clock(id delegate,id editor);
 static void install_editor_hold(id delegate,id editor);
 
-/* Twitch 30.4.2's autocomplete publication bypasses its ObjC wrappers.
+/* Twitch's autocomplete publication bypasses its ObjC wrappers.
  * Read its catalog on its serial backgroundQueue, using the runtime's own
  * Array/String/URL bridging. Never interpret Swift string storage, construct
  * Swift models, or patch executable instructions. See NATIVE_EMOTES.md. */
@@ -207,8 +207,8 @@ static size_t swift_value_size(const void *metadata) {
 }
 static BOOL native_bridge_ready(void) {
     if (native_array_type) return YES;
-    id version=m1(m0((id)objc_getClass("NSBundle"),"mainBundle"),"objectForInfoDictionaryKey:",str("CFBundleShortVersionString"));
-    if (!equal(version,str("30.4.2"))) return NO;
+    /* Capability/layout checks below, not a marketing-version allowlist,
+     * determine whether the native catalog can be read safely. */
     Class info=objc_getClass(NATIVE_INFO); if (!info) return NO;
     bridge_value=(BridgeValue)dlsym(RTLD_DEFAULT,"$ss27_bridgeAnythingToObjectiveCyyXlxlF");
     ArrayMetadata array=(ArrayMetadata)dlsym(RTLD_DEFAULT,"$sSaMa");
@@ -227,15 +227,28 @@ static BOOL native_bridge_ready(void) {
         swift_value_size(native_string_type)!=16 || swift_value_size(array_type)!=sizeof(void *)) return NO;
     native_array_type=array_type; native_url_type=url_type; return YES;
 }
+/* The input delegate occupies a weak class existential followed by inputMode.
+ * Resolve its storage at runtime; field offsets can move between app builds.
+ * A different span, alignment or instance bound leaves the responder fallback. */
+static void *input_delegate_storage(id owner) {
+    if (!owner || !kind(owner,INPUT)) return NULL;
+    Class cls=object_getClass(owner);
+    Ivar delegate=class_getInstanceVariable(cls,"delegate"),next=class_getInstanceVariable(cls,"inputMode");
+    if (!delegate || !next) return NULL;
+    ptrdiff_t offset=ivar_getOffset(delegate),end=ivar_getOffset(next);
+    size_t size=class_getInstanceSize(cls),span=2*sizeof(void *);
+    if (offset < 0 || end < offset || (size_t)(end-offset)!=span ||
+        (size_t)offset%sizeof(void *) || (size_t)offset>size || span>size-(size_t)offset) return NULL;
+    return (char *)owner+offset;
+}
 static id connection_for(id owner,id *selector) {
     if (selector) *selector=nil;
     /* The input delegate is a Swift weak class existential, not an ObjC weak
      * id. Use the exact runtime operation called by textViewDidChange. This
      * also reaches SkylineLiveChat, which is not in the responder chain. */
     id context=nil,result=nil;
-    Ivar delegate=class_getInstanceVariable(object_getClass(owner),"delegate");
-    if (delegate && ivar_getOffset(delegate)==424 && class_getInstanceSize(object_getClass(owner))>=440)
-        context=native_weak_load((char *)owner+424);
+    void *delegate=input_delegate_storage(owner);
+    if (delegate && native_weak_load) context=native_weak_load(delegate);
     for (unsigned pass=0;pass<2 && !result;pass++) {
       id node=pass ? owner : context;
       for (unsigned i=0;node && i<64;i++) {
@@ -301,8 +314,8 @@ static id snapshot_native(id manager,id *snapshot) {
 }
 static void stock_update(State *s,id selector) {
     /* Presentation only: Twitch's async completion reloads this table and
-     * scrolls to row 0 when its Swift match contains results (30.4.2,
-     * 0x100e51c58 / 0x100e51cc8). Returning zero rows here violates that match
+     * scrolls to row 0 when its Swift match contains results. Returning zero
+     * rows here violates that match
      * and makes UITableView raise an exception, even while its view is hidden.
      * Keep native rows, sections and match storage entirely under Twitch. */
     if (!s || !selector) return;
@@ -1201,7 +1214,7 @@ static void restore_native(State *s) {
 /* The provider Recent row belongs to the native library's scroll content,
  * below its Frequently Used heading and before native Recent cells, without
  * adding Swift sections or changing the collection's data source. Native
- * section anchors already account for contentInset (Twitch 30.4.2). */
+ * section anchors already account for contentInset. */
 static id recent_footer_view(id footer,U index) {
     const char *names[]={"$__lazy_storage_$_recentEmotesButton","$__lazy_storage_$_channelEmotesButton",
         "$__lazy_storage_$_allEmotesButton","recentEmotesHighlight","channelEmotesHighlight","allEmotesHighlight"};
@@ -1414,7 +1427,7 @@ static void bind_recents(id delegate,id container) {
     State *s=state(delegate); if (!s || s->placing_recents) return;
     /* Twitch's palette is itself the collection view. Bind that exact stored
      * object, rather than the first collection in a hierarchy that also holds
-     * owned grids or other picker content. Verified on Twitch 30.4.2. */
+     * owned grids or other picker content. */
     id content=object_field(container,"palette",PALETTE);
     if (!content) content=find_class(container,PALETTE,0);
     if (!content) content=find_class(container,"UICollectionView",0);
@@ -1896,7 +1909,7 @@ static void palette_scrolled(id self,SEL sel,id content) {
     State *s=state(objc_getAssociatedObject(content,&recent_host_key));
     if (s) {
         place_library_panel(s,content); update_inline_selection(s,content);
-        /* Twitch 30.4.2's callback publishes only a native section selection.
+        /* Twitch's callback publishes only a native section selection.
          * The inline provider gap has no native section: publishing Recent
          * here races our own highlight through Twitch's reactive footer updates.
          * Decide ownership before that publication, including the entry frame.

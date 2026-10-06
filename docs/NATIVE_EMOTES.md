@@ -18,7 +18,7 @@ notifications no longer clear/restart an animation. Chat recovery is limited
 to provider `ImageAttachmentLayer` instances: its attached
 `TWAnimatedImageLayer` uses unlimited loops and re-evaluates native visibility
 when paused. Native Twitch animation behavior remains unchanged. The inspected
-30.4.2 setter (`0x100004644`) copies finite GIF loop counts, the display callback
+historical setter (`0x100004644`) copies finite GIF loop counts, the display callback
 (`0x100004808`) stops on countdown exhaustion, and removal (`0x10000452c`)
 pauses the layer; the runtime hooks use selectors, never those addresses.
 Those methods are in the main app executable. Its display callback builds its
@@ -41,10 +41,11 @@ provider layout/image callback restart it. Detached members remain weak for
 reattachment; empty/native-reused members are removed. Diagnostics report only
 aggregate bindings/resumes/checks.
 
-## Twitch 30.4.2 investigation
+## Historical runtime investigation
 
-These findings come from the decrypted 30.4.2 app and its bundled TwitchKit
-framework. Addresses below are unslid analysis addresses, not runtime hooks.
+These findings describe the original inspected donor and its bundled TwitchKit
+framework. Addresses below are historical unslid analysis addresses, not runtime
+hooks or addresses for the current compatibility donor.
 
 | Component | Observed behavior |
 | --- | --- |
@@ -66,9 +67,11 @@ emote in Twitch's broader subscription discovery keyboard.
 
 ## Catalog adapter and ownership
 
-Only the inspected app version is enabled. Runtime checks validate class names,
+There is no marketing-version allowlist. Runtime checks validate class names,
 ivar offsets, instance spans and the Swift value-witness sizes for Array, String
-and URL before reading any field. Missing symbols or incompatible layouts keep
+and URL before reading any field. The weak input delegate's offset is resolved
+at runtime and its adjacent field span, alignment and instance bounds are
+validated; no fixed delegate offset is assumed. Missing symbols or incompatible layouts keep
 the native vertical selector available and report a waiting bridge.
 
 The adapter resolves Swift's existing metadata accessors and
@@ -99,7 +102,7 @@ the scrollable emote grid with All / 7TV / BTTV / FFZ and Channel / Global
 controls; every provider change resets Channel. Native footer actions restore
 the native palette, while backspace keeps the provider browser open.
 
-Twitch 30.4.2's Swift footer availability worker (`0x101981f1c`) calls its
+The historically inspected Swift footer availability worker (`0x101981f1c`) calls its
 stack replacement helper (`0x1045a7480`): remove every arranged view, then add
 only the native array. Streamside's retained button association survives that
 removal. Checking only that association previously prevented reinsertion,
@@ -111,7 +114,7 @@ that bypass the Objective-C apply wrapper. Owned slots use the inspected native
 UIKit appearance, never Twitch's Swift selected-section model. Diagnostics
 include the footer layout hook and creation/restoration counts.
 
-Twitch 30.4.2's `EmoticonPaletteView.scrollViewDidScroll:` Objective-C wrapper
+The historically inspected `EmoticonPaletteView.scrollViewDidScroll:` Objective-C wrapper
 (`0x102fff498`) calls the Swift worker at `0x102ffe780`. The worker calculates
 native section anchors and publishes a native selection byte (`0`, `1` or `2`)
 through the reactive subject at its tail (`0x102ffefb4`–`0x102ffefc8`). It has no

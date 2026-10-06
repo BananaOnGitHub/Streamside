@@ -60,10 +60,10 @@ int main(void) {
     o=find_locked(&animated,now());assert(o);objc_storeWeak(&o->weak,nil);
     tas_image_probe_origin(&animated,description,sizeof(description));assert(strstr(description,"unknown"));
     struct Fake too_big={"NSData",NULL,MAX_BYTES+1,0};assert(!fingerprint(&too_big).bytes && oversize==1);
-    unsigned char header[56]={0};uint32_t word=0xfeedfacf;memcpy(header,&word,4);word=1;memcpy(header+16,&word,4);word=24;memcpy(header+20,&word,4);memcpy(header+36,&word,4);word=0x1b;memcpy(header+32,&word,4);
-    unsigned char uuid[16]={0x96,0x0f,0x52,0x32,0x0e,0xb5,0x3e,0xcc,0x80,0,0x15,0x74,0x6c,0xb1,0xe3,0x7b};memcpy(header+40,uuid,16);
-    assert(donor(header));header[40]^=1;assert(!donor(header));
+    /* Without a validated current donor map, even a nonnull caller remains
+     * unknown. No obsolete UUID/return offset is treated as current evidence. */
     assert(!strcmp(tas_image_probe_caller(NULL),"unknown") && rows>5);
+    assert(!strcmp(tas_image_probe_caller((void *)(uintptr_t)1),"unknown"));
     return 0;
 }
 '''

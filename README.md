@@ -13,10 +13,13 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (candidate bundle build `3.0.0.1`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.49`)
 - Upstream strategy: **VAFT solution 24**
-- Tested app version: **Twitch 30.4.2, arm64**
-  - Emotes were device-confirmed on an iPhone 16 Pro running iOS 18.2 with dev.8. The 2.3.1 loader was confirmed to launch. The 3.0.0 composer and picker still need device testing.
+- Current device-tested app: **Twitch 31.5, arm64** (Streamside build 48)
+  - The tester reports mostly functional behavior, including composer previews
+    and incoming emotes. Third-party emotes in the tester's sent chat messages
+    do not render. Build 49 removes obsolete version constraints; its native
+    catalog admission still requires runtime ABI checks and device validation.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -56,9 +59,13 @@ cells to redraw. It maintains no separate image files. The composer keeps a boun
 thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
 image requests. It does not clear Twitch’s own image cache.
 
-Incoming static and animated emotes, the scrolling Reload Emotes row, provider
-tap details, proportional image widths, and emotes in your own sent messages
-were all device-confirmed on Twitch 30.4.2. The detail sheet has a preview,
+Incoming emotes and composer previews work in the current compatibility test.
+Own sent-message emotes have a known regression; the old local-delivery adapter
+uses bridges no longer exposed by this donor. See the
+[31.5 sent-emote investigation](docs/TWITCH_31_5_SENT_EMOTES.md).
+Historical validation of the
+Reload Emotes row, provider tap details, proportional image widths and sent
+emotes is recorded separately. The detail sheet has a preview,
 provider/scope, available creator credit, Copy name, Copy image URL, and Open in
 browser. Diagnostics record delivery, sizing, image-layer, and tap activity
 without retaining chat text or image URLs.

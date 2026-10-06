@@ -98,7 +98,7 @@ static uint64_t attachment_id(id attachment) {
     id data = m0(attachment,"imageData");
     return responds(data,"staticURL") ? url_id(m0(data,"staticURL")) : 0;
 }
-/* Twitch 30.4.2 stores ImageAttachmentLayer.content as (CGRect,
+/* The inspected ImageAttachmentLayer.content stores (CGRect,
  * MessageStringImageData). Its native description and frame setter confirm
  * the strong object field after CGRect. Resolve both ivars at runtime and
  * require their complete tuple span before reading the object field. */
@@ -420,7 +420,7 @@ static void animation_track(id layer) {
     ((void (*)(id,SEL,double))objc_msgSend)(timer,sel_registerName("setTolerance:"),0.25);
     ((void (*)(id,SEL,id,id))objc_msgSend)(m0((id)objc_getClass("NSRunLoop"),"mainRunLoop"),sel_registerName("addTimer:forMode:"),timer,string("kCFRunLoopCommonModes"));
 }
-/* 30.4.2's TWAnimatedImageLayer copies a GIF's finite loop count and pauses
+/* Twitch's TWAnimatedImageLayer copies a GIF's finite loop count and pauses
  * on removal. Reattachment alone does not call updateAnimationState. Scope
  * recovery to a provider attachment and let Twitch check hidden/opacity and
  * parent presence; never force an offscreen or native emote to animate. */
@@ -916,10 +916,10 @@ void tas_emote_ui_retry_hooks(void) {
     hook(objc_getClass("_TtC6Twitch20ImageAttachmentLayer"),"layoutSublayers",2,(IMP)image_layer_layout,&g_layer_layout);
     hook(objc_getClass("TWAnimatedImageLayer"),"setAnimatedImage:",3,(IMP)animated_set_image,&g_animated_image);
 #if TAS_EMOTE_DIAGNOSTIC
-    /* Verified in Twitch 30.4.2: void displayDidRefresh:(CADisplayLink *). */
+    /* Native signature: void displayDidRefresh:(CADisplayLink *). */
     tas_image_probe_install();
     hook(objc_getClass("TWAnimatedImageLayer"),"displayDidRefresh:",3,(IMP)probe_display_refresh,&g_probe_refresh);
-    /* Native 30.4.2 signatures: void setStaticImage:(UIImage *), void removeFromSuperlayer. */
+    /* Native signatures: void setStaticImage:(UIImage *), void removeFromSuperlayer. */
     hook(objc_getClass("TWAnimatedImageLayer"),"setStaticImage:",3,(IMP)probe_static_image,&g_probe_static);
     hook(objc_getClass("TWAnimatedImageLayer"),"removeFromSuperlayer",2,(IMP)probe_remove_layer,&g_probe_remove);
     hook(objc_getClass("TWAnimatedImageLayer"),"stopAnimating",2,(IMP)probe_stop_animation,&g_probe_stop);

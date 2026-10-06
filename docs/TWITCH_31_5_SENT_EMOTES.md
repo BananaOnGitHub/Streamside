@@ -1,5 +1,9 @@
 # Twitch 31.5: constraint cleanup and sent-emote investigation
 
+> Scope correction: this document describes the legacy chat path present in the
+> Twitch 31.5 binary. Earlier device validation does not establish compatibility
+> with the currently active React Native chat. See [the passive RN probe](RN_CHAT_BOUNDARY_PROBE.md).
+
 This is the historical build-49 investigation. The subsequent
 [build-50 presentation trial](TWITCH_31_5_PRESENTATION_TRIAL.md) implements
 native definition enrichment and checks synthetic identity and variable widths.

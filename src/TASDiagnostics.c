@@ -4,6 +4,7 @@
 #include "TASEmoteUI.h"
 #include "SSComposer.h"
 #include "TASEmoteProbe.h"
+#include "TASRNProbe.h"
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -39,7 +40,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.50"
+#define TAS_REPORT_VERSION "3.0.0-build.51"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -365,6 +366,9 @@ static id diagnostic_report_create(void) {
     char composer_status[1024];
     ss_composer_status(composer_status, sizeof(composer_status));
     vmsg1(report, "appendString:", nsstr(composer_status));
+    char rn_status[16384];
+    tas_rn_probe_status(rn_status,sizeof(rn_status));
+    vmsg1(report,"appendString:",nsstr(rn_status));
     vmsg1(report, "appendString:", nsstr(menu_status));
     if (log_data && data_length(log_data)) {
         id log_text = msg0((id)objc_getClass("NSString"), "alloc");
@@ -1096,6 +1100,7 @@ static void retry_app_settings_hook(id self, SEL command, id notification) {
     tas_emote_ui_retry_hooks();
     ss_composer_retry_hooks();
     install_chat_settings_probe();
+    tas_rn_probe_retry_hooks();
     install_native_action_sheet_probe();
     if (install_app_settings_hook()) {
         fprintf(stderr, "[TAS] AppSettingsViewController hook installed after application launch\n");
@@ -1183,6 +1188,7 @@ static bool register_log_class(void) {
 }
 
 void tas_diagnostics_initialize(void) {
+    tas_rn_probe_retry_hooks();
     pthread_mutex_lock(&g_diag_lock);
     diagnostics_path_locked();
     pthread_mutex_unlock(&g_diag_lock);

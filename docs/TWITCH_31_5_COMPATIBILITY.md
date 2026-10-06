@@ -1,5 +1,9 @@
 # Twitch 31.5 compatibility experiment — build 48
 
+> Scope correction: this document describes the legacy chat path present in the
+> Twitch 31.5 binary. Earlier device validation does not establish compatibility
+> with the currently active React Native chat. See [the passive RN probe](RN_CHAT_BOUNDARY_PROBE.md).
+
 This is the historical build-48 packaging report. Subsequent device results,
 build-49 constraint cleanup and the sent-emote investigation are documented in
 [Twitch 31.5 sent emotes](TWITCH_31_5_SENT_EMOTES.md). Version restrictions below

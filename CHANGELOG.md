@@ -2,6 +2,10 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Diagnostic build 51 adds passive RN transport, native/JS event, surface/bundle,
+  composer/catalog and image/decode observations. Original messages, requests,
+  callbacks and geometry are untouched. Build-50 validation applies to legacy
+  chat only; compatibility with active RN chat remains unimplemented.
 - Compatibility build 50 enriches the native per-message subscriber-emote
   definitions on Twitch 31.5. Preserve the original message and tokens; let
   Twitch construct presentation tokens and attachments using Streamside's

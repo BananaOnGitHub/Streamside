@@ -13,14 +13,13 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.50`)
+- Prepared source on this diagnostic branch: **3.0.0**, bundle build `3.0.0.51`
 - Upstream strategy: **VAFT solution 24**
-- Current device-tested app: **Twitch 31.5, arm64** (Streamside build 48)
-  - The tester reports mostly functional behavior, including composer previews
-    and incoming emotes. Third-party emotes in the tester's sent chat messages
-    do not render. Build 49 removes obsolete version constraints. Build 50 adds
-    native presentation enrichment for own messages, preserving synthetic IDs
-    and provider proportions; device validation is pending.
+- Twitch 31.5 contains legacy and React Native chat implementations. Earlier
+  build-48–50 validation exercised legacy chat. On the active RN renderer,
+  Streamside's chat ingress, presentation, composer and picker hooks are bypassed.
+- Build 51 is a [passive RN boundary probe](docs/RN_CHAT_BOUNDARY_PROBE.md),
+  isolated on `diagnostic/rn-chat-boundary`. It does not add RN emote support.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -60,8 +59,8 @@ cells to redraw. It maintains no separate image files. The composer keeps a boun
 thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
 image requests. It does not clear Twitch’s own image cache.
 
-Incoming emotes and composer previews work in the current compatibility test.
-Build 50 tests a native presentation adapter for the own sent-message regression.
+Incoming emotes and composer previews worked in the legacy chat test.
+Build 50 tests a legacy native presentation adapter for the own sent-message regression.
 It adds provider definitions to Twitch's emote matcher while preserving the
 original message and tokens. Twitch creates its own attachments, whose synthetic
 IDs reach the existing image redirection and proportional geometry hooks.

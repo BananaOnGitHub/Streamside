@@ -1,5 +1,9 @@
 # Twitch 31.5: native presentation enrichment boundary
 
+> Scope correction: this document describes the legacy chat path present in the
+> Twitch 31.5 binary. Earlier device validation does not establish compatibility
+> with the currently active React Native chat. See [the passive RN probe](RN_CHAT_BOUNDARY_PROBE.md).
+
 This records the initial read-only investigation. The subsequent
 [build-50 trial](TWITCH_31_5_PRESENTATION_TRIAL.md) validates the definition
 identity, native asset-type argument and proportional geometry path, and

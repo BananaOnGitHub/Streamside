@@ -16,6 +16,8 @@ LOCAL_CACHE="${ZIG_LOCAL_CACHE_DIR:-$PWD/build/cache}"
 GLOBAL_CACHE="${ZIG_GLOBAL_CACHE_DIR:-$PWD/build/global-cache}"
 EMOTE_DIAGNOSTIC="${EMOTE_DIAGNOSTIC:-0}"
 case "$EMOTE_DIAGNOSTIC" in 0|1) ;; *) echo 'EMOTE_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
+RN_CHAT_DIAGNOSTIC="${RN_CHAT_DIAGNOSTIC:-0}"
+case "$RN_CHAT_DIAGNOSTIC" in 0|1) ;; *) echo 'RN_CHAT_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
 
 mkdir -p build "$LOCAL_CACHE" "$GLOBAL_CACHE"
 
@@ -35,8 +37,8 @@ build_binary() {
       --entitlements entitlements.plist \
       --name "$binary_name" \
       -femit-bin="$output_path" \
-      -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" -- \
-      src/Streamside.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c
+      -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" "-DTAS_RN_CHAT_DIAGNOSTIC=$RN_CHAT_DIAGNOSTIC" -- \
+      src/Streamside.c src/TASDiagnostics.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNProbe.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature

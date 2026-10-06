@@ -14,7 +14,7 @@ exports:
                        _fwrite, _malloc, _memchr, _memcpy, _memmove,
                        _pthread_mutex_lock, _pthread_mutex_unlock, _realloc,
                        _snprintf, _strcat, _strchr, _strcmp, _strdup, _strlen,
-                       _strnlen, _strncmp, _strstr, _strtok_r, _strtoll, _strtoul,
+                       _strnlen, _strncmp, _strrchr, _strstr, _strtok_r, _strtoll, _strtoul, _vsnprintf,
                        _strtoull, _time,
                        dyld_stub_binder ]
 ...

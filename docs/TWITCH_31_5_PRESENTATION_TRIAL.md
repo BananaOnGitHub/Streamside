@@ -1,5 +1,9 @@
 # Twitch 31.5 native presentation trial — build 50
 
+> Scope correction: this document describes the legacy chat path present in the
+> Twitch 31.5 binary. Earlier device validation does not establish compatibility
+> with the currently active React Native chat. See [the passive RN probe](RN_CHAT_BOUNDARY_PROBE.md).
+
 ## Result and scope
 
 Implemented `TASEmotePresentation.c` on `compat/twitch-31.5`, following the

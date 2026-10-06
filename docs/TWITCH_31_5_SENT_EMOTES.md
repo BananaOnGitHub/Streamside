@@ -62,6 +62,12 @@ while the local sent-message enrichment is unavailable.
 
 ## Replacement boundary to investigate
 
+The subsequent [native presentation-boundary trace](TWITCH_31_5_PRESENTATION_BOUNDARY.md)
+identifies a stronger seam: the renderer's per-message emote-definition
+callback. It establishes real Objective-C dispatch and native
+text-to-attachment construction. The initial candidates below are retained
+as investigation history; the trace explains why they are less suitable.
+
 The donor retains presentation-side Objective-C surfaces:
 
 | Class | Candidate surface | Encoding |

@@ -2,6 +2,12 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Diagnostic build 52 follows confirmed build-51 RN IRC delivery with passive
+  bridgeless surface, native JS scheduling, catalog-shape/input-event and
+  GraphQL send-operation observations. Document same-launch device results and
+  separate incoming, picker insertion and send stages. No JS patches or RN emote
+  implementation changes; direct JS parser/local-echo execution remains unobserved.
+
 - Diagnostic build 51 adds passive RN transport, native/JS event, surface/bundle,
   composer/catalog and image/decode observations. Original messages, requests,
   callbacks and geometry are untouched. Build-50 validation applies to legacy

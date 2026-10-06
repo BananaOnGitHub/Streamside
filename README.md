@@ -18,7 +18,7 @@ Publication is on hold for device testing and the forthcoming logo.
 - Twitch 31.5 contains legacy and React Native chat implementations. Earlier
   build-48–50 validation exercised legacy chat. On the active RN renderer,
   Streamside's chat ingress, presentation, composer and picker hooks are bypassed.
-- Build 51 is a [passive RN boundary probe](docs/RN_CHAT_BOUNDARY_PROBE.md),
+- Builds 51–52 are [passive RN boundary probes](docs/RN_CHAT_BOUNDARY_PROBE.md),
   isolated on `diagnostic/rn-chat-boundary`. It does not add RN emote support.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 

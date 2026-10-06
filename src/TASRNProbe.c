@@ -41,7 +41,7 @@ enum { CONNECT, SOCKET_OPEN, DELEGATE, RECEIVE, EVENT, SEND,
        HOST_SURFACE_MODE, HOST_SURFACE, FABRIC_INIT, FABRIC_START, HOSTING_WINDOW,
        HOST_JS, INSTANCE_JS, CALLABLE_JS, DISPATCH_EVENT, INPUT_SELECTION,
        INPUT_BEGIN, INPUT_END, SUBMIT_SET, SOCKET_SEND, SOCKET_SEND_DATA,
-       NETWORK_BUILD, HOOK_COUNT };
+       NETWORK_BUILD, MAP_GET, TEMPLATE_GET, URL_FACTORY, URL_INIT, HOOK_COUNT };
 typedef struct {
     const char *class_name, *selector, *encoding;
     bool meta;
@@ -77,6 +77,20 @@ static uint64_t input_values_empty, input_values_nonempty, input_values_other;
 static uint64_t map_shapes[2][5], map_samples[2][4];
 static uint64_t native_events[6], gql_operations[6], gql_oversize, gql_unreadable;
 static uint64_t legacy_send_privmsg, data_send_privmsg;
+/* Build 53 keeps numeric snapshots and weak input identities only. String
+ * pointers used for sorting are transient and freed before the observer returns. */
+enum { CATALOG_LIMIT=4096, INPUT_SLOTS=4, SNAPSHOT_LIMIT=8 };
+typedef struct {
+    id input;
+    unsigned scope, snapshots;
+    U entries, string_keys, other_keys, string_values, other_values;
+    U distinct, repeated, decimal, opaque, urls, empty, oversized;
+} CatalogSnapshot;
+static CatalogSnapshot catalogs[INPUT_SLOTS];
+static uint64_t catalog_overflow, catalog_oversize, catalog_budget, catalog_alloc_failure;
+static uint64_t template_kinds[5], consumer_urls[2], url_sources[3];
+static uint64_t tag_ids[5], tag_ranges[3], tag_budget;
+static _Thread_local unsigned input_consumer_depth;
 enum { TRACE_SURFACE, TRACE_MAP, TRACE_VALUE_EMPTY, TRACE_VALUE_NONEMPTY,
        TRACE_INPUT_CHANGE, TRACE_INPUT_SELECTION, TRACE_SUBMIT, TRACE_IRC_SEND,
        TRACE_GQL_SEND, TRACE_GQL_CATALOG, TRACE_KIND_COUNT };
@@ -104,6 +118,152 @@ static bool equals(id o,const char *s) {
 }
 static U count(id o) { return ((U (*)(id,SEL))objc_msgSend)(o,sel_registerName("count")); }
 static const char *utf8(id o) { return kind(o,"NSString") ? (const char *)m0(o,"UTF8String") : NULL; }
+static bool bounded_text(id o,U limit,const char **out) {
+    if (!kind(o,"NSString") || ((U (*)(id,SEL))objc_msgSend)(o,sel_registerName("length"))>limit) return false;
+    *out=utf8(o);return *out && strnlen(*out,(size_t)limit*4+1)<=(size_t)limit*4;
+}
+static unsigned id_shape(const char *s,size_t n) {
+    if (!n) return 3;
+    if (n>256) return 4;
+    if ((n>=7 && !memcmp(s,"http://",7)) || (n>=8 && !memcmp(s,"https://",8))) return 2;
+    for (size_t i=0;i<n;i++) if (s[i]<'0' || s[i]>'9') return 1;
+    return 0;
+}
+/* Fixed-template categories, never the actual template or ID. */
+static unsigned template_kind(id value) {
+    const char *s;
+    if (!bounded_text(value,1024,&s)) return 0;
+    const char *prefix="https://static-cdn.jtvnw.net/emoticons/v2/{id}/";
+    if (strncmp(s,prefix,strlen(prefix))) return 0;
+    s+=strlen(prefix);
+    if (!strncmp(s,"default/",8)) return 1;
+    if (!strncmp(s,"static/",7)) return 2;
+    if (!strncmp(s,"animated/",9)) return 3;
+    return 4;
+}
+static unsigned input_scope(id input) {
+    if (!kind(input,"UIView")) return 0;
+    id view=input;
+    for (unsigned i=0;view && i<64;i++,view=m0(view,"superview")) {
+        if (!kind(view,"RCTSurfaceHostingView")) continue;
+        Method getter=class_getInstanceMethod(object_getClass(view),sel_registerName("surface"));
+        const char *encoding=getter ? method_getTypeEncoding(getter) : NULL;
+        if (!encoding || strcmp(encoding,"@16@0:8")) return 0;
+        id surface=m0(view,"surface");
+        getter=surface ? class_getInstanceMethod(object_getClass(surface),sel_registerName("moduleName")) : NULL;
+        encoding=getter ? method_getTypeEncoding(getter) : NULL;
+        if (!encoding || strcmp(encoding,"@16@0:8")) return 0;
+        id name=m0(surface,"moduleName");
+        return equals(name,"TwitchRNTheatre") ? 1 : equals(name,"TwitchRNWarmup") ? 2 : equals(name,"TwitchRNDiscoveryFeed") ? 3 : 4;
+    }
+    return 0;
+}
+static unsigned input_slot(id input,unsigned scope) {
+    unsigned slot=INPUT_SLOTS,free_slot=INPUT_SLOTS;
+    pthread_mutex_lock(&lock);
+    for (unsigned i=0;i<INPUT_SLOTS;i++) {
+        id old=objc_loadWeakRetained(&catalogs[i].input);
+        bool same=old && old==input,unused=!old;objc_release(old);
+        if (same) { slot=i;break; }
+        if (unused && free_slot==INPUT_SLOTS) free_slot=i;
+    }
+    if (slot==INPUT_SLOTS && free_slot<INPUT_SLOTS) {
+        slot=free_slot;objc_storeWeak(&catalogs[slot].input,input);
+        /* Reuse a dead weak slot without retaining its former catalog stats. */
+        memset((char *)&catalogs[slot]+sizeof(id),0,sizeof(CatalogSnapshot)-sizeof(id));
+    }
+    if (slot<INPUT_SLOTS) { if (scope) catalogs[slot].scope=scope; }
+    else INC(catalog_overflow);
+    pthread_mutex_unlock(&lock);return slot;
+}
+static int compare_ids(const void *a,const void *b) { return strcmp(*(const char *const *)a,*(const char *const *)b); }
+static void catalog_snapshot(id input,id map) {
+    unsigned slot=input_slot(input,0);
+    if (slot==INPUT_SLOTS || !kind(map,"NSDictionary")) return;
+    U n=count(map);
+    if (n>CATALOG_LIMIT) { INC(catalog_oversize);return; }
+    pthread_mutex_lock(&lock);
+    if (catalogs[slot].snapshots>=SNAPSHOT_LIMIT) { pthread_mutex_unlock(&lock);INC(catalog_budget);return; }
+    catalogs[slot].snapshots++;
+    pthread_mutex_unlock(&lock);
+    const char **ids=n ? malloc((size_t)n*sizeof(*ids)) : NULL;
+    if (n && !ids) { INC(catalog_alloc_failure);return; }
+    CatalogSnapshot snapshot={0};snapshot.entries=n;
+    id enumerator=m0(map,"keyEnumerator");U saved=0;
+    for (U i=0;i<n;i++) {
+        id key=m0(enumerator,"nextObject");if (!key) break;
+        if (kind(key,"NSString")) snapshot.string_keys++;else snapshot.other_keys++;
+        id value=m1(map,"objectForKey:",key);
+        if (!kind(value,"NSString")) { snapshot.other_values++;continue; }
+        snapshot.string_values++;
+        const char *s;
+        if (!bounded_text(value,256,&s)) { snapshot.oversized++;continue; }
+        unsigned shape=id_shape(s,strlen(s));
+        if (shape==0) snapshot.decimal++;else if (shape==1) snapshot.opaque++;
+        else if (shape==2) snapshot.urls++;else if (shape==3) snapshot.empty++;
+        else { snapshot.oversized++;continue; }
+        if (*s) ids[saved++]=s;
+    }
+    if (saved) qsort(ids,(size_t)saved,sizeof(*ids),compare_ids);
+    for (U i=0;i<saved;i++) if (!i || strcmp(ids[i],ids[i-1])) snapshot.distinct++;
+    snapshot.repeated=saved-snapshot.distinct;
+    free(ids);
+    pthread_mutex_lock(&lock);
+    unsigned scope=catalogs[slot].scope,budget=catalogs[slot].snapshots;
+    /* Preserve the registered weak storage itself: never memcpy a weak slot. */
+    memcpy((char *)&catalogs[slot]+sizeof(id),(char *)&snapshot+sizeof(id),sizeof(snapshot)-sizeof(id));
+    catalogs[slot].scope=scope;catalogs[slot].snapshots=budget;
+    pthread_mutex_unlock(&lock);
+}
+static void observe_url_string(id string,void *caller,unsigned boundary) {
+    const char *s;
+    if (!bounded_text(string,1024,&s)) return;
+    const char *prefix="https://static-cdn.jtvnw.net/emoticons/v2/";
+    if (strncmp(s,prefix,strlen(prefix))) return;
+    const char *p=s+strlen(prefix),*end=strchr(p,'/');
+    if (!end || end==p || (size_t)(end-p)>256 || memchr(p,'?',(size_t)(end-p)) || memchr(p,'#',(size_t)(end-p))) return;
+    INC(consumer_urls[boundary]);
+    if (input_consumer_depth) INC(url_sources[0]);
+    Dl_info info;bool native=false;
+    if (dladdr(caller,&info) && info.dli_fname) {
+        const char *base=strrchr(info.dli_fname,'/');base=base ? base+1 : info.dli_fname;
+        native=!strcmp(base,"twitch_rn_emote_input");
+    }
+    if (native) INC(url_sources[1]);else INC(url_sources[2]);
+}
+static bool position_number(const char *start,const char *end,uint64_t *out) {
+    if (start==end || end-start>20) return false;
+    uint64_t n=0;
+    for (const char *p=start;p<end;p++) {
+        if (*p<'0' || *p>'9' || n>(UINT64_MAX-(unsigned)(*p-'0'))/10) return false;
+        n=n*10+(unsigned)(*p-'0');
+    }
+    *out=n;return true;
+}
+static void observe_emote_tag(const char *start,const char *end) {
+    /* Header-only shape inspection. No ID/range or message body is retained. */
+    if (end-start>4096) { INC(tag_budget);return; }
+    unsigned groups=0,ranges=0;
+    while (start<end) {
+        if (groups++>=32) { INC(tag_budget);return; }
+        const char *group_end=memchr(start,'/',(size_t)(end-start));if (!group_end) group_end=end;
+        const char *colon=memchr(start,':',(size_t)(group_end-start));
+        if (!colon) { INC(tag_ids[4]); }
+        else {
+            INC(tag_ids[id_shape(start,(size_t)(colon-start))]);
+            const char *p=colon+1;
+            do {
+                if (ranges++>=64) { INC(tag_budget);return; }
+                const char *q=memchr(p,',',(size_t)(group_end-p));if (!q) q=group_end;
+                const char *dash=memchr(p,'-',(size_t)(q-p));uint64_t a,b;
+                if (!dash || !position_number(p,dash,&a) || !position_number(dash+1,q,&b)) INC(tag_ranges[2]);
+                else if (b<a) INC(tag_ranges[1]);else INC(tag_ranges[0]);
+                p=q==group_end ? group_end : q+1;
+            } while (p<group_end);
+        }
+        start=group_end==end ? end : group_end+1;
+    }
+}
 static bool irc_url(id url) { return kind(url,"NSURL") && equals(m0(url,"host"),"irc-ws.chat.twitch.tv"); }
 static bool emote_url(id url) {
     if (!kind(url,"NSURL") || !equals(m0(url,"host"),"static-cdn.jtvnw.net")) return false;
@@ -154,12 +314,15 @@ static U classify(id data,bool js,bool outbound) {
     const char *s=utf8(data);if (!s) return 0;
     while (*s) {
         const char *end=strchr(s,'\n');if (!end) end=s+strlen(s);
-        const char *p=s;bool emotes=false;
+        const char *p=s,*emote_start=NULL,*emote_end=NULL;bool emotes=false;
         if (p<end && *p=='@') {
             const char *tag_end=memchr(p,' ',(size_t)(end-p));
             if (!tag_end) break;
             for (const char *t=p+1;t<tag_end;t++) {
-                if ((t==p+1 || t[-1]==';') && tag_end-t>=8 && !strncmp(t,"emotes=",7) && t[7]!=';' && t[7]!=' ') emotes=true;
+                if ((t==p+1 || t[-1]==';') && tag_end-t>=8 && !strncmp(t,"emotes=",7) && t[7]!=';' && t[7]!=' ') {
+                    emotes=true;emote_start=t+7;
+                    emote_end=memchr(emote_start,';',(size_t)(tag_end-emote_start));if (!emote_end) emote_end=tag_end;
+                }
             }
             p=tag_end+1;
         }
@@ -170,7 +333,7 @@ static U classify(id data,bool js,bool outbound) {
         if (priv) privmsg_count++;
         if (outbound) { if (priv) INC(outbound_privmsg); }
         else if (js) { if (priv) INC(js_privmsg);if (priv && emotes) INC(js_emote_tag); }
-        else { if (priv) INC(incoming_privmsg);if (room) INC(incoming_roomstate);if (priv && emotes) INC(incoming_emote_tag); }
+        else { if (priv) INC(incoming_privmsg);if (room) INC(incoming_roomstate);if (priv && emotes) { INC(incoming_emote_tag);observe_emote_tag(emote_start,emote_end); } }
         if (!*end) break;
         s=end+1;
     }
@@ -343,16 +506,46 @@ static void host_bundle_hook(id self,SEL sel,id url,id progress,id completion) {
     ((void (*)(id,SEL,id,id,id))hooks[HOST_BUNDLE].original)(self,sel,url,progress,completion);
 }
 #define VOID_ONE(fn,slot,observe) static void fn(id self,SEL sel,id value) { HIT(slot);observe;((void (*)(id,SEL,id))hooks[slot].original)(self,sel,value); }
-VOID_ONE(emote_map_hook,EMOTE_MAP,map_shape(value,0);if (kind(value,"NSDictionary")) { U n=count(value);ADD(map_entries,n);if (n) INC(maps_nonempty); })
+static void emote_map_hook(id self,SEL sel,id value) {
+    HIT(EMOTE_MAP);map_shape(value,0);catalog_snapshot(self,value);
+    if (kind(value,"NSDictionary")) { U n=count(value);ADD(map_entries,n);if (n) INC(maps_nonempty); }
+    input_consumer_depth++;
+    ((void (*)(id,SEL,id))hooks[EMOTE_MAP].original)(self,sel,value);
+    input_consumer_depth--;
+}
 VOID_ONE(token_map_hook,TOKEN_MAP,map_shape(value,1);if (kind(value,"NSDictionary")) { U n=count(value);ADD(token_entries,n);if (n) INC(token_maps_nonempty); })
-VOID_ONE(template_hook,TEMPLATE,(void)value)
-VOID_ONE(value_hook,VALUE,value_shape(value))
+static void template_hook(id self,SEL sel,id value) {
+    HIT(TEMPLATE);INC(template_kinds[template_kind(value)]);input_consumer_depth++;
+    ((void (*)(id,SEL,id))hooks[TEMPLATE].original)(self,sel,value);input_consumer_depth--;
+}
+static void value_hook(id self,SEL sel,id value) {
+    HIT(VALUE);value_shape(value);input_consumer_depth++;
+    ((void (*)(id,SEL,id))hooks[VALUE].original)(self,sel,value);input_consumer_depth--;
+}
 VOID_ONE(change_hook,CHANGE,(void)value)
 static BOOL edit_hook(id self,SEL sel,id view,Range range,id replacement) {
     HIT(EDIT);if (equals(replacement,"\n")) INC(newline_edits);
     return ((BOOL (*)(id,SEL,id,Range,id))hooks[EDIT].original)(self,sel,view,range,replacement);
 }
-static void input_layout_hook(id self,SEL sel) { HIT(INPUT_LAYOUT);((void (*)(id,SEL))hooks[INPUT_LAYOUT].original)(self,sel); }
+static void input_layout_hook(id self,SEL sel) {
+    HIT(INPUT_LAYOUT);input_slot(self,input_scope(self));input_consumer_depth++;
+    ((void (*)(id,SEL))hooks[INPUT_LAYOUT].original)(self,sel);input_consumer_depth--;
+}
+static id map_get_hook(id self,SEL sel) {
+    HIT(MAP_GET);id value=((id (*)(id,SEL))hooks[MAP_GET].original)(self,sel);
+    catalog_snapshot(self,value);return value;
+}
+static id template_get_hook(id self,SEL sel) {
+    HIT(TEMPLATE_GET);return ((id (*)(id,SEL))hooks[TEMPLATE_GET].original)(self,sel);
+}
+static id url_factory_hook(id self,SEL sel,id value) {
+    HIT(URL_FACTORY);observe_url_string(value,__builtin_return_address(0),0);
+    return ((id (*)(id,SEL,id))hooks[URL_FACTORY].original)(self,sel,value);
+}
+static id url_init_hook(id self,SEL sel,id value,id base) {
+    HIT(URL_INIT);observe_url_string(value,__builtin_return_address(0),1);
+    return ((id (*)(id,SEL,id,id))hooks[URL_INIT].original)(self,sel,value,base);
+}
 static Rect bounds_hook(id self,SEL sel,id container,Rect line,Point glyph,I index) {
     HIT(ATTACH_BOUNDS);
     Rect result=((Rect (*)(id,SEL,id,Rect,Point,I))hooks[ATTACH_BOUNDS].original)(self,sel,container,line,glyph,index);
@@ -491,6 +684,12 @@ static Hook hooks[HOOK_COUNT]={
     SPEC(SOCKET_SEND,"SRWebSocket","send:","v24@0:8@16",socket_send_hook,false),
     SPEC(SOCKET_SEND_DATA,"SRWebSocket","sendData:error:","B32@0:8@16^@24",socket_send_data_hook,false),
     SPEC(NETWORK_BUILD,"RCTNetworking","buildRequest:devToolsRequestId:completionBlock:","@?40@0:8@16@24@?32",network_build_hook,false),
+    SPEC(MAP_GET,INPUT,"emoteMap","@16@0:8",map_get_hook,false),
+    SPEC(TEMPLATE_GET,INPUT,"emoteUrlTemplate","@16@0:8",template_get_hook,false),
+    /* Foundation methods are checked against runtime encoding, not claimed
+     * as donor-defined implementations. An absent/different method is skipped. */
+    SPEC(URL_FACTORY,"NSURL","URLWithString:","@24@0:8@16",url_factory_hook,true),
+    SPEC(URL_INIT,"NSURL","initWithString:relativeToURL:","@32@0:8@16@24",url_init_hook,false),
 };
 void tas_rn_probe_retry_hooks(void) {
     pthread_mutex_lock(&install_lock);
@@ -572,6 +771,24 @@ void tas_rn_probe_status(char *buffer,size_t capacity) {
         append(buffer,capacity,&used," %llu:%s",(unsigned long long)trace_rows[j].sequence,trace_names[trace_rows[j].kind]);
     }
     append(buffer,capacity,&used,"\n");
+    append(buffer,capacity,&used,"Build 53 catalog/metadata consumer (passive; local echo deferred):\n"
+        "  Template unknown/default/static/animated/other CDN: %llu/%llu/%llu/%llu/%llu\n"
+        "  Emote URL construction factory/init: %llu/%llu; nested input/native-input caller/other caller: %llu/%llu/%llu (boundaries can double-count)\n"
+        "  Incoming tag ID decimal/opaque/URL/empty/malformed-or-oversize: %llu/%llu/%llu/%llu/%llu\n"
+        "  Incoming tag ranges numeric-ordered/reversed/invalid: %llu/%llu/%llu; header budget refusals: %llu\n"
+        "  Catalog input capacity/entry limit/snapshot budget/allocation refusals: %llu/%llu/%llu/%llu\n",
+        (unsigned long long)GET(template_kinds[0]),(unsigned long long)GET(template_kinds[1]),(unsigned long long)GET(template_kinds[2]),(unsigned long long)GET(template_kinds[3]),(unsigned long long)GET(template_kinds[4]),
+        (unsigned long long)GET(consumer_urls[0]),(unsigned long long)GET(consumer_urls[1]),(unsigned long long)GET(url_sources[0]),(unsigned long long)GET(url_sources[1]),(unsigned long long)GET(url_sources[2]),
+        (unsigned long long)GET(tag_ids[0]),(unsigned long long)GET(tag_ids[1]),(unsigned long long)GET(tag_ids[2]),(unsigned long long)GET(tag_ids[3]),(unsigned long long)GET(tag_ids[4]),
+        (unsigned long long)GET(tag_ranges[0]),(unsigned long long)GET(tag_ranges[1]),(unsigned long long)GET(tag_ranges[2]),(unsigned long long)GET(tag_budget),
+        (unsigned long long)GET(catalog_overflow),(unsigned long long)GET(catalog_oversize),(unsigned long long)GET(catalog_budget),(unsigned long long)GET(catalog_alloc_failure));
+    const char *scopes[]={"unobserved","TwitchRNTheatre","TwitchRNWarmup","TwitchRNDiscoveryFeed","other RN surface"};
+    for (unsigned i=0;i<INPUT_SLOTS;i++) {
+        CatalogSnapshot *c=&catalogs[i];if (!c->snapshots) continue;
+        append(buffer,capacity,&used,"  Input slot %u scope=%s snapshots=%u latest entries=%lu keys string/other=%lu/%lu values string/other=%lu/%lu distinct nonempty bounded strings=%lu repeated values=%lu ID decimal/opaque/URL/empty/oversize=%lu/%lu/%lu/%lu/%lu\n",
+            i+1,scopes[c->scope],c->snapshots,c->entries,c->string_keys,c->other_keys,c->string_values,c->other_values,c->distinct,c->repeated,c->decimal,c->opaque,c->urls,c->empty,c->oversized);
+    }
+    append(buffer,capacity,&used,"  No catalog keys/values, ID fingerprints, ranges or URLs retained; shape counts do not prove JS parser execution or synthetic-ID support.\n");
     append(buffer,capacity,&used,"Hook calls / installation / first receiver / first native caller image+offset:\n");
     for (unsigned i=0;i<HOOK_COUNT;i++) {
         Hook *h=&hooks[i];append(buffer,capacity,&used,"  %s.%s: %llu %s receiver=%s caller=%s+0x%llx\n",h->class_name,h->selector,

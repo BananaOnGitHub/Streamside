@@ -143,10 +143,12 @@ image view after Fabric layout. Legacy TextKit/layer sizing is not this path.
 
 ## Next validation gates; local echo deferred
 
-1. Finish passive catalog attribution: aggregate key types, distinct ID counts,
-   alias/collision counts, and overlap with incoming native-emote IDs without
-   retaining codes, IDs or message bodies. Associate observations with the
-   theatre/input instance and confirm active-room provider scope separately.
+1. Finish passive catalog attribution: aggregate key types, distinct ID counts
+   and repeated-value counts. Build 53 observes these per weak native input
+   instance and attempts theatre surface attribution. Repeated values can be
+   aliases, but do not prove alias generation or token collisions. Exact overlap
+   with incoming native-emote IDs is not measured: build 53 retains no IDs or
+   ID fingerprints across callbacks. Confirm active-room provider scope separately.
 2. Confirm the native composer consumer's ID-template contract and the incoming
    part/image identity boundary at runtime. No catalog injection or synthetic
    receive frames belong on `diagnostic/rn-chat-boundary`.
@@ -161,3 +163,10 @@ image view after Fabric layout. Legacy TextKit/layer sizing is not this path.
 Do not add send/local-echo probes or change echo behavior in this phase. The
 eventual echo investigation can use the now-identified token map, ID-bearing
 range and RN emote-part shapes as concrete search targets.
+
+Build 53's runtime gate is structural only: native catalog key/value types,
+distinct bounded string values, template categories, URL construction during
+native input updates, and real incoming tag ID/range shapes. It supplies no
+synthetic IDs and does not directly instrument JS tokenization or the RN part
+mapper. Positive observations corroborate the contract above, not end-to-end
+synthetic emote compatibility. See `RN_CHAT_BOUNDARY_PROBE.md` for the staged test.

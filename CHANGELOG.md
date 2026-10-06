@@ -2,6 +2,13 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Diagnostic build 53 records bounded catalog key/value/ID shapes, distinct ID
+  and repeated-value counts, input surface scope, native map getter activity,
+  URL template categories, incoming metadata range shapes and emote URL
+  construction during native input updates. No catalog contents, identifier
+  fingerprints, message text or URLs are retained. No synthetic metadata,
+  catalog injection, redirect or geometry change; local echo is deferred.
+
 - Diagnostic build 52 follows confirmed build-51 RN IRC delivery with passive
   bridgeless surface, native JS scheduling, catalog-shape/input-event and
   GraphQL send-operation observations. Document same-launch device results and

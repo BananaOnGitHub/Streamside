@@ -13,13 +13,13 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source on this diagnostic branch: **3.0.0**, bundle build `3.0.0.51`
+- Prepared source on this diagnostic branch: **3.0.0**, diagnostic build `3.0.0-build.53`
 - Upstream strategy: **VAFT solution 24**
 - Twitch 31.5 contains legacy and React Native chat implementations. Earlier
   build-48–50 validation exercised legacy chat. On the active RN renderer,
   Streamside's chat ingress, presentation, composer and picker hooks are bypassed.
-- Builds 51–52 are [passive RN boundary probes](docs/RN_CHAT_BOUNDARY_PROBE.md),
-  isolated on `diagnostic/rn-chat-boundary`. It does not add RN emote support.
+- Builds 51–53 are [passive RN boundary probes](docs/RN_CHAT_BOUNDARY_PROBE.md),
+  isolated on `diagnostic/rn-chat-boundary`. They do not add RN emote support.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or

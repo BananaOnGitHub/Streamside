@@ -1,4 +1,4 @@
-# Twitch 31.5 active chat boundary probe — builds 51–52
+# Twitch 31.5 active chat boundary probe — builds 51–53
 
 This branch adds passive observation, not RN emote support. Build 50's earlier
 device validation applies only to the legacy chat implementation still present
@@ -102,8 +102,11 @@ python3 tools/patch_ipa.py /path/to/decrypted-twitch-31.5.ipa \
 python3 tools/verify_ipa.py /path/to/probe.ipa --framework build/Streamside.framework
 ```
 
-`RN_CHAT_DIAGNOSTIC` defaults to zero. The source version is build 52; a probe
+`RN_CHAT_DIAGNOSTIC` defaults to zero. The source version is build 53; a probe
 IPA has an explicit `RN boundary probe (passive; this launch)` report section.
+
+The procedure below is historical. Use the build-53 catalog/metadata procedure
+at the end of this document for the next test; no send is required.
 
 1. Install/sign the probe IPA and fully terminate then relaunch Twitch.
 2. Enable Diagnostic Logging in Streamside settings. Copy report A before
@@ -353,5 +356,84 @@ a redirect failure.
 
 Local echo investigation is deliberately deferred. The next investigation
 targets the catalog representation and incoming synthetic metadata path; see
-[RN_EMOTE_REPRESENTATION.md](RN_EMOTE_REPRESENTATION.md). No new probe build or RN
-functional implementation accompanies this documentation.
+[RN_EMOTE_REPRESENTATION.md](RN_EMOTE_REPRESENTATION.md). The initial findings
+commit added documentation only; build 53 below adds the next passive test.
+
+## Build 53: catalog identity and metadata consumer
+
+Local echo remains deferred. Four new guarded hooks observe native input map
+and template getters plus two Foundation URL construction boundaries. Existing
+input setters/layout and incoming receive observers gain bounded structural
+measurements. All 46 donor-defined encodings match the inspected binary; the
+two Foundation hooks require their exact encoding at runtime.
+
+| Measurement | Meaning | Limit |
+|---|---|---|
+| Per-input latest map snapshot | String/other key and value counts; decimal/opaque/URL/empty/oversize value shapes; distinct bounded nonempty strings and repeated values | Not picker row counts, alias provenance, collision counts or JS-store identity |
+| Input surface scope | Fixed theatre/warmup/discovery/other categories from guarded hosting-view getters during layout | Can remain unobserved; not active-room or provider-registry attribution |
+| Map/template getter hits | Native accessor execution and original returned object | Swift direct storage reads may bypass Objective-C accessors |
+| Template categories | Unknown/default/static/animated/other CDN format | No actual template retained; setter traffic is not unique templates |
+| Emote URL factory/init | Bounded Twitch v2 prefix classification; synchronous nesting inside native input updates and fixed caller-image category | Constructors can double-count; async or alternate Swift constructors can bypass attribution |
+| Real incoming emote tag shapes | Decimal/opaque ID groups and numeric ordered/reversed/invalid range counts | No IDs, ranges or body retained; not JS parser, part mapper or rendering execution |
+
+Catalog inspection is limited to four weak input identities, eight snapshots
+per identity, 4,096 entries per dictionary and bounded string values. Sorting
+uses transient pointers only; they are freed before returning. Reports retain
+numeric snapshots, not codes, IDs, ID fingerprints or URL strings. Dead weak
+slots are reusable and their previous snapshot statistics are discarded.
+Incoming tag inspection has a 4,096-byte, 32-group, 64-range budget per PRIVMSG;
+the shape observer is not a reimplementation of JS parsing or body validation.
+Budget refusal counters must be considered before interpreting absent data.
+
+The probe observes only authentic Twitch metadata. No synthetic tag, catalog
+entry, URL replacement, callback wrapper, image redirect, sizing change or JS
+patch is introduced. Exact catalog-ID overlap across callbacks is intentionally
+not measured. These measurements test the structural ID/template contract;
+they cannot establish synthetic-ID support or end-to-end provider rendering.
+
+## Build 53 required device test
+
+Sign/install the build-53 probe and fully terminate/relaunch Twitch. Keep
+Diagnostic Logging enabled and collect these reports from the same launch,
+without clearing counters between stages. No send or local-echo test is needed.
+
+1. **A — baseline:** copy a report before entering the test stream.
+2. **B — incoming:** open busy RN chat and wait 30–60 seconds for native Twitch
+   emotes. Do not open the picker yet. Copy a report.
+3. **C — picker insertion:** open the native picker, select one native Twitch
+   emote and leave it unsent in the composer. Wait briefly, then copy a report.
+   Note whether its composer image appeared.
+4. **D — optional typed comparison:** clear the unsent draft and manually type
+   a known native Twitch emote code. Leave it unsent and copy a report. Note
+   whether it becomes an attachment. Do not record the code in the diagnostic.
+
+Required evidence is the new build-53 section and its hook rows, together with
+the existing bundle/surface/IRC/input/image sections. Compare latest map entries,
+distinct/repeated values, value shapes and scope; template categories; map
+getter execution; real incoming ID/range shapes; and URL construction nesting
+between B and C. An installed-but-zero getter, unknown scope or zero nested URL
+count is a probe limitation, not proof that the corresponding consumer is absent.
+Provider emotes remaining text is expected. Do not change branches to implement
+RN provider rendering until this passive evidence is reviewed.
+
+## Build 53 completed validation and artifact
+
+- All 61 host tests passed. The ASan/UBSan passive harness checks unchanged
+  original arguments/results, map snapshot deduplication, exact forwarding of
+  new getters/URL constructors, weak-slot capacity and reuse, snapshot/entry
+  refusal, scope getter ABI rejection and positive theatre attribution,
+  template/URL categories, header-only range counting and overflow refusal,
+  and report privacy. Host mocks do not establish iOS runtime activity.
+- All 46 donor-defined hook encodings match; two Foundation methods remain
+  runtime-guarded. Enabled and disabled arm64 iOS builds and both artifact
+  guards passed. Disabled binaries contain no RN probe report markers.
+- IPA patching and verification passed. No donor entry was removed. Only the
+  main executable and app-name plist changed; two Streamside framework files
+  were added. Every other donor entry, including the Hermes bundle and RN
+  frameworks, is byte-identical. The old animation forensic report is absent.
+- Output: `Twitch-31.5-Streamside-build53-rn-probe-unsigned.ipa`, 191,827,729 bytes.
+  SHA256: `5ce83e576f314d73e3e2956c37eeff315631e8e50ea74f1af18b2d3b24677fa0`.
+  Sign with the normal sideloading tool. Device evidence is still required.
+- This work stays on `diagnostic/rn-chat-boundary`; main, compat and the legacy
+  archive are unchanged. GitHub publication was blocked by the approval check;
+  the findings and probe commits are local pending explicit publication approval.

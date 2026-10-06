@@ -15,13 +15,17 @@ const char *class_getName(Class);
 struct Fake { const char *cls,*text; id inner; U chars; };
 static struct Fake classes[]={ {"NSString",0,0,0},{"NSURL",0,0,0},
     {"SRWebSocket",0,0,0},{"RCTWebSocketModule",0,0,0},{"NSDictionary",0,0,0},
-    {"NSArray",0,0,0},{"NSNumber",0,0,0},{"NSData",0,0,0},{"NSURLRequest",0,0,0},{"NSJSONSerialization",0,0,0} };
+    {"NSArray",0,0,0},{"NSNumber",0,0,0},{"NSData",0,0,0},{"NSURLRequest",0,0,0},{"NSJSONSerialization",0,0,0},
+    {"UIView",0,0,0},{"RCTSurfaceHostingView",0,0,0} };
 static struct Fake host={"NSString","irc-ws.chat.twitch.tv",0,0};
 static struct Fake url={"NSURL",0,&host,0},socket={"SRWebSocket",0,&url,0};
 static struct Fake receiver={"RCTWebSocketModule",0,0,0},event={"NSString","websocketMessage",0,0};
 static struct Fake message={"NSString","@emotes=25:0-4;room-id=private :private!private PRIVMSG #private :Kappa private body\r\n",0,0};
 static id decoded,test_request,test_url,test_data,test_gqlhost,test_path;
 static unsigned json_calls;
+static id catalog_test, catalog_keys[8], catalog_values[8];
+static U catalog_cursor,catalog_value_cursor;
+static struct Fake catalog_value_enumerator={"enumerator",0,0,0};
 static struct Fake body={"NSDictionary",0,&message,0},string={"NSString",0,0,0};
 Class objc_getClass(const char *s) {
     for(U i=0;i<sizeof(classes)/sizeof(*classes);i++) if(!strcmp(s,classes[i].cls)) return &classes[i];
@@ -33,14 +37,19 @@ SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id o,SEL sel,...) {
     if(!o) return nil;
     va_list ap;va_start(ap,sel);id result=nil;
-    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(ap,Class);result=(id)(uintptr_t)(c && !strcmp(o->cls,c->cls)); }
+    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(ap,Class);result=(id)(uintptr_t)(c && (!strcmp(o->cls,c->cls) || (!strcmp(c->cls,"UIView") && !strcmp(o->cls,"RCTSurfaceHostingView")))); }
     else if(!strcmp(sel,"stringWithUTF8String:")) { string.text=va_arg(ap,const char *);result=&string; }
     else if(!strcmp(sel,"isEqualToString:")) { id value=va_arg(ap,id);result=(id)(uintptr_t)!strcmp(o->text,value->text); }
     else if(o==test_request && !strcmp(sel,"URL")) result=test_url;
     else if(o==test_request && !strcmp(sel,"HTTPBody")) result=test_data;
     else if(o==test_url && !strcmp(sel,"host")) result=test_gqlhost;
     else if(o==test_url && !strcmp(sel,"path")) result=test_path;
-    else if(!strcmp(sel,"host") || !strcmp(sel,"url") || !strcmp(sel,"objectForKey:") || !strcmp(sel,"URL") || !strcmp(sel,"HTTPBody") || !strcmp(sel,"path") || !strcmp(sel,"eventName")) result=o->inner;
+    else if(o==catalog_test && !strcmp(sel,"keyEnumerator")) { catalog_cursor=0;result=o; }
+    else if(o==catalog_test && !strcmp(sel,"objectEnumerator")) { catalog_value_cursor=0;result=&catalog_value_enumerator; }
+    else if(o==&catalog_value_enumerator && !strcmp(sel,"nextObject")) { if(catalog_value_cursor<catalog_test->chars) result=catalog_values[catalog_value_cursor++]; }
+    else if(o==catalog_test && !strcmp(sel,"nextObject")) { if(catalog_cursor<o->chars) result=catalog_keys[catalog_cursor++]; }
+    else if(o==catalog_test && !strcmp(sel,"objectForKey:")) { id key=va_arg(ap,id);for(U i=0;i<o->chars;i++) if(key==catalog_keys[i]) result=catalog_values[i]; }
+    else if(!strcmp(sel,"host") || !strcmp(sel,"url") || !strcmp(sel,"objectForKey:") || !strcmp(sel,"URL") || !strcmp(sel,"HTTPBody") || !strcmp(sel,"path") || !strcmp(sel,"eventName") || !strcmp(sel,"superview") || !strcmp(sel,"surface") || !strcmp(sel,"moduleName")) result=o->inner;
     else if(!strcmp(sel,"count")) result=(id)(uintptr_t)o->chars;
     else if(!strcmp(sel,"respondsToSelector:")) result=(id)(uintptr_t)1;
     else if(!strcmp(sel,"objectAtIndex:")) { U i=va_arg(ap,U);assert(i<o->chars);result=((id *)o->inner)[i]; }
@@ -87,6 +96,14 @@ static id native_network(id self,SEL sel,id query,id devtools,id completion) {
     assert(self==&receiver && !strcmp(sel,"network") && query==&body && devtools==&host && completion==expected_completion);network_calls++;return &socket;
 }
 static void native_dispatch(id self,SEL sel,id value) { assert(self==&receiver && !strcmp(sel,"dispatch") && value==&body);dispatch_calls++; }
+static unsigned map_forwarded,getter_forwarded,url_forwarded,template_forwarded,layout_forwarded,factory_forwarded,template_get_forwarded;
+static void native_map(id self,SEL sel,id value) { assert(self==&receiver && !strcmp(sel,"map") && value==catalog_test && input_consumer_depth==1);map_forwarded++; }
+static id native_getter(id self,SEL sel) { assert(self==&receiver && !strcmp(sel,"map-get"));getter_forwarded++;return catalog_test; }
+static id native_url(id self,SEL sel,id value,id base) { assert(self==&url && !strcmp(sel,"init-url") && value==&message && base==&host);url_forwarded++;return &socket; }
+static id native_factory(id self,SEL sel,id value) { assert(self==&url && !strcmp(sel,"factory-url") && value==&message);factory_forwarded++;return &socket; }
+static id native_template_get(id self,SEL sel) { assert(self==&receiver && !strcmp(sel,"template-get"));template_get_forwarded++;return &host; }
+static void native_template(id self,SEL sel,id value) { assert(self==&receiver && !strcmp(sel,"template") && value==&host && input_consumer_depth==1);template_forwarded++; }
+static void native_layout(id self,SEL sel) { assert(self==&receiver && !strcmp(sel,"layout") && input_consumer_depth==1);layout_forwarded++; }
 static const char *encoding="wrong";
 Method class_getInstanceMethod(Class c,SEL s) { assert(c && s);return (Method)&encoding; }
 const char *method_getTypeEncoding(Method m) { (void)m;return encoding; }
@@ -124,6 +141,53 @@ int main(void) {
     assert(input_values_empty==1 && input_values_nonempty==1 && input_values_other==1);
     struct Fake map={"NSDictionary",0,&name,70};map_shape(&map,0);assert(map.chars==38 && map_samples[0][0]==32);
     map_shape(nil,1);assert(map_shapes[1][0]==1);
+    /* Full catalog snapshot: no source mutation, no retained keys/IDs. */
+    struct Fake k0={"NSString","private-catalog-key",0,0},k1={"NSString","private-alias",0,0},k2={"NSNumber",0,0,0};
+    struct Fake v0={"NSString","12345",0,0},v1={"NSString","native-opaque_1",0,0};
+    struct Fake catalog={"NSDictionary",0,0,3};catalog_test=&catalog;
+    catalog_keys[0]=&k0;catalog_keys[1]=&k1;catalog_keys[2]=&k2;
+    catalog_values[0]=&v0;catalog_values[1]=&v0;catalog_values[2]=&v1;
+    hooks[EMOTE_MAP].original=(IMP)native_map;emote_map_hook(&receiver,"map",&catalog);
+    assert(map_forwarded==1 && !input_consumer_depth && catalog.chars==3);
+    assert(catalogs[0].entries==3 && catalogs[0].distinct==2 && catalogs[0].repeated==1);
+    assert(catalogs[0].string_keys==2 && catalogs[0].other_keys==1 && catalogs[0].decimal==2 && catalogs[0].opaque==1);
+    hooks[MAP_GET].original=(IMP)native_getter;assert(map_get_hook(&receiver,"map-get")==&catalog && getter_forwarded==1);
+    for(unsigned i=0;i<10;i++) catalog_snapshot(&receiver,&catalog);
+    assert(catalogs[0].snapshots==SNAPSHOT_LIMIT && catalog_budget==4);
+    catalog.chars=CATALOG_LIMIT+1;catalog_snapshot(&receiver,&catalog);assert(catalog_oversize==1);catalog.chars=3;
+    /* A rejected scope getter does not guess a module or read props. */
+    assert(input_scope(&receiver)==0);
+    struct Fake theatre_name={"NSString","TwitchRNTheatre",0,0},theatre_surface={"RCTFabricSurface",0,&theatre_name,0};
+    struct Fake hosting={"RCTSurfaceHostingView",0,&theatre_surface,0},scoped_input={"UIView",0,&hosting,0};
+    assert(input_scope(&scoped_input)==0);encoding="@16@0:8";
+    assert(input_scope(&scoped_input)==1);encoding="wrong";
+    hooks[INPUT_LAYOUT].original=(IMP)native_layout;input_layout_hook(&receiver,"layout");assert(layout_forwarded==1 && !input_consumer_depth);
+    const char *native_template_text="https://static-cdn.jtvnw.net/emoticons/v2/{id}/default/dark/3.0";
+    struct Fake tmpl={"NSString",native_template_text,0,0};assert(template_kind(&tmpl)==1);
+    tmpl.text="https://static-cdn.jtvnw.net/emoticons/v2/{id}/static/dark/3.0";assert(template_kind(&tmpl)==2);
+    tmpl.text="https://unrelated.test/private";assert(template_kind(&tmpl)==0);
+    tmpl.chars=1025;assert(template_kind(&tmpl)==0);
+    hooks[TEMPLATE].original=(IMP)native_template;template_hook(&receiver,"template",&host);assert(template_forwarded==1 && !input_consumer_depth);
+    hooks[TEMPLATE_GET].original=(IMP)native_template_get;assert(template_get_hook(&receiver,"template-get")==&host && template_get_forwarded==1);
+    struct Fake image_url={"NSString","https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0",0,0};
+    input_consumer_depth=1;observe_url_string(&image_url,NULL,0);input_consumer_depth=0;
+    assert(consumer_urls[0]==1 && url_sources[0]==1);
+    image_url.text="https://unrelated.test/emoticons/v2/25/default/dark/1.0";observe_url_string(&image_url,NULL,0);assert(consumer_urls[0]==1);
+    hooks[URL_INIT].original=(IMP)native_url;assert(url_init_hook(&url,"init-url",&message,&host)==&socket && url_forwarded==1);
+    hooks[URL_FACTORY].original=(IMP)native_factory;assert(url_factory_hook(&url,"factory-url",&message)==&socket && factory_forwarded==1);
+    /* Four weak slots are bounded; dead identity reuse drops its old stats. */
+    struct Fake inputs[4]={{"input",0,0,0},{"input",0,0,0},{"input",0,0,0},{"input",0,0,0}};
+    assert(input_slot(&inputs[0],1)==1 && input_slot(&inputs[1],2)==2 && input_slot(&inputs[2],3)==3);
+    assert(input_slot(&inputs[3],0)==INPUT_SLOTS && catalog_overflow==1);
+    catalogs[1].entries=999;catalogs[1].snapshots=SNAPSHOT_LIMIT;objc_storeWeak(&catalogs[1].input,nil);
+    assert(input_slot(&inputs[3],0)==1 && !catalogs[1].entries && !catalogs[1].snapshots && !catalogs[1].scope);
+    uint64_t ordered=tag_ranges[0],invalid=tag_ranges[2];
+    const char *tags="25:0-4,6-10/native-opaque_1:12-12/reversed:9-1/bad:x-4";
+    observe_emote_tag(tags,tags+strlen(tags));assert(tag_ranges[0]==ordered+3 && tag_ranges[1]==1 && tag_ranges[2]==invalid+1);
+    uint64_t pos;const char *maximum="18446744073709551615",*overflow="18446744073709551616";
+    assert(position_number(maximum,maximum+20,&pos) && pos==UINT64_MAX);
+    assert(!position_number(overflow,overflow+20,&pos));
+    char large_tag[4097];memset(large_tag,'x',sizeof(large_tag));observe_emote_tag(large_tag,large_tag+sizeof(large_tag));assert(tag_budget==1);
     struct Fake op={"NSString","SendChatMessage",0,0},obj={"NSDictionary",0,&op,0};gql_object(&obj);assert(gql_operations[0]==1);
     op.text="secret SendChatMessage secret";gql_object(&obj);assert(gql_operations[0]==1);
     struct Fake data={"NSData",0,0,262145},gqlhost={"NSString","gql.twitch.tv",0,0};
@@ -142,9 +206,10 @@ int main(void) {
     encoding=hooks[CONNECT].encoding;tas_rn_probe_retry_hooks();assert(hooks[CONNECT].original==(IMP)native_connect && replaced==1);
     tas_rn_probe_retry_hooks();assert(replaced==1);
     char report[24576];tas_rn_probe_status(report,sizeof(report));
-    assert(strstr(report,"Build 52 native handoffs") && strstr(report,"NETWORK") == NULL);
+    assert(strstr(report,"Build 52 native handoffs") && strstr(report,"Build 53 catalog/metadata consumer") && strstr(report,"NETWORK") == NULL);
     assert(!strstr(report,"private channel") && !strstr(report,"Kappa") && !strstr(report,"room-id") && !strstr(report,"private body"));
     assert(strstr(report,"No JS parser/token/local-echo callback"));
+    assert(!strstr(report,"private-catalog-key") && !strstr(report,"native-opaque_1") && !strstr(report,"12345") && !strstr(report,"{id}"));
     return 0;
 }
 '''

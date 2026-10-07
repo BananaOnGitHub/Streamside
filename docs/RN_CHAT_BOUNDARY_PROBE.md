@@ -487,6 +487,14 @@ are not necessarily emotes.** Runs and callbacks are repeated observations, not
 message, unique-emote or delivery counts. No ID, token, URL, text, image data,
 attachment identity, C++ state or payload survives observation.
 
+**Post-test donor clarification:** `attributedText` reconstructs a fresh
+attributed string and inline-child placeholder attachments on each read. The
+observer's getter reads therefore contribute allocations to the global
+Foundation hook rows. These are not persistent emote attachments or decoded
+emote images. See [RN_NATIVE_PRESENTATION_SEAM.md](RN_NATIVE_PRESENTATION_SEAM.md)
+for build-54 A–C interpretation, ownership/lifetime findings and the Fabric
+measurement/layout seam. No additional runtime probe is introduced there.
+
 This targets two consumers without assuming they share the same representation.
 Even a positive paragraph attachment result will not establish JS parser/token
 execution, synthetic metadata compatibility, a complete KMP message model,

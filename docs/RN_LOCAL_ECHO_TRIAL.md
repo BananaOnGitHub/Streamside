@@ -1,96 +1,92 @@
-# Twitch 31.5 local sent-message preview — build 58
+# Twitch 31.5 local sent-message display — build 59
 
-## Objective and seam
+## Device evidence and corrected seam
 
-Render third-party codes in this account's local chat preview, reusing build 56's
-device-confirmed incoming images and proportional layout. Catalog, picker and
-composer preview remain deferred. The build-57 device trial did not render the user's emote: registration and
-patching were active, but all four local callback counters were zero. That rules
-out a refusal inside the matcher. It does not distinguish an unused local
-function from a missing proxy/module/method. Build 58 addresses the incomplete
-bridge lookup; live validation remains pending.
+The build-58 test sent one square static provider code. Module registration and
+patching were active, but export discoveries, local calls, rewrites, refusals and
+scope misses were all zero. Incoming matching and provider images continued to
+work. Build 57 showed the same absence of local callbacks. This demonstrates
+that neither attempt reached the callback; it does not independently establish
+whether native-module discovery works on device.
 
-Exact donor identity is unchanged from the width trial: Twitch 31.5 build
-262752111271985979; original Hermes-98 body 27,786,480 bytes, SHA-256
-`422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b`.
-
-Static donor trace:
+The donor contains two chat clients. The preceding patches targeted TmiClient's
+buildLocalEcho return. A separate connection factory constructs LibraryTmiClient,
+whose inner TMIClient emits ordinary chat events, including local own messages. Build
+59 moves the local patch to that event's line, before its existing emitLine.
+This is a static donor finding; live use of the new hook still needs testing.
 
 | Function | Role |
 | --- | --- |
-| 34208, `0x017e132d` | Sends the original body via raw IRC or onSendChatMessage; then separately builds/parses a local echo and calls emitChatMessage/emitLine |
-| 34222, `0x017e1ec2` | buildLocalEcho: constructs identity, nonce, reply and native-emote tags plus the final preview string; anonymous/missing-login gates return null |
-| 34253 | Normalizes the client channel to lowercase and removes a leading `#` |
-| 19127 | Shared EmotePart, already patched for proportional aliases |
+| 34222 | Separate TmiClient buildLocalEcho; no longer patched |
+| 34253 | LibraryTmiClient constructor and normalized channel |
+| 34307, offset 25052014 | onChatEvent: emitMessage, translateChatMessage, preserve clientNonce, emitLine |
+| 34310 | Separate onActionEvent handler; unchanged |
+| 34311 | translateChatMessage: creates display line and native emotes array |
+| 34348 | emoteRangesFromUser: native objects contain id, start, end |
+| 19127 | Shared EmotePart: unchanged proportional width patch |
+| 20 / Metro module 16 | NativeModules loader supporting proxy and classic bridge config |
 
-Patch only the completed preview return, before its existing parse/emission.
-Send functions, payload creation, nonce/error handling, line/message emissions
-and native emote tag construction remain byte-identical. No additional send or
-echo is created. The original local echo sequencing and reconciliation remain
-Twitch's responsibility; their live behavior still needs testing.
+Exact donor: Twitch 31.5 build 262752111271985979. Original Hermes-98 body:
+27,786,480 bytes; SHA-256
+`422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b`.
 
-## Bridge and matching
+## Display-only adaptation
 
-A separate NSObject class, TASRNLocalEchoModule, adopts RCTBridgeModule and uses
-the standard RCTRegisterModule/RCTMethodInfo registration/export contract.
-The donor exports RCTRegisterModule and contains legacy TurboModule interop.
-Registration availability is distinct from proof that JS can resolve/call it.
-There is no modification of existing native modules or C++ runtime storage.
+The injection runs in onChatEvent at the nonce-handling join, after the completed
+body and native ranges exist. It gates on event.sentByCurrentUser and refuses sourceRoomID lines.
+Resolve global.__r(16).default.buildLocalEcho, then call its synchronous method
+with line.body, line.channel and line.emotes. Missing loader/module/method or a
+null result leaves the original line unchanged. On a match, concatenate only
+provider additions to the original native array and assign line.emotes.
 
-For constant-pool preservation, the module and exported method both use the
-existing string `buildLocalEcho`; the Objective-C selector is renderLocalEcho:.
-Build 57's 45-byte block looked only at global.nativeModuleProxy. The donor's
-NativeModules factory (function 20, Metro module 16) selects that proxy when
-available and otherwise builds modules from __fbBatchedBridgeConfig. Build 58
-uses the existing global.__r loader to require module 16, reads its default
-export, then resolves buildLocalEcho and calls it with the completed preview.
-The loader's global installation, exact module registration and both factory
-routes were traced in the donor; the read-only verifier checks the module ID,
-factory and reused constants. Missing loader/exports/module/method preserves
-the original preview. The synchronous callback
-does bounded in-memory matching only, with no network, dispatch or UIKit work.
+The line, identity, body, native range objects and client remain intact. Send
+functions, payload creation, nonce/error handling, emitMessage, original emitLine
+and reconciliation are preserved. No additional message, send or replay occurs.
 
-The callback requires an NSString, a single bounded UTF-8 PRIVMSG preview, a
-numeric `id=local-echo-...` tag, and exactly one live room associated with the
-preview's explicit channel. It never borrows the most recently received room.
-ROOMSTATE now associates a channel even when no incoming PRIVMSG has arrived.
-Unknown/ambiguous room scope preserves the original preview.
+A separate TASRNLocalEchoModule uses RCTBridgeModule/RCTRegisterModule. Its
+existing module and JS method names remain buildLocalEcho to preserve the donor
+constant pool. The selector is renderLocalBody:channel:nativeRanges:; exported
+method metadata describes three arguments and a synchronous array return.
+Registration, method discovery and actual calls are measured separately.
 
-Reuse the shared code-point/punctuation matcher and native-range overlap rules.
-Add a temporary internal room tag, match, then remove that tag before returning.
-Only emote metadata changes: body, identity, nonce, reply and native tags stay
-unchanged. Aliases and their existing redirects/history/width freeze are shared
-with reception. Incoming frame counters exclude this route; general word/alias
-counters can include both routes.
+The adapter accepts bounded NSString body/channel and an NSArray of at most 128
+native ranges. Validate each inclusive start/end as an integral code-point index
+within the completed body. Native IDs and objects never round-trip through the
+adapter; their positions only protect native ownership. A private in-memory IRC
+carrier reuses the confirmed code-point/punctuation matcher and proportional
+aliases, then returns provider-only {id, start, end} objects. The carrier contains
+no real identity, nonce or reply metadata and is never transmitted or logged.
 
-Disabled/unpatched, non-text, oversized, embedded-NUL, multi-line/control/action
-previews, foreign room tags and malformed scope keep the original object. `/me`
-is not an acceptance case for this experiment. Missing provider definitions at
-send time remain text; there is no later replay or retrospective repair.
+Match the explicit normalized channel to exactly one known room. Unknown,
+ambiguous or invalid scope does not borrow the last received room or guess a
+global-only scope. Missing provider definitions remain text. Oversized, malformed,
+embedded-NUL and control/multiline inputs return null. Matching does no network,
+UIKit, dispatch or send work. Existing provider redirects, alias history and
+width freeze are reused. Incoming frame counters exclude this route; word/alias
+counters include its matching work.
 
-## Admission and static verification
+## Admission and verification
 
-The source getter first admits the exact original full-body SHA-1 and applies
-the unchanged width patch. Local patching requires successful native module
-registration plus the original local function's exact small header. A failed
-second stage keeps the working width-only body. Failed source admission keeps
-the original source data. All changes are in memory; disk bundle unchanged.
+Source admission requires the original complete donor hash and the unchanged
+width patch. Stage two requires native registration, the exact function-34307
+small header and a valid width-patched footer. Failure keeps the width-only body.
+Append a copy of the own-event callback: 121 → 281 bytes (157-byte injection plus
+three bytes to widen its null-return branch). Original disk bundle is unchanged.
 
-The local function grows 684 → 757 bytes and retains its original copy. Existing
-dead Value registers r4–r7 carry the guarded bridge call; no frame, register-bank,
-cache, string-pool, function index, exception or debug layout changes. Relocate
-only the two anonymous/login branches to the original null return. All 15 local
-and 34 width-function original branch destinations verify independently.
-All other function headers and original-body bytes are preserved except file
-length and the two target headers (12 original-body bytes differ).
+The null branch skips the injection. Both nonce-handling paths enter it. All
+five original local branch targets
+and all 34 width-function branch targets are checked. r4/r5 remain line/client;
+r1–r3/r6–r9 are dead Value registers at the join. Register banks, frame, caches,
+constant pools, exception/debug tables and other function headers stay intact.
+Only file length and the two target function headers change in the original
+body (13 differing bytes).
 
-The independent Hermes-98 compiler disassembles the complete patched body.
-This is container/instruction verification, not Hermes execution or a live
-NativeModules/Fabric test. Host harnesses exercise production matching,
-registration/export ABI and export-discovery counting, availability/idempotence,
-object identity, preview
-metadata/Unicode/native ownership, room switches and quiet-room association,
-alias redirects, patch refusal/immutability and emitted guarded-call semantics.
+Host tests cover square static and wide animated provider routes, Unicode,
+repeated/punctuated codes, native overlap, malformed ranges, explicit room scope,
+refusal/disabled states, native-object identity and bridge availability. The
+exact-donor verifier checks all original instructions and branch targets;
+Hermes-98 independently disassembles the full patched container. These checks
+prove neither live module resolution nor device rendering.
 
 ```sh
 ZIG=/path/to/zig EMOTE_DIAGNOSTIC=0 make verify test
@@ -99,29 +95,25 @@ PYTHONPATH=/path/to/hermes-dec ZIG=/path/to/zig \
   --local --hermesc /path/to/hermesc
 ```
 
-## Device reports
+## Device test
 
-1. Sign/install build 58, enable third-party emotes and diagnostics, fully relaunch.
-   Enter a channel and allow provider definitions to load. Capture A: build label
-   58, width active, `RN local preview module/patch: registered/active`.
-2. Send a known provider code manually, then a wide animated code alongside text
-   and a native Twitch emote. Capture screenshot/B. Expect one own message with
-   correct images, normal height, proportional width and unchanged surrounding
-   text. Expect local calls/rewritten to rise; refusals/scope misses ideally zero.
-   Native-only and plain-text sends should remain ordinary single messages.
-3. Scroll away/back, switch channels and repeat with a channel-specific code;
-   optionally test repeated codes, emoji before a code and a reply. Capture C.
-   Verify no wrong-room images, duplication, vanished preview, delayed correction
-   or animation/wrapping regression; compare the actual sent text independently
-   if another client is available.
+Sign/install build 59 and fully relaunch Twitch. Load a channel's definitions,
+clear diagnostics, then manually send the same known square static code.
+Capture its display and the post-send report. Local calls should now increase;
+a matched code should increase rewritten and request its provider image. Export
+discoveries may occur at startup, before the log is cleared.
 
-New logs/counters contain only registration/patch state and aggregate export
-discoveries/local calls/rewrites/refusals/scope misses. Export discoveries count
-React Native asking for our method metadata, separately from C registration.
-A nonzero value shows method discovery; it does not prove a JS method call. No text, identities, channels, room IDs,
-URLs, source bytes, image bytes or pointers are stored. A registered/active
-report with zero calls after normal sends indicates the JS bridge/path is still
-unproven; a rewrite count alone does not prove displayed geometry or delivery.
+If square rendering works, test text plus a native emote and wide animated code,
+emoji before a code, repeated codes, a reply, scrolling and a channel switch.
+Check for one message, preserved text/native images, correct width/animation and
+correct channel definitions. Compare sent text from another client if available.
+Do not infer display success from a rewrite counter alone. The separate /me
+handler is unchanged; action-message provider rendering stays deferred.
+
+Diagnostics store only aggregate module/patch state, discoveries, calls,
+rewrites, refusals and scope misses. They never store chat text, real identities,
+channel/room IDs, URLs, source/image bytes or pointers. Catalog/picker work stays
+outside this experiment.
 
 ## Build 57 validation and unsigned package provenance
 
@@ -159,3 +151,21 @@ patch_ipa/verify_ipa passed. 4,251 donor entries remain byte-identical, none
 removed. Only the executable injection header/padding and display-name plist
 change, plus the two new framework entries. Embedded JS and React framework
 remain byte-identical. Sign with the usual sideloading tool, then fully relaunch.
+
+## Build 59 validation and unsigned package provenance
+
+70 host tests passed, none skipped, including the display-array adapter and
+ordinary-chat own/scope gates. Framework/dylib guards, Python compilation and
+git diff checks passed. Exact donor method-binding, all original branches and
+instructions, NativeModules registration and Hermes-98 disassembly passed.
+Live local rendering remains pending.
+
+Unsigned package: `Twitch-31.5-Streamside-build59-local-emotes-unsigned.ipa`.
+Size: 191,820,916 bytes. SHA-256:
+`40351e6bb50cad4ded95cb069b6838a6c0402a4a5b8f8f678af4ad10ede380e3`.
+Framework SHA-256:
+`d952fe5677d12ac884d5e64add0952bcbf4ec572a6ff589e0c66381e12949afa`.
+patch_ipa/verify_ipa passed. 4,251 donor entries remain byte-identical, none
+removed. Only executable injection header/padding and display-name plist change,
+plus the two framework entries. Embedded JS and React remain byte-identical.
+Sign with the usual sideloading tool, then fully relaunch.

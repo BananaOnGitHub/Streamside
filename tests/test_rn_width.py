@@ -28,7 +28,7 @@ static unsigned char *fixture_sha(const void *p,uint32_t n,unsigned char *out) {
 }
 int main(int argc,char **argv) {
     assert(argc==2);
-    unsigned char code[192];size_t a=tas_rn_width_code(code,13);
+    unsigned char code[256];size_t a=tas_rn_width_code(code,13);
     if(!strcmp(argv[1],"code")){assert(fwrite(code,1,a,stdout)==a);return 0;}
     if(!strcmp(argv[1],"localcode")){a=tas_rn_local_code(code);assert(fwrite(code,1,a,stdout)==a);return 0;}
     assert(tas_rn_width_id(900000000000001ULL,1)%10000==1000);
@@ -46,10 +46,9 @@ int main(int argc,char **argv) {
     tas_rn_put32(body+8,98);tas_rn_put32(body+32,TAS_RN_BODY_SIZE);
     memcpy(body+TAS_RN_SMALL_HEADER,small,sizeof(small));
     memcpy(body+TAS_RN_LARGE_HEADER,large,sizeof(large));
-    const unsigned char local_header[]={0xc2,0x1e,0x7e,7,0xac,2,0x3e,0x18,0x22,0x15,1,2};
+    const unsigned char local_header[]={0x6e,0x43,0x7e,5,0x79,0,0x3e,0x18,0x12,8,2,2};
     memcpy(body+TAS_RN_LOCAL_HEADER,local_header,12);
-    tas_rn_put32(body+TAS_RN_LOCAL_OFFSET+9,672);
-    tas_rn_put32(body+TAS_RN_LOCAL_OFFSET+0x14,661);
+    body[TAS_RN_LOCAL_OFFSET+0x32]=178;body[TAS_RN_LOCAL_OFFSET+0x33]=67;body[TAS_RN_LOCAL_OFFSET+0x34]=4;
     fixture_sha(NULL,0,body+TAS_RN_BODY_SIZE-20);
     for(unsigned i=0;i<TAS_RN_FUNCTION_SIZE;i++)body[TAS_RN_FUNCTION_OFFSET+i]=(unsigned char)i;
     size_t n=99;assert(!tas_rn_width_patch(NULL,TAS_RN_BODY_SIZE,fixture_sha,&n)&&!n);
@@ -77,20 +76,22 @@ int main(int argc,char **argv) {
     tas_rn_width_code(code,14);assert(!memcmp(fn+0x238+a,code,a));
     assert(!memcmp(fn+0x238+a*2,body+TAS_RN_FUNCTION_OFFSET+0x238,TAS_RN_FUNCTION_SIZE-0x238));
     size_t second=5;assert(!tas_rn_width_patch(copy,n,fixture_sha,&second)&&!second);
-    unsigned char local_code[96];size_t local_extra=tas_rn_local_code(local_code),local_count=0;
+    unsigned char local_code[256];size_t local_extra=tas_rn_local_code(local_code),local_count=0;
     assert(!tas_rn_local_patch(body,TAS_RN_BODY_SIZE,fixture_sha,&local_count));
     copy[TAS_RN_LOCAL_HEADER]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[TAS_RN_LOCAL_HEADER]^=1;
     copy[n-1]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[n-1]^=1;
     fail_sha=true;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));fail_sha=false;
     unsigned char *local=tas_rn_local_patch(copy,n,fixture_sha,&local_count);assert(local);
-    assert(local_count==n+684+local_extra);
+    assert(local_count==n+121+3+local_extra);
     assert(!memcmp(local+TAS_RN_LARGE_HEADER,copy+TAS_RN_LARGE_HEADER,36));
     assert(!memcmp(local+TAS_RN_BODY_SIZE-20,copy+TAS_RN_BODY_SIZE-20,1207));
-    assert(!memcmp(local+TAS_RN_LOCAL_OFFSET,copy+TAS_RN_LOCAL_OFFSET,684));
+    assert(!memcmp(local+TAS_RN_LOCAL_OFFSET,copy+TAS_RN_LOCAL_OFFSET,121));
     unsigned char *new_fn=local+n-20;
-    assert(tas_rn_u32(new_fn+9)==672+local_extra && tas_rn_u32(new_fn+0x14)==661+local_extra);
-    assert(!memcmp(new_fn+0x2a6,local_code,local_extra));
-    assert(!memcmp(new_fn+0x2a6+local_extra,body+TAS_RN_LOCAL_OFFSET+0x2a6,6));
+    assert(new_fn[0x32]==179 && tas_rn_u32(new_fn+0x33)==67+3+local_extra && new_fn[0x37]==4);
+    assert(!memcmp(new_fn,body+TAS_RN_LOCAL_OFFSET,0x32));
+    assert(!memcmp(new_fn+0x38,body+TAS_RN_LOCAL_OFFSET+0x35,0x6a-0x35));
+    assert(!memcmp(new_fn+0x6d,local_code,local_extra));
+    assert(!memcmp(new_fn+0x6d+local_extra,body+TAS_RN_LOCAL_OFFSET+0x6a,121-0x6a));
     for(unsigned i=0;i<n-20;i++) {
         if((i>=32&&i<36)||(i>=TAS_RN_LOCAL_HEADER&&i<TAS_RN_LOCAL_HEADER+6))continue;
         assert(copy[i]==local[i]);
@@ -182,43 +183,57 @@ class RNWidthTests(unittest.TestCase):
                 self.assertIs(after[0],before)
                 self.assertEqual(after[1],{'width': (56 if enlarged else 24)*aspect})
 
-    def test_local_shim_uses_native_modules_loader_and_preserves_missing_bridge_identity(self):
+    def test_local_shim_own_scope_fallback_and_native_object_identity(self):
         code=subprocess.run([self.binary,'localcode'],capture_output=True,check=True).stdout
-        for route in ['classic_config','native_proxy']:
-            for available in range(6):
-                original=object(); replacement=object(); calls=[]; requires=[]
-                def render(this,line):
-                    self.assertIs(this,module)
-                    self.assertIs(line,original);calls.append(line);return replacement
+        for own,shared in [(False,None),(True,'other'),(True,None)]:
+            for available in range(7):
+                native={'id':'25','start':0,'end':4,'extra':object()}
+                ranges=[native]; additions=[{'id':'860000000001000','start':6,'end':11}]
+                client=object(); line={'body':'Kappa Square','channel':'fixture','emotes':ranges,'sourceRoomID':shared,'identity':object()}
+                before=line.copy(); calls=[]; requires=[]
+                def render(this,body,channel,emotes):
+                    self.assertIs(this,module);self.assertEqual(body,line['body']);self.assertEqual(channel,'fixture')
+                    self.assertIs(emotes,ranges);calls.append(body)
+                    return None if available==5 else additions
                 module={} if available<5 else {'buildLocalEcho':render}
                 modules={} if available<4 else {'buildLocalEcho':module}
                 exports={} if available<3 else {'default':modules}
                 def require(this,identity):
-                    self.assertIs(this,global_object);self.assertEqual(identity,16)
-                    requires.append(identity)
+                    self.assertIs(this,global_object);self.assertEqual(identity,16);requires.append(identity)
                     return None if available<2 else exports
                 global_object={} if available<1 else {'__r':require}
-                # Classic RN has no global nativeModuleProxy. In bridgeless RN
-                # NativeModules returns that proxy through the same module.
-                if route=='native_proxy': global_object['nativeModuleProxy']=modules
-                regs={3:original};pos=0
+                regs={4:line,5:client};pos=0
                 while pos<len(code):
                     at=pos;op=code[pos];pos+=1
-                    if op==61: regs[code[pos]]=global_object;pos+=1
+                    if op==137:
+                        dest,param=code[pos:pos+2];pos+=2;self.assertEqual(param,1);regs[dest]={'sentByCurrentUser':own}
+                    elif op==61: regs[code[pos]]=global_object;pos+=1
                     elif op==144:
                         dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
-                        regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho'}[key]
+                        regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho',40125:'sentByCurrentUser',59101:'sourceRoomID',80:'body',90:'channel',57438:'emotes',102:'concat'}[key]
                     elif op==139:
                         dest,val=code[pos:pos+2];pos+=2;regs[dest]=val
                     elif op==93:
-                        dest,obj,key=code[pos:pos+3];pos+=3;regs[dest]=regs[obj].get(regs[key])
-                    elif op==179:
+                        dest,obj,key=code[pos:pos+3];pos+=3
+                        regs[dest]=(lambda this,other:this+other) if isinstance(regs[obj],list) else regs[obj].get(regs[key])
+                    elif op in (179,177):
                         delta=struct.unpack_from('<i',code,pos)[0];test=code[pos+4];pos+=5
-                        # Empty JS objects are truthy.
-                        if regs[test] is None: pos=at+delta
-                    elif op==110:
-                        dest,fn,this,arg=code[pos:pos+4];pos+=4;regs[dest]=regs[fn](regs[this],regs[arg])
-                    else: self.fail(f'Unexpected local shim opcode {op}')
-                self.assertIs(regs[3],replacement if available==5 else original)
-                self.assertEqual(len(calls),available==5)
-                self.assertEqual(len(requires),available>0)
+                        truth=regs[test] is not None and regs[test] is not False
+                        if truth==(op==177):pos=at+delta
+                    elif op in (110,112):
+                        length=4 if op==110 else 6
+                        dest,fn,this,*args=code[pos:pos+length];pos+=length
+                        regs[dest]=regs[fn](regs[this],*(regs[arg] for arg in args))
+                    elif op==96:
+                        obj,key,val=code[pos:pos+3];pos+=3;regs[obj][regs[key]]=regs[val]
+                    else:self.fail(f'Unexpected local shim opcode {op}')
+                active=own and not shared
+                self.assertIs(regs[5],client);self.assertIs(regs[4],line)
+                self.assertEqual(len(calls),active and available>=5)
+                self.assertEqual(len(requires),active and available>0)
+                self.assertIs(line['emotes'][0],native)
+                if active and available==6:self.assertIsNot(line['emotes'],ranges)
+                else:self.assertIs(line['emotes'],ranges)
+                self.assertEqual(line['emotes'],ranges+additions if active and available==6 else ranges)
+                for key in before:
+                    if key!='emotes':self.assertIs(line[key],before[key])

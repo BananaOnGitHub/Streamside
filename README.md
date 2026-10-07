@@ -71,11 +71,13 @@ requests to provider assets. Build 55 device observations confirmed rendering
 and continued animation after scrolling. Build 56 adds an exact-bundle-gated,
 in-memory EmotePart style patch: the image and inline wrapper get the same
 proportional width before Fabric measures them. The donor bundle on disk and
-native emote styles stay unchanged. Build 58 adds provider ranges to the completed
-local sent-message preview using its explicit channel and existing native ranges.
-The build-57 device test reached no local callbacks; build 58 resolves the renderer
-through Twitch's NativeModules loader and adds export-discovery diagnostics.
-It reuses the image/width route. Catalog, picker and tap-detail remain deferred;
+native emote styles stay unchanged. Build 59 adds provider-only ranges to
+LibraryTmiClient's completed own-message display line, preserving its native
+range objects, body and identity. Builds 57/58 recorded zero local callbacks;
+their TmiClient preview seam belongs to a separate client. Build 59 uses the
+LibraryTmiClient own event and the existing NativeModules loader. Local device
+rendering remains pending. It reuses the image/width route. Catalog, picker and
+tap-detail remain deferred;
 no new animation intervention is added. See the
 [incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and
 [width experiment and device test](docs/RN_INCOMING_WIDTH_TRIAL.md) and

@@ -2,6 +2,13 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 59 moves local emote matching to LibraryTmiClient's completed own-message
+  ordinary-chat event. Builds 57/58 targeted the separate TmiClient path and recorded zero
+  callback/export discoveries on device. Add provider-only display ranges to
+  the original native array, after translation and nonce handling; preserve line identity,
+  native objects and send handling. Verify the short-branch widening, both
+  nonce-handling branches, bounded native-array adapter, Unicode and explicit-room
+  matching. Device rendering remains pending; catalog/picker stay deferred.
 - Build 58 corrects the local-preview bridge lookup to Twitch's existing Metro
   NativeModules module, including its classic bridge configuration fallback.
   Build 57 was registered/patched on device but recorded zero local calls and

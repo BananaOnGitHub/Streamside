@@ -1217,11 +1217,9 @@ static char *rewrite_line(const char *line, size_t length) {
     return rewrite_line_impl(line,length,false);
 }
 
-/* Own preview only: the original JS function has already constructed native
- * ranges, identity/reply tags and final text. Resolve its explicit channel;
- * never borrow g_last_room. No network, replay, UI work or send occurs here.
- * A temporary room tag lets the shared matcher preserve native ownership.
- * Remove that tag before returning, leaving only the emotes metadata changed.
+/* Private local carrier, built by rn_local_ranges below. Its explicit channel
+ * resolves one known room; never borrow g_last_room. A temporary room tag uses
+ * the shared matcher without network, replay, UIKit work or incoming counters.
  */
 static id rn_local_echo(id self, SEL command, id value) {
     (void)self; (void)command;
@@ -1286,11 +1284,87 @@ static id rn_local_echo(id self, SEL command, id value) {
     return result;
 }
 
+/* Adapt the completed LibraryTmiClient display line, never its send payload.
+ * Native ranges are used only for ownership; their JS objects remain intact.
+ * A private IRC carrier reuses the confirmed matcher and returns additions only.
+ */
+static bool rn_local_position(id number, size_t limit, size_t *out) {
+    if (!kind(number,"NSNumber")) return false;
+    const char *value=text(call0(number,"stringValue"));
+    if (!value || !*value) return false;
+    size_t result=0;
+    for (const unsigned char *p=(const unsigned char *)value;*p;p++) {
+        if (*p<'0' || *p>'9' || result>limit/10) return false;
+        result=result*10+(*p-'0'); if (result>=limit) return false;
+    }
+    *out=result; return true;
+}
+static id rn_local_ranges(id self, SEL command, id body, id channel, id native) {
+    if (!g_enabled || !__atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE)) {
+        PROBE_INC(g_rn_local_calls); return nil;
+    }
+    if (!kind(body,"NSString") || !kind(channel,"NSString") || !kind(native,"NSArray") || count(native)>128) goto refused;
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(body,
+        sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    const char *message=text(body), *login=text(channel);
+    if (!message || !bytes || bytes>MAX_FRAME-4096 || strnlen(message,MAX_FRAME+1)!=bytes || !login) goto refused;
+    if (*login=='#') login++;
+    size_t login_length=strnlen(login,97);
+    if (!login_length || login_length>96) goto refused;
+    for (const unsigned char *p=(const unsigned char *)login;*p;p++)
+        if (!((*p>='a' && *p<='z') || (*p>='0' && *p<='9') || *p=='_')) goto refused;
+    size_t limit=codepoints(message,(size_t)bytes), used=0;
+    char ownership[4096]="";
+    for (NSUInteger i=0;i<count(native);i++) {
+        id range=at(native,i); size_t first,last;
+        if (!rn_local_position(dict(range,"start"),limit,&first) ||
+            !rn_local_position(dict(range,"end"),limit,&last) || last<first) goto refused;
+        int n=snprintf(ownership+used,sizeof(ownership)-used,"%s25:%zu-%zu",used ? "/" : "",first,last);
+        if (n<=0 || (size_t)n>=sizeof(ownership)-used) goto refused;
+        used+=(size_t)n;
+    }
+    size_t capacity=(size_t)bytes+used+login_length+128;
+    char *carrier=malloc(capacity);
+    if (!carrier) goto refused;
+    snprintf(carrier,capacity,"@id=local-echo-0;emotes=%s :local PRIVMSG #%s :%s",ownership,login,message);
+    id input=str(carrier); free(carrier);
+    if (!input) goto refused;
+    id rewritten=rn_local_echo(self,command,input);
+    if (rewritten==input) return nil;
+    const char *line=text(rewritten), *end=line ? strstr(line," :") : NULL;
+    char additions[8192];
+    if (!end || !tag_value(line+1,end,"emotes",additions,sizeof(additions))) return nil;
+    id result=call0((id)objc_getClass("NSMutableArray"),"array");
+    for (char *p=additions;*p;) {
+        char *separator=strchr(p,'/'); if (separator) *separator=0;
+        char *colon=strchr(p,':'), *dash=colon ? strchr(colon+1,'-') : NULL;
+        if (!colon || !dash) return nil;
+        *colon=0; *dash=0;
+        if (strcmp(p,"25")) {
+            id range=call0((id)objc_getClass("NSMutableDictionary"),"dictionary");
+            id values[]={str(p), ((id (*)(id,SEL,uint64_t))objc_msgSend)(
+                (id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedLongLong:"),strtoull(colon+1,NULL,10)),
+                ((id (*)(id,SEL,uint64_t))objc_msgSend)((id)objc_getClass("NSNumber"),
+                    sel_registerName("numberWithUnsignedLongLong:"),strtoull(dash+1,NULL,10))};
+            const char *keys[]={"id","start","end"};
+            if (!result || !range || !values[0] || !values[1] || !values[2]) return nil;
+            for (unsigned i=0;i<3;i++) ((void (*)(id,SEL,id,id))objc_msgSend)(range,
+                sel_registerName("setObject:forKey:"),values[i],str(keys[i]));
+            call1(result,"addObject:",range);
+        }
+        if (!separator) break;
+        p=separator+1;
+    }
+    return count(result) ? result : nil;
+refused:
+    PROBE_INC(g_rn_local_calls); PROBE_INC(g_rn_local_refused); return nil;
+}
+
 typedef struct { const char *js_name; const char *objc_name; BOOL synchronous; } TASRNMethodInfo;
 static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
     (void)self; (void)command;
     PROBE_INC(g_rn_local_exports);
-    static const TASRNMethodInfo info={"buildLocalEcho","renderLocalEcho:(NSString *)line",YES};
+    static const TASRNMethodInfo info={"buildLocalEcho","renderLocalBody:(NSString *)body channel:(NSString *)channel nativeRanges:(NSArray *)native",YES};
     return &info;
 }
 static id rn_local_module_name(id self, SEL command) { (void)self; (void)command; return str("buildLocalEcho"); }
@@ -1312,7 +1386,7 @@ static void install_rn_local(void) {
             if (cls) {
                 Class meta=object_getClass((id)cls);
                 bool ok=class_addProtocol(cls,protocol) &&
-                    class_addMethod(cls,sel_registerName("renderLocalEcho:"),(IMP)rn_local_echo,"@24@0:8@16") &&
+                    class_addMethod(cls,sel_registerName("renderLocalBody:channel:nativeRanges:"),(IMP)rn_local_ranges,"@40@0:8@16@24@32") &&
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8");

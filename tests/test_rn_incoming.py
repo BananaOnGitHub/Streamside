@@ -17,7 +17,9 @@ EXTRA = r'''
         size_t n=(size_t)(end-o->value);assert(n<sizeof(scheme));memcpy(scheme,o->value,n);scheme[n]=0;result=string(scheme);
     } else if(!strcmp(sel,"lengthOfBytesUsingEncoding:")) {
         assert(va_arg(args,unsigned long)==4);result=(id)(uintptr_t)(o->byte_count ? o->byte_count : strlen(o->payload ? o->payload : o->value));
-    } else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
+    } else if(!strcmp(sel,"stringValue")) { char value[64];snprintf(value,sizeof(value),"%llu",(unsigned long long)o->number);result=string(value); }
+    else if(!strcmp(sel,"array") || !strcmp(sel,"dictionary"))result=fresh(o->cls);
+    else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
     else if(!strcmp(sel,"initWithString:")) { id s=va_arg(args,id);o->children[0]=s;result=o; }
     else if(!strcmp(sel,"autorelease"))result=o;
     else if(!strcmp(sel,"string"))result=o->children[0];
@@ -266,7 +268,7 @@ static void local_echo(void) {
     uint64_t discoveries=PROBE_GET(g_rn_local_exports);
     const TASRNMethodInfo *info=rn_local_export(nil,NULL);
     assert(PROBE_GET(g_rn_local_exports)==discoveries+1);
-    assert(!strcmp(info->js_name,"buildLocalEcho") && !strcmp(info->objc_name,"renderLocalEcho:(NSString *)line") && info->synchronous);
+    assert(!strcmp(info->js_name,"buildLocalEcho") && !strcmp(info->objc_name,"renderLocalBody:(NSString *)body channel:(NSString *)channel nativeRanges:(NSArray *)native") && info->synchronous);
     assert(!rn_local_main_queue(nil,NULL));
     assert(!strcmp(text(rn_local_module_name(nil,NULL)),"buildLocalEcho"));
     /* A quiet room is associated by ROOMSTATE, before any incoming PRIVMSG. */
@@ -276,6 +278,53 @@ static void local_echo(void) {
     assert(!rewrite_line_impl(state,strlen(state),true) && !strcmp(quiet->login,"quiet"));
     input=string("@id=local-echo-3 :me!me@h PRIVMSG #quiet :Quiet");
     output=rn_local_echo(nil,NULL,input);assert(output!=input);check_body(input,output);
+}
+static id range_fixture(uint64_t first,uint64_t last) {
+    id range=fresh("NSDictionary");range->count=3;
+    range->keys[0]=string("id");range->values[0]=string("25");
+    range->keys[1]=string("start");range->values[1]=fresh("NSNumber");range->values[1]->number=first;
+    range->keys[2]=string("end");range->values[2]=fresh("NSNumber");range->values[2]->number=last;
+    return range;
+}
+static void local_array(void) {
+    g_enabled=true;g_rn_local_ready=true;g_rn_width_ready=true;
+    for(unsigned i=0;i<3;i++)g_global.loaded[i]=true;
+    Room *r=ready("42"),*other=ready("43");snprintf(other->login,sizeof(other->login),"other");
+    snprintf(g_last_room,sizeof(g_last_room),"43");
+    add_emote_locked(r,MAX_ROOM,"Square","https://cdn.7tv.app/emote/square/2x.webp",0,false,NULL,1);
+    add_emote_locked(r,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,NULL,2.5);
+    add_emote_locked(r,MAX_ROOM,"Kappa","https://cdn.7tv.app/emote/collision/2x.webp",0,false,NULL,1);
+    id native=fresh("NSArray"),body=string("Square"),channel=string("fixture");
+    id result=rn_local_ranges(nil,NULL,body,channel,native);
+    char square[64];snprintf(square,sizeof(square),"%llu",(unsigned long long)find_word(r,"Square")->width_id);
+    assert(count(result)==1 && !strcmp(text(dict(at(result,0),"id")),square));
+    assert(!dict(at(result,0),"start")->number && dict(at(result,0),"end")->number==5);
+    assert(!strcmp(text(body),"Square") && !count(native));
+    id original=range_fixture(0,4);native->children[native->count++]=original;
+    body=string("Kappa 😀 Wide (Wide)");result=rn_local_ranges(nil,NULL,body,string("#fixture"),native);
+    assert(count(result)==2 && at(native,0)==original && count(native)==1);
+    assert(dict(at(result,0),"start")->number==8 && dict(at(result,0),"end")->number==11);
+    assert(dict(at(result,1),"start")->number==14 && dict(at(result,1),"end")->number==17);
+    char alias[64];snprintf(alias,sizeof(alias),"%llu",(unsigned long long)find_word(r,"Wide")->width_id);
+    assert(!strcmp(text(dict(at(result,0),"id")),alias) && !strcmp(g_last_room,"43"));
+    assert(!PROBE_GET(g_rn_rewritten) && !PROBE_GET(g_rewritten_frames) && !PROBE_GET(g_room_frames));
+    body=string("Square");native->children[0]=range_fixture(1,3);
+    assert(!rn_local_ranges(nil,NULL,body,channel,native)); /* partial native ownership */
+    native->count=0;
+    assert(!rn_local_ranges(nil,NULL,body,string("other"),native));
+    assert(!rn_local_ranges(nil,NULL,body,string("unknown"),native));
+    assert(!rn_local_ranges(nil,NULL,body,string("fixture :Other"),native));
+    assert(!rn_local_ranges(nil,NULL,string("Square\r\nPING :x"),channel,native));
+    assert(!rn_local_ranges(nil,NULL,string("unknown"),channel,native));
+    assert(!rn_local_ranges(nil,NULL,body,channel,fresh("NSDictionary")));
+    native->count=1;native->children[0]=range_fixture(0,99);
+    assert(!rn_local_ranges(nil,NULL,body,channel,native));
+    native->children[0]->values[1]=string("0");assert(!rn_local_ranges(nil,NULL,body,channel,native));
+    native->count=129;assert(!rn_local_ranges(nil,NULL,body,channel,native));native->count=0;
+    body->byte_count=MAX_FRAME;assert(!rn_local_ranges(nil,NULL,body,channel,native));body->byte_count=0;
+    g_enabled=false;assert(!rn_local_ranges(nil,NULL,body,channel,native));g_enabled=true;
+    g_rn_local_ready=false;assert(!rn_local_ranges(nil,NULL,body,channel,native));g_rn_local_ready=true;
+    snprintf(other->login,sizeof(other->login),"fixture");assert(!rn_local_ranges(nil,NULL,body,channel,native));
 }
 static bool local_registration_available,local_protocol_available;
 static unsigned local_allocations,local_disposals,local_registrations,local_exports;
@@ -295,7 +344,7 @@ Class objc_allocateClassPair(Class parent,const char *name,size_t size) {
 void objc_disposeClassPair(Class cls) { assert(cls==local_allocated_class);local_disposals++; }
 Class object_getClass(id object) { assert(object==local_allocated_class);return local_meta; }
 BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
-    if(!strcmp(selector,"renderLocalEcho:"))assert(cls==local_allocated_class && imp==(IMP)rn_local_echo && !strcmp(encoding,"@24@0:8@16"));
+    if(!strcmp(selector,"renderLocalBody:channel:nativeRanges:"))assert(cls==local_allocated_class && imp==(IMP)rn_local_ranges && !strcmp(encoding,"@40@0:8@16@24@32"));
     else {
         assert(cls==local_meta);
         if(!strcmp(selector,"moduleName"))assert(imp==(IMP)rn_local_module_name && !strcmp(encoding,"@16@0:8"));
@@ -315,13 +364,14 @@ static void local_registration(void) {
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
-    else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
+    else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
 HARNESS = HARNESS.replace('uint64_t number;', 'uint64_t number;size_t byte_count;const char *payload;')
 HARNESS = HARNESS.replace('snprintf(o->value,sizeof(o->value),"%s",value);return o;',
     'if(strlen(value)>=sizeof(o->value))o->payload=strdup(value);else snprintf(o->value,sizeof(o->value),"%s",value);return o;')
+HARNESS = HARNESS.replace('(!strcmp(c->cls,"NSDictionary") && !strcmp(o->cls,"NSMutableDictionary"))', '( (!strcmp(c->cls,"NSDictionary") && !strcmp(o->cls,"NSMutableDictionary")) || (!strcmp(c->cls,"NSArray") && !strcmp(o->cls,"NSMutableArray")) )')
 HARNESS = HARNESS.replace('classes[8]', 'classes[32]').replace('class_count<8', 'class_count<32')
 HARNESS = HARNESS.replace('Class objc_getClass(const char *name) {',
     'static Class local_registered_class;\nClass objc_getClass(const char *name) {\nif(!strcmp(name,"TASRNLocalEchoModule"))return local_registered_class;')
@@ -357,6 +407,10 @@ class RNIncomingTests(unittest.TestCase):
             str(source), "-Wl,--gc-sections", "-pthread", "-o", str(cls.binary)], capture_output=True, text=True)
         if built.returncode:
             raise AssertionError(built.stderr)
+
+    def test_local_display_array_static_unicode_native_overlap_and_scope(self):
+        result=subprocess.run([self.binary,'array'],capture_output=True,text=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
+        self.assertEqual(result.returncode,0,result.stderr)
 
     @classmethod
     def tearDownClass(cls):

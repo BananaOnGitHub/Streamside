@@ -73,7 +73,7 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
             lib.local_patch.restype=ctypes.c_void_p
             lib.local_code.argtypes=[ctypes.c_void_p]
             lib.local_code.restype=ctypes.c_size_t
-            local_extra=lib.local_code(ctypes.create_string_buffer(96))
+            local_extra=lib.local_code(ctypes.create_string_buffer(256))
             pointer=lib.local_patch(ctypes.create_string_buffer(patched),len(patched),sha,ctypes.byref(size))
             if not pointer: raise ValueError('Local patch refused admitted width body')
             try: patched=ctypes.string_at(pointer,size.value)
@@ -100,13 +100,19 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 raise ValueError('NativeModules proxy/config routes not present')
             for identity,value in [(18843,'__r'),(110,'default'),(20058,'buildLocalEcho')]:
                 if h.strings[identity]!=value: raise ValueError('Local lookup constant mismatch')
+            # Follow the class method binding, not merely a similar function body.
+            methods=list(parse_hbc_bytecode(h.function_headers[3398],h))
+            own=next(i for i,x in enumerate(methods) if x.inst.name=='CreateClosure' and x.arg3==34307)
+            if "'key': 'onChatEvent'" not in str(methods[own-1]):
+                raise ValueError('Ordinary-chat method binding mismatch')
+            print('LibraryTmiClient factory 3398: function 34307 bound to onChatEvent')
             print('NativeModules module 16 / factory 20: proxy and classic config routes verified')
         index = 19127
         before, after = h.function_headers[index], changed.function_headers[index]
         for i,(a,b) in enumerate(zip(h.function_headers,changed.function_headers)):
             for field in a._fields_:
                 name = field[0]
-                if i in ({index,34222} if local else {index}) and name in ('offset','bytecodeSizeInBytes'): continue
+                if i in ({index,34307} if local else {index}) and name in ('offset','bytecodeSizeInBytes'): continue
                 if getattr(a,name) != getattr(b,name): raise ValueError(f'Unexpected function header {i}/{name}')
         if h.strings != changed.strings: raise ValueError('Constant pool changed')
         segment = ctypes.create_string_buffer(192)
@@ -134,34 +140,33 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         large = 26954740
         allowed.update(range(large,large+4)); allowed.update(range(large+12,large+16))
         if local:
-            small=128+34222*12
+            small=128+34307*12
             allowed.update(range(small,small+6))
-            old_header,new_header=h.function_headers[34222],changed.function_headers[34222]
+            old_header,new_header=h.function_headers[34307],changed.function_headers[34307]
             instructions={x.original_pos:x for x in parse_hbc_bytecode(new_header,changed)}
             local_branches=0
             for ins in parse_hbc_bytecode(old_header,h):
-                at=ins.original_pos+local_extra*(ins.original_pos>=0x2a6)
+                at=ins.original_pos+3*(ins.original_pos>=0x35)+local_extra*(ins.original_pos>=0x6a)
                 current=instructions[at]
                 old=body[old_header.offset+ins.original_pos:old_header.offset+ins.next_pos]
                 new=patched[new_header.offset+at:new_header.offset+current.next_pos]
-                if ins.original_pos in (8,0x13):
-                    expected=bytearray(old)
-                    struct.pack_into('<i',expected,1,struct.unpack_from('<i',old,1)[0]+local_extra)
-                    if bytes(expected)!=new: raise ValueError('Incorrect null-return branch relocation')
+                if ins.original_pos==0x32:
+                    if current.inst.name!='JmpFalseLong' or current.arg2!=4:
+                        raise ValueError('Null gate must widen without changing its register')
                 elif old!=new: raise ValueError('Unexpected local instruction change')
                 for arg,operand in enumerate(ins.inst.operands,1):
                     if not operand.operand_type.name.startswith('Addr'): continue
                     target=ins.original_pos+getattr(ins,f'arg{arg}')
-                    expected=target+local_extra*(target>=0x2a6)
+                    expected=target+3*(target>=0x35)+local_extra*(target>0x6a)
                     actual=current.original_pos+getattr(current,f'arg{arg}')
                     if actual!=expected or actual not in instructions: raise ValueError('Local branch target mismatch')
                     local_branches+=1
-            if new_header.offset!=width_size-20 or new_header.bytecodeSizeInBytes!=684+local_extra:
+            if new_header.offset!=width_size-20 or new_header.bytecodeSizeInBytes!=121+3+local_extra:
                 raise ValueError('Unexpected local function extent')
-            print(f'Local preview function 34222: 684 -> {684+local_extra}; {local_branches} original branch targets verified')
+            print(f'Library own-event function 34307: 121 -> {121+3+local_extra}; {local_branches} original branch targets verified')
         modifications = [i for i,(a,b) in enumerate(zip(body[:-20],patched)) if a != b]
         if set(modifications)-allowed: raise ValueError('Unexpected original-body change')
-        if len(patched) != len(body)+947+2*extra+(684+local_extra if local else 0): raise ValueError('Unexpected patch extent')
+        if len(patched) != len(body)+947+2*extra+(121+3+local_extra if local else 0): raise ValueError('Unexpected patch extent')
         if hermesc:
             # Hermes' disassembler reads the rewritten container independently.
             fixture = root/'patched.hbc'; fixture.write_bytes(patched)

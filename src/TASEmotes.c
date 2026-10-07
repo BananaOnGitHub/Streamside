@@ -14,7 +14,9 @@
 #include "TASDiagnostics.h"
 #include "TASEmoteProbe.h"
 #include "TASEmoteImageProbe.h"
+#include "TASRNWidthPatch.h"
 
+#include <dlfcn.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <pthread.h>
@@ -87,6 +89,7 @@ typedef struct {
     char *owner;
     double aspect;
     uint64_t fake_id;
+    uint64_t width_id; /* incoming RN alias, frozen at first presentation */
     unsigned char provider; /* 0: 7TV; 1: BTTV; 2: FFZ */
     bool global;
 } Emote;
@@ -128,7 +131,12 @@ static char g_last_room[32];
 static bool g_enabled;
 static IMP g_public_receive, g_private_receive;
 static IMP g_rn_receive;
+static IMP g_rn_source_data;
+static bool g_rn_width_ready;
+static char g_rn_width_data_key, g_rn_width_checked_key;
+static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_width_collisions;
 static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_rn_width_lock = PTHREAD_MUTEX_INITIALIZER;
 static IMP g_private_request, g_private_request_completion;
 static char g_wrapped_key;
 /* Aggregate counters contain no room IDs, message text, or request URLs. */
@@ -583,12 +591,14 @@ static bool identity_available_locked(uint64_t number, const char *name, const c
         Room *room = r == MAX_ROOMS ? &g_global : &g_rooms[r];
         for (size_t i = 0; i < room->size; i++) {
             Emote *e = &room->items[i];
-            if (e->fake_id == number && (strcmp(e->name,name) || strcmp(e->url,url))) return false;
+            if ((e->fake_id == number || e->width_id == number) &&
+                (strcmp(e->name,name) || strcmp(e->url,url))) return false;
         }
     }
     for (size_t i = 0; i < MAX_HISTORY; i++) {
         Emote *e = &g_old[i].emote;
-        if (e->fake_id == number && e->url && (strcmp(e->name,name) || strcmp(e->url,url))) return false;
+        if ((e->fake_id == number || e->width_id == number) && e->url &&
+            (strcmp(e->name,name) || strcmp(e->url,url))) return false;
     }
     return true; /* A collision fails closed; never assign another URL to it. */
 }
@@ -618,6 +628,7 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
             existing->name = word;
             existing->url = image;
             existing->fake_id = number;
+            existing->width_id = 0;
             existing->provider = provider;
             existing->global = global;
             existing->owner = duplicate(owner, 128);
@@ -1010,7 +1021,7 @@ static void probe_gate_line(const char *line,size_t length,const char *outcome) 
 #endif
 
 /* Returns a replacement for one IRC line, or NULL if it is unchanged. */
-static char *rewrite_line(const char *line, size_t length) {
+static char *rewrite_line_impl(const char *line, size_t length, bool proportional) {
     if (length < 3 || line[0] != '@') {
 #if TAS_EMOTE_DIAGNOSTIC
         probe_gate_line(line,length,"untagged-line");
@@ -1133,9 +1144,21 @@ static char *rewrite_line(const char *line, size_t length) {
                     continue;
                 }
                 PROBE_INC(g_match_words);
+                uint64_t presentation_id = emote->fake_id;
+                if (proportional) {
+                    if (!emote->width_id) {
+                        uint64_t alias=tas_rn_width_id(emote->fake_id,emote->aspect);
+                        if (identity_available_locked(alias,emote->name,emote->url)) emote->width_id=alias;
+                        else PROBE_INC(g_rn_width_collisions);
+                    }
+                    if (emote->width_id) {
+                        presentation_id=emote->width_id;
+                        PROBE_INC(g_rn_width_words);
+                    }
+                }
                 int n = snprintf(additions + written, sizeof(additions) - written,
                                  "%s%llu:%zu-%zu", written ? "/" : "",
-                                 (unsigned long long)emote->fake_id, first, first + matched_span - 1);
+                                 (unsigned long long)presentation_id, first, first + matched_span - 1);
                 if (n > 0 && (size_t)n < sizeof(additions) - written) {
                     written += (size_t)n;
 #if TAS_EMOTE_DIAGNOSTIC
@@ -1180,9 +1203,13 @@ static char *rewrite_line(const char *line, size_t length) {
     return result;
 }
 
+static char *rewrite_line(const char *line, size_t length) {
+    return rewrite_line_impl(line,length,false);
+}
+
 /* Shared IRC frame transform. Return an autoreleased NSString only on change.
  * RN supplies NSString directly; NSURLSession supplies a message wrapper. */
-static id rewrite_text(id value) {
+static id rewrite_text_impl(id value, bool proportional) {
     if (!g_enabled || !kind(value, "NSString")) return nil;
     NSUInteger bytes = ((NSUInteger (*)(id, SEL, NSUInteger))objc_msgSend)(
         value, sel_registerName("lengthOfBytesUsingEncoding:"), (NSUInteger)4);
@@ -1211,7 +1238,8 @@ static id rewrite_text(id value) {
         if (!temporary) { complete = false; break; }
         memcpy(temporary, line, line_length);
         temporary[line_length] = 0;
-        char *replacement = rewrite_line(temporary, line_length);
+        char *replacement = proportional ? rewrite_line_impl(temporary,line_length,true) :
+                                          rewrite_line(temporary,line_length);
         const char *chosen = replacement ? replacement : temporary;
         size_t n = strlen(chosen);
         if (used + n + 3 > length * 2 + 4096) {
@@ -1241,6 +1269,8 @@ static id rewrite_text(id value) {
     free(output);
     return rewritten;
 }
+
+static id rewrite_text(id value) { return rewrite_text_impl(value,false); }
 
 static id rewrite_message(id message) {
     PROBE_INC(g_receive_calls);
@@ -1274,7 +1304,7 @@ static void rn_receive(id self, SEL command, id socket, id message) {
         if (kind(message, "NSString")) {
             PROBE_INC(g_receive_calls);
             PROBE_INC(g_text_frames);
-            replacement = rewrite_text(message);
+            replacement = rewrite_text_impl(message,__atomic_load_n(&g_rn_width_ready,__ATOMIC_ACQUIRE));
             if (replacement) PROBE_INC(g_rn_rewritten);
         } else PROBE_INC(g_rn_refused);
     }
@@ -1311,12 +1341,12 @@ bool tas_emotes_enabled_this_launch(void) { return g_enabled; }
 static Emote *emote_for_id_locked(uint64_t synthetic_id) {
     if (synthetic_id < FAKE_ID_START) return NULL;
     for (size_t i = 0; i < g_global.size; i++)
-        if (g_global.items[i].fake_id == synthetic_id) return &g_global.items[i];
+        if (g_global.items[i].fake_id == synthetic_id || g_global.items[i].width_id == synthetic_id) return &g_global.items[i];
     for (size_t r = 0; r < MAX_ROOMS; r++)
         for (size_t i = 0; i < g_rooms[r].size; i++)
-            if (g_rooms[r].items[i].fake_id == synthetic_id) return &g_rooms[r].items[i];
+            if (g_rooms[r].items[i].fake_id == synthetic_id || g_rooms[r].items[i].width_id == synthetic_id) return &g_rooms[r].items[i];
     for (size_t i = 0; i < MAX_HISTORY; i++)
-        if (g_old[i].emote.fake_id == synthetic_id && g_old[i].emote.url &&
+        if ((g_old[i].emote.fake_id == synthetic_id || g_old[i].emote.width_id == synthetic_id) && g_old[i].emote.url &&
             time(NULL) - g_old[i].retired_at < HISTORY_SECONDS) return &g_old[i].emote;
     return NULL;
 }
@@ -1456,12 +1486,12 @@ id tas_emotes_local_matches_copy(id channel, id content) {
 
 static char *url_for_id_locked(uint64_t id, time_t now) {
     for (size_t i = 0; i < g_global.size; i++)
-        if (g_global.items[i].fake_id == id) return strdup(g_global.items[i].url);
+        if (g_global.items[i].fake_id == id || g_global.items[i].width_id == id) return strdup(g_global.items[i].url);
     for (size_t r = 0; r < MAX_ROOMS; r++)
         for (size_t i = 0; i < g_rooms[r].size; i++)
-            if (g_rooms[r].items[i].fake_id == id) return strdup(g_rooms[r].items[i].url);
+            if (g_rooms[r].items[i].fake_id == id || g_rooms[r].items[i].width_id == id) return strdup(g_rooms[r].items[i].url);
     for (size_t i = 0; i < MAX_HISTORY; i++)
-        if (g_old[i].emote.fake_id == id && g_old[i].emote.url &&
+        if ((g_old[i].emote.fake_id == id || g_old[i].emote.width_id == id) && g_old[i].emote.url &&
             now - g_old[i].retired_at < HISTORY_SECONDS) return strdup(g_old[i].emote.url);
     return NULL;
 }
@@ -1475,10 +1505,12 @@ id tas_emotes_rewrite_request_copy(id request) {
     if (!host || strcmp(host, "static-cdn.jtvnw.net") || !path ||
         strncmp(path, prefix, strlen(prefix))) return nil;
     const char *digits = path + strlen(prefix);
-    if (strncmp(digits, "9", 1)) return nil;
+    if (digits[0]!='9' && strncmp(digits,"860",3)) return nil;
     char *end;
     uint64_t fake_id = strtoull(digits, &end, 10);
     if (end == digits || *end != '/' || fake_id < FAKE_ID_START) return nil;
+    if (digits[0]!='9' && (end-digits!=15 || fake_id<TAS_RN_WIDTH_BASE ||
+                            fake_id>=TAS_RN_WIDTH_END)) return nil;
     pthread_mutex_lock(&g_emote_lock);
     char *image = url_for_id_locked(fake_id, time(NULL));
     pthread_mutex_unlock(&g_emote_lock);
@@ -1649,6 +1681,69 @@ static void hook_own_method(Class cls, const char *selector, IMP replacement, IM
     free(methods);
 }
 
+/* RCTInstance consumes source.data as its JS buffer. Patch only the exact
+ * admitted body, before Hermes sees it; preserve the source URL and disk file.
+ * Source-owned cache makes repeated getter calls return the same +0 NSData.
+ * No other source, event emitter, runtime API or native layout ABI is hooked. */
+static id rn_source_data(id self, SEL command) {
+    IMP original=__atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE);
+    id data=((id (*)(id,SEL))original)(self,command);
+    if (!g_enabled) return data;
+    pthread_mutex_lock(&g_rn_width_lock);
+    id cached=objc_getAssociatedObject(self,&g_rn_width_data_key);
+    if (cached || objc_getAssociatedObject(self,&g_rn_width_checked_key)) {
+        pthread_mutex_unlock(&g_rn_width_lock);
+        return cached ?: data;
+    }
+    size_t count=0;
+    unsigned char *patch=NULL;
+    if (kind(data,"NSData")) {
+        size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
+        TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
+        if (length==TAS_RN_BODY_SIZE && sha1)
+            patch=tas_rn_width_patch((const unsigned char *)call0(data,"bytes"),length,sha1,&count);
+    }
+    if (patch) {
+        cached=((id (*)(id,SEL,const void *,NSUInteger))objc_msgSend)(
+            (id)objc_getClass("NSData"),sel_registerName("dataWithBytes:length:"),patch,(NSUInteger)count);
+        free(patch);
+    }
+    objc_setAssociatedObject(self,&g_rn_width_checked_key,str("checked"),1);
+    if (cached) {
+        objc_setAssociatedObject(self,&g_rn_width_data_key,cached,1);
+        __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
+        PROBE_INC(g_rn_width_patches);
+        tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
+    } else {
+        PROBE_INC(g_rn_width_refused);
+        tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
+    }
+    pthread_mutex_unlock(&g_rn_width_lock);
+    return cached ?: data;
+}
+
+static void install_rn_width(void) {
+    pthread_mutex_lock(&g_rn_install_lock);
+    if (!g_rn_source_data) {
+        Class cls=objc_getClass("RCTSource");
+        unsigned n=0;
+        Method *methods=cls ? class_copyMethodList(cls,&n) : NULL;
+        SEL target=sel_registerName("data");
+        for (unsigned i=0;i<n;i++) {
+            if (method_getName(methods[i])!=target) continue;
+            const char *type=method_getTypeEncoding(methods[i]);
+            if (!type || (strcmp(type,"@16@0:8") && strcmp(type,"@@:"))) break;
+            IMP original=method_getImplementation(methods[i]);
+            if (!original || original==(IMP)rn_source_data) break;
+            __atomic_store_n(&g_rn_source_data,original,__ATOMIC_RELEASE);
+            method_setImplementation(methods[i],(IMP)rn_source_data);
+            break;
+        }
+        free(methods);
+    }
+    pthread_mutex_unlock(&g_rn_install_lock);
+}
+
 static void install_rn_receive(void) {
     pthread_mutex_lock(&g_rn_install_lock);
     if (!g_rn_receive) {
@@ -1732,6 +1827,7 @@ void tas_emotes_initialize(void) {
 
 void tas_emotes_retry_hooks(void) {
     if (!g_enabled) return;
+    install_rn_width();
     install_rn_receive();
     if (!g_public_receive)
         hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),
@@ -1762,6 +1858,8 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "Active: %s\n"
         "WebSocket hooks (public/private): %s/%s\n"
         "RN incoming synthetic-ID hook: %s\n"
+        "RN width source hook/patch active: %s/%s\n"
+        "RN width bodies patched/refused; alias matches/collisions: %llu/%llu; %llu/%llu\n"
         "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
         "IRC frames refused (size/encoding/allocation budget): %llu\n"
         "Image hooks (private task/completion): %s/%s\n"
@@ -1787,6 +1885,12 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         g_enabled ? "yes" : "no", g_public_receive ? "installed" : "missing",
         g_private_receive ? "installed" : "missing",
         __atomic_load_n(&g_rn_receive, __ATOMIC_ACQUIRE) ? "installed" : "missing",
+        __atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE) ? "installed" : "missing",
+        __atomic_load_n(&g_rn_width_ready,__ATOMIC_ACQUIRE) ? "yes" : "no",
+        (unsigned long long)PROBE_GET(g_rn_width_patches),
+        (unsigned long long)PROBE_GET(g_rn_width_refused),
+        (unsigned long long)PROBE_GET(g_rn_width_words),
+        (unsigned long long)PROBE_GET(g_rn_width_collisions),
         (unsigned long long)PROBE_GET(g_rn_calls),
         (unsigned long long)PROBE_GET(g_rn_irc),
         (unsigned long long)PROBE_GET(g_rn_rewritten),

@@ -22,6 +22,7 @@ EXTRA = r'''
     else if(!strcmp(sel,"autorelease"))result=o;
     else if(!strcmp(sel,"string"))result=o->children[0];
     else if(!strcmp(sel,"type"))result=(id)(uintptr_t)o->number;
+    else if(!strcmp(sel,"length"))result=(id)(uintptr_t)o->byte_count;
 '''
 MAIN = r'''
 void *_NSConcreteStackBlock[32];
@@ -135,19 +136,66 @@ static void flow(void) {
     assert(PROBE_GET(g_rn_rewritten)>0 && PROBE_GET(g_frame_refused)==3);
     assert(r->size==3 && !strcmp(find_word(r,"Square")->name,"Square"));
 }
+static void widths(void) {
+    flow();
+    Room *r=ready("42");
+    add_emote_locked(r,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.webp",0,false,NULL,3.2);
+    Emote *e=find_word(r,"Wide");assert(e && !e->width_id);
+    id input=string("@room-id=42;emotes=25:0-4 :u!u@h PRIVMSG #fixture :Kappa Wide");
+    __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
+    receive(expected_socket,input);check_body(input,delivered);
+    uint64_t alias=tas_rn_width_id(e->fake_id,3.2);
+    char expected[256];snprintf(expected,sizeof(expected),"@room-id=42;emotes=25:0-4/%llu:6-9 :u!u@h PRIVMSG #fixture :Kappa Wide",(unsigned long long)alias);
+    assert(!strcmp(delivered->value,expected) && e->width_id==alias && alias!=e->fake_id);
+    assert(alias%10000==3200 && tas_emotes_aspect(alias)==3.2);
+    id request=fresh("NSMutableURLRequest"),url=fresh("NSURL");request->children[0]=url;
+    snprintf(url->value,sizeof(url->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/default/dark/2.0",(unsigned long long)alias);
+    id redirect=tas_emotes_rewrite_request_copy(request);
+    assert(redirect && !strcmp(redirect->children[0]->value,e->url));
+    /* Dimensions freeze per alias; a cached URL never changes bitmap identity. */
+    e->aspect=2;receive(expected_socket,input);assert(e->width_id==alias);
+    /* Legacy and failed-admission RN retain build-55 IDs. */
+    id legacy=rewrite_text(input);assert(legacy && strstr(legacy->value,"Wide"));
+    snprintf(expected,sizeof(expected),"/%llu:",(unsigned long long)e->fake_id);assert(strstr(legacy->value,expected));
+    __atomic_store_n(&g_rn_width_ready,false,__ATOMIC_RELEASE);
+    receive(expected_socket,input);assert(strstr(delivered->value,expected));
+    /* Collision fails closed without dropping the incoming emote. */
+    add_emote_locked(r,MAX_ROOM,"Clash","https://cdn.7tv.app/emote/clash/2x.webp",0,false,NULL,1);
+    e=find_word(r,"Wide"); /* Sorted insertion may move registry entries. */
+    Emote *clash=find_word(r,"Clash");clash->width_id=tas_rn_width_id(e->fake_id,e->aspect);e->width_id=0;
+    __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
+    receive(expected_socket,input);assert(!e->width_id && strstr(delivered->value,expected));
+    assert(PROBE_GET(g_rn_width_collisions)==1);
+    /* Eviction/history maps both aliases until the existing grace expires. */
+    e->width_id=alias;retire_emote_locked(e,time(NULL));
+    assert(emote_for_id_locked(alias));
+    char *mapped=url_for_id_locked(alias,time(NULL));assert(mapped && !strcmp(mapped,"https://cdn.7tv.app/emote/wide/2x.webp"));free(mapped);
+}
 struct FakeMethod { SEL name;const char *encoding;IMP imp; };
 static struct FakeMethod receive_method={"webSocket:didReceiveMessage:","v32@0:8@16@24",(IMP)original};
 static struct FakeMethod url_method={"url","@16@0:8",(IMP)original};
+static unsigned source_calls;
+static id source_original(id self,SEL sel) { assert(!strcmp(sel,"data"));source_calls++;return self->children[0]; }
+static struct FakeMethod source_method={"data","@16@0:8",(IMP)source_original};
 static bool has_class=true,own_method=true;
 static unsigned replacements;
 Method *class_copyMethodList(Class cls,unsigned *n) {
-    (void)cls;*n=own_method ? 1 : 0;Method *out=malloc(sizeof(Method));out[0]=&receive_method;return out;
+    *n=own_method ? 1 : 0;Method *out=malloc(sizeof(Method));
+    out[0]=!strcmp(cls->cls,"RCTSource") ? &source_method : &receive_method;return out;
 }
 Method class_getInstanceMethod(Class cls,SEL sel) { (void)cls;return !strcmp(sel,"url") && has_class ? &url_method : NULL; }
 SEL method_getName(Method m) { return sel_registerName(((struct FakeMethod *)m)->name); }
 const char *method_getTypeEncoding(Method m) { return ((struct FakeMethod *)m)->encoding; }
 IMP method_getImplementation(Method m) { return ((struct FakeMethod *)m)->imp; }
 IMP method_setImplementation(Method m,IMP replacement) { struct FakeMethod *f=m;IMP old=f->imp;f->imp=replacement;replacements++;return old; }
+id objc_getAssociatedObject(id obj,const void *key) {
+    for(size_t i=0;i<obj->count;i++)if(obj->keys[i]==(id)key)return obj->values[i];return nil;
+}
+void objc_setAssociatedObject(id obj,const void *key,id value,uintptr_t policy) {
+    assert(policy==1);
+    for(size_t i=0;i<obj->count;i++)if(obj->keys[i]==(id)key){obj->values[i]=value;return;}
+    assert(obj->count<8);obj->keys[obj->count]=(id)key;obj->values[obj->count++]=value;
+}
 static void installation(void) {
     g_rn_receive=NULL;has_class=false;install_rn_receive();assert(!g_rn_receive);
     has_class=true;own_method=false;install_rn_receive();assert(!g_rn_receive);
@@ -156,7 +204,23 @@ static void installation(void) {
     url_method.encoding="@16@0:8";install_rn_receive();assert(g_rn_receive==(IMP)original && replacements==1);
     install_rn_receive();assert(replacements==1); /* no self-hook recursion */
 }
-int main(int argc,char **argv) { assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else installation();return 0; }
+static void source_hook(void) {
+    own_method=false;install_rn_width();assert(!g_rn_source_data);
+    own_method=true;source_method.encoding="q16@0:8";install_rn_width();assert(!g_rn_source_data);
+    source_method.encoding="@16@0:8";install_rn_width();assert(g_rn_source_data==(IMP)source_original && replacements==1);
+    install_rn_width();assert(replacements==1);
+    id source=fresh("RCTSource"),data=fresh("NSData");source->children[0]=data;data->byte_count=12;
+    g_enabled=false;assert(rn_source_data(source,"data")==data && source_calls==1 && !source->count);
+    g_enabled=true;assert(rn_source_data(source,"data")==data && source_calls==2 && !g_rn_width_ready);
+    assert(PROBE_GET(g_rn_width_refused)==1);
+    assert(rn_source_data(source,"data")==data && source_calls==3 && PROBE_GET(g_rn_width_refused)==1);
+    id cached=fresh("NSData");objc_setAssociatedObject(source,&g_rn_width_data_key,cached,1);
+    assert(rn_source_data(source,"data")==cached && source_calls==4);
+}
+int main(int argc,char **argv) {
+    assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
+    else if(!strcmp(argv[1],"source"))source_hook();else installation();return 0;
+}
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
 HARNESS = HARNESS.replace('uint64_t number;', 'uint64_t number;size_t byte_count;const char *payload;')
@@ -210,3 +274,9 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_hook_abi_ownership_and_retry_idempotence(self):
         self.run_harness("install")
+
+    def test_width_aliases_redirect_freeze_fallback_collisions_and_history(self):
+        self.run_harness("widths")
+
+    def test_source_hook_abi_disabled_refusal_identity_and_source_owned_cache(self):
+        self.run_harness("source")

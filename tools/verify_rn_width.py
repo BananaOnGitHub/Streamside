@@ -1,0 +1,122 @@
+"""Read-only verification of the exact Twitch 31.5 in-memory width patch.
+
+Requires Zig 0.14 and hermes-dec 0.1.7 (analysis only, not build dependencies).
+Optionally pass Hermes-98 hermesc for an independent disassembler check.
+No donor code or modified bundle is saved to the repository or output IPA.
+Does not execute Twitch or prove live device layout/animation.
+"""
+import argparse
+import ctypes
+import hashlib
+import io
+import os
+import shutil
+import struct
+import subprocess
+import tempfile
+import zipfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DONOR_SHA256 = '718762b71095c11754b1f58ad01fb580852414e6d7f468fbb2236b7c2419e641'
+BODY_SHA256 = '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
+
+
+def verify(donor, zig, hermesc=None):
+    from hermes_dec.parsers.hbc_file_parser import HBCReader
+    from hermes_dec.parsers.hbc_bytecode_parser import parse_hbc_bytecode
+    with donor.open('rb') as handle:
+        if hashlib.file_digest(handle,'sha256').hexdigest() != DONOR_SHA256:
+            raise ValueError('Not the verified Twitch 31.5 donor')
+    with zipfile.ZipFile(donor) as archive:
+        body = archive.read('Payload/Twitch.app/index.ios.bundle')
+    if hashlib.sha256(body).hexdigest() != BODY_SHA256:
+        raise ValueError('Unexpected embedded body')
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        source = root/'patch.c'
+        source.write_text('''#include "TASRNWidthPatch.h"
+void *patch(const void *p,size_t n,TASRNSHA1 sha,size_t *out) {
+ return tas_rn_width_patch(p,n,sha,out);
+}
+void dispose(void *p){free(p);}
+size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
+''')
+        library = root/'patch.so'
+        subprocess.run([zig,'cc','-shared','-fPIC','-Wall','-Wextra','-Werror',
+            '-I',str(ROOT/'src'),str(source),'-o',str(library)],check=True)
+        lib = ctypes.CDLL(str(library))
+        SHA = ctypes.CFUNCTYPE(ctypes.c_void_p,ctypes.c_void_p,ctypes.c_uint32,ctypes.c_void_p)
+        @SHA
+        def sha(data,length,out):
+            ctypes.memmove(out,hashlib.sha1(ctypes.string_at(data,length)).digest(),20)
+            return out
+        lib.patch.argtypes = [ctypes.c_void_p,ctypes.c_size_t,SHA,ctypes.POINTER(ctypes.c_size_t)]
+        lib.patch.restype = ctypes.c_void_p
+        lib.dispose.argtypes = [ctypes.c_void_p]
+        lib.code.argtypes = [ctypes.c_void_p,ctypes.c_uint]
+        lib.code.restype = ctypes.c_size_t
+        original = ctypes.create_string_buffer(body)
+        size = ctypes.c_size_t()
+        pointer = lib.patch(original,len(body),sha,ctypes.byref(size))
+        if not pointer: raise ValueError('Production patch refused exact donor')
+        try: patched = ctypes.string_at(pointer,size.value)
+        finally: lib.dispose(pointer)
+        if original.raw[:-1] != body: raise ValueError('Original body mutated')
+        if hashlib.sha1(patched[:-20]).digest() != patched[-20:]: raise ValueError('Bad patched footer')
+        h, changed = HBCReader(), HBCReader()
+        h.read_whole_file(io.BytesIO(body)); changed.read_whole_file(io.BytesIO(patched))
+        index = 19127
+        before, after = h.function_headers[index], changed.function_headers[index]
+        for i,(a,b) in enumerate(zip(h.function_headers,changed.function_headers)):
+            for field in a._fields_:
+                name = field[0]
+                if i == index and name in ('offset','bytecodeSizeInBytes'): continue
+                if getattr(a,name) != getattr(b,name): raise ValueError(f'Unexpected function header {i}/{name}')
+        if h.strings != changed.strings: raise ValueError('Constant pool changed')
+        segment = ctypes.create_string_buffer(192)
+        extra = lib.code(segment,13)
+        def instruction_position(pos):
+            return pos + extra*(pos >= 0xd0) + extra*(pos >= 0x238)
+        def target_position(pos):
+            return pos + extra*(pos > 0xd0) + extra*(pos > 0x238)
+        new_instructions = {x.original_pos:x for x in parse_hbc_bytecode(after,changed)}
+        branches = 0
+        for ins in parse_hbc_bytecode(before,h):
+            at = instruction_position(ins.original_pos)
+            current = new_instructions[at]
+            old = body[before.offset+ins.original_pos:before.offset+ins.next_pos]
+            new = patched[after.offset+at:after.offset+current.next_pos]
+            if old != new: raise ValueError(f'Original instruction changed at {ins.original_pos:x}')
+            for arg,operand in enumerate(ins.inst.operands,1):
+                if not operand.operand_type.name.startswith('Addr'): continue
+                target = ins.original_pos+getattr(ins,f'arg{arg}')
+                actual = current.original_pos+getattr(current,f'arg{arg}')
+                if actual != target_position(target): raise ValueError(f'Branch relocation needed at {ins.original_pos:x}')
+                if actual not in new_instructions: raise ValueError('Branch misses instruction boundary')
+                branches += 1
+        allowed = {32,33,34,35}
+        large = 26954740
+        allowed.update(range(large,large+4)); allowed.update(range(large+12,large+16))
+        modifications = [i for i,(a,b) in enumerate(zip(body[:-20],patched)) if a != b]
+        if set(modifications)-allowed: raise ValueError('Unexpected original-body change')
+        if len(patched) != len(body)+947+2*extra: raise ValueError('Unexpected patch extent')
+        if hermesc:
+            # Hermes' disassembler reads the rewritten container independently.
+            fixture = root/'patched.hbc'; fixture.write_bytes(patched)
+            with (root/'hermes.dump').open('wb') as output:
+                subprocess.run([hermesc,'-b','-dump-bytecode',str(fixture)],stdout=output,check=True)
+        print(f'Exact donor admitted; function {index}: {before.bytecodeSizeInBytes} -> {after.bytecodeSizeInBytes} bytes')
+        print(f'{branches} original branch targets and all other function headers preserved')
+        print(f'{len(modifications)} original-body bytes changed, solely in length and target header; footer valid')
+        print('Wrapper/image overrides verified before layout; device execution remains pending')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('donor',type=Path)
+    parser.add_argument('--zig',default=os.environ.get('ZIG') or shutil.which('zig'))
+    parser.add_argument('--hermesc')
+    args = parser.parse_args()
+    if not args.zig: parser.error('Zig required')
+    verify(args.donor,args.zig,args.hermesc)

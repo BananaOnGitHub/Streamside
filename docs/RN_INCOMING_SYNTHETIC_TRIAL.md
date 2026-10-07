@@ -1,5 +1,16 @@
 # Twitch 31.5 RN incoming synthetic-ID trial — build 55
 
+## Subsequent device results
+
+User reports B/C confirmed the observed incoming 7TV static and animated images
+were correct, with animation continuing after offscreen/back scrolling. Report C
+recorded 80 rewritten frames, 87 matched words and 114 successful provider image
+responses, with no reported transport/empty/cancellation failures. Those are
+aggregate counts, not 114 unique visible emotes. Wide images still occupied
+square boxes. The original build-55 implementation/validation record below is
+preserved; the next incoming-only width experiment is
+[build 56](RN_INCOMING_WIDTH_TRIAL.md).
+
 ## Scope and stopping point
 
 First functional experiment on `compat/twitch-31.5`, based on build 50's clean

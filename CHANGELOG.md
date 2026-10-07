@@ -2,6 +2,12 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 56 tests proportional incoming RN emote width. Gate an in-memory
+  EmotePart patch to the exact verified Hermes-98 body; override both wrapper
+  and image styles before Fabric measurement. Carry bounded aspect ratios in
+  collision-checked incoming-only image aliases; retain native styles and the
+  build-55 fallback on admission failure. No catalog, picker, local echo or
+  animation changes. Host/donor checks pass; device width validation pending.
 - Build 55 begins incoming-only third-party emote rendering in Twitch 31.5's
   React Native chat. Guard the IRC receive delegate by runtime ABI and socket
   host, reuse Unicode-aware synthetic `emotes=` metadata and provider redirects,

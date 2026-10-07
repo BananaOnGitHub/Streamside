@@ -13,12 +13,14 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.55`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.56`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
     separate diagnostic branch. Build 55 is the first incoming-only synthetic-ID
-    rendering experiment; visible provider rendering remains device-unvalidated.
+    rendering experiment. Device reports B/C confirm observed correct static and
+    animated images, with animation continuing after scrolling. Build 56 tests
+    proportional incoming width; that layout change remains device-unvalidated.
   - Build 50's adapter targets legacy chat present in the donor binary, not the
     active RN interface. That baseline is preserved in
     `archive/twitch-31.5-build50-legacy-chat`.
@@ -61,13 +63,16 @@ cells to redraw. It maintains no separate image files. The composer keeps a boun
 thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
 image requests. It does not clear Twitch’s own image cache.
 
-Build 55 hooks the confirmed RN IRC receive delegate and reuses the existing
-matcher to append synthetic IDs to incoming `emotes=` metadata. Twitch's own JS
-parser and EmotePart remain untouched; the existing image redirect resolves the
-synthetic Twitch CDN request to its provider asset. The first device acceptance
-case is a square static emote. No RN width, animation, catalog, picker, tap-detail
-or local-echo integration is claimed. See the
-[incoming-only experiment and test steps](docs/RN_INCOMING_SYNTHETIC_TRIAL.md).
+The confirmed RN IRC delegate reuses the matcher to append synthetic IDs to
+incoming `emotes=` metadata. The image redirect resolves synthetic Twitch CDN
+requests to provider assets. Build 55 device observations confirmed rendering
+and continued animation after scrolling. Build 56 adds an exact-bundle-gated,
+in-memory EmotePart style patch: the image and inline wrapper get the same
+proportional width before Fabric measures them. The donor bundle on disk and
+native emote styles stay unchanged. Catalog, picker, tap-detail and local echo
+remain deferred; no new animation intervention is added. See the
+[incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and
+[width experiment and device test](docs/RN_INCOMING_WIDTH_TRIAL.md).
 The [build-50 report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md) describes legacy chat
 only; its TextKit/layer sizing does not establish RN/Fabric proportional widths.
 Historical validation of the

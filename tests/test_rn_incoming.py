@@ -28,6 +28,34 @@ EXTRA = r'''
 '''
 MAIN = r'''
 void *_NSConcreteStackBlock[32];
+/* Minimal Blocks ABI lifetime fixture. Foundation copies escaping completions;
+ * exercise compiler-generated copy/dispose helpers, including nested blocks. */
+typedef struct TestBlock {
+    void *isa;int flags,reserved;void (*invoke)(void);
+    struct TestBlockDescriptor { unsigned long reserved,size;
+        void (*copy)(void *,const void *);void (*dispose)(const void *); } *descriptor;
+} TestBlock;
+static unsigned nested_block_copies;
+static void *copy_block(const void *value) {
+    TestBlock *b=(TestBlock *)value;
+    if(!b || (b->flags&(1<<28)))return b;
+    if(b->flags&(1<<24)){b->flags++;return b;}
+    TestBlock *out=malloc(b->descriptor->size);assert(out);
+    memcpy(out,b,b->descriptor->size);out->flags|=(1<<24)|1;
+    if(b->flags&(1<<25))b->descriptor->copy(out,b);
+    return out;
+}
+static void release_block(const void *value) {
+    TestBlock *b=(TestBlock *)value;
+    if(!b || !(b->flags&(1<<24)))return;
+    if((b->flags&65535)>1){b->flags--;return;}
+    if(b->flags&(1<<25))b->descriptor->dispose(b);
+    free(b);
+}
+void _Block_object_assign(void *destination,const void *value,int flags) {
+    assert(flags==7);nested_block_copies++;*(void **)destination=copy_block(value);
+}
+void _Block_object_dispose(const void *value,int flags) { assert(flags==7);release_block(value); }
 void tas_diag_log(const char *event,const char *detail) { (void)event;(void)detail; }
 static unsigned deliveries;
 static id delivered,expected_self,expected_socket;
@@ -174,6 +202,23 @@ static void widths(void) {
     char *mapped=url_for_id_locked(alias,time(NULL));assert(mapped && !strcmp(mapped,"https://cdn.7tv.app/emote/wide/2x.webp"));free(mapped);
 }
 struct FakeMethod { SEL name;const char *encoding;IMP imp; };
+static id expected_url_session,url_original_task,url_original_url,url_original_completion;
+static id url_original_data,url_original_response,url_original_error;
+static unsigned url_original_calls,url_callback_calls;
+static bool url_deliver;
+static void *url_deferred_completion;
+static id original_url_completion(id self,SEL sel,id url,id completion) {
+    assert(self==expected_url_session && !strcmp(sel,"dataTaskWithURL:completionHandler:"));
+    url_original_calls++;url_original_url=url;url_original_completion=completion;
+    if (url_deliver && completion) ((void (^)(id,id,id))completion)(url_original_data,url_original_response,url_original_error);
+    if (!url_deliver && completion) {
+        release_block(url_deferred_completion);url_deferred_completion=copy_block(completion);
+    }
+    return url_original_task;
+}
+static struct FakeMethod public_url_method={"dataTaskWithURL:completionHandler:","@32@0:8@16@?24",(IMP)original_url_completion};
+static struct FakeMethod private_url_method={"dataTaskWithURL:completionHandler:","@32@0:8@16@24",(IMP)original_url_completion};
+static bool public_url_owned=true,private_url_owned=true;
 static struct FakeMethod receive_method={"webSocket:didReceiveMessage:","v32@0:8@16@24",(IMP)original};
 static struct FakeMethod url_method={"url","@16@0:8",(IMP)original};
 static unsigned source_calls;
@@ -183,6 +228,8 @@ static bool has_class=true,own_method=true;
 static unsigned replacements;
 Method *class_copyMethodList(Class cls,unsigned *n) {
     *n=own_method ? 1 : 0;Method *out=malloc(sizeof(Method));
+    if(!strcmp(cls->cls,"NSURLSession")) {*n=public_url_owned ? 1 : 0;out[0]=&public_url_method;return out;}
+    if(!strcmp(cls->cls,"__NSURLSessionLocal")) {*n=private_url_owned ? 1 : 0;out[0]=&private_url_method;return out;}
     out[0]=!strcmp(cls->cls,"RCTSource") ? &source_method : &receive_method;return out;
 }
 Method class_getInstanceMethod(Class cls,SEL sel) { (void)cls;return !strcmp(sel,"url") && has_class ? &url_method : NULL; }
@@ -366,6 +413,75 @@ static void composer_map(void) {
     const TASRNMethodInfo *info=rn_composer_export(nil,NULL);
     assert(!strcmp(info->js_name,"emoteMap") && info->synchronous);
 }
+static void image_url_flow(void) {
+    g_enabled=true;
+    Room *r=ready("42");
+    add_emote_locked(r,MAX_ROOM,"Square","https://cdn.7tv.app/emote/square/2x.webp",0,false,NULL,1);
+    Emote *e=find_word(r,"Square");e->width_id=tas_rn_width_id(e->fake_id,1);
+    expected_url_session=fresh("__NSURLSessionLocal");url_original_task=fresh("NSURLSessionDataTask");
+    url_original_data=fresh("NSData");url_original_data->byte_count=16;
+    url_original_response=fresh("NSURLResponse");url_original_error=nil;
+    id callback_session=expected_url_session;
+    id callback=(id)^(id data,id response,id error) {
+        assert(expected_url_session==callback_session);
+        assert(data==url_original_data && response==url_original_response && error==url_original_error);
+        url_callback_calls++;
+    };
+    const char *sel="dataTaskWithURL:completionHandler:";
+    id url=fresh("NSURL");
+    snprintf(url->value,sizeof(url->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/static/dark/3.0",(unsigned long long)e->fake_id);
+    char original_text[256];snprintf(original_text,sizeof(original_text),"%s",url->value);
+    url_deliver=true;
+    g_public_url_completion=(IMP)original_url_completion;g_private_url_completion=(IMP)original_url_completion;
+    assert(public_url_task_completion(expected_url_session,sel,url,callback)==url_original_task);
+    assert(url_original_calls==1 && url_callback_calls==1 && url_original_url!=url && url_original_completion!=callback);
+    assert(!strcmp(text(url),original_text) && !strcmp(text(url_original_url),e->url));
+    assert(PROBE_GET(g_url_completion_mapped)==1 && PROBE_GET(g_url_completion_results)==1);
+    assert(!PROBE_GET(g_url_completion_errors) && !PROBE_GET(g_url_completion_empty));
+    /* Invoke only after the hook returns, just as a network completion does. */
+    url_deliver=false;
+    assert(public_url_task_completion(expected_url_session,sel,url,callback)==url_original_task);
+    assert(nested_block_copies==1 && url_callback_calls==1);
+    ((void (^)(id,id,id))url_deferred_completion)(url_original_data,url_original_response,url_original_error);
+    release_block(url_deferred_completion);url_deferred_completion=NULL;
+    assert(url_callback_calls==2 && PROBE_GET(g_url_completion_results)==2);
+    url_deliver=true;
+    /* A width alias resolves through the same registry; preserve error payload. */
+    snprintf(url->value,sizeof(url->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/default/dark/2.0",(unsigned long long)e->width_id);
+    url_original_data=nil;url_original_error=fresh("NSError");
+    assert(private_url_task_completion(expected_url_session,sel,url,callback)==url_original_task);
+    assert(url_original_calls==3 && url_callback_calls==3 && !strcmp(text(url_original_url),e->url));
+    assert(PROBE_GET(g_url_completion_errors)==1 && PROBE_GET(g_url_completion_empty)==1);
+    /* Null completion remains null; do not synthesize/resume a task. */
+    assert(public_url_task_completion(expected_url_session,sel,url,nil)==url_original_task);
+    assert(!url_original_completion && url_original_calls==4 && url_callback_calls==3);
+    const char *native[]={"https://static-cdn.jtvnw.net/emoticons/v2/25/static/dark/2.0",
+        "https://static-cdn.jtvnw.net/emoticons/v2/900000000009999/static/dark/2.0",
+        "https://example.com/emoticons/v2/900000000000001/static/dark/2.0",
+        "https://cdn.7tv.app/emote/square/2x.webp",
+        "https://usher.ttvnw.net/api/channel/hls/fixture.m3u8"};
+    uint64_t mapped=PROBE_GET(g_url_completion_mapped);
+    url_deliver=false;
+    for(unsigned i=0;i<sizeof(native)/sizeof(native[0]);i++) {
+        snprintf(url->value,sizeof(url->value),"%s",native[i]);
+        assert(public_url_task_completion(expected_url_session,sel,url,callback)==url_original_task);
+        assert(url_original_url==url && url_original_completion==callback);
+    }
+    snprintf(url->value,sizeof(url->value),"%s",original_text);g_enabled=false;
+    assert(public_url_task_completion(expected_url_session,sel,url,callback)==url_original_task);
+    assert(url_original_url==url && url_original_completion==callback && PROBE_GET(g_url_completion_mapped)==mapped);
+    release_block(url_deferred_completion);url_deferred_completion=NULL;
+}
+static void image_url_installation(void) {
+    g_enabled=false;install_image_url();assert(!g_public_url_completion && !g_private_url_completion && !replacements);
+    g_enabled=true;public_url_owned=private_url_owned=false;install_image_url();assert(!replacements);
+    public_url_owned=private_url_owned=true;public_url_method.encoding="v32@0:8@16@24";
+    private_url_method.encoding="@24@0:8@16";install_image_url();assert(!replacements);
+    public_url_method.encoding="@32@0:8@16@?24";install_image_url();assert(replacements==1 && g_public_url_completion==(IMP)original_url_completion && !g_private_url_completion);
+    private_url_method.encoding="@32@0:8@16@24";install_image_url();assert(replacements==2 && g_private_url_completion==(IMP)original_url_completion);
+    assert(public_url_method.imp==(IMP)public_url_task_completion && private_url_method.imp==(IMP)private_url_task_completion);
+    install_image_url();assert(replacements==2);
+}
 static unsigned local_allocations,local_disposals,local_registrations,local_exports;
 static Class local_allocated_class,local_meta;
 static void register_local_fixture(Class cls) { assert(cls==local_registered_class);local_exports++; }
@@ -406,6 +522,7 @@ int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
     else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
+    else if(!strcmp(argv[1],"url"))image_url_flow();else if(!strcmp(argv[1],"url-install"))image_url_installation();
     else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
 }
 '''
@@ -456,6 +573,12 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_composer_preview_map_draft_native_identity_provider_precedence_scope_and_bounds(self):
         self.run_harness("composer")
+
+    def test_native_composer_url_transport_mapping_callbacks_errors_and_fallback(self):
+        self.run_harness("url")
+
+    def test_url_transport_owned_methods_exact_abi_disabled_and_retry(self):
+        self.run_harness("url-install")
 
     @classmethod
     def tearDownClass(cls):

@@ -1,8 +1,10 @@
-# Twitch 31.5 text-box previews — build 61
+# Twitch 31.5 text-box previews — builds 61–62
 
 Build 60 is device-confirmed for incoming and own sent-message emote display.
 Build 61 preserves both paths and enriches only the composer presentation map.
 No catalog/picker integration or send rewriting is introduced.
+The build 61 device trial recognizes a provider token but leaves its gray image
+placeholder visible. Build 62 adds the missing URL image transport redirect.
 
 ## Exact active seam
 
@@ -44,7 +46,25 @@ value is restored on both joins.
 
 ## Validation and device trial
 
+The exact donor's native `TwitchEmoteInputView.fetchImage(for:)` calls
+`NSURLSession.sharedSession.dataTaskWithURL:completionHandler:` (call at
+0xb8e4), then resumes the original task. Its completion decodes the returned
+data with `UIImage.initWithData:` (0xbb00). The existing provider redirects
+covered request selectors, leaving this URL overload uncovered. Build 62
+shares the same validated registry URL lookup with a new hook on owned
+NSURLSession / __NSURLSessionLocal URL completion methods. It admits only
+the expected object-return ABI, retries missing methods, and installs once.
+Native/unknown IDs, other hosts, direct provider images, HLS and disabled emotes
+pass through unchanged. A mapped task retains its original task and callback
+payload; Foundation remains responsible for scheduling, resume and cancellation.
+The wrapper captures Twitch's completion as a typed block so Foundation's
+copy also copies that nested completion; a plain C id capture cannot ensure it.
+Aggregate URL calls/mapped/completed/errors/empty counts distinguish lookup
+and transport failures without recording URLs or draft text.
+
 Production C snapshot/gate and emitted-bytecode harnesses run under ASAN/UBSAN.
+All 75 tests pass for build 62, including deferred completion invocation after
+the URL hook returns and compiler-generated nested-block copy/dispose helpers.
 The exact donor validator checks every original instruction and all 254
 original composer branch targets, unchanged frame/cache/number metadata,
 exception containment, restored undefined and unchanged working patches.
@@ -52,14 +72,15 @@ Hermes-98's independent disassembler must recognize the native-map call and
 new exception table. The fake host interpreter does not establish live input
 behavior, image decode, proportions, animation or IME correctness.
 
-Fully relaunch build 61. Type a known square provider code followed by a space,
+Fully relaunch build 62. Type a known square provider code followed by a space,
 then move the caret out of the word or blur if Twitch keeps the active word as
 text. Compare a native code, a wide code and an animated code. Verify editing,
 backspace, Unicode around a code, and sending preserve literal text and the
 working local chat display. Change channel and check room-only codes do not
 leak. Inspect RN composer preview counters in the post-test report. Native
 input controls whether a preview animates and when it commits a token; this
-trial does not add a separate animation layer.
+trial does not add a separate animation layer. Inspect the new Image URL
+completion hook and mapping/completion counters if the placeholder persists.
 
 ```sh
 ZIG=/path/to/zig EMOTE_DIAGNOSTIC=0 make verify test

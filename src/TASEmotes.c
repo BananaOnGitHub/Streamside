@@ -143,6 +143,8 @@ static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_w
 static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t g_rn_width_lock = PTHREAD_MUTEX_INITIALIZER;
 static IMP g_private_request, g_private_request_completion;
+static IMP g_public_url_completion, g_private_url_completion;
+static uint64_t g_url_completion_calls, g_url_completion_mapped, g_url_completion_results, g_url_completion_errors, g_url_completion_empty;
 static char g_wrapped_key;
 /* Aggregate counters contain no room IDs, message text, or request URLs. */
 static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
@@ -1752,9 +1754,11 @@ static char *url_for_id_locked(uint64_t id, time_t now) {
     return NULL;
 }
 
-id tas_emotes_rewrite_request_copy(id request) {
-    if (!g_enabled || !request) return nil;
-    id url = call0(request, "URL");
+/* Both NSURLRequest and NSURL overloads must use the same bounded registry
+ * lookup. TwitchEmoteInputView uses sharedSession's URL completion overload,
+ * which need not dispatch through either request selector we already hook. */
+static id image_url_copy(id url) {
+    if (!g_enabled || !url) return nil;
     const char *host = text(call0(url, "host"));
     const char *path = text(call0(url, "path"));
     const char *prefix = "/emoticons/v2/";
@@ -1783,8 +1787,16 @@ id tas_emotes_rewrite_request_copy(id request) {
     id destination = call1((id)objc_getClass("NSURL"), "URLWithString:", str(image));
     free(image);
     if (!destination) return nil;
+    return objc_retain(destination);
+}
+
+id tas_emotes_rewrite_request_copy(id request) {
+    if (!g_enabled || !request) return nil;
+    id destination=image_url_copy(call0(request,"URL"));
+    if (!destination) return nil;
     id mutable = call0(request, "mutableCopy");
     ((void (*)(id, SEL, id))objc_msgSend)(mutable, sel_registerName("setURL:"), destination);
+    objc_release(destination);
     return mutable;
 }
 
@@ -1918,6 +1930,67 @@ static id private_task_completion(id self, SEL command, id request, id completio
         self, command, replacement ?: request, handler);
     if (replacement) objc_release(replacement);
     return result;
+}
+
+static id image_url_task(id self, SEL command, id url, id completion, IMP original) {
+    PROBE_INC(g_url_completion_calls);
+    id replacement=image_url_copy(url);
+    id handler=completion;
+    /* A typed block capture is required in plain C: capturing an id pointer
+     * alone would not copy Twitch's completion when Foundation copies ours. */
+    void (^callback)(id,id,id)=(void (^)(id,id,id))completion;
+    void (^wrapped)(id,id,id)=^(id data,id response,id error) {
+        PROBE_INC(g_url_completion_results);
+        if (error) PROBE_INC(g_url_completion_errors);
+        if (!data || !((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length")))
+            PROBE_INC(g_url_completion_empty);
+        /* Foundation copies this block before returning. Keep its bytes,
+         * response, error, callback queue and callback count unchanged. */
+        callback(data,response,error);
+    };
+    if (replacement) {
+        PROBE_INC(g_url_completion_mapped);
+        tas_emotes_image_request(true);
+        if (completion) handler=(id)wrapped;
+    }
+    id task=((id (*)(id,SEL,id,id))original)(self,command,replacement ?: url,handler);
+    if (replacement) objc_release(replacement);
+    return task;
+}
+static id public_url_task_completion(id self, SEL command, id url, id completion) {
+    return image_url_task(self,command,url,completion,__atomic_load_n(&g_public_url_completion,__ATOMIC_ACQUIRE));
+}
+static id private_url_task_completion(id self, SEL command, id url, id completion) {
+    return image_url_task(self,command,url,completion,__atomic_load_n(&g_private_url_completion,__ATOMIC_ACQUIRE));
+}
+
+/* Override only a concrete, owned method with the exact object-return ABI.
+ * Never replace an inherited base method a second time through a subclass. */
+static void install_image_url_method(Class cls, IMP hook, IMP *original) {
+    if (!cls || __atomic_load_n(original,__ATOMIC_ACQUIRE)) return;
+    unsigned n=0; Method *methods=class_copyMethodList(cls,&n);
+    SEL target=sel_registerName("dataTaskWithURL:completionHandler:");
+    for (unsigned i=0;i<n;i++) {
+        Method method=methods[i];
+        if (method_getName(method)!=target) continue;
+        const char *type=method_getTypeEncoding(method);
+        /* Blocks are encoded @? or @ depending on runtime metadata. */
+        if (!type || (strcmp(type,"@32@0:8@16@?24") && strcmp(type,"@32@0:8@16@24") &&
+                      strcmp(type,"@@:@@?") && strcmp(type,"@@:@@"))) break;
+        IMP saved=method_getImplementation(method);
+        if (!saved || saved==hook) break;
+        __atomic_store_n(original,saved,__ATOMIC_RELEASE);
+        method_setImplementation(method,hook);
+        break;
+    }
+    free(methods);
+}
+static void install_image_url(void) {
+    if (!g_enabled) return;
+    pthread_mutex_lock(&g_rn_install_lock);
+    install_image_url_method(objc_getClass("NSURLSession"),(IMP)public_url_task_completion,&g_public_url_completion);
+    install_image_url_method(objc_getClass("__NSURLSessionLocal"),(IMP)private_url_task_completion,&g_private_url_completion);
+    pthread_mutex_unlock(&g_rn_install_lock);
 }
 
 /* Only override methods implemented directly by the concrete class. Replacing
@@ -2100,6 +2173,7 @@ void tas_emotes_retry_hooks(void) {
     install_rn_local();
     install_rn_width();
     install_rn_receive();
+    install_image_url();
     if (!g_public_receive)
         hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),
                                         "receiveMessageWithCompletionHandler:",
@@ -2139,6 +2213,8 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
         "IRC frames refused (size/encoding/allocation budget): %llu\n"
         "Image hooks (private task/completion): %s/%s\n"
+        "Image URL completion hooks (public/private): %s/%s\n"
+        "Image URL calls/mapped/completed/errors/empty: %llu/%llu/%llu/%llu/%llu\n"
         "WebSocket callbacks/text/tagged/room: %llu/%llu/%llu/%llu\n"
         "Rewritten frames/image requests: %llu/%llu\n"
         "Image tasks (completion/delegate): %llu/%llu\n"
@@ -2187,6 +2263,13 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_frame_refused),
         g_private_request ? "installed" : "missing",
         g_private_request_completion ? "installed" : "missing",
+        __atomic_load_n(&g_public_url_completion,__ATOMIC_ACQUIRE) ? "installed" : "missing",
+        __atomic_load_n(&g_private_url_completion,__ATOMIC_ACQUIRE) ? "installed" : "missing",
+        (unsigned long long)PROBE_GET(g_url_completion_calls),
+        (unsigned long long)PROBE_GET(g_url_completion_mapped),
+        (unsigned long long)PROBE_GET(g_url_completion_results),
+        (unsigned long long)PROBE_GET(g_url_completion_errors),
+        (unsigned long long)PROBE_GET(g_url_completion_empty),
         (unsigned long long)PROBE_GET(g_receive_calls),
         (unsigned long long)PROBE_GET(g_text_frames),
         (unsigned long long)PROBE_GET(g_tagged_frames),

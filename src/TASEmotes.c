@@ -15,6 +15,7 @@
 #include "TASEmoteProbe.h"
 #include "TASEmoteImageProbe.h"
 #include "TASRNWidthPatch.h"
+#include "TASRNLocalEchoPatch.h"
 
 #include <dlfcn.h>
 #include <objc/runtime.h>
@@ -133,6 +134,8 @@ static IMP g_public_receive, g_private_receive;
 static IMP g_rn_receive;
 static IMP g_rn_source_data;
 static bool g_rn_width_ready;
+static bool g_rn_local_registered, g_rn_local_ready;
+static uint64_t g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
 static char g_rn_width_data_key, g_rn_width_checked_key;
 static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_width_collisions;
 static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -1021,7 +1024,7 @@ static void probe_gate_line(const char *line,size_t length,const char *outcome) 
 #endif
 
 /* Returns a replacement for one IRC line, or NULL if it is unchanged. */
-static char *rewrite_line_impl(const char *line, size_t length, bool proportional) {
+static char *rewrite_line_mode(const char *line, size_t length, bool proportional, bool local) {
     if (length < 3 || line[0] != '@') {
 #if TAS_EMOTE_DIAGNOSTIC
         probe_gate_line(line,length,"untagged-line");
@@ -1072,26 +1075,29 @@ static char *rewrite_line_impl(const char *line, size_t length, bool proportiona
     bool message = !strncmp(command, " PRIVMSG #", 10);
     if (!message && strncmp(command, " ROOMSTATE #", 12)) return NULL;
     const char *privmsg = message ? command : NULL;
-    PROBE_INC(g_room_frames);
-    pthread_mutex_lock(&g_emote_lock);
-    snprintf(g_last_room, sizeof(g_last_room), "%s", room_id);
-    pthread_mutex_unlock(&g_emote_lock);
-    ensure_loaded(NULL, false);
-    ensure_loaded(room_id, false);
-    const char *channel_start = command + (message ? 10 : 12);
-    const char *channel_end = channel_start ? strchr(channel_start, ' ') : NULL;
-    if (channel_end && channel_end - channel_start <= 96) {
+    if (!local) {
+        PROBE_INC(g_room_frames);
         pthread_mutex_lock(&g_emote_lock);
-        for (size_t i = 0; i < MAX_ROOMS; i++)
-            if (g_rooms[i].occupied && !strcmp(g_rooms[i].id, room_id)) {
-                size_t n = (size_t)(channel_end - channel_start);
-                if (strlen(g_rooms[i].login) != n || memcmp(g_rooms[i].login, channel_start, n)) {
-                    memcpy(g_rooms[i].login, channel_start, n);
-                    g_rooms[i].login[n] = 0;
-                    catalog_changed_locked();
-                }
-            }
+        snprintf(g_last_room, sizeof(g_last_room), "%s", room_id);
         pthread_mutex_unlock(&g_emote_lock);
+        ensure_loaded(NULL, false);
+        ensure_loaded(room_id, false);
+        const char *channel_start = command + (message ? 10 : 12);
+        const char *channel_end = memchr(channel_start, ' ', (size_t)(end-channel_start));
+        if (!channel_end && !message) channel_end=end;
+        if (channel_end && channel_end - channel_start <= 96) {
+            pthread_mutex_lock(&g_emote_lock);
+            for (size_t i = 0; i < MAX_ROOMS; i++)
+                if (g_rooms[i].occupied && !strcmp(g_rooms[i].id, room_id)) {
+                    size_t n = (size_t)(channel_end - channel_start);
+                    if (strlen(g_rooms[i].login) != n || memcmp(g_rooms[i].login, channel_start, n)) {
+                        memcpy(g_rooms[i].login, channel_start, n);
+                        g_rooms[i].login[n] = 0;
+                        catalog_changed_locked();
+                    }
+                }
+            pthread_mutex_unlock(&g_emote_lock);
+        }
     }
     if (!message) return NULL;
     const char *separator = strstr(privmsg, " :");
@@ -1203,8 +1209,120 @@ static char *rewrite_line_impl(const char *line, size_t length, bool proportiona
     return result;
 }
 
+static char *rewrite_line_impl(const char *line, size_t length, bool proportional) {
+    return rewrite_line_mode(line,length,proportional,false);
+}
+
 static char *rewrite_line(const char *line, size_t length) {
     return rewrite_line_impl(line,length,false);
+}
+
+/* Own preview only: the original JS function has already constructed native
+ * ranges, identity/reply tags and final text. Resolve its explicit channel;
+ * never borrow g_last_room. No network, replay, UI work or send occurs here.
+ * A temporary room tag lets the shared matcher preserve native ownership.
+ * Remove that tag before returning, leaving only the emotes metadata changed.
+ */
+static id rn_local_echo(id self, SEL command, id value) {
+    (void)self; (void)command;
+    PROBE_INC(g_rn_local_calls);
+    if (!g_enabled || !__atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE)) return value;
+    if (!kind(value,"NSString")) { PROBE_INC(g_rn_local_refused); return value; }
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(
+        value,sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    if (!bytes || bytes>MAX_FRAME) { PROBE_INC(g_rn_local_refused); return value; }
+    const char *line=text(value);
+    if (!line || strnlen(line,MAX_FRAME+1)!=bytes || line[0]!='@' || strchr(line,'\r') || strchr(line,'\n')) {
+        PROBE_INC(g_rn_local_refused); return value;
+    }
+    for (const unsigned char *p=(const unsigned char *)line;*p;p++)
+        if (*p<32 && *p!='\t') { PROBE_INC(g_rn_local_refused); return value; }
+    const char *tags_end=strstr(line," :");
+    const char *verb=tags_end ? strchr(tags_end+2,' ') : NULL;
+    if (!verb || strncmp(verb," PRIVMSG #",10)) { PROBE_INC(g_rn_local_refused); return value; }
+    char identity[64];
+    if (!tag_value(line+1,tags_end,"id",identity,sizeof(identity)) ||
+        strncmp(identity,"local-echo-",11) || !identity[11]) {
+        PROBE_INC(g_rn_local_refused); return value;
+    }
+    for (const char *p=identity+11;*p;p++) if (*p<'0' || *p>'9') { PROBE_INC(g_rn_local_refused); return value; }
+    for (const char *p=line+1;p<tags_end;) {
+        const char *end=memchr(p,';',(size_t)(tags_end-p)); if (!end) end=tags_end;
+        if ((end-p>=8 && !memcmp(p,"room-id=",8)) ||
+            (end-p>=15 && !memcmp(p,"source-room-id=",15))) { PROBE_INC(g_rn_local_refused); return value; }
+        p=end+(end<tags_end);
+    }
+    const char *login=verb+10, *login_end=strchr(login,' ');
+    if (!login_end || login_end==login || login_end-login>96 || strncmp(login_end," :",2)) {
+        PROBE_INC(g_rn_local_refused); return value;
+    }
+    char room_id[32]=""; unsigned matches=0;
+    pthread_mutex_lock(&g_emote_lock);
+    for (size_t i=0;i<MAX_ROOMS;i++) {
+        Room *r=&g_rooms[i];
+        if (r->occupied && strlen(r->login)==(size_t)(login_end-login) &&
+            !memcmp(r->login,login,(size_t)(login_end-login))) {
+            snprintf(room_id,sizeof(room_id),"%s",r->id); matches++;
+        }
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    if (matches!=1) { PROBE_INC(g_rn_local_scope_misses); return value; }
+    char prefix[48]; int n=snprintf(prefix,sizeof(prefix),"@room-id=%s;",room_id);
+    if (n<=0 || (size_t)n>=sizeof(prefix)) { PROBE_INC(g_rn_local_refused); return value; }
+    size_t extra=(size_t)n-1;
+    char *temporary=malloc((size_t)bytes+extra+1);
+    if (!temporary) { PROBE_INC(g_rn_local_refused); return value; }
+    memcpy(temporary,prefix,(size_t)n);
+    memcpy(temporary+n,line+1,(size_t)bytes); /* includes terminator */
+    char *rewritten=rewrite_line_mode(temporary,(size_t)bytes+extra,true,true);
+    free(temporary);
+    if (!rewritten) return value;
+    /* Shared rewrite preserves the injected prefix byte-for-byte. */
+    rewritten[extra]='@';
+    id result=str(rewritten+extra);
+    free(rewritten);
+    if (!result) { PROBE_INC(g_rn_local_refused); return value; }
+    PROBE_INC(g_rn_local_changed);
+    return result;
+}
+
+typedef struct { const char *js_name; const char *objc_name; BOOL synchronous; } TASRNMethodInfo;
+static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
+    (void)self; (void)command;
+    static const TASRNMethodInfo info={"buildLocalEcho","renderLocalEcho:(NSString *)line",YES};
+    return &info;
+}
+static id rn_local_module_name(id self, SEL command) { (void)self; (void)command; return str("buildLocalEcho"); }
+static BOOL rn_local_main_queue(id self, SEL command) { (void)self; (void)command; return NO; }
+
+/* Standard RCTBridgeModule registration/export ABI, a separate NSObject module.
+ * Install before JS/source evaluation; no existing native module is modified.
+ * The exact donor exports RCTRegisterModule and has legacy TurboModule interop.
+ * Runtime availability is measured separately from successful JS calls.
+ */
+static void install_rn_local(void) {
+    pthread_mutex_lock(&g_rn_install_lock);
+    if (!__atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE)) {
+        void (*register_module)(Class)=(void (*)(Class))dlsym(RTLD_DEFAULT,"RCTRegisterModule");
+        void *protocol=objc_getProtocol("RCTBridgeModule");
+        Class parent=objc_getClass("NSObject");
+        if (g_enabled && register_module && protocol && parent && !objc_getClass("TASRNLocalEchoModule")) {
+            Class cls=objc_allocateClassPair(parent,"TASRNLocalEchoModule",0);
+            if (cls) {
+                Class meta=object_getClass((id)cls);
+                bool ok=class_addProtocol(cls,protocol) &&
+                    class_addMethod(cls,sel_registerName("renderLocalEcho:"),(IMP)rn_local_echo,"@24@0:8@16") &&
+                    class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
+                    class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8");
+                if (ok) {
+                    objc_registerClassPair(cls); register_module(cls);
+                    __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);
+                } else objc_disposeClassPair(cls);
+            }
+        }
+    }
+    pthread_mutex_unlock(&g_rn_install_lock);
 }
 
 /* Shared IRC frame transform. Return an autoreleased NSString only on change.
@@ -1684,7 +1802,7 @@ static void hook_own_method(Class cls, const char *selector, IMP replacement, IM
 /* RCTInstance consumes source.data as its JS buffer. Patch only the exact
  * admitted body, before Hermes sees it; preserve the source URL and disk file.
  * Source-owned cache makes repeated getter calls return the same +0 NSData.
- * No other source, event emitter, runtime API or native layout ABI is hooked. */
+ * The optional own-preview patch shares this exact original-body admission. */
 static id rn_source_data(id self, SEL command) {
     IMP original=__atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE);
     id data=((id (*)(id,SEL))original)(self,command);
@@ -1697,11 +1815,18 @@ static id rn_source_data(id self, SEL command) {
     }
     size_t count=0;
     unsigned char *patch=NULL;
+    bool local=false;
     if (kind(data,"NSData")) {
         size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
         TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
-        if (length==TAS_RN_BODY_SIZE && sha1)
+        if (length==TAS_RN_BODY_SIZE && sha1) {
             patch=tas_rn_width_patch((const unsigned char *)call0(data,"bytes"),length,sha1,&count);
+            if (patch && __atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE)) {
+                size_t local_count=0;
+                unsigned char *local_patch=tas_rn_local_patch(patch,count,sha1,&local_count);
+                if (local_patch) { free(patch); patch=local_patch; count=local_count; local=true; }
+            }
+        }
     }
     if (patch) {
         cached=((id (*)(id,SEL,const void *,NSUInteger))objc_msgSend)(
@@ -1712,8 +1837,10 @@ static id rn_source_data(id self, SEL command) {
     if (cached) {
         objc_setAssociatedObject(self,&g_rn_width_data_key,cached,1);
         __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
+        if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
         PROBE_INC(g_rn_width_patches);
         tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
+        if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview calls registered local renderer; send path unchanged");
     } else {
         PROBE_INC(g_rn_width_refused);
         tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
@@ -1827,6 +1954,7 @@ void tas_emotes_initialize(void) {
 
 void tas_emotes_retry_hooks(void) {
     if (!g_enabled) return;
+    install_rn_local();
     install_rn_width();
     install_rn_receive();
     if (!g_public_receive)
@@ -1860,6 +1988,8 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "RN incoming synthetic-ID hook: %s\n"
         "RN width source hook/patch active: %s/%s\n"
         "RN width bodies patched/refused; alias matches/collisions: %llu/%llu; %llu/%llu\n"
+        "RN local preview module/patch: %s/%s\n"
+        "RN local preview calls/rewritten/refused/scope misses: %llu/%llu/%llu/%llu\n"
         "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
         "IRC frames refused (size/encoding/allocation budget): %llu\n"
         "Image hooks (private task/completion): %s/%s\n"
@@ -1891,6 +2021,12 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_rn_width_refused),
         (unsigned long long)PROBE_GET(g_rn_width_words),
         (unsigned long long)PROBE_GET(g_rn_width_collisions),
+        __atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE) ? "registered" : "missing",
+        __atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_local_calls),
+        (unsigned long long)PROBE_GET(g_rn_local_changed),
+        (unsigned long long)PROBE_GET(g_rn_local_refused),
+        (unsigned long long)PROBE_GET(g_rn_local_scope_misses),
         (unsigned long long)PROBE_GET(g_rn_calls),
         (unsigned long long)PROBE_GET(g_rn_irc),
         (unsigned long long)PROBE_GET(g_rn_rewritten),

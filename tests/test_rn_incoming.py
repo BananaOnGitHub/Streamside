@@ -217,9 +217,103 @@ static void source_hook(void) {
     id cached=fresh("NSData");objc_setAssociatedObject(source,&g_rn_width_data_key,cached,1);
     assert(rn_source_data(source,"data")==cached && source_calls==4);
 }
+static void local_echo(void) {
+    g_enabled=true;g_rn_local_ready=true;g_rn_width_ready=true;
+    for(unsigned i=0;i<3;i++)g_global.loaded[i]=true;
+    Room *r=ready("42"),*other=ready("43");snprintf(other->login,sizeof(other->login),"other");
+    snprintf(g_last_room,sizeof(g_last_room),"43");
+    add_emote_locked(r,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,NULL,2.5);
+    add_emote_locked(r,MAX_ROOM,"Kappa","https://cdn.7tv.app/emote/collision/2x.webp",0,false,NULL,1);
+    add_emote_locked(other,MAX_ROOM,"Other","https://cdn.7tv.app/emote/other/2x.webp",0,false,NULL,1);
+    add_emote_locked(&g_global,MAX_GLOBAL,"Global","https://cdn.betterttv.net/emote/global/2x",1,true,NULL,1);
+    id input=string("@display-name=Me;id=local-echo-1;client-nonce=abc;emotes=25:0-4;reply-parent-msg-id=parent :me!me@me.tmi.twitch.tv PRIVMSG #fixture :Kappa 😀 Wide (Wide) Global Other");
+    id output=rn_local_echo(nil,NULL,input);assert(output!=input);check_body(input,output);
+    uint64_t wide=find_word(r,"Wide")->width_id,global=find_word(&g_global,"Global")->width_id;
+    assert(wide%10000==2500 && global%10000==1000);
+    char ranges[256];snprintf(ranges,sizeof(ranges),"emotes=25:0-4/%llu:8-11/%llu:14-17/%llu:20-25",(unsigned long long)wide,(unsigned long long)wide,(unsigned long long)global);
+    assert(strstr(output->value,ranges) && strstr(output->value,";client-nonce=abc;") && strstr(output->value,";reply-parent-msg-id=parent"));
+    assert(!strstr(output->value,"room-id=") && !strcmp(g_last_room,"43"));
+    assert(PROBE_GET(g_rn_local_calls)==1 && PROBE_GET(g_rn_local_changed)==1);
+    assert(!PROBE_GET(g_rn_rewritten) && !PROBE_GET(g_rewritten_frames) && !PROBE_GET(g_room_frames));
+    assert(rn_local_echo(nil,NULL,output)==output); /* native ranges own every existing match */
+    id request=fresh("NSMutableURLRequest"),cdn=fresh("NSURL");request->children[0]=cdn;
+    snprintf(cdn->value,sizeof(cdn->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/default/dark/1.0",(unsigned long long)wide);
+    id redirected=tas_emotes_rewrite_request_copy(request);assert(redirected && strstr(redirected->children[0]->value,"wide/2x.gif"));
+    const char *same[]={
+        "@id=local-echo-2 :me!me@h PRIVMSG #other :Wide", /* explicit other room */
+        "@id=local-echo-2 :me!me@h PRIVMSG #unknown :Global", /* no last-room/global-only guess */
+        "@id=local-echo-2;emotes=25:1-3 :me!me@h PRIVMSG #fixture :Wide",
+        "@id=local-echo-2;emotes=;emotes= :me!me@h PRIVMSG #fixture :Wide",
+        "@id=server-1 :me!me@h PRIVMSG #fixture :Wide",
+        "@id=local-echo- :me!me@h PRIVMSG #fixture :Wide",
+        "@id=local-echo-x :me!me@h PRIVMSG #fixture :Wide",
+        "@id=local-echo-2;room-id=42 :me!me@h PRIVMSG #fixture :Wide",
+        "@id=local-echo-2;source-room-id=42 :me!me@h PRIVMSG #fixture :Wide",
+        "@id=local-echo-2 :me!me@h NOTICE #fixture :Wide",
+        "@id=local-echo-2 :me!me@h PRIVMSG #fixture :\1ACTION Wide\1",
+        "@id=local-echo-2 :me!me@h PRIVMSG #fixture :Wide\r\nPING :x",
+        "@id=local-echo-2 :me!me@h PRIVMSG #fixture :unknown wide",
+        ""
+    };
+    for(unsigned i=0;i<sizeof(same)/sizeof(same[0]);i++) { input=string(same[i]);assert(rn_local_echo(nil,NULL,input)==input); }
+    input=string("@id=local-echo-2 :me!me@h PRIVMSG #fixture :Wide");
+    g_enabled=false;assert(rn_local_echo(nil,NULL,input)==input);g_enabled=true;
+    g_rn_local_ready=false;assert(rn_local_echo(nil,NULL,input)==input);g_rn_local_ready=true;
+    snprintf(other->login,sizeof(other->login),"fixture");assert(rn_local_echo(nil,NULL,input)==input); /* ambiguous mapping */
+    assert(rn_local_echo(nil,NULL,fresh("NSData")));
+    input->byte_count=MAX_FRAME+1;assert(rn_local_echo(nil,NULL,input)==input);
+    input->byte_count=strlen(input->value)+1;assert(rn_local_echo(nil,NULL,input)==input); /* embedded NUL refused */
+    const TASRNMethodInfo *info=rn_local_export(nil,NULL);
+    assert(!strcmp(info->js_name,"buildLocalEcho") && !strcmp(info->objc_name,"renderLocalEcho:(NSString *)line") && info->synchronous);
+    assert(!rn_local_main_queue(nil,NULL));
+    assert(!strcmp(text(rn_local_module_name(nil,NULL)),"buildLocalEcho"));
+    /* A quiet room is associated by ROOMSTATE, before any incoming PRIVMSG. */
+    Room *quiet=ready("44");quiet->login[0]=0;
+    add_emote_locked(quiet,MAX_ROOM,"Quiet","https://cdn.7tv.app/emote/quiet/2x.webp",0,false,NULL,1);
+    const char *state="@room-id=44 :server ROOMSTATE #quiet";
+    assert(!rewrite_line_impl(state,strlen(state),true) && !strcmp(quiet->login,"quiet"));
+    input=string("@id=local-echo-3 :me!me@h PRIVMSG #quiet :Quiet");
+    output=rn_local_echo(nil,NULL,input);assert(output!=input);check_body(input,output);
+}
+static bool local_registration_available,local_protocol_available;
+static unsigned local_allocations,local_disposals,local_registrations,local_exports;
+static Class local_allocated_class,local_meta;
+static void register_local_fixture(Class cls) { assert(cls==local_registered_class);local_exports++; }
+void *dlsym(void *handle,const char *name) {
+    (void)handle;
+    if(!strcmp(name,"RCTRegisterModule") && local_registration_available)return (void *)register_local_fixture;
+    return NULL;
+}
+void *objc_getProtocol(const char *name) { assert(!strcmp(name,"RCTBridgeModule"));return local_protocol_available ? (void *)1 : NULL; }
+BOOL class_addProtocol(Class cls,void *protocol) { assert(cls==local_allocated_class && protocol==(void *)1);return YES; }
+Class objc_allocateClassPair(Class parent,const char *name,size_t size) {
+    assert(parent==objc_getClass("NSObject") && !strcmp(name,"TASRNLocalEchoModule") && !size);
+    local_allocations++;local_allocated_class=fresh(name);local_meta=fresh("metaclass");return local_allocated_class;
+}
+void objc_disposeClassPair(Class cls) { assert(cls==local_allocated_class);local_disposals++; }
+Class object_getClass(id object) { assert(object==local_allocated_class);return local_meta; }
+BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
+    if(!strcmp(selector,"renderLocalEcho:"))assert(cls==local_allocated_class && imp==(IMP)rn_local_echo && !strcmp(encoding,"@24@0:8@16"));
+    else {
+        assert(cls==local_meta);
+        if(!strcmp(selector,"moduleName"))assert(imp==(IMP)rn_local_module_name && !strcmp(encoding,"@16@0:8"));
+        else if(!strcmp(selector,"requiresMainQueueSetup"))assert(imp==(IMP)rn_local_main_queue && !strcmp(encoding,"B16@0:8"));
+        else assert(!strcmp(selector,"__rct_export__streamsideLocalEcho") && imp==(IMP)rn_local_export && !strcmp(encoding,"^v16@0:8"));
+    }
+    return YES;
+}
+void objc_registerClassPair(Class cls) { assert(cls==local_allocated_class);local_registered_class=cls;local_registrations++; }
+static void local_registration(void) {
+    g_enabled=true;install_rn_local();assert(!local_allocations && !g_rn_local_registered);
+    local_registration_available=true;install_rn_local();assert(!local_allocations && !g_rn_local_registered);
+    local_protocol_available=true;g_enabled=false;install_rn_local();assert(!local_allocations);
+    g_enabled=true;install_rn_local();assert(g_rn_local_registered && local_allocations==1 && local_registrations==1 && local_exports==1 && !local_disposals);
+    install_rn_local();assert(local_allocations==1 && local_exports==1);
+}
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
-    else if(!strcmp(argv[1],"source"))source_hook();else installation();return 0;
+    else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
+    else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
@@ -227,6 +321,8 @@ HARNESS = HARNESS.replace('uint64_t number;', 'uint64_t number;size_t byte_count
 HARNESS = HARNESS.replace('snprintf(o->value,sizeof(o->value),"%s",value);return o;',
     'if(strlen(value)>=sizeof(o->value))o->payload=strdup(value);else snprintf(o->value,sizeof(o->value),"%s",value);return o;')
 HARNESS = HARNESS.replace('classes[8]', 'classes[32]').replace('class_count<8', 'class_count<32')
+HARNESS = HARNESS.replace('Class objc_getClass(const char *name) {',
+    'static Class local_registered_class;\nClass objc_getClass(const char *name) {\nif(!strcmp(name,"TASRNLocalEchoModule"))return local_registered_class;')
 HARNESS = HARNESS.replace('SEL sel_registerName(const char *name) { return name; }', r'''
 SEL sel_registerName(const char *name) {
     static char names[128][96];static unsigned n;
@@ -280,3 +376,9 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_source_hook_abi_disabled_refusal_identity_and_source_owned_cache(self):
         self.run_harness("source")
+
+    def test_local_preview_room_native_ranges_unicode_metadata_redirect_and_refusals(self):
+        self.run_harness("local")
+
+    def test_local_module_registration_availability_exports_disabled_and_idempotence(self):
+        self.run_harness("registration")

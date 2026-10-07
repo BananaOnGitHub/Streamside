@@ -12,8 +12,15 @@ mutation, catalog, picker, sending/local echo, or animation hook is added.
 The implementation is a narrow **in-memory Hermes component patch**, not a
 native Fabric/C++ storage-offset hook. It patches only the incoming EmotePart
 function and never changes the JS bundle or React/Hermes framework on disk.
-Width is not yet verified on a device. This is an experimental compatibility
-build, not a release/tag.
+The user's build-56 device report confirms functional width for the tested
+incoming cases. This remains a compatibility experiment, not a release/tag.
+
+The post-test report records one patched body, zero refusals, 87 proportional
+alias matches and zero collisions. All 120 provider image responses succeeded
+(75 GIF, 39 WebP, 6 other), with no empty/error/cancel outcomes. These are request
+and matcher totals, not counts of distinct visible emotes. Earlier B/C reports
+confirmed animated images continue after scrolling. This does not validate every
+provider, enlarged layout, native overlap or zero-width composition.
 
 ## Exact admission and fallback
 

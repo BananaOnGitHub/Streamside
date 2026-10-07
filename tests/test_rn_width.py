@@ -19,6 +19,7 @@ HARNESS = r'''
 #include <assert.h>
 #include <stdio.h>
 #include "TASRNWidthPatch.h"
+#include "TASRNLocalEchoPatch.h"
 static bool fail_sha;
 static unsigned char *fixture_sha(const void *p,uint32_t n,unsigned char *out) {
     (void)p;(void)n;if(fail_sha)return NULL;
@@ -29,6 +30,7 @@ int main(int argc,char **argv) {
     assert(argc==2);
     unsigned char code[192];size_t a=tas_rn_width_code(code,13);
     if(!strcmp(argv[1],"code")){assert(fwrite(code,1,a,stdout)==a);return 0;}
+    if(!strcmp(argv[1],"localcode")){a=tas_rn_local_code(code);assert(fwrite(code,1,a,stdout)==a);return 0;}
     assert(tas_rn_width_id(900000000000001ULL,1)%10000==1000);
     assert(tas_rn_width_id(900000000000001ULL,0)%10000==1000);
     assert(tas_rn_width_id(900000000000001ULL,-2)%10000==1000);
@@ -44,6 +46,10 @@ int main(int argc,char **argv) {
     tas_rn_put32(body+8,98);tas_rn_put32(body+32,TAS_RN_BODY_SIZE);
     memcpy(body+TAS_RN_SMALL_HEADER,small,sizeof(small));
     memcpy(body+TAS_RN_LARGE_HEADER,large,sizeof(large));
+    const unsigned char local_header[]={0xc2,0x1e,0x7e,7,0xac,2,0x3e,0x18,0x22,0x15,1,2};
+    memcpy(body+TAS_RN_LOCAL_HEADER,local_header,12);
+    tas_rn_put32(body+TAS_RN_LOCAL_OFFSET+9,672);
+    tas_rn_put32(body+TAS_RN_LOCAL_OFFSET+0x14,661);
     fixture_sha(NULL,0,body+TAS_RN_BODY_SIZE-20);
     for(unsigned i=0;i<TAS_RN_FUNCTION_SIZE;i++)body[TAS_RN_FUNCTION_OFFSET+i]=(unsigned char)i;
     size_t n=99;assert(!tas_rn_width_patch(NULL,TAS_RN_BODY_SIZE,fixture_sha,&n)&&!n);
@@ -71,6 +77,25 @@ int main(int argc,char **argv) {
     tas_rn_width_code(code,14);assert(!memcmp(fn+0x238+a,code,a));
     assert(!memcmp(fn+0x238+a*2,body+TAS_RN_FUNCTION_OFFSET+0x238,TAS_RN_FUNCTION_SIZE-0x238));
     size_t second=5;assert(!tas_rn_width_patch(copy,n,fixture_sha,&second)&&!second);
+    unsigned char local_code[96];size_t local_extra=tas_rn_local_code(local_code),local_count=0;
+    assert(!tas_rn_local_patch(body,TAS_RN_BODY_SIZE,fixture_sha,&local_count));
+    copy[TAS_RN_LOCAL_HEADER]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[TAS_RN_LOCAL_HEADER]^=1;
+    copy[n-1]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[n-1]^=1;
+    fail_sha=true;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));fail_sha=false;
+    unsigned char *local=tas_rn_local_patch(copy,n,fixture_sha,&local_count);assert(local);
+    assert(local_count==n+684+local_extra);
+    assert(!memcmp(local+TAS_RN_LARGE_HEADER,copy+TAS_RN_LARGE_HEADER,36));
+    assert(!memcmp(local+TAS_RN_BODY_SIZE-20,copy+TAS_RN_BODY_SIZE-20,1207));
+    assert(!memcmp(local+TAS_RN_LOCAL_OFFSET,copy+TAS_RN_LOCAL_OFFSET,684));
+    unsigned char *new_fn=local+n-20;
+    assert(tas_rn_u32(new_fn+9)==672+local_extra && tas_rn_u32(new_fn+0x14)==661+local_extra);
+    assert(!memcmp(new_fn+0x2a6,local_code,local_extra));
+    assert(!memcmp(new_fn+0x2a6+local_extra,body+TAS_RN_LOCAL_OFFSET+0x2a6,6));
+    for(unsigned i=0;i<n-20;i++) {
+        if((i>=32&&i<36)||(i>=TAS_RN_LOCAL_HEADER&&i<TAS_RN_LOCAL_HEADER+6))continue;
+        assert(copy[i]==local[i]);
+    }
+    assert(!tas_rn_local_patch(local,local_count,fixture_sha,&second));free(local);
     free(copy);free(body);return 0;
 }
 '''
@@ -156,3 +181,31 @@ class RNWidthTests(unittest.TestCase):
                 before, after = evaluate(result.stdout,identity,enlarged)
                 self.assertIs(after[0],before)
                 self.assertEqual(after[1],{'width': (56 if enlarged else 24)*aspect})
+
+    def test_local_shim_calls_only_completed_preview_and_missing_bridge_preserves_identity(self):
+        code=subprocess.run([self.binary,'localcode'],capture_output=True,check=True).stdout
+        for available in range(4):
+            original=object(); replacement=object(); calls=[]
+            def render(this,line):
+                self.assertIs(line,original);calls.append(line);return replacement
+            module={} if available<3 else {'buildLocalEcho':render}
+            proxy={} if available<2 else {'buildLocalEcho':module}
+            global_object={} if available<1 else {'nativeModuleProxy':proxy}
+            regs={3:original};pos=0
+            while pos<len(code):
+                at=pos;op=code[pos];pos+=1
+                if op==61: regs[code[pos]]=global_object;pos+=1
+                elif op==144:
+                    dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
+                    regs[dest]={51393:'nativeModuleProxy',20058:'buildLocalEcho'}[key]
+                elif op==93:
+                    dest,obj,key=code[pos:pos+3];pos+=3;regs[dest]=regs[obj].get(regs[key])
+                elif op==179:
+                    delta=struct.unpack_from('<i',code,pos)[0];test=code[pos+4];pos+=5
+                    # Empty JS objects are truthy.
+                    if regs[test] is None: pos=at+delta
+                elif op==110:
+                    dest,fn,this,arg=code[pos:pos+4];pos+=4;regs[dest]=regs[fn](regs[this],regs[arg])
+                else: self.fail(f'Unexpected local shim opcode {op}')
+            self.assertIs(regs[3],replacement if available==3 else original)
+            self.assertEqual(len(calls),available==3)

@@ -64,6 +64,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"frameCount"))result=(id)(uintptr_t)o->count;
     else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
     else if(!strcmp(sel,"weakObjectsHashTable"))result=fresh("NSHashTable");
+    else if(!strcmp(sel,"containsObject:")){id item=va_arg(ap,id);for(U i=0;i<o->count;i++)if(o->items[i]==item)result=(id)(uintptr_t)YES;}
     else if(!strcmp(sel,"addObject:")){assert(o->count<8);o->items[o->count++]=va_arg(ap,id);}
     else if(!strcmp(sel,"allObjects"))result=o;
     else if(!strcmp(sel,"objectAtIndex:"))result=o->items[va_arg(ap,U)];
@@ -187,9 +188,41 @@ static void installation(void) {
     tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==7 && clock_class);
     tas_rn_composer_ui_retry_hooks();assert(installed==7);
 }
+static void cold_start(void) {
+    tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
+    id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),source=fresh("NSAttributedString"),window=fresh("UIWindow");
+    owner->editor=editor;editor->window=window;editor->parent=window;editor->value=source;
+    source->length=1;source->units[0]=0xfffc;source->items[0]=provider();
+    /* Original token already exists while its first network request is pending. */
+    sync(owner);assert(!owner->target && !copies);
+    assert(owners && owners->count==1 && owners->items[0]==owner);
+    sync(owner);assert(owners->count==1); /* pending owners are a weak set */
+    id template=fresh("Animation"),delays=fresh("NSDictionary");template->value=delays;
+    for(unsigned i=0;i<3;i++){template->items[i]=fresh("UIImage");delays->items[i]=fresh("NSNumber");delays->items[i]->seconds=0.1;}
+    id data=fresh("NSData"),response=fresh("NSHTTPURLResponse");
+    data->value=template;data->length=gif_bytes(data->bytes,3);response->length=200;
+    tas_rn_composer_ui_image(900000000000001ULL,data,response,nil);
+    State *s=state(owner->target);assert(s && s->count==1 && s->link && copies==1);
+    assert(s->frames[0].attachment==source->items[0]);
+    /* Native completion may assign its still image after byte-cache delivery. */
+    id still=fresh("UIImage");v1(source->items[0],"setImage:",still);
+    s->link->seconds=1;animate(owner->target,"ssTick:",s->link);
+    s->link->seconds=1.11;animate(owner->target,"ssTick:",s->link);
+    assert(source->items[0]->image==template->items[1] && invalidations==1);
+    /* A token deleted before the data arrives must not be rebound. */
+    id second=fresh(INPUT),editor2=fresh("TwitchEmoteInputView"),source2=fresh("NSAttributedString");
+    second->editor=editor2;editor2->window=window;editor2->parent=window;editor2->value=source2;
+    source2->length=1;source2->units[0]=0xfffc;source2->items[0]=provider();cache_data=nil;
+    sync(second);assert(!second->target && owners->count==2);
+    source2->length=0;source2->items[0]=nil;
+    tas_rn_composer_ui_image(900000000000001ULL,data,response,nil);
+    assert(!second->target && copies==1 && s->frames[0].index==1);
+    assert(source->length==1 && source->units[0]==0xfffc); /* no edit/retype required */
+    owner_dealloc(owner,"dealloc");clock_dealloc(owner->target,"dealloc");
+}
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -214,3 +247,4 @@ class RNComposerUITests(unittest.TestCase):
     def test_gif_preflight_body_budget_complete_blocks_timing_and_transport_gate(self):self.run_mode('gif')
     def test_independent_clocks_reconciliation_ime_deletion_visibility_and_teardown(self):self.run_mode('playback')
     def test_exact_abi_preference_retry_and_idempotent_hooks(self):self.run_mode('install')
+    def test_first_download_starts_original_attachment_without_retyping(self):self.run_mode('cold')

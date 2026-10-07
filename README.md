@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.63`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.64`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -29,9 +29,12 @@ Publication is on hold for device testing and the forthcoming logo.
     produces a placeholder without an image. Build 62 covers the native input's
     URL-based completion transport, which bypassed the request redirects;
     images are device-confirmed but appear square and static. Build 63 adds
-    provider-only native attachment widths and independent GIF preview clocks;
-    those changes await device validation. Incoming and sent-message rendering
-    are unchanged.
+    provider-only native attachment widths and independent GIF preview clocks.
+    Width is device-confirmed; GIFs play after deleting and retyping, but miss
+    first-download startup. Build 64 tracks pending inputs before decoder
+    creation so the existing download completion can start the original
+    attachment. That correction awaits device validation. Incoming and
+    sent-message rendering are unchanged.
   - Build 50's adapter targets legacy chat present in the donor binary, not the
     active RN interface. That baseline is preserved in
     `archive/twitch-31.5-build50-legacy-chat`.

@@ -163,6 +163,12 @@ static void animate(id self,SEL command,id link) {
     if(!live){stop(s);clear_frames(s);}
     objc_release(owner);objc_release(self);
 }
+static BOOL watch_owner(id owner) {
+    if(!owners)owners=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
+    if(((BOOL (*)(id,SEL,id))objc_msgSend)(owners,sel_registerName("containsObject:"),owner))return YES;
+    if(integer(owners,"count")>=8)return NO;
+    v1(owners,"addObject:",owner);return YES;
+}
 static void sync(id owner) {
     if(!tas_emotes_enabled_this_launch() || !main_thread() || !clock_class)return;
     INC(syncs);id editor=editor_for(owner);
@@ -176,6 +182,9 @@ static void sync(id owner) {
         if(((uint16_t (*)(id,SEL,U))objc_msgSend)(string,sel_registerName("characterAtIndex:"),i)!=0xfffc)continue;
         id attachment=attachment_at(source,i);uint64_t number=attachment_number(attachment);
         if(!number)continue;
+        /* Track the visible input before its first image download completes.
+         * A decoder-only registry misses cold attachments until another edit. */
+        if(!watch_owner(owner)){INC(refused);break;}
         BOOL duplicate=NO;for(U j=0;j<n;j++)if(frames[j].attachment==attachment)duplicate=YES;
         if(duplicate)continue;
         Frame f={.attachment=attachment,.location=i};
@@ -205,10 +214,8 @@ static void sync(id owner) {
         objc_retain(f.attachment);frames[n++]=f;
     }
     if(!s && n) {
-        if(!owners)owners=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
-        if(integer(owners,"count")>=8){for(U i=0;i<n;i++){objc_release(frames[i].attachment);objc_release(frames[i].animation);}INC(refused);return;}
         target=m0((id)clock_class,"new");s=calloc(1,sizeof(*s));
-        if(s && target){objc_initWeak(&s->owner,owner);memcpy((char *)target+clock_offset,&s,sizeof(s));associate(owner,&state_key,target);v1(owners,"addObject:",owner);}
+        if(s && target){objc_initWeak(&s->owner,owner);memcpy((char *)target+clock_offset,&s,sizeof(s));associate(owner,&state_key,target);}
         else {free(s);s=NULL;}
         objc_release(target);
     }

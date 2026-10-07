@@ -1,4 +1,4 @@
-# Twitch 31.5 text-box previews — builds 61–63
+# Twitch 31.5 text-box previews — builds 61–64
 
 Build 60 is device-confirmed for incoming and own sent-message emote display.
 Build 61 preserves both paths and enriches only the composer presentation map.
@@ -125,6 +125,36 @@ input controls when it commits a token. Check width and GIF playback, repeated
 instances, deletion, keyboard composition and background/foreground resume.
 Inspect the native preview hook/bridge and bounds/sizes/GIF/decoder/advance
 counters, plus Image URL completion counters if the placeholder persists.
+
+## Build 64 first-download startup
+
+The user confirms build 63 proportional widths. Animated emotes stay static
+on their first load, then animate after deletion and retyping. Its report shows
+all native preview hooks and String bridge available, 10 GIF bodies, 11
+decoders, 345 ticks, 265 frame advances and zero refusals. Aggregate counters
+confirm playback occurred, but cannot identify individual first-load failures.
+
+Production code tracked owners only after a decoder was created. A cold
+attachment had no cached GIF bytes, so it created no decoder and was absent
+from the weak owner registry. Download completion cached the bytes and scanned
+that registry, missing the waiting input. Retyping found the cached bytes and
+created a clock. A new production-code regression reproduces this missing
+registration before the fix.
+
+Build 64 registers a visible input when a known provider attachment is found,
+before requiring cached image bytes. The same bounded weak set (eight owners)
+now includes pending inputs; it does not retain them or allocate idle clocks.
+Data arrival rescans the current attributed text and creates playback on the
+original attachment. Deleted tokens are not rebound, and repeated syncs do not
+duplicate owner entries. No extra request, text edit, send change, width change
+or decoder/timing change is introduced.
+
+The new ASAN/UBSAN regression covers a token present before its first download,
+completion-triggered startup without another edit, a subsequent native still
+image assignment, and deletion before completion. The full suite has 80 tests.
+On device, fully relaunch build 64 and type an animated provider code that has
+not yet been used in the input. It should begin playing after its image loads,
+without deletion or retyping. Existing GIF/native/width checks still apply.
 
 ```sh
 ZIG=/path/to/zig EMOTE_DIAGNOSTIC=0 make verify test

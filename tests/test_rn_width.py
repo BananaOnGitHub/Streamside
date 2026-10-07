@@ -20,6 +20,7 @@ HARNESS = r'''
 #include <stdio.h>
 #include "TASRNWidthPatch.h"
 #include "TASRNLocalEchoPatch.h"
+#include "TASRNComposerPatch.h"
 static bool fail_sha;
 static unsigned char *fixture_sha(const void *p,uint32_t n,unsigned char *out) {
     (void)p;(void)n;if(fail_sha)return NULL;
@@ -31,6 +32,7 @@ int main(int argc,char **argv) {
     unsigned char code[256];size_t a=tas_rn_width_code(code,13);
     if(!strcmp(argv[1],"code")){assert(fwrite(code,1,a,stdout)==a);return 0;}
     if(!strcmp(argv[1],"localcode")){a=tas_rn_local_code(code);assert(fwrite(code,1,a,stdout)==a);return 0;}
+    if(!strcmp(argv[1],"composercode")){a=tas_rn_composer_code(code);assert(fwrite(code,1,a,stdout)==a);return 0;}
     assert(tas_rn_width_id(900000000000001ULL,1)%10000==1000);
     assert(tas_rn_width_id(900000000000001ULL,0)%10000==1000);
     assert(tas_rn_width_id(900000000000001ULL,-2)%10000==1000);
@@ -104,19 +106,50 @@ int main(int argc,char **argv) {
         if((i>=32&&i<36)||(i>=TAS_RN_LOCAL_HEADER&&i<TAS_RN_LOCAL_HEADER+12))continue;
         assert(copy[i]==local[i]);
     }
-    assert(!tas_rn_local_patch(local,local_count,fixture_sha,&second));free(local);
+    assert(!tas_rn_local_patch(local,local_count,fixture_sha,&second));
+    /* Independent composer gate, immutable working patches, full-header ABI. */
+    const unsigned char composer_small[]={0xc4,0x7e,0x9c,0,0,0x40,0,0,0,0,0,0x20};
+    memcpy(local+TAS_RN_COMPOSER_HEADER,composer_small,12);
+    tas_rn_put32(local+TAS_RN_COMPOSER_INFO,TAS_RN_COMPOSER_OFFSET);
+    tas_rn_put32(local+TAS_RN_COMPOSER_INFO+12,TAS_RN_COMPOSER_SIZE);
+    tas_rn_put32(local+TAS_RN_COMPOSER_INFO+28,97);local[TAS_RN_COMPOSER_INFO+36]=2;
+    unsigned char composer_code[256];size_t composer_extra=tas_rn_composer_code(composer_code),composer_count=0;
+    local[TAS_RN_COMPOSER_HEADER]^=1;
+    assert(!tas_rn_composer_patch(local,local_count,fixture_sha,&composer_count));local[TAS_RN_COMPOSER_HEADER]^=1;
+    local[local_count-1]^=1;assert(!tas_rn_composer_patch(local,local_count,fixture_sha,&composer_count));local[local_count-1]^=1;
+    unsigned char *composer=tas_rn_composer_patch(local,local_count,fixture_sha,&composer_count);assert(composer);
+    unsigned char *composer_fn=composer+local_count-20;
+    assert(!memcmp(composer_fn,local+TAS_RN_COMPOSER_OFFSET,TAS_RN_COMPOSER_JOIN));
+    assert(!memcmp(composer_fn+TAS_RN_COMPOSER_JOIN,composer_code,composer_extra));
+    assert(!memcmp(composer_fn+TAS_RN_COMPOSER_JOIN+composer_extra,
+        local+TAS_RN_COMPOSER_OFFSET+TAS_RN_COMPOSER_JOIN,TAS_RN_COMPOSER_SIZE-TAS_RN_COMPOSER_JOIN));
+    size_t composer_info=(local_count-20+TAS_RN_COMPOSER_SIZE+composer_extra+3)&~(size_t)3;
+    assert(composer_count==composer_info+76 && tas_rn_u32(composer+composer_info+28)==97);
+    assert(composer[composer_info+36]==10);
+    assert(tas_rn_u32(composer+composer_info+44)==TAS_RN_COMPOSER_JOIN);
+    assert(tas_rn_u32(composer+composer_info+48)==TAS_RN_COMPOSER_JOIN+composer_extra-9);
+    assert(tas_rn_u32(composer+composer_info+52)==TAS_RN_COMPOSER_JOIN+composer_extra-4);
+    for(size_t i=0;i<local_count-20;i++) {
+        if((i>=32&&i<36)||(i>=TAS_RN_COMPOSER_HEADER&&i<TAS_RN_COMPOSER_HEADER+12))continue;
+        assert(local[i]==composer[i]);
+    }
+    assert(!tas_rn_composer_patch(composer,composer_count,fixture_sha,&second));
+    free(composer);free(local);
     free(copy);free(body);return 0;
 }
 '''
 
 
-def execute_local(code, line, client, event, global_object, frame=21, fail_at=None, catch=True):
+def execute_local(code, line, client, event, global_object, frame=21, fail_at=None, catch=True,
+                  initial=None, catch_end=None, catch_target=None):
     """Model fixed-call staging, including the writes omitted by build-59 tests.
 
     Hermes-98 writes this at frame-8, args downward, then seven metadata
     slots. It reads the callee register AFTER argument staging. No snapshots.
     """
-    regs={4:line,5:client}; pos=0; stage=0; caught=0
+    regs={4:line,5:client} if initial is None else initial.copy(); pos=0; stage=0; caught=0
+    if catch_end is None:catch_end=len(code)-7
+    if catch_target is None:catch_target=len(code)-2
     while pos<len(code):
         at=pos;op=code[pos];pos+=1
         try:
@@ -125,7 +158,7 @@ def execute_local(code, line, client, event, global_object, frame=21, fail_at=No
             elif op==61: regs[code[pos]]=global_object;pos+=1
             elif op==144:
                 dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
-                regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho',40125:'sentByCurrentUser',59101:'sourceRoomID',80:'body',90:'channel',57438:'emotes',102:'concat'}[key]
+                regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho',40125:'sentByCurrentUser',59101:'sourceRoomID',80:'body',90:'channel',57438:'emotes',102:'concat',46459:'emoteMap'}[key]
             elif op==139:
                 dest,val=code[pos:pos+2];pos+=2;regs[dest]=val
             elif op==93:
@@ -153,10 +186,13 @@ def execute_local(code, line, client, event, global_object, frame=21, fail_at=No
                 delta=struct.unpack_from('<i',code,pos)[0];pos=at+delta
             elif op==119:
                 regs[code[pos]]=None;pos+=1;caught+=1
+            elif op==147:regs[code[pos]]=None;pos+=1
+            elif op==16:
+                dest,source=code[pos:pos+2];pos+=2;regs[dest]=regs[source]
             else:raise AssertionError(f'Unexpected local shim opcode {op}')
         except (RuntimeError,TypeError,AttributeError):
-            if not catch or at>=len(code)-7:raise
-            pos=len(code)-2
+            if not catch or at>=catch_end:raise
+            pos=catch_target
     return regs,caught,stage
 
 
@@ -301,3 +337,26 @@ class RNWidthTests(unittest.TestCase):
             regs,caught,_=execute_local(code,value,client,{'sentByCurrentUser':True},global_object,fail_at=stage)
             self.assertEqual(caught,1);self.assertIs(regs[4],value);self.assertIs(regs[5],client)
             for key in before:self.assertIs(value[key],before[key])
+
+    def test_composer_call_frame_live_state_native_map_and_exception_fallback(self):
+        code=subprocess.run([self.binary,'composercode'],capture_output=True,check=True).stdout
+        native={'Kappa':'25'};enriched={**native,'Square':'900000000000001'}
+        state={r:object() for r in (6,7,8,11,12,17,18,23,26,31,32,33,36,37,43,44,46,50,56,57,62,74,76)}
+        state.update({2:None,47:native,49:'Kappa Square',75:'42'})
+        calls=[]
+        def preview(this,body,channel,mapping):
+            self.assertIs(this,module);self.assertEqual((body,channel),('Kappa Square','42'))
+            self.assertIs(mapping,native);calls.append(body);return enriched
+        module={'emoteMap':preview}
+        global_object={'__r':lambda this,identity:{'default':{'buildLocalEcho':module}}}
+        def run(fail=None,glob=global_object):
+            return execute_local(code,None,None,None,glob,frame=97,fail_at=fail,
+                initial=state,catch_end=len(code)-9,catch_target=len(code)-4)
+        regs,caught,stages=run();self.assertEqual(caught,0);self.assertIs(regs[47],enriched)
+        self.assertEqual(native,{'Kappa':'25'});self.assertEqual(len(calls),1)
+        for r,value in state.items():
+            if r!=47:self.assertIs(regs[r],value)
+        for stage in range(1,stages+1):
+            regs,caught,_=run(stage);self.assertEqual(caught,1)
+            for r,value in state.items():self.assertIs(regs[r],value)
+        regs,caught,_=run(glob={});self.assertEqual(caught,0);self.assertIs(regs[47],native)

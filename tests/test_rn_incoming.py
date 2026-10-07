@@ -327,6 +327,45 @@ static void local_array(void) {
     snprintf(other->login,sizeof(other->login),"fixture");assert(!rn_local_ranges(nil,NULL,body,channel,native));
 }
 static bool local_registration_available,local_protocol_available;
+static void composer_map(void) {
+    g_enabled=true;g_rn_composer_ready=true;
+    Room *r=ready("42"),*other=ready("43");snprintf(other->login,sizeof(other->login),"other");
+    snprintf(g_last_room,sizeof(g_last_room),"43");
+    add_emote_locked(r,MAX_ROOM,"Square","https://cdn.7tv.app/emote/square/2x.webp",0,false,NULL,1);
+    add_emote_locked(r,MAX_ROOM,"Wide","https://cdn.frankerfacez.com/emote/wide/2",2,false,NULL,3);
+    add_emote_locked(r,MAX_ROOM,"Kappa","https://cdn.7tv.app/emote/collision/2x.webp",0,false,NULL,1);
+    add_emote_locked(&g_global,MAX_GLOBAL,"Global","https://cdn.betterttv.net/emote/global/2x",1,true,NULL,1);
+    add_emote_locked(&g_global,MAX_GLOBAL,"Square","https://cdn.betterttv.net/emote/loser/2x",1,true,NULL,1);
+    add_emote_locked(other,MAX_ROOM,"Foreign","https://cdn.7tv.app/emote/foreign/2x.webp",0,false,NULL,1);
+    id native=fresh("NSDictionary"),kappa=string("25");native->count=1;
+    native->keys[0]=string("Kappa");native->values[0]=kappa;
+    id draft=string("😀 Kappa Square Square Wide Global Foreign"),channel=string("42");
+    id result=rn_composer_map(nil,NULL,draft,channel,native);
+    assert(result && result!=native && count(result)==4 && count(native)==1 && dict(result,"Kappa")==kappa);
+    assert(!dict(result,"Foreign") && !dict(native,"Square"));
+    char number[64];snprintf(number,sizeof(number),"%llu",(unsigned long long)find_word(r,"Square")->fake_id);
+    assert(!strcmp(text(dict(result,"Square")),number));
+    id request=fresh("NSMutableURLRequest"),url=fresh("NSURL");request->children[0]=url;
+    snprintf(url->value,sizeof(url->value),"https://static-cdn.jtvnw.net/emoticons/v2/%s/static/dark/1.0",number);
+    id redirected=tas_emotes_rewrite_request_copy(request);
+    assert(redirected && !strcmp(redirected->children[0]->value,"https://cdn.7tv.app/emote/square/2x.webp"));
+    assert(!strcmp(text(draft),"😀 Kappa Square Square Wide Global Foreign") && !strcmp(text(channel),"42"));
+    assert(PROBE_GET(g_rn_composer_maps)==1 && PROBE_GET(g_rn_composer_entries)==3);
+    assert(!rn_composer_map(nil,NULL,string("Kappa square PreSquare SquarePost"),channel,native));
+    assert(rn_composer_map(nil,NULL,string("Square"),channel,nil));
+    assert(!rn_composer_map(nil,NULL,string(""),channel,native));
+    assert(!rn_composer_map(nil,NULL,draft,string("unknown"),native));
+    assert(!rn_composer_map(nil,NULL,string("Wide"),string("43"),native));
+    assert(!rn_composer_map(nil,NULL,draft,channel,fresh("NSArray")));
+    draft->byte_count=8193;assert(!rn_composer_map(nil,NULL,draft,channel,native));draft->byte_count=0;
+    draft->byte_count=strlen(text(draft))+1;assert(!rn_composer_map(nil,NULL,draft,channel,native));draft->byte_count=0;
+    native->count=20001;assert(!rn_composer_map(nil,NULL,draft,channel,native));native->count=1;
+    g_enabled=false;assert(!rn_composer_map(nil,NULL,draft,channel,native));g_enabled=true;
+    g_rn_composer_ready=false;assert(!rn_composer_map(nil,NULL,draft,channel,native));g_rn_composer_ready=true;
+    snprintf(other->login,sizeof(other->login),"42");assert(!rn_composer_map(nil,NULL,draft,channel,native));
+    const TASRNMethodInfo *info=rn_composer_export(nil,NULL);
+    assert(!strcmp(info->js_name,"emoteMap") && info->synchronous);
+}
 static unsigned local_allocations,local_disposals,local_registrations,local_exports;
 static Class local_allocated_class,local_meta;
 static void register_local_fixture(Class cls) { assert(cls==local_registered_class);local_exports++; }
@@ -345,10 +384,12 @@ void objc_disposeClassPair(Class cls) { assert(cls==local_allocated_class);local
 Class object_getClass(id object) { assert(object==local_allocated_class);return local_meta; }
 BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
     if(!strcmp(selector,"renderLocalBody:channel:nativeRanges:"))assert(cls==local_allocated_class && imp==(IMP)rn_local_ranges && !strcmp(encoding,"@40@0:8@16@24@32"));
+    else if(!strcmp(selector,"previewMap:channel:nativeMap:"))assert(cls==local_allocated_class && imp==(IMP)rn_composer_map && !strcmp(encoding,"@40@0:8@16@24@32"));
     else {
         assert(cls==local_meta);
         if(!strcmp(selector,"moduleName"))assert(imp==(IMP)rn_local_module_name && !strcmp(encoding,"@16@0:8"));
         else if(!strcmp(selector,"requiresMainQueueSetup"))assert(imp==(IMP)rn_local_main_queue && !strcmp(encoding,"B16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideComposer"))assert(imp==(IMP)rn_composer_export && !strcmp(encoding,"^v16@0:8"));
         else assert(!strcmp(selector,"__rct_export__streamsideLocalEcho") && imp==(IMP)rn_local_export && !strcmp(encoding,"^v16@0:8"));
     }
     return YES;
@@ -364,7 +405,8 @@ static void local_registration(void) {
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
-    else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
+    else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
+    else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
@@ -411,6 +453,9 @@ class RNIncomingTests(unittest.TestCase):
     def test_local_display_array_static_unicode_native_overlap_and_scope(self):
         result=subprocess.run([self.binary,'array'],capture_output=True,text=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
         self.assertEqual(result.returncode,0,result.stderr)
+
+    def test_composer_preview_map_draft_native_identity_provider_precedence_scope_and_bounds(self):
+        self.run_harness("composer")
 
     @classmethod
     def tearDownClass(cls):

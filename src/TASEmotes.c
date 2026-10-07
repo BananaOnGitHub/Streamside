@@ -15,7 +15,7 @@
 #include "TASEmoteProbe.h"
 #include "TASEmoteImageProbe.h"
 #include "TASRNWidthPatch.h"
-#include "TASRNLocalEchoPatch.h"
+#include "TASRNComposerPatch.h"
 
 #include <dlfcn.h>
 #include <objc/runtime.h>
@@ -136,6 +136,8 @@ static IMP g_rn_source_data;
 static bool g_rn_width_ready;
 static bool g_rn_local_registered, g_rn_local_ready;
 static uint64_t g_rn_local_exports, g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
+static bool g_rn_composer_ready;
+static uint64_t g_rn_composer_calls, g_rn_composer_maps, g_rn_composer_entries, g_rn_composer_refused, g_rn_composer_scope_misses;
 static char g_rn_width_data_key, g_rn_width_checked_key;
 static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_width_collisions;
 static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -1361,6 +1363,65 @@ refused:
 }
 
 typedef struct { const char *js_name; const char *objc_name; BOOL synchronous; } TASRNMethodInfo;
+/* Native TwitchEmoteInputView consumes [String:String] name -> emote ID.
+ * Enrich only a copy of its presentation map, from this composer's explicit
+ * channel ID and literal draft. Never touch the TMI session/library map or
+ * use the most recently seen room. Native input owns tokenization, IME,
+ * caret/selection conversion, deletion and reconstruction of plain text.
+ */
+static id rn_composer_map(id self, SEL command, id body, id channel, id native) {
+    (void)self; (void)command;
+    PROBE_INC(g_rn_composer_calls);
+    if (!g_enabled || !__atomic_load_n(&g_rn_composer_ready,__ATOMIC_ACQUIRE)) return nil;
+    if (!kind(body,"NSString") || !kind(channel,"NSString") ||
+        (native && (!kind(native,"NSDictionary") || count(native)>20000))) goto refused;
+    const char *draft=text(body), *identity=text(channel);
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(body,
+        sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    if (!draft || bytes>8192 || strnlen(draft,8193)!=bytes || !identity ||
+        !*identity || strnlen(identity,97)>96) goto refused;
+    if (!bytes) return nil;
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room=NULL; unsigned scopes=0;
+    for (unsigned i=0;i<MAX_ROOMS;i++) if (g_rooms[i].occupied &&
+        (!strcmp(identity,g_rooms[i].id) || !strcmp(identity,g_rooms[i].login))) {
+        room=&g_rooms[i]; scopes++;
+    }
+    if (scopes!=1) {
+        pthread_mutex_unlock(&g_emote_lock); PROBE_INC(g_rn_composer_scope_misses); return nil;
+    }
+    id result=nil; unsigned added=0;
+    for (const char *p=draft;*p;) {
+        if (*p==' ' || *p=='\t' || *p=='\r' || *p=='\n') { p++; continue; }
+        const char *start=p;
+        while (*p && *p!=' ' && *p!='\t' && *p!='\r' && *p!='\n') p++;
+        size_t n=(size_t)(p-start);
+        if (!n || n>96) continue;
+        char word[97]; memcpy(word,start,n); word[n]=0;
+        Emote *e=find_word(room,word);
+        if (!e) e=find_word(&g_global,word);
+        if (!e) continue;
+        id key=str(word);
+        if (dict(native,word) || (result && dict(result,word))) continue;
+        if (!result) result=native ? call0(native,"mutableCopy") : call0((id)objc_getClass("NSMutableDictionary"),"new");
+        if (!result) break;
+        char number[32]; snprintf(number,sizeof(number),"%llu",(unsigned long long)e->fake_id);
+        ((void (*)(id,SEL,id,id))objc_msgSend)(result,sel_registerName("setObject:forKey:"),str(number),key);
+        added++;
+        if (added==128) break;
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    if (!result) return nil;
+    PROBE_INC(g_rn_composer_maps); __atomic_add_fetch(&g_rn_composer_entries,added,__ATOMIC_RELAXED);
+    return call0(result,"autorelease");
+refused:
+    PROBE_INC(g_rn_composer_refused); return nil;
+}
+static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
+    (void)self; (void)command;
+    static const TASRNMethodInfo info={"emoteMap","previewMap:(NSString *)body channel:(NSString *)channel nativeMap:(NSDictionary *)native",YES};
+    return &info;
+}
 static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
     (void)self; (void)command;
     PROBE_INC(g_rn_local_exports);
@@ -1387,9 +1448,11 @@ static void install_rn_local(void) {
                 Class meta=object_getClass((id)cls);
                 bool ok=class_addProtocol(cls,protocol) &&
                     class_addMethod(cls,sel_registerName("renderLocalBody:channel:nativeRanges:"),(IMP)rn_local_ranges,"@40@0:8@16@24@32") &&
+                    class_addMethod(cls,sel_registerName("previewMap:channel:nativeMap:"),(IMP)rn_composer_map,"@40@0:8@16@24@32") &&
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
-                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8");
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideComposer"),(IMP)rn_composer_export,"^v16@0:8");
                 if (ok) {
                     objc_registerClassPair(cls); register_module(cls);
                     __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);
@@ -1890,7 +1953,7 @@ static id rn_source_data(id self, SEL command) {
     }
     size_t count=0;
     unsigned char *patch=NULL;
-    bool local=false;
+    bool local=false, composer=false;
     if (kind(data,"NSData")) {
         size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
         TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
@@ -1900,6 +1963,9 @@ static id rn_source_data(id self, SEL command) {
                 size_t local_count=0;
                 unsigned char *local_patch=tas_rn_local_patch(patch,count,sha1,&local_count);
                 if (local_patch) { free(patch); patch=local_patch; count=local_count; local=true; }
+                size_t composer_count=0;
+                unsigned char *composer_patch=tas_rn_composer_patch(patch,count,sha1,&composer_count);
+                if (composer_patch) { free(patch); patch=composer_patch; count=composer_count; composer=true; }
             }
         }
     }
@@ -1913,9 +1979,11 @@ static id rn_source_data(id self, SEL command) {
         objc_setAssociatedObject(self,&g_rn_width_data_key,cached,1);
         __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
+        if (composer) __atomic_store_n(&g_rn_composer_ready,true,__ATOMIC_RELEASE);
         PROBE_INC(g_rn_width_patches);
         tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
         if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
+        if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
     } else {
         PROBE_INC(g_rn_width_refused);
         tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
@@ -2066,6 +2134,8 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "RN local preview module/patch: %s/%s\n"
         "RN local preview export discoveries: %llu\n"
         "RN local preview calls/rewritten/refused/scope misses: %llu/%llu/%llu/%llu\n"
+        "RN composer preview patch: %s\n"
+        "RN composer preview calls/maps/entries/refused/scope misses: %llu/%llu/%llu/%llu/%llu\n"
         "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
         "IRC frames refused (size/encoding/allocation budget): %llu\n"
         "Image hooks (private task/completion): %s/%s\n"
@@ -2104,6 +2174,12 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_rn_local_changed),
         (unsigned long long)PROBE_GET(g_rn_local_refused),
         (unsigned long long)PROBE_GET(g_rn_local_scope_misses),
+        __atomic_load_n(&g_rn_composer_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_composer_calls),
+        (unsigned long long)PROBE_GET(g_rn_composer_maps),
+        (unsigned long long)PROBE_GET(g_rn_composer_entries),
+        (unsigned long long)PROBE_GET(g_rn_composer_refused),
+        (unsigned long long)PROBE_GET(g_rn_composer_scope_misses),
         (unsigned long long)PROBE_GET(g_rn_calls),
         (unsigned long long)PROBE_GET(g_rn_irc),
         (unsigned long long)PROBE_GET(g_rn_rewritten),

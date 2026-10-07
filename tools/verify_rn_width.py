@@ -22,7 +22,7 @@ DONOR_SHA256 = '718762b71095c11754b1f58ad01fb580852414e6d7f468fbb2236b7c2419e641
 BODY_SHA256 = '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
 
 
-def verify(donor, zig, hermesc=None, local=False):
+def verify(donor, zig, hermesc=None, local=False, composer=False):
     from hermes_dec.parsers.hbc_file_parser import HBCReader as ProvisionalReader
     from hermes_dec.parsers.hbc_bytecode_parser import parse_hbc_bytecode
     class HBCReader(ProvisionalReader):
@@ -48,7 +48,7 @@ def verify(donor, zig, hermesc=None, local=False):
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         source = root/'patch.c'
-        source.write_text('''#include "TASRNLocalEchoPatch.h"
+        source.write_text('''#include "TASRNComposerPatch.h"
 void *patch(const void *p,size_t n,TASRNSHA1 sha,size_t *out) {
  return tas_rn_width_patch(p,n,sha,out);
 }
@@ -56,6 +56,10 @@ void *local_patch(const void *p,size_t n,TASRNSHA1 sha,size_t *out) {
  return tas_rn_local_patch(p,n,sha,out);
 }
 size_t local_code(unsigned char *p){return tas_rn_local_code(p);}
+void *composer_patch(const void *p,size_t n,TASRNSHA1 sha,size_t *out) {
+ return tas_rn_composer_patch(p,n,sha,out);
+}
+size_t composer_code(unsigned char *p){return tas_rn_composer_code(p);}
 void dispose(void *p){free(p);}
 size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
 ''')
@@ -91,6 +95,18 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
             if not pointer: raise ValueError('Local patch refused admitted width body')
             try: patched=ctypes.string_at(pointer,size.value)
             finally: lib.dispose(pointer)
+        composer_base=len(patched)
+        composer_extra=0
+        if composer:
+            lib.composer_patch.argtypes=lib.patch.argtypes
+            lib.composer_patch.restype=ctypes.c_void_p
+            lib.composer_code.argtypes=[ctypes.c_void_p]
+            lib.composer_code.restype=ctypes.c_size_t
+            composer_extra=lib.composer_code(ctypes.create_string_buffer(256))
+            pointer=lib.composer_patch(ctypes.create_string_buffer(patched),len(patched),sha,ctypes.byref(size))
+            if not pointer:raise ValueError('Composer patch refused admitted body')
+            try:patched=ctypes.string_at(pointer,size.value)
+            finally:lib.dispose(pointer)
         if original.raw[:-1] != body: raise ValueError('Original body mutated')
         if hashlib.sha1(patched[:-20]).digest() != patched[-20:]: raise ValueError('Bad patched footer')
         h, changed = HBCReader(), HBCReader()
@@ -125,8 +141,10 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         for i,(a,b) in enumerate(zip(h.function_headers,changed.function_headers)):
             for field in a._fields_:
                 name = field[0]
-                if i in ({index,34307} if local else {index}) and name in ('offset','bytecodeSizeInBytes'): continue
+                targets={index}|({34307} if local else set())|({22083} if composer else set())
+                if i in targets and name in ('offset','bytecodeSizeInBytes'): continue
                 if local and i==34307 and name in ('frameSize','hasExceptionHandler'): continue
+                if composer and i==22083 and name=='hasExceptionHandler':continue
                 left,right=getattr(a,name),getattr(b,name)
                 if isinstance(left,ctypes.Array):left,right=bytes(left),bytes(right)
                 if left != right: raise ValueError(f'Unexpected function header {i}/{name}')
@@ -204,10 +222,51 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                     raise ValueError('Injected call overlaps its own outgoing frame')
             print('Frame 21: outgoing call writes isolated from r0..r9; one fail-open Catch verified')
             print(f'Library own-event function 34307: 121 -> {121+3+local_extra}; {local_branches} original branch targets verified')
+        if composer:
+            allowed.update(range(128+22083*12,140+22083*12))
+            old_header,new_header=h.function_headers[22083],changed.function_headers[22083]
+            instructions={x.original_pos:x for x in parse_hbc_bytecode(new_header,changed)}
+            original_ops=list(parse_hbc_bytecode(old_header,h))
+            if str(next(x for x in original_ops if x.original_pos==0xa1)).find("'emoteMap'")<0:
+                raise ValueError('Composer preview-map join mismatch')
+            branches=0
+            for ins in original_ops:
+                at=ins.original_pos+composer_extra*(ins.original_pos>=0xa7)
+                current=instructions[at]
+                old=body[old_header.offset+ins.original_pos:old_header.offset+ins.next_pos]
+                new=patched[new_header.offset+at:new_header.offset+current.next_pos]
+                if old!=new:raise ValueError('Original composer instruction changed')
+                for arg,operand in enumerate(ins.inst.operands,1):
+                    if not operand.operand_type.name.startswith('Addr'):continue
+                    target=ins.original_pos+getattr(ins,f'arg{arg}')
+                    actual=current.original_pos+getattr(current,f'arg{arg}')
+                    if actual!=target+composer_extra*(target>=0xa7) or actual not in instructions:
+                        raise ValueError('Composer branch relocation mismatch')
+                    branches+=1
+            if new_header.offset!=composer_base-20 or new_header.frameSize!=97:
+                raise ValueError('Composer frame/extent changed')
+            expected=(0xa7,0xa7+composer_extra-9,0xa7+composer_extra-4)
+            handlers=changed.function_id_to_exc_handlers[22083]
+            if len(handlers)!=1 or (handlers[0].start,handlers[0].end,handlers[0].target)!=expected:
+                raise ValueError('Composer handler interval mismatch')
+            if instructions[expected[2]].inst.name!='Catch' or instructions[expected[1]].inst.name!='JmpLong':
+                raise ValueError('Composer exception containment mismatch')
+            restore=instructions[0xa7+composer_extra-2]
+            if restore.inst.name!='LoadConstUndefined' or restore.arg1!=2:
+                raise ValueError('Composer original undefined must be restored')
+            live={6,7,8,11,12,17,18,23,26,31,32,33,36,37,43,44,46,47,49,50,56,57,62,74,75,76}
+            for ins in instructions.values():
+                if not 0xa7<=ins.original_pos<expected[1] or ins.inst.name not in ('Call2','Call4'):continue
+                argc=2 if ins.inst.name=='Call2' else 4
+                staging=set(range(new_header.frameSize-7-argc,new_header.frameSize))
+                sources={getattr(ins,f'arg{i}') for i in range(2,argc+3)}
+                if staging&(live|sources):raise ValueError('Composer call clobbers live state')
+            print(f'Scoped composer 22083: unchanged frame 97; {branches} original branch targets and fail-open Catch verified')
         modifications = [i for i,(a,b) in enumerate(zip(body[:-20],patched)) if a != b]
         if set(modifications)-allowed: raise ValueError('Unexpected original-body change')
         expected_length=len(body)+947+2*extra
         if local: expected_length=((expected_length-20+121+3+local_extra+3)&~3)+40+16+20
+        if composer:expected_length=((expected_length-20+6240+composer_extra+3)&~3)+40+16+20
         if len(patched) != expected_length: raise ValueError('Unexpected patch extent')
         if hermesc:
             if local:
@@ -249,6 +308,17 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 if not all(key in text for key in ('21 registers','Catch','Exception Handlers:','start =','target =')):
                     raise ValueError('Hermes-98 did not recognize own-preview frame and handler')
                 print('Independent Hermes-98 disassembly recognizes frame 21 and own-preview Catch table')
+            if composer:
+                identity=-1;own=[]
+                with (root/'hermes.dump').open(errors='replace') as output:
+                    for line in output:
+                        if line.startswith(('Function<','NCFunction<')):identity+=1
+                        if identity==22083:own.append(line)
+                        if identity>22083:break
+                text=''.join(own)
+                if not all(key in text for key in ('97 registers','Catch','Exception Handlers:','emoteMap')):
+                    raise ValueError('Hermes-98 did not recognize composer frame/handler')
+                print('Independent Hermes-98 disassembly recognizes composer preview map and Catch table')
         print(f'Exact donor admitted; function {index}: {before.bytecodeSizeInBytes} -> {after.bytecodeSizeInBytes} bytes')
         print(f'{branches} original branch targets and all other function headers preserved')
         print(f'{len(modifications)} original-body bytes changed, solely in length and target header; footer valid')
@@ -262,6 +332,7 @@ if __name__ == '__main__':
     parser.add_argument('--zig',default=os.environ.get('ZIG') or shutil.which('zig'))
     parser.add_argument('--hermesc')
     parser.add_argument('--local',action='store_true',help='Also verify the own-preview patch')
+    parser.add_argument('--composer',action='store_true',help='Also verify scoped text-box previews')
     args = parser.parse_args()
     if not args.zig: parser.error('Zig required')
-    verify(args.donor,args.zig,args.hermesc,args.local)
+    verify(args.donor,args.zig,args.hermesc,args.local,args.composer)

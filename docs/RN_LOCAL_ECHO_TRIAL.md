@@ -2,6 +2,10 @@
 
 ## Device evidence and corrected seam
 
+The user confirms build 60 fixes the regression: sent messages and all tested
+emotes render correctly. Its reception and local-emission patches are preserved
+byte-for-byte by build 61's separate composer-preview trial.
+
 Build 59 recorded one export discovery but zero native preview calls. The user
 reported that sent messages disappeared entirely, after sending a static square
 7TV code. This is a regression, not evidence of successful local rendering.

@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.60`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.61`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -23,8 +23,10 @@ Publication is on hold for device testing and the forthcoming logo.
     proportional incoming width is device-confirmed for the user's tested cases.
     Build 59 reached local-preview export discovery but hid sent messages before
     any native preview call. Build 60 corrects its outgoing call-frame overlap
-    and adds exception fallback to original emission. Local display still
-    needs device validation; incoming reception remains unchanged.
+    and adds exception fallback to original emission. The user confirms sent
+    messages and emotes now render correctly. Build 61 adds channel-scoped
+    provider preview maps to the active native text input; text-box behavior
+    needs device validation. Incoming and sent-message rendering are unchanged.
   - Build 50's adapter targets legacy chat present in the donor binary, not the
     active RN interface. That baseline is preserved in
     `archive/twitch-31.5-build50-legacy-chat`.

@@ -28,6 +28,7 @@ extern id objc_retain(id);
 extern void objc_release(id);
 extern id objc_storeWeak(id *, id);
 extern id objc_loadWeakRetained(id *);
+extern int pthread_main_np(void);
 #define ADD(x,n) ((void)__atomic_add_fetch(&(x),(n),__ATOMIC_RELAXED))
 #define INC(x) ADD(x,1)
 #define GET(x) __atomic_load_n(&(x),__ATOMIC_RELAXED)
@@ -41,7 +42,9 @@ enum { CONNECT, SOCKET_OPEN, DELEGATE, RECEIVE, EVENT, SEND,
        HOST_SURFACE_MODE, HOST_SURFACE, FABRIC_INIT, FABRIC_START, HOSTING_WINDOW,
        HOST_JS, INSTANCE_JS, CALLABLE_JS, DISPATCH_EVENT, INPUT_SELECTION,
        INPUT_BEGIN, INPUT_END, SUBMIT_SET, SOCKET_SEND, SOCKET_SEND_DATA,
-       NETWORK_BUILD, MAP_GET, TEMPLATE_GET, URL_FACTORY, URL_INIT, HOOK_COUNT };
+       NETWORK_BUILD, MAP_GET, TEMPLATE_GET, URL_FACTORY, URL_INIT,
+       ATTACH_INIT, FOUNDATION_ATTACH_INIT, ATTACH_IMAGE_SET,
+       PARAGRAPH_STATE, PARAGRAPH_LAYOUT, PARAGRAPH_TEXT, HOOK_COUNT };
 typedef struct {
     const char *class_name, *selector, *encoding;
     bool meta;
@@ -91,6 +94,17 @@ static uint64_t catalog_overflow, catalog_oversize, catalog_budget, catalog_allo
 static uint64_t template_kinds[5], consumer_urls[2], url_sources[3];
 static uint64_t tag_ids[5], tag_ranges[3], tag_budget;
 static _Thread_local unsigned input_consumer_depth;
+/* Build 54 retains fixed structural counters only, never sampled objects. */
+static uint64_t attachment_inits[2], attachment_init_nested[2], attachment_image_sets;
+static uint64_t attachment_set_images[4], attachment_bounds_images[4];
+static uint64_t attachment_image_square, attachment_image_wide, attachment_image_getter_refusals;
+static uint64_t paragraph_scope_hits[3], paragraph_unscoped[3], paragraph_off_main;
+static uint64_t paragraph_reads, paragraph_snapshots, paragraph_nil, paragraph_other, paragraph_empty;
+static uint64_t paragraph_native_attachments, paragraph_other_attachments, paragraph_invalid_attachments;
+static uint64_t paragraph_budget, paragraph_length_refusals, paragraph_run_refusals, paragraph_getter_refusals;
+static uint64_t paragraph_hierarchy_refusals, paragraph_attribute_refusals;
+static _Thread_local unsigned paragraph_probe_depth;
+enum { PARAGRAPH_SNAPSHOT_LIMIT=512, PARAGRAPH_LENGTH_LIMIT=4096, PARAGRAPH_RUN_LIMIT=256 };
 enum { TRACE_SURFACE, TRACE_MAP, TRACE_VALUE_EMPTY, TRACE_VALUE_NONEMPTY,
        TRACE_INPUT_CHANGE, TRACE_INPUT_SELECTION, TRACE_SUBMIT, TRACE_IRC_SEND,
        TRACE_GQL_SEND, TRACE_GQL_CATALOG, TRACE_KIND_COUNT };
@@ -370,6 +384,85 @@ static void value_shape(id value) {
     else { INC(input_values_empty);trace(TRACE_VALUE_EMPTY); }
 }
 static id array_at(id array,U index) { return ((id (*)(id,SEL,U))objc_msgSend)(array,sel_registerName("objectAtIndex:"),index); }
+static bool getter_abi(id object,const char *selector,const char *expected) {
+    Method method=object ? class_getInstanceMethod(object_getClass(object),sel_registerName(selector)) : NULL;
+    const char *encoding=method ? method_getTypeEncoding(method) : NULL;
+    return encoding && !strcmp(encoding,expected);
+}
+static unsigned attachment_image_kind(id image) {
+    return !image ? 0 : kind(image,"TwitchAnimatedImage") ? 2 : kind(image,"UIImage") ? 1 : 3;
+}
+static void attachment_image_at_bounds(id attachment) {
+    if (!getter_abi(attachment,"image","@16@0:8")) { INC(attachment_image_getter_refusals);return; }
+    id image=m0(attachment,"image");INC(attachment_bounds_images[attachment_image_kind(image)]);
+    if (!kind(image,"UIImage") || !getter_abi(image,"size","{CGSize=dd}16@0:8")) return;
+    Size size=((Size (*)(id,SEL))objc_msgSend)(image,sel_registerName("size"));
+    if (size.width>0 && size.height>0) {
+        if (size.width>size.height*1.2) INC(attachment_image_wide);
+        else if (size.width>=size.height*.95 && size.width<=size.height*1.05) INC(attachment_image_square);
+    }
+}
+/* Require both message and chat-region markers. Never read accessibility labels. */
+static bool paragraph_chat_scope(id view) {
+    bool message=false,region=false;
+    for (unsigned i=0;view && i<64;i++,view=m0(view,"superview")) {
+        if (!kind(view,"UIView")) return false;
+        if (!getter_abi(view,"accessibilityIdentifier","@16@0:8") || !getter_abi(view,"superview","@16@0:8")) {
+            INC(paragraph_getter_refusals);return false;
+        }
+        id identifier=m0(view,"accessibilityIdentifier");const char *unused;
+        if (bounded_text(identifier,64,&unused)) {
+            message=message || equals(identifier,"chat-message-line") || equals(identifier,"chat-message-pressable") || equals(identifier,"chat-message-row");
+            region=region || equals(identifier,"chat-message-list") || equals(identifier,"chat-message-region") || equals(identifier,"chat-area");
+        }
+        if (message && region) return true;
+    }
+    if (view) INC(paragraph_hierarchy_refusals);
+    return false;
+}
+static void paragraph_snapshot(id text) {
+    uint64_t ticket=__atomic_add_fetch(&paragraph_snapshots,1,__ATOMIC_RELAXED);
+    if (ticket>PARAGRAPH_SNAPSHOT_LIMIT) { INC(paragraph_budget);return; }
+    if (!text) { INC(paragraph_nil);return; }
+    if (!kind(text,"NSAttributedString")) { INC(paragraph_other);return; }
+    if (!getter_abi(text,"length","Q16@0:8") ||
+        !getter_abi(text,"attribute:atIndex:effectiveRange:","@40@0:8@16Q24^{_NSRange=QQ}32")) {
+        INC(paragraph_attribute_refusals);return;
+    }
+    U length=((U (*)(id,SEL))objc_msgSend)(text,sel_registerName("length"));
+    if (!length) { INC(paragraph_empty);return; }
+    if (length>PARAGRAPH_LENGTH_LIMIT) { INC(paragraph_length_refusals);return; }
+    U index=0;unsigned runs=0;
+    while (index<length) {
+        if (runs++>=PARAGRAPH_RUN_LIMIT) { INC(paragraph_run_refusals);return; }
+        Range range={0,0};
+        id attachment=((id (*)(id,SEL,id,U,Range *))objc_msgSend)(text,
+            sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),index,&range);
+        /* Validate progress/overflow without retaining a range or position. */
+        if (range.location>index || !range.length || range.location>length || range.length>length-range.location || range.location+range.length<=index) {
+            INC(paragraph_run_refusals);return;
+        }
+        if (attachment) {
+            if (kind(attachment,ATTACHMENT)) INC(paragraph_native_attachments);
+            else if (kind(attachment,"NSTextAttachment")) INC(paragraph_other_attachments);
+            else INC(paragraph_invalid_attachments);
+        }
+        index=range.location+range.length;
+    }
+}
+static bool paragraph_scoped(id view,unsigned boundary) {
+    if (!pthread_main_np()) { INC(paragraph_off_main);return false; }
+    if (!paragraph_chat_scope(view)) { INC(paragraph_unscoped[boundary]);return false; }
+    INC(paragraph_scope_hits[boundary]);return true;
+}
+static void paragraph_read(id view,unsigned boundary) {
+    if (paragraph_probe_depth || !paragraph_scoped(view,boundary)) return;
+    if (GET(paragraph_snapshots)>=PARAGRAPH_SNAPSHOT_LIMIT) { INC(paragraph_budget);return; }
+    if (!getter_abi(view,"attributedText","@16@0:8")) { INC(paragraph_getter_refusals);return; }
+    paragraph_probe_depth++;INC(paragraph_reads);
+    id text=m0(view,"attributedText");paragraph_snapshot(text);
+    paragraph_probe_depth--;
+}
 static void js_handoff(id module,id method,id args) {
     if (equals(module,"RCTDeviceEventEmitter") && equals(method,"emit")) {
         INC(js_module_device);
@@ -549,6 +642,7 @@ static id url_init_hook(id self,SEL sel,id value,id base) {
 static Rect bounds_hook(id self,SEL sel,id container,Rect line,Point glyph,I index) {
     HIT(ATTACH_BOUNDS);
     Rect result=((Rect (*)(id,SEL,id,Rect,Point,I))hooks[ATTACH_BOUNDS].original)(self,sel,container,line,glyph,index);
+    if (pthread_main_np() && kind(self,ATTACHMENT)) attachment_image_at_bounds(self);
     if (result.size.width>0 && result.size.height>0) {
         if (result.size.width>result.size.height*1.2) INC(input_wide);
         else if (result.size.width>=result.size.height*.95 && result.size.width<=result.size.height*1.05) INC(input_square);
@@ -636,6 +730,39 @@ static id network_build_hook(id self,SEL sel,id query,id devtools,id completion)
     return ((id (*)(id,SEL,id,id,id))hooks[NETWORK_BUILD].original)(self,sel,query,devtools,completion);
 }
 
+static id attachment_init_hook(id self,SEL sel,id data,id type) {
+    HIT(ATTACH_INIT);
+    id result=((id (*)(id,SEL,id,id))hooks[ATTACH_INIT].original)(self,sel,data,type);
+    if (kind(result,ATTACHMENT)) { INC(attachment_inits[0]);if (input_consumer_depth) INC(attachment_init_nested[0]); }
+    return result;
+}
+static id foundation_attachment_init_hook(id self,SEL sel,id data,id type) {
+    HIT(FOUNDATION_ATTACH_INIT);
+    id result=((id (*)(id,SEL,id,id))hooks[FOUNDATION_ATTACH_INIT].original)(self,sel,data,type);
+    if (kind(result,ATTACHMENT)) { INC(attachment_inits[1]);if (input_consumer_depth) INC(attachment_init_nested[1]); }
+    return result;
+}
+static void attachment_image_set_hook(id self,SEL sel,id image) {
+    HIT(ATTACH_IMAGE_SET);
+    if (kind(self,ATTACHMENT)) { INC(attachment_image_sets);INC(attachment_set_images[attachment_image_kind(image)]); }
+    ((void (*)(id,SEL,id))hooks[ATTACH_IMAGE_SET].original)(self,sel,image);
+}
+static void paragraph_state_hook(id self,SEL sel,const void *state,const void *old) {
+    HIT(PARAGRAPH_STATE);
+    /* C++ shared_ptr references are opaque: forward, never decode. */
+    ((void (*)(id,SEL,const void *,const void *))hooks[PARAGRAPH_STATE].original)(self,sel,state,old);
+    paragraph_read(self,0);
+}
+static void paragraph_layout_hook(id self,SEL sel) {
+    HIT(PARAGRAPH_LAYOUT);((void (*)(id,SEL))hooks[PARAGRAPH_LAYOUT].original)(self,sel);
+    paragraph_read(self,1);
+}
+static id paragraph_text_hook(id self,SEL sel) {
+    HIT(PARAGRAPH_TEXT);id result=((id (*)(id,SEL))hooks[PARAGRAPH_TEXT].original)(self,sel);
+    if (!paragraph_probe_depth && paragraph_scoped(self,2)) paragraph_snapshot(result);
+    return result;
+}
+
 /* Exact donor encodings, including structs, C++ pointers, blocks and floats.
  * An incompatible/missing method is reported; it is never approximated. */
 #define SPEC(slot,cls,sel,type,fn,is_meta) [slot]={cls,sel,type,is_meta,(IMP)fn,NULL,0,{0},{0},0,false}
@@ -690,6 +817,14 @@ static Hook hooks[HOOK_COUNT]={
      * as donor-defined implementations. An absent/different method is skipped. */
     SPEC(URL_FACTORY,"NSURL","URLWithString:","@24@0:8@16",url_factory_hook,true),
     SPEC(URL_INIT,"NSURL","initWithString:relativeToURL:","@32@0:8@16@24",url_init_hook,false),
+    SPEC(ATTACH_INIT,ATTACHMENT,"initWithData:ofType:","@32@0:8@16@24",attachment_init_hook,false),
+    /* Base hooks cover superclass dispatch; only native attachments contribute
+     * image/init observations. Every unrelated object forwards unchanged. */
+    SPEC(FOUNDATION_ATTACH_INIT,"NSTextAttachment","initWithData:ofType:","@32@0:8@16@24",foundation_attachment_init_hook,false),
+    SPEC(ATTACH_IMAGE_SET,"NSTextAttachment","setImage:","v24@0:8@16",attachment_image_set_hook,false),
+    SPEC(PARAGRAPH_STATE,"RCTParagraphComponentView","updateState:oldState:","v32@0:8r^v16r^v24",paragraph_state_hook,false),
+    SPEC(PARAGRAPH_LAYOUT,"RCTParagraphComponentView","layoutSubviews","v16@0:8",paragraph_layout_hook,false),
+    SPEC(PARAGRAPH_TEXT,"RCTParagraphComponentView","attributedText","@16@0:8",paragraph_text_hook,false),
 };
 void tas_rn_probe_retry_hooks(void) {
     pthread_mutex_lock(&install_lock);
@@ -789,6 +924,22 @@ void tas_rn_probe_status(char *buffer,size_t capacity) {
             i+1,scopes[c->scope],c->snapshots,c->entries,c->string_keys,c->other_keys,c->string_values,c->other_values,c->distinct,c->repeated,c->decimal,c->opaque,c->urls,c->empty,c->oversized);
     }
     append(buffer,capacity,&used,"  No catalog keys/values, ID fingerprints, ranges or URLs retained; shape counts do not prove JS parser execution or synthetic-ID support.\n");
+    append(buffer,capacity,&used,"Build 54 attachment/paragraph consumers (passive; local echo deferred):\n"
+        "  Native attachment init subclass/base: %llu/%llu; input-nested: %llu/%llu (can double-count)\n"
+        "  Native attachment image assignments: %llu; nil/UIImage/animated/other: %llu/%llu/%llu/%llu\n"
+        "  Native attachment images at bounds nil/UIImage/animated/other: %llu/%llu/%llu/%llu; source square/wide: %llu/%llu; image getter refusals: %llu\n"
+        "  Chat-scoped paragraph state/layout/external getter: %llu/%llu/%llu; unscoped: %llu/%llu/%llu; off-main skips: %llu\n"
+        "  Paragraph observer reads/sample attempts/nil/other/empty: %llu/%llu/%llu/%llu/%llu\n"
+        "  Paragraph attachment runs native-composer/other/invalid: %llu/%llu/%llu (other is not necessarily an emote)\n"
+        "  Paragraph sample budget/length/run/getter/hierarchy/attribute refusals: %llu/%llu/%llu/%llu/%llu/%llu\n"
+        "  Counts are repeated observations, not messages or unique emotes; no text, attributes, attachment identities or C++ state retained.\n",
+        (unsigned long long)GET(attachment_inits[0]),(unsigned long long)GET(attachment_inits[1]),(unsigned long long)GET(attachment_init_nested[0]),(unsigned long long)GET(attachment_init_nested[1]),
+        (unsigned long long)GET(attachment_image_sets),(unsigned long long)GET(attachment_set_images[0]),(unsigned long long)GET(attachment_set_images[1]),(unsigned long long)GET(attachment_set_images[2]),(unsigned long long)GET(attachment_set_images[3]),
+        (unsigned long long)GET(attachment_bounds_images[0]),(unsigned long long)GET(attachment_bounds_images[1]),(unsigned long long)GET(attachment_bounds_images[2]),(unsigned long long)GET(attachment_bounds_images[3]),(unsigned long long)GET(attachment_image_square),(unsigned long long)GET(attachment_image_wide),(unsigned long long)GET(attachment_image_getter_refusals),
+        (unsigned long long)GET(paragraph_scope_hits[0]),(unsigned long long)GET(paragraph_scope_hits[1]),(unsigned long long)GET(paragraph_scope_hits[2]),(unsigned long long)GET(paragraph_unscoped[0]),(unsigned long long)GET(paragraph_unscoped[1]),(unsigned long long)GET(paragraph_unscoped[2]),(unsigned long long)GET(paragraph_off_main),
+        (unsigned long long)GET(paragraph_reads),(unsigned long long)GET(paragraph_snapshots),(unsigned long long)GET(paragraph_nil),(unsigned long long)GET(paragraph_other),(unsigned long long)GET(paragraph_empty),
+        (unsigned long long)GET(paragraph_native_attachments),(unsigned long long)GET(paragraph_other_attachments),(unsigned long long)GET(paragraph_invalid_attachments),
+        (unsigned long long)GET(paragraph_budget),(unsigned long long)GET(paragraph_length_refusals),(unsigned long long)GET(paragraph_run_refusals),(unsigned long long)GET(paragraph_getter_refusals),(unsigned long long)GET(paragraph_hierarchy_refusals),(unsigned long long)GET(paragraph_attribute_refusals));
     append(buffer,capacity,&used,"Hook calls / installation / first receiver / first native caller image+offset:\n");
     for (unsigned i=0;i<HOOK_COUNT;i++) {
         Hook *h=&hooks[i];append(buffer,capacity,&used,"  %s.%s: %llu %s receiver=%s caller=%s+0x%llx\n",h->class_name,h->selector,

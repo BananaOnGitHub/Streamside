@@ -433,7 +433,108 @@ RN provider rendering until this passive evidence is reviewed.
   frameworks, is byte-identical. The old animation forensic report is absent.
 - Output: `Twitch-31.5-Streamside-build53-rn-probe-unsigned.ipa`, 191,827,729 bytes.
   SHA256: `5ce83e576f314d73e3e2956c37eeff315631e8e50ea74f1af18b2d3b24677fa0`.
-  Sign with the normal sideloading tool. Device evidence is still required.
+  Sign with the normal sideloading tool. Device results are summarized in
+  [RN_BUILD53_FINDINGS.md](RN_BUILD53_FINDINGS.md).
 - This work stays on `diagnostic/rn-chat-boundary`; main, compat and the legacy
-  archive are unchanged. GitHub publication was blocked by the approval check;
-  the findings and probe commits are local pending explicit publication approval.
+  archive are unchanged. The initial approval block was resolved: the findings
+  and tested build-53 tree were published at
+  `423858b9d042215b954326359ec081114eb77adb`.
+
+## Build 54: native attachment and scoped paragraph consumers
+
+Build 53's recorded map is 951 string-token/string-ID entries, including 921
+distinct bounded values and 30 repetitions. Native picker insertion reaches
+the composer value/attachment bounds boundary, while map/template getters and
+input-attributed URL construction remain uninformative. See
+[RN_BUILD53_FINDINGS.md](RN_BUILD53_FINDINGS.md) for staged A–C evidence and
+Knoks's complementary, separately observed paragraph render hierarchy.
+
+Build 54 adds six hooks (54 total), without RN implementation changes:
+
+| Boundary | Measurement | Limit |
+|---|---|---|
+| Native TwitchEmoteAttachment `initWithData:ofType:` | Native returned attachment and synchronous input nesting | Swift initializers may bypass Objective-C entry |
+| NSTextAttachment base `initWithData:ofType:` | Same native-class filter, including superclass dispatch | Can double-count with subclass hook; unrelated attachments only forward |
+| NSTextAttachment `setImage:` | Native composer attachment assignments: nil/UIImage/TwitchAnimatedImage/other | No request provenance, completion replacement or unique attachment identity |
+| Existing native attachment bounds | Guarded image getter categories and source-image square/wide categories | Bounds calls repeat; image geometry is intrinsic source geometry, not rendered width |
+| RCTParagraphComponentView `updateState:oldState:` and `layoutSubviews` | Scoped callbacks, then guarded attributed-text reads | Opaque C++ references are passed through unchanged, never decoded |
+| RCTParagraphComponentView `attributedText` | Original return plus scoped structural sampling; observer reads counted separately | Nil/other/unavailable getter is an observation gap; not proof of absent rendered text |
+
+The four new donor-defined encodings are checked against the supplied Twitch
+31.5 donor; `tools/verify_rn_hook_abi.py <Twitch.app>` verifies all 50
+donor-defined hooks. The four Foundation hooks (two URLs, two attachment methods)
+remain exact-ABI runtime guarded, not donor-verified. Base hook call rows count
+all receivers; the new native attachment counters apply only to the native
+composer attachment class. Every original is invoked exactly once with the same
+arguments/result. No Swift offsets, descriptions or private state layout are read.
+
+Paragraph observation is main-thread-only and requires BOTH a message marker
+(`chat-message-line`, `chat-message-pressable`, or `chat-message-row`) AND a
+chat-region marker (`chat-message-list`, `chat-message-region`, or `chat-area`)
+among the view and at most 63 ancestors. Identifiers are transient bounded exact
+comparisons, not retained. State updates may precede mounting, so unscoped state
+callbacks are expected; layout provides another observation opportunity. No
+accessibility label, attributed-string text or arbitrary attribute dictionary is
+read. Only the `NSAttachment` attribute is queried across bounded runs.
+
+Sampling is capped at 512 attempts per launch, 4,096 UTF-16 units per attributed
+string, and 256 attribute runs per sample. Attempts include nil/empty/refused
+reads. Once exhausted, observer-created getter reads stop; naturally occurring
+getter calls still forward. Every refusal has a counter. Attribute ranges are
+checked for progress, bounds and overflow then discarded. Native-composer,
+other NSTextAttachment, and invalid-object runs are separate. **Other attachments
+are not necessarily emotes.** Runs and callbacks are repeated observations, not
+message, unique-emote or delivery counts. No ID, token, URL, text, image data,
+attachment identity, C++ state or payload survives observation.
+
+This targets two consumers without assuming they share the same representation.
+Even a positive paragraph attachment result will not establish JS parser/token
+execution, synthetic metadata compatibility, a complete KMP message model,
+provider rendering, or local echo. No provider injection, catalog mutation,
+request redirect, geometry change, callback replacement or JS patch is added.
+
+## Build 54 required device test
+
+Sign/install build 54, fully terminate/relaunch Twitch, and keep Diagnostic
+Logging enabled. Collect reports from the same launch without clearing counters:
+
+1. **A — baseline:** before entering the test stream, copy a report.
+2. **B — incoming:** open busy RN chat; allow native Twitch emotes to appear for
+   30–60 seconds without opening the picker, then copy a report.
+3. **C — native picker:** select one native Twitch emote; leave it UNSENT,
+   wait briefly, and copy a report. Note whether its composer image appeared.
+4. **D — optional typed comparison:** clear the unsent draft, type a known
+   native emote code, leave it unsent, and copy a report. Note whether it became
+   an attachment. Do not include the code in the report.
+
+The new build-54 section and hook rows are required, alongside the existing
+catalog/template/incoming-tag sections. Compare B→C native attachment init,
+image assignment and bounds-image observations. For incoming paragraphs, compare
+scoped state/layout/getter counts, nil/empty/other samples, attachment categories,
+and refusal counters. Preserve the distinction between observer-generated reads
+and natural getter traffic. An installed-but-zero hook or missing scope is not
+evidence that image loading or chat rendering failed. No send or local-echo test.
+
+## Build 54 completed validation and artifact
+
+- All 61 host tests passed, including the expanded ASan/UBSan RN harness:
+  initializer replacement-object forwarding, unchanged unrelated base receiver
+  calls, image category filtering, parent/region scope gating, main-thread skips,
+  untouched opaque state pointers, original getter results, observer-read
+  separation, nil/other/empty values, getter/attribute ABI refusals, length/run/
+  sample limits, zero-progress range rejection, privacy and worst-width report
+  tail retention. The report buffer is 32 KiB; host mocks do not prove iOS activity.
+- `verify_rn_hook_abi.py` matched all 50 donor-defined encodings. Four Foundation
+  hooks remain runtime-only. Enabled and disabled arm64 iOS dylib/framework
+  builds passed. Disabled outputs contain no RN probe report markers.
+- IPA patching, artifact guards and unsigned IPA verification passed. No donor
+  entry was removed. Only the main executable and app-name plist changed; the
+  two Streamside framework files were added. Every other donor entry, including
+  React/native input frameworks and the embedded Hermes bundle, is byte-identical.
+  No old emote animation forensic recorder was enabled.
+- Output: `Twitch-31.5-Streamside-build54-rn-probe-unsigned.ipa`, 191,830,143 bytes.
+  SHA256: `fabe23ceef95d5e6ca3140d9a2b9545f63b0196abee62c0e6d429fae8de52009`.
+  Sign with the normal sideloading tool. The A–C device test above is required.
+- Changes are isolated to the diagnostic probe, report/version metadata,
+  linker stub, tests, ABI-checking tool and documentation. Local echo remains
+  deferred; existing application integration sources are unchanged.

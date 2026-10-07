@@ -2,6 +2,12 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Diagnostic build 54 records build 53 device findings and adds passive native
+  attachment initialization/image assignment and chat-scoped RN paragraph
+  observations. Exact ABI checks, main-thread guards and bounded attribute-run
+  sampling preserve original behavior. No text/IDs/URLs or C++ state retained;
+  synthetic metadata tests and local echo remain deferred.
+
 - Diagnostic build 53 records bounded catalog key/value/ID shapes, distinct ID
   and repeated-value counts, input surface scope, native map getter activity,
   URL template categories, incoming metadata range shapes and emote URL

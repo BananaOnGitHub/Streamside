@@ -16,7 +16,15 @@ struct Fake { const char *cls,*text; id inner; U chars; };
 static struct Fake classes[]={ {"NSString",0,0,0},{"NSURL",0,0,0},
     {"SRWebSocket",0,0,0},{"RCTWebSocketModule",0,0,0},{"NSDictionary",0,0,0},
     {"NSArray",0,0,0},{"NSNumber",0,0,0},{"NSData",0,0,0},{"NSURLRequest",0,0,0},{"NSJSONSerialization",0,0,0},
-    {"UIView",0,0,0},{"RCTSurfaceHostingView",0,0,0} };
+    {"UIView",0,0,0},{"RCTSurfaceHostingView",0,0,0},
+    {ATTACHMENT,0,0,0},{"NSTextAttachment",0,0,0},{"NSAttributedString",0,0,0},
+    {"UIImage",0,0,0},{"TwitchAnimatedImage",0,0,0},{"RCTParagraphComponentView",0,0,0} };
+static int on_main=1;
+int pthread_main_np(void) { return on_main; }
+static id paragraph_value, attribute_attachment;
+static bool invalid_attribute_range, tiny_attribute_runs;
+static unsigned attribute_calls;
+static struct Fake identifier_result={"NSString",0,0,0};
 static struct Fake host={"NSString","irc-ws.chat.twitch.tv",0,0};
 static struct Fake url={"NSURL",0,&host,0},socket={"SRWebSocket",0,&url,0};
 static struct Fake receiver={"RCTWebSocketModule",0,0,0},event={"NSString","websocketMessage",0,0};
@@ -37,9 +45,18 @@ SEL sel_registerName(const char *s) { return s; }
 static id dispatch(id o,SEL sel,...) {
     if(!o) return nil;
     va_list ap;va_start(ap,sel);id result=nil;
-    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(ap,Class);result=(id)(uintptr_t)(c && (!strcmp(o->cls,c->cls) || (!strcmp(c->cls,"UIView") && !strcmp(o->cls,"RCTSurfaceHostingView")))); }
+    if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(ap,Class);result=(id)(uintptr_t)(c && (!strcmp(o->cls,c->cls) || (!strcmp(c->cls,"UIView") && (!strcmp(o->cls,"RCTSurfaceHostingView") || !strcmp(o->cls,"RCTParagraphComponentView"))) || (!strcmp(c->cls,"NSTextAttachment") && !strcmp(o->cls,ATTACHMENT)))); }
     else if(!strcmp(sel,"stringWithUTF8String:")) { string.text=va_arg(ap,const char *);result=&string; }
     else if(!strcmp(sel,"isEqualToString:")) { id value=va_arg(ap,id);result=(id)(uintptr_t)!strcmp(o->text,value->text); }
+    else if(!strcmp(sel,"accessibilityIdentifier")) { if(o->text) { identifier_result.text=o->text;result=&identifier_result; } }
+    else if(!strcmp(sel,"attributedText")) result=paragraph_text_hook(o,sel);
+    else if(!strcmp(sel,"image")) result=o->inner;
+    else if(!strcmp(sel,"attribute:atIndex:effectiveRange:")) {
+        id key=va_arg(ap,id);U at=va_arg(ap,U);Range *range=va_arg(ap,Range *);
+        assert(!strcmp(key->text,"NSAttachment") && at<o->chars);attribute_calls++;
+        *range=invalid_attribute_range ? (Range){at,0} : tiny_attribute_runs ? (Range){at,1} : (Range){0,o->chars};
+        result=attribute_attachment;
+    }
     else if(o==test_request && !strcmp(sel,"URL")) result=test_url;
     else if(o==test_request && !strcmp(sel,"HTTPBody")) result=test_data;
     else if(o==test_url && !strcmp(sel,"host")) result=test_gqlhost;
@@ -105,11 +122,29 @@ static id native_template_get(id self,SEL sel) { assert(self==&receiver && !strc
 static void native_template(id self,SEL sel,id value) { assert(self==&receiver && !strcmp(sel,"template") && value==&host && input_consumer_depth==1);template_forwarded++; }
 static void native_layout(id self,SEL sel) { assert(self==&receiver && !strcmp(sel,"layout") && input_consumer_depth==1);layout_forwarded++; }
 static const char *encoding="wrong";
-Method class_getInstanceMethod(Class c,SEL s) { assert(c && s);return (Method)&encoding; }
-const char *method_getTypeEncoding(Method m) { (void)m;return encoding; }
+static bool diagnostic_abi, reject_attribute_abi, reject_view_abi;
+static const char *selected_encoding;
+Method class_getInstanceMethod(Class c,SEL s) {
+    assert(c && s);selected_encoding=encoding;
+    if(diagnostic_abi) {
+        if(!strcmp(s,"accessibilityIdentifier") || !strcmp(s,"superview") || !strcmp(s,"attributedText") || !strcmp(s,"image")) selected_encoding=reject_view_abi ? "wrong" : "@16@0:8";
+        else if(!strcmp(s,"length")) selected_encoding="Q16@0:8";
+        else if(!strcmp(s,"attribute:atIndex:effectiveRange:")) selected_encoding=reject_attribute_abi ? "wrong" : "@40@0:8@16Q24^{_NSRange=QQ}32";
+    }
+    return (Method)&selected_encoding;
+}
+const char *method_getTypeEncoding(Method m) { return *(const char **)m; }
 IMP method_getImplementation(Method m) { (void)m;return (IMP)native_connect; }
 BOOL class_addMethod(Class c,SEL s,IMP i,const char *e) { (void)c;(void)s;(void)i;(void)e;return NO; }
 IMP method_setImplementation(Method m,IMP i) { (void)m;assert(i==(IMP)connect_hook);replaced++;return (IMP)native_connect; }
+static unsigned init_calls,base_init_calls,image_set_calls,state_calls,paragraph_layout_calls,paragraph_get_calls;
+static id init_result,expected_image;
+static id native_attach_init(id self,SEL sel,id data,id type) { assert(self==&receiver && !strcmp(sel,"attach-init") && data==&body && type==&host);init_calls++;return init_result; }
+static id native_base_init(id self,SEL sel,id data,id type) { assert(self==&receiver && !strcmp(sel,"base-init") && data==&body && type==&host);base_init_calls++;return init_result; }
+static void native_attach_set(id self,SEL sel,id value) { assert(self && !strcmp(sel,"set-image") && value==expected_image);image_set_calls++; }
+static void native_paragraph_state(id self,SEL sel,const void *state,const void *old) { assert(self && !strcmp(sel,"state") && state==&body && old==&host);state_calls++; }
+static void native_paragraph_layout(id self,SEL sel) { assert(self && !strcmp(sel,"paragraph-layout"));paragraph_layout_calls++; }
+static id native_paragraph_text(id self,SEL sel) { assert(self && !strcmp(sel,"attributedText"));paragraph_get_calls++;return paragraph_value; }
 int main(void) {
     hooks[RECEIVE].original=(IMP)native_receive;hooks[EVENT].original=(IMP)native_event;
     receive_hook(&receiver,"webSocket:didReceiveMessage:",&socket,&message);
@@ -200,16 +235,74 @@ int main(void) {
     op.text="ChatEmoteSets";for(U i=0;i<count(&batch);i++) gql_object(array_at(&batch,i));assert(gql_operations[2]==2);
     for(unsigned i=0;i<60;i++) trace(TRACE_GQL_SEND);
     assert(trace_count==48 && trace_rows[(trace_next+47)%48].sequence==trace_sequence);
+    /* Build 54: returned identities/arguments remain unchanged, including an
+     * initializer returning a replacement object and unrelated base receivers. */
+    diagnostic_abi=true;
+    struct Fake native_attachment={ATTACHMENT,0,0,0},other_attachment={"NSTextAttachment",0,0,0};
+    struct Fake image={"UIImage",0,0,0},animated_image={"TwitchAnimatedImage",0,0,0};
+    hooks[ATTACH_INIT].original=(IMP)native_attach_init;hooks[FOUNDATION_ATTACH_INIT].original=(IMP)native_base_init;
+    init_result=&native_attachment;input_consumer_depth=1;
+    assert(attachment_init_hook(&receiver,"attach-init",&body,&host)==init_result);
+    assert(foundation_attachment_init_hook(&receiver,"base-init",&body,&host)==init_result);
+    input_consumer_depth=0;init_result=&other_attachment;
+    assert(foundation_attachment_init_hook(&receiver,"base-init",&body,&host)==init_result);
+    assert(init_calls==1 && base_init_calls==2 && attachment_inits[0]==1 && attachment_inits[1]==1 && attachment_init_nested[0]==1 && attachment_init_nested[1]==1);
+    hooks[ATTACH_IMAGE_SET].original=(IMP)native_attach_set;expected_image=&image;
+    attachment_image_set_hook(&native_attachment,"set-image",expected_image);
+    attachment_image_set_hook(&other_attachment,"set-image",expected_image);
+    expected_image=nil;attachment_image_set_hook(&native_attachment,"set-image",nil);
+    assert(image_set_calls==3 && attachment_image_sets==2 && attachment_set_images[0]==1 && attachment_set_images[1]==1);
+    native_attachment.inner=&image;attachment_image_at_bounds(&native_attachment);
+    native_attachment.inner=&animated_image;attachment_image_at_bounds(&native_attachment);
+    native_attachment.inner=nil;attachment_image_at_bounds(&native_attachment);
+    assert(attachment_bounds_images[0]==1 && attachment_bounds_images[1]==1 && attachment_bounds_images[2]==1);
+    reject_view_abi=true;attachment_image_at_bounds(&native_attachment);assert(attachment_image_getter_refusals==1);reject_view_abi=false;
+    /* Parent marker is accepted only together with a chat-region ancestor. */
+    struct Fake region={"UIView","chat-message-region",0,0},pressable={"UIView","chat-message-pressable",&region,0};
+    struct Fake paragraph={"RCTParagraphComponentView",0,&pressable,0};
+    assert(paragraph_chat_scope(&paragraph));pressable.inner=nil;assert(!paragraph_chat_scope(&paragraph));pressable.inner=&region;
+    reject_view_abi=true;assert(!paragraph_chat_scope(&paragraph));reject_view_abi=false;
+    struct Fake cycle={"UIView",0,0,0};cycle.inner=&cycle;assert(!paragraph_chat_scope(&cycle) && paragraph_hierarchy_refusals==1);
+    hooks[PARAGRAPH_STATE].original=(IMP)native_paragraph_state;hooks[PARAGRAPH_LAYOUT].original=(IMP)native_paragraph_layout;hooks[PARAGRAPH_TEXT].original=(IMP)native_paragraph_text;
+    struct Fake attributed={"NSAttributedString","private-rendered-text",0,4};paragraph_value=&attributed;attribute_attachment=&other_attachment;
+    paragraph_state_hook(&paragraph,"state",&body,&host);
+    paragraph_layout_hook(&paragraph,"paragraph-layout");
+    assert(paragraph_text_hook(&paragraph,"attributedText")==&attributed);
+    assert(state_calls==1 && paragraph_layout_calls==1 && paragraph_get_calls==3 && paragraph_reads==2 && paragraph_snapshots==3 && paragraph_other_attachments==3);
+    assert(paragraph_scope_hits[0]==1 && paragraph_scope_hits[1]==1 && paragraph_scope_hits[2]==1 && !paragraph_probe_depth);
+    attribute_attachment=&native_attachment;paragraph_snapshot(&attributed);assert(paragraph_native_attachments==1);
+    attribute_attachment=&image;paragraph_snapshot(&attributed);assert(paragraph_invalid_attachments==1);
+    paragraph_value=nil;assert(!paragraph_text_hook(&paragraph,"attributedText") && paragraph_nil==1);
+    paragraph_snapshot(&image);assert(paragraph_other==1);attributed.chars=0;attributed.text=NULL;paragraph_snapshot(&attributed);assert(paragraph_empty==1);attributed.text="private-rendered-text";
+    attributed.chars=PARAGRAPH_LENGTH_LIMIT+1;paragraph_snapshot(&attributed);assert(paragraph_length_refusals==1);attributed.chars=4;
+    reject_attribute_abi=true;paragraph_snapshot(&attributed);assert(paragraph_attribute_refusals==1);reject_attribute_abi=false;
+    invalid_attribute_range=true;paragraph_snapshot(&attributed);assert(paragraph_run_refusals==1);invalid_attribute_range=false;
+    tiny_attribute_runs=true;attributed.chars=PARAGRAPH_RUN_LIMIT+1;paragraph_snapshot(&attributed);assert(paragraph_run_refusals==2);tiny_attribute_runs=false;attributed.chars=4;
+    on_main=0;unsigned reads_before=paragraph_get_calls;paragraph_layout_hook(&paragraph,"paragraph-layout");
+    assert(paragraph_off_main==1 && paragraph_get_calls==reads_before && paragraph_layout_calls==2);on_main=1;
+    paragraph.inner=nil;paragraph_read(&paragraph,0);assert(paragraph_unscoped[0]==1);paragraph.inner=&pressable;
+    paragraph_snapshots=PARAGRAPH_SNAPSHOT_LIMIT;unsigned attrs_before=attribute_calls;
+    paragraph_read(&paragraph,1);paragraph_snapshot(&attributed);
+    assert(paragraph_budget==2 && attribute_calls==attrs_before && paragraph_get_calls==reads_before);
+    diagnostic_abi=false;
     /* ABI mismatch must leave the native method intact. */
     for(unsigned i=0;i<HOOK_COUNT;i++) hooks[i].original=(IMP)native_connect;
     hooks[CONNECT].original=NULL;tas_rn_probe_retry_hooks();assert(!hooks[CONNECT].original && hooks[CONNECT].rejected && !replaced);
     encoding=hooks[CONNECT].encoding;tas_rn_probe_retry_hooks();assert(hooks[CONNECT].original==(IMP)native_connect && replaced==1);
     tas_rn_probe_retry_hooks();assert(replaced==1);
-    char report[24576];tas_rn_probe_status(report,sizeof(report));
-    assert(strstr(report,"Build 52 native handoffs") && strstr(report,"Build 53 catalog/metadata consumer") && strstr(report,"NETWORK") == NULL);
+    char report[32768];tas_rn_probe_status(report,sizeof(report));
+    assert(strstr(report,"Build 52 native handoffs") && strstr(report,"Build 53 catalog/metadata consumer") && strstr(report,"Build 54 attachment/paragraph consumers") && strstr(report,"NETWORK") == NULL);
     assert(!strstr(report,"private channel") && !strstr(report,"Kappa") && !strstr(report,"room-id") && !strstr(report,"private body"));
     assert(strstr(report,"No JS parser/token/local-echo callback"));
     assert(!strstr(report,"private-catalog-key") && !strstr(report,"native-opaque_1") && !strstr(report,"12345") && !strstr(report,"{id}"));
+    assert(!strstr(report,"private-rendered-text"));
+    /* Report tail survives maximum-width first-receiver/caller fields. */
+    for(unsigned i=0;i<HOOK_COUNT;i++) {
+        memset(hooks[i].receiver,'x',sizeof(hooks[i].receiver)-1);hooks[i].receiver[sizeof(hooks[i].receiver)-1]=0;
+        memset(hooks[i].caller,'x',sizeof(hooks[i].caller)-1);hooks[i].caller[sizeof(hooks[i].caller)-1]=0;
+        hooks[i].calls=UINT64_MAX;hooks[i].caller_offset=UINTPTR_MAX;
+    }
+    tas_rn_probe_status(report,sizeof(report));assert(strstr(report,"No JS parser/token/local-echo callback"));
     return 0;
 }
 '''

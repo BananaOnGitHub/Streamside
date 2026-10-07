@@ -1,10 +1,12 @@
-# Twitch 31.5 text-box previews — builds 61–62
+# Twitch 31.5 text-box previews — builds 61–63
 
 Build 60 is device-confirmed for incoming and own sent-message emote display.
 Build 61 preserves both paths and enriches only the composer presentation map.
 No catalog/picker integration or send rewriting is introduced.
 The build 61 device trial recognizes a provider token but leaves its gray image
 placeholder visible. Build 62 adds the missing URL image transport redirect.
+The user confirms images render, but with square proportions and no animation.
+Build 63 addresses those two native presentation limitations.
 
 ## Exact active seam
 
@@ -72,15 +74,57 @@ Hermes-98's independent disassembler must recognize the native-map call and
 new exception table. The fake host interpreter does not establish live input
 behavior, image decode, proportions, animation or IME correctness.
 
-Fully relaunch build 62. Type a known square provider code followed by a space,
+## Build 63 native presentation
+
+The donor attachment's bounds callback at 0x4274 returns equal width and height.
+Its `UIImage.decoded()` implementation at 0x44d8 draws into a static renderer,
+flattening the downloaded animation before attachment assignment. These are
+separate from the working RN chat image renderer.
+
+Provider-only bounds use the original height and baseline with catalog aspect
+ratio. Identity comes from the exact attachment class's `url` Swift String,
+bridged through the donor-imported Foundation function (native call at 0x4734).
+Runtime ivar spacing, instance bounds, method encodings, synthetic URL and known
+registry ID are checked; native/unknown attachments keep original geometry.
+
+The existing mapped URL completion keeps its original task and payload and
+also retains validated GIF bytes in a bounded in-memory cache (128 entries,
+8 MiB). GIF preflight limits encoded data to 2 MiB, canvas to 524288 pixels,
+and frames to 2–300. Each visible provider attachment uses an independent
+donor `FLAnimatedImage` decoder with four lazily cached frames. Estimated
+decoder/frame/encoded working sets are limited to 16 MiB per editor, with at
+most eight tracked editors and 128 attachments each.
+
+A 30 FPS display link updates only attachment images and invalidates display
+ranges. It never replaces text storage, selection, marked text, delegates or
+send callbacks. Original native layout/change/selection/window/value callbacks
+run first. Existing playheads survive layout and reordering; deleted ranges
+are checked again at tick time. Hidden/background editors stop and foreground
+retries resume without time catch-up. Owner deallocation invalidates the link
+and releases decoders. Keyboard composition suspends frame changes. GIF timing,
+including long final-frame holds, is preserved; previews loop independently.
+Non-GIF bodies keep native decoding and still-image fallback, including animated
+WebP if a provider supplies it. No donor framework or JS asset changes on disk.
+
+Build 63 adds four ASAN/UBSAN host tests covering production geometry and
+Swift-bridge admission, bounded GIF parsing, independent clocks, timing, IME,
+reorder/deletion, window/foreground transitions and deallocation, plus hook ABI
+refusal/idempotence. These tests do not establish actual iOS TextKit rendering
+or on-device GIF decoding. New sanitized `RN native input previews` counters
+report hook/bridge state, proportional sizes, GIF bodies, decoders and advances.
+
+## Build 63 device check
+
+Fully relaunch build 63. Type a known square provider code followed by a space,
 then move the caret out of the word or blur if Twitch keeps the active word as
 text. Compare a native code, a wide code and an animated code. Verify editing,
 backspace, Unicode around a code, and sending preserve literal text and the
 working local chat display. Change channel and check room-only codes do not
 leak. Inspect RN composer preview counters in the post-test report. Native
-input controls whether a preview animates and when it commits a token; this
-trial does not add a separate animation layer. Inspect the new Image URL
-completion hook and mapping/completion counters if the placeholder persists.
+input controls when it commits a token. Check width and GIF playback, repeated
+instances, deletion, keyboard composition and background/foreground resume.
+Inspect the native preview hook/bridge and bounds/sizes/GIF/decoder/advance
+counters, plus Image URL completion counters if the placeholder persists.
 
 ```sh
 ZIG=/path/to/zig EMOTE_DIAGNOSTIC=0 make verify test

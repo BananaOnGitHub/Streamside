@@ -57,6 +57,11 @@ void _Block_object_assign(void *destination,const void *value,int flags) {
 }
 void _Block_object_dispose(const void *value,int flags) { assert(flags==7);release_block(value); }
 void tas_diag_log(const char *event,const char *detail) { (void)event;(void)detail; }
+static unsigned preview_image_calls;
+void tas_rn_composer_ui_image(uint64_t number,id data,id response,id error) {
+    assert(number);(void)data;(void)response;(void)error;preview_image_calls++;
+}
+void tas_rn_composer_ui_retry_hooks(void) {}
 static unsigned deliveries;
 static id delivered,expected_self,expected_socket;
 static void original(id self,SEL command,id socket,id message) {
@@ -445,6 +450,7 @@ static void image_url_flow(void) {
     ((void (^)(id,id,id))url_deferred_completion)(url_original_data,url_original_response,url_original_error);
     release_block(url_deferred_completion);url_deferred_completion=NULL;
     assert(url_callback_calls==2 && PROBE_GET(g_url_completion_results)==2);
+    assert(preview_image_calls==2);
     url_deliver=true;
     /* A width alias resolves through the same registry; preserve error payload. */
     snprintf(url->value,sizeof(url->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/default/dark/2.0",(unsigned long long)e->width_id);

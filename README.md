@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.62`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.63`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -28,8 +28,10 @@ Publication is on hold for device testing and the forthcoming logo.
     provider preview maps to the active native text input. Its device trial
     produces a placeholder without an image. Build 62 covers the native input's
     URL-based completion transport, which bypassed the request redirects;
-    image display still needs device validation. Incoming and sent-message
-    rendering are unchanged.
+    images are device-confirmed but appear square and static. Build 63 adds
+    provider-only native attachment widths and independent GIF preview clocks;
+    those changes await device validation. Incoming and sent-message rendering
+    are unchanged.
   - Build 50's adapter targets legacy chat present in the donor binary, not the
     active RN interface. That baseline is preserved in
     `archive/twitch-31.5-build50-legacy-chat`.
@@ -83,12 +85,15 @@ LibraryTmiClient's completed own-message display line, preserving its native
 range objects, body and identity. Builds 57/58 recorded zero local callbacks;
 their TmiClient preview seam belongs to a separate client. Build 59 uses the
 LibraryTmiClient own event and the existing NativeModules loader. Local device
-rendering remains pending. It reuses the image/width route. Catalog, picker and
-tap-detail remain deferred;
-no new animation intervention is added. See the
+rendering is device-confirmed after build 60's call-frame correction. It reuses
+the image/width route. Catalog, picker and tap-detail remain deferred. Build 63
+adds animation only to native text-box provider attachments. See the
 [incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and
 [width experiment and device test](docs/RN_INCOMING_WIDTH_TRIAL.md) and
 [local sent-message trial](docs/RN_LOCAL_ECHO_TRIAL.md).
+The [native text-box trial](docs/RN_COMPOSER_PREVIEW_TRIAL.md) covers build 63's
+proportional sizing and bounded GIF playback; non-GIF images retain native
+decoding and still-image fallback.
 The [build-50 report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md) describes legacy chat
 only; its TextKit/layer sizing does not establish RN/Fabric proportional widths.
 Historical validation of the

@@ -16,6 +16,7 @@
 #include "TASEmoteImageProbe.h"
 #include "TASRNWidthPatch.h"
 #include "TASRNComposerPatch.h"
+#include "TASRNComposerUI.h"
 
 #include <dlfcn.h>
 #include <objc/runtime.h>
@@ -1936,6 +1937,8 @@ static id image_url_task(id self, SEL command, id url, id completion, IMP origin
     PROBE_INC(g_url_completion_calls);
     id replacement=image_url_copy(url);
     id handler=completion;
+    const char *path=replacement ? text(call0(url,"path")) : NULL;
+    uint64_t number=path ? strtoull(path+strlen("/emoticons/v2/"),NULL,10) : 0;
     /* A typed block capture is required in plain C: capturing an id pointer
      * alone would not copy Twitch's completion when Foundation copies ours. */
     void (^callback)(id,id,id)=(void (^)(id,id,id))completion;
@@ -1944,6 +1947,7 @@ static id image_url_task(id self, SEL command, id url, id completion, IMP origin
         if (error) PROBE_INC(g_url_completion_errors);
         if (!data || !((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length")))
             PROBE_INC(g_url_completion_empty);
+        tas_rn_composer_ui_image(number,data,response,error);
         /* Foundation copies this block before returning. Keep its bytes,
          * response, error, callback queue and callback count unchanged. */
         callback(data,response,error);
@@ -2174,6 +2178,7 @@ void tas_emotes_retry_hooks(void) {
     install_rn_width();
     install_rn_receive();
     install_image_url();
+    tas_rn_composer_ui_retry_hooks();
     if (!g_public_receive)
         hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),
                                         "receiveMessageWithCompletionHandler:",

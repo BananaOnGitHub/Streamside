@@ -182,30 +182,43 @@ class RNWidthTests(unittest.TestCase):
                 self.assertIs(after[0],before)
                 self.assertEqual(after[1],{'width': (56 if enlarged else 24)*aspect})
 
-    def test_local_shim_calls_only_completed_preview_and_missing_bridge_preserves_identity(self):
+    def test_local_shim_uses_native_modules_loader_and_preserves_missing_bridge_identity(self):
         code=subprocess.run([self.binary,'localcode'],capture_output=True,check=True).stdout
-        for available in range(4):
-            original=object(); replacement=object(); calls=[]
-            def render(this,line):
-                self.assertIs(line,original);calls.append(line);return replacement
-            module={} if available<3 else {'buildLocalEcho':render}
-            proxy={} if available<2 else {'buildLocalEcho':module}
-            global_object={} if available<1 else {'nativeModuleProxy':proxy}
-            regs={3:original};pos=0
-            while pos<len(code):
-                at=pos;op=code[pos];pos+=1
-                if op==61: regs[code[pos]]=global_object;pos+=1
-                elif op==144:
-                    dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
-                    regs[dest]={51393:'nativeModuleProxy',20058:'buildLocalEcho'}[key]
-                elif op==93:
-                    dest,obj,key=code[pos:pos+3];pos+=3;regs[dest]=regs[obj].get(regs[key])
-                elif op==179:
-                    delta=struct.unpack_from('<i',code,pos)[0];test=code[pos+4];pos+=5
-                    # Empty JS objects are truthy.
-                    if regs[test] is None: pos=at+delta
-                elif op==110:
-                    dest,fn,this,arg=code[pos:pos+4];pos+=4;regs[dest]=regs[fn](regs[this],regs[arg])
-                else: self.fail(f'Unexpected local shim opcode {op}')
-            self.assertIs(regs[3],replacement if available==3 else original)
-            self.assertEqual(len(calls),available==3)
+        for route in ['classic_config','native_proxy']:
+            for available in range(6):
+                original=object(); replacement=object(); calls=[]; requires=[]
+                def render(this,line):
+                    self.assertIs(this,module)
+                    self.assertIs(line,original);calls.append(line);return replacement
+                module={} if available<5 else {'buildLocalEcho':render}
+                modules={} if available<4 else {'buildLocalEcho':module}
+                exports={} if available<3 else {'default':modules}
+                def require(this,identity):
+                    self.assertIs(this,global_object);self.assertEqual(identity,16)
+                    requires.append(identity)
+                    return None if available<2 else exports
+                global_object={} if available<1 else {'__r':require}
+                # Classic RN has no global nativeModuleProxy. In bridgeless RN
+                # NativeModules returns that proxy through the same module.
+                if route=='native_proxy': global_object['nativeModuleProxy']=modules
+                regs={3:original};pos=0
+                while pos<len(code):
+                    at=pos;op=code[pos];pos+=1
+                    if op==61: regs[code[pos]]=global_object;pos+=1
+                    elif op==144:
+                        dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
+                        regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho'}[key]
+                    elif op==139:
+                        dest,val=code[pos:pos+2];pos+=2;regs[dest]=val
+                    elif op==93:
+                        dest,obj,key=code[pos:pos+3];pos+=3;regs[dest]=regs[obj].get(regs[key])
+                    elif op==179:
+                        delta=struct.unpack_from('<i',code,pos)[0];test=code[pos+4];pos+=5
+                        # Empty JS objects are truthy.
+                        if regs[test] is None: pos=at+delta
+                    elif op==110:
+                        dest,fn,this,arg=code[pos:pos+4];pos+=4;regs[dest]=regs[fn](regs[this],regs[arg])
+                    else: self.fail(f'Unexpected local shim opcode {op}')
+                self.assertIs(regs[3],replacement if available==5 else original)
+                self.assertEqual(len(calls),available==5)
+                self.assertEqual(len(requires),available>0)

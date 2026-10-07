@@ -135,7 +135,7 @@ static IMP g_rn_receive;
 static IMP g_rn_source_data;
 static bool g_rn_width_ready;
 static bool g_rn_local_registered, g_rn_local_ready;
-static uint64_t g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
+static uint64_t g_rn_local_exports, g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
 static char g_rn_width_data_key, g_rn_width_checked_key;
 static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_width_collisions;
 static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -1289,6 +1289,7 @@ static id rn_local_echo(id self, SEL command, id value) {
 typedef struct { const char *js_name; const char *objc_name; BOOL synchronous; } TASRNMethodInfo;
 static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
     (void)self; (void)command;
+    PROBE_INC(g_rn_local_exports);
     static const TASRNMethodInfo info={"buildLocalEcho","renderLocalEcho:(NSString *)line",YES};
     return &info;
 }
@@ -1840,7 +1841,7 @@ static id rn_source_data(id self, SEL command) {
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
         PROBE_INC(g_rn_width_patches);
         tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
-        if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview calls registered local renderer; send path unchanged");
+        if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
     } else {
         PROBE_INC(g_rn_width_refused);
         tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
@@ -1989,6 +1990,7 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "RN width source hook/patch active: %s/%s\n"
         "RN width bodies patched/refused; alias matches/collisions: %llu/%llu; %llu/%llu\n"
         "RN local preview module/patch: %s/%s\n"
+        "RN local preview export discoveries: %llu\n"
         "RN local preview calls/rewritten/refused/scope misses: %llu/%llu/%llu/%llu\n"
         "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
         "IRC frames refused (size/encoding/allocation budget): %llu\n"
@@ -2023,6 +2025,7 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_rn_width_collisions),
         __atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE) ? "registered" : "missing",
         __atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_local_exports),
         (unsigned long long)PROBE_GET(g_rn_local_calls),
         (unsigned long long)PROBE_GET(g_rn_local_changed),
         (unsigned long long)PROBE_GET(g_rn_local_refused),

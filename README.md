@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.57`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.58`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -21,7 +21,7 @@ Publication is on hold for device testing and the forthcoming logo.
     rendering experiment. Device reports B/C confirm observed correct static and
     animated images, with animation continuing after scrolling. Build 56's
     proportional incoming width is device-confirmed for the user's tested cases.
-    Build 57 experiments with provider emotes in the account's local sent-message
+    Build 58 experiments with provider emotes in the account's local sent-message
     preview; that new path still needs device validation.
   - Build 50's adapter targets legacy chat present in the donor binary, not the
     active RN interface. That baseline is preserved in
@@ -71,8 +71,10 @@ requests to provider assets. Build 55 device observations confirmed rendering
 and continued animation after scrolling. Build 56 adds an exact-bundle-gated,
 in-memory EmotePart style patch: the image and inline wrapper get the same
 proportional width before Fabric measures them. The donor bundle on disk and
-native emote styles stay unchanged. Build 57 adds provider ranges to the completed
+native emote styles stay unchanged. Build 58 adds provider ranges to the completed
 local sent-message preview using its explicit channel and existing native ranges.
+The build-57 device test reached no local callbacks; build 58 resolves the renderer
+through Twitch's NativeModules loader and adds export-discovery diagnostics.
 It reuses the image/width route. Catalog, picker and tap-detail remain deferred;
 no new animation intervention is added. See the
 [incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and

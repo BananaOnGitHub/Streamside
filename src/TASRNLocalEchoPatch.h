@@ -8,26 +8,33 @@
 #define TAS_RN_LOCAL_HEADER (128U + TAS_RN_LOCAL_INDEX * 12U)
 
 /* Runs only on buildLocalEcho's completed, private preview string (r3).
- * Uses the existing NativeModules proxy and existing string-pool entries.
+ * Uses Twitch's existing Metro NativeModules loader (module 16, factory 20),
+ * which selects the native proxy OR the classic bridge configuration.
  * The distinct Streamside-owned module/export both use "buildLocalEcho" to
  * avoid changing the donor constant pools. No socket/send code is patched.
  * r4..r7 are dead Value registers after the donor's final concat Call.
- * Missing proxy/module/method leaves the original preview in r3.
+ * Missing loader/exports/module/method leaves the original preview in r3.
  */
 static inline size_t tas_rn_local_code(unsigned char *out) {
-    unsigned char *p=out, *jumps[3];
+    unsigned char *p=out, *jumps[5];
 #define LOCAL_BYTES(...) do { const unsigned char b[]={__VA_ARGS__}; memcpy(p,b,sizeof(b)); p+=sizeof(b); } while (0)
     LOCAL_BYTES(61,4);                         /* GetGlobalObject r4 */
-    LOCAL_BYTES(144,5,0xc1,0xc8);              /* nativeModuleProxy (51393) */
+    LOCAL_BYTES(144,5,0x9b,0x49);              /* __r (18843) */
     LOCAL_BYTES(93,5,4,5);                    /* GetByVal r5,r4,r5 */
     jumps[0]=p; LOCAL_BYTES(179,0,0,0,0,5);
+    LOCAL_BYTES(139,6,16);                    /* NativeModules module ID */
+    LOCAL_BYTES(110,5,5,4,6);                 /* Call2 r5,require,global,16 */
+    jumps[1]=p; LOCAL_BYTES(179,0,0,0,0,5);
+    LOCAL_BYTES(144,7,110,0);                 /* default (110) */
+    LOCAL_BYTES(93,5,5,7);
+    jumps[2]=p; LOCAL_BYTES(179,0,0,0,0,5);
     LOCAL_BYTES(144,7,0x5a,0x4e);              /* buildLocalEcho (20058) */
     LOCAL_BYTES(93,5,5,7);
-    jumps[1]=p; LOCAL_BYTES(179,0,0,0,0,5);
+    jumps[3]=p; LOCAL_BYTES(179,0,0,0,0,5);
     LOCAL_BYTES(93,6,5,7);
-    jumps[2]=p; LOCAL_BYTES(179,0,0,0,0,6);
+    jumps[4]=p; LOCAL_BYTES(179,0,0,0,0,6);
     LOCAL_BYTES(110,3,6,5,3);                 /* Call2 r3,method,module,line */
-    for (unsigned i=0;i<3;i++) tas_rn_put32(jumps[i]+1,(uint32_t)(p-jumps[i]));
+    for (unsigned i=0;i<5;i++) tas_rn_put32(jumps[i]+1,(uint32_t)(p-jumps[i]));
 #undef LOCAL_BYTES
     return (size_t)(p-out);
 }

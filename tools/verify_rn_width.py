@@ -82,6 +82,25 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         if hashlib.sha1(patched[:-20]).digest() != patched[-20:]: raise ValueError('Bad patched footer')
         h, changed = HBCReader(), HBCReader()
         h.read_whole_file(io.BytesIO(body)); changed.read_whole_file(io.BytesIO(patched))
+        if local:
+            # Exact Metro registration: NativeModules factory 20 is module 16.
+            # Verify the donor lookup instead of assuming a bridge global exists.
+            registration=list(parse_hbc_bytecode(h.function_headers[0],h))
+            at=next(i for i,x in enumerate(registration)
+                    if x.inst.name=='CreateClosure' and x.arg3==20)
+            identity=registration[at-2]
+            if identity.inst.name!='LoadConstUInt8' or identity.arg1!=6 or identity.arg2!=16:
+                raise ValueError('NativeModules Metro identity mismatch')
+            call=registration[at+1]
+            if call.inst.name!='Call4' or call.arg4!=4 or call.arg5!=6:
+                raise ValueError('NativeModules Metro registration mismatch')
+            factory=list(parse_hbc_bytecode(h.function_headers[20],h))
+            keys={x.arg4 for x in factory if x.inst.name in ('GetById','TryGetById')}
+            if not {51393,55620}.issubset(keys):
+                raise ValueError('NativeModules proxy/config routes not present')
+            for identity,value in [(18843,'__r'),(110,'default'),(20058,'buildLocalEcho')]:
+                if h.strings[identity]!=value: raise ValueError('Local lookup constant mismatch')
+            print('NativeModules module 16 / factory 20: proxy and classic config routes verified')
         index = 19127
         before, after = h.function_headers[index], changed.function_headers[index]
         for i,(a,b) in enumerate(zip(h.function_headers,changed.function_headers)):

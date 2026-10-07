@@ -263,7 +263,9 @@ static void local_echo(void) {
     assert(rn_local_echo(nil,NULL,fresh("NSData")));
     input->byte_count=MAX_FRAME+1;assert(rn_local_echo(nil,NULL,input)==input);
     input->byte_count=strlen(input->value)+1;assert(rn_local_echo(nil,NULL,input)==input); /* embedded NUL refused */
+    uint64_t discoveries=PROBE_GET(g_rn_local_exports);
     const TASRNMethodInfo *info=rn_local_export(nil,NULL);
+    assert(PROBE_GET(g_rn_local_exports)==discoveries+1);
     assert(!strcmp(info->js_name,"buildLocalEcho") && !strcmp(info->objc_name,"renderLocalEcho:(NSString *)line") && info->synchronous);
     assert(!rn_local_main_queue(nil,NULL));
     assert(!strcmp(text(rn_local_module_name(nil,NULL)),"buildLocalEcho"));

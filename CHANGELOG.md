@@ -2,6 +2,12 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 58 corrects the local-preview bridge lookup to Twitch's existing Metro
+  NativeModules module, including its classic bridge configuration fallback.
+  Build 57 was registered/patched on device but recorded zero local calls and
+  did not render the user's emote. Add aggregate export-discovery diagnostics;
+  preserve the preview matcher, incoming width patch and send path. Device
+  validation remains pending.
 - Build 57 experiments with provider emotes in the local sent-message preview.
   Extend exact-body admission to the completed TmiClient local echo, call a
   separate synchronous RN module, and reuse room-scoped matching/native ranges,

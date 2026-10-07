@@ -23,8 +23,21 @@ BODY_SHA256 = '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
 
 
 def verify(donor, zig, hermesc=None, local=False):
-    from hermes_dec.parsers.hbc_file_parser import HBCReader
+    from hermes_dec.parsers.hbc_file_parser import HBCReader as ProvisionalReader
     from hermes_dec.parsers.hbc_bytecode_parser import parse_hbc_bytecode
+    class HBCReader(ProvisionalReader):
+        def get_large_func_header_reader(self):
+            reader=super().get_large_func_header_reader()
+            if self.header.version!=98:return reader
+            # hermes-dec 0.1.7's DEVELOPMENT-98 schema places flags at 35.
+            # Exact donor and Hermes-98 compiler instead put flags at 36,
+            # with a 40-byte full header. Keep this correction analysis-only.
+            fields=list(reader._fields_)
+            at=next(i for i,f in enumerate(fields) if f[0]=='prohibitInvoke')
+            fields.insert(at,('_cache_padding',ctypes.c_uint8))
+            fields.append(('_tail_padding',ctypes.c_uint8*3))
+            return type('Hermes98FullHeader',(ctypes.LittleEndianStructure,),
+                        {'_pack_':True,'_layout_':'ms','_fields_':fields})
     with donor.open('rb') as handle:
         if hashlib.file_digest(handle,'sha256').hexdigest() != DONOR_SHA256:
             raise ValueError('Not the verified Twitch 31.5 donor')
@@ -113,8 +126,17 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
             for field in a._fields_:
                 name = field[0]
                 if i in ({index,34307} if local else {index}) and name in ('offset','bytecodeSizeInBytes'): continue
-                if getattr(a,name) != getattr(b,name): raise ValueError(f'Unexpected function header {i}/{name}')
+                if local and i==34307 and name in ('frameSize','hasExceptionHandler'): continue
+                left,right=getattr(a,name),getattr(b,name)
+                if isinstance(left,ctypes.Array):left,right=bytes(left),bytes(right)
+                if left != right: raise ValueError(f'Unexpected function header {i}/{name}')
         if h.strings != changed.strings: raise ValueError('Constant pool changed')
+        for identity,handlers in h.function_id_to_exc_handlers.items():
+            if bytes(handlers)!=bytes(changed.function_id_to_exc_handlers[identity]):
+                raise ValueError('Original exception table changed')
+        for identity,offsets in h.function_id_to_debug_offsets.items():
+            if bytes(offsets)!=bytes(changed.function_id_to_debug_offsets[identity]):
+                raise ValueError('Original debug metadata changed')
         segment = ctypes.create_string_buffer(192)
         extra = lib.code(segment,13)
         def instruction_position(pos):
@@ -141,7 +163,7 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         allowed.update(range(large,large+4)); allowed.update(range(large+12,large+16))
         if local:
             small=128+34307*12
-            allowed.update(range(small,small+6))
+            allowed.update(range(small,small+12))
             old_header,new_header=h.function_headers[34307],changed.function_headers[34307]
             instructions={x.original_pos:x for x in parse_hbc_bytecode(new_header,changed)}
             local_branches=0
@@ -163,15 +185,70 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                     local_branches+=1
             if new_header.offset!=width_size-20 or new_header.bytecodeSizeInBytes!=121+3+local_extra:
                 raise ValueError('Unexpected local function extent')
+            if new_header.frameSize!=21 or not new_header.hasExceptionHandler:
+                raise ValueError('Own-preview calls require safe frame and exception containment')
+            handlers=changed.function_id_to_exc_handlers[34307]
+            expected=(0x6d,0x6d+local_extra-7,0x6d+local_extra-2)
+            if len(handlers)!=1 or (handlers[0].start,handlers[0].end,handlers[0].target)!=expected:
+                raise ValueError('Own-preview exception interval mismatch')
+            if instructions[expected[2]].inst.name!='Catch' or instructions[expected[1]].inst.name!='JmpLong':
+                raise ValueError('Normal and exception joins must preserve original emission')
+            # Hermes-98 writes this/args then seven metadata slots at frame end.
+            # Every injected call source/live local must stay below those slots.
+            for ins in instructions.values():
+                if not 0x6d<=ins.original_pos<expected[1] or ins.inst.name not in ('Call2','Call4'):continue
+                argc=2 if ins.inst.name=='Call2' else 4
+                outgoing=new_header.frameSize-7-argc
+                sources=[getattr(ins,f'arg{i}') for i in range(2,argc+3)]
+                if min(outgoing,10)<=max(sources):
+                    raise ValueError('Injected call overlaps its own outgoing frame')
+            print('Frame 21: outgoing call writes isolated from r0..r9; one fail-open Catch verified')
             print(f'Library own-event function 34307: 121 -> {121+3+local_extra}; {local_branches} original branch targets verified')
         modifications = [i for i,(a,b) in enumerate(zip(body[:-20],patched)) if a != b]
         if set(modifications)-allowed: raise ValueError('Unexpected original-body change')
-        if len(patched) != len(body)+947+2*extra+(121+3+local_extra if local else 0): raise ValueError('Unexpected patch extent')
+        expected_length=len(body)+947+2*extra
+        if local: expected_length=((expected_length-20+121+3+local_extra+3)&~3)+40+16+20
+        if len(patched) != expected_length: raise ValueError('Unexpected patch extent')
         if hermesc:
+            if local:
+                # Confirm call-space accounting with the SAME Hermes-98
+                # compiler, independently of the hand-written patch/model.
+                probe=root/'frame.js'
+                probe.write_text('''function preview(event) {
+ var line=this.translate(event); if(!line)return;
+ try {var m=global.__r(16).default.buildLocalEcho;
+ var x=m.buildLocalEcho(line.body,line.channel,line.emotes);
+ if(x)line.emotes=line.emotes.concat(x);}catch(e){}
+ this.emitLine(line);
+}''')
+                binary=root/'frame.hbc'
+                subprocess.run([hermesc,'-O','-emit-binary','-out',str(binary),str(probe)],check=True)
+                compiled=HBCReader();compiled.read_whole_file(io.BytesIO(binary.read_bytes()))
+                if compiled.header.version!=98:raise ValueError('Call-frame probe requires Hermes-98')
+                header=compiled.function_headers[1]
+                ops=list(parse_hbc_bytecode(header,compiled))
+                highest=max(getattr(ins,f'arg{i}') for ins in ops
+                            for i,operand in enumerate(ins.inst.operands,1)
+                            if operand.operand_type.name.startswith('Reg'))
+                if not any(ins.inst.name=='Call4' for ins in ops) or header.frameSize-highest-1!=11:
+                    raise ValueError('Compiler disagrees with eleven-slot Call4 reservation')
+                if not header.hasExceptionHandler:raise ValueError('Compiler exception probe missing handler')
+                print('Independent Hermes-98 compiler probe confirms eleven outgoing Call4 slots')
             # Hermes' disassembler reads the rewritten container independently.
             fixture = root/'patched.hbc'; fixture.write_bytes(patched)
             with (root/'hermes.dump').open('wb') as output:
                 subprocess.run([hermesc,'-b','-dump-bytecode',str(fixture)],stdout=output,check=True)
+            if local:
+                identity=-1;own=[]
+                with (root/'hermes.dump').open(errors='replace') as output:
+                    for line in output:
+                        if line.startswith(('Function<','NCFunction<')):identity+=1
+                        if identity==34307:own.append(line)
+                        if identity>34307:break
+                text=''.join(own)
+                if not all(key in text for key in ('21 registers','Catch','Exception Handlers:','start =','target =')):
+                    raise ValueError('Hermes-98 did not recognize own-preview frame and handler')
+                print('Independent Hermes-98 disassembly recognizes frame 21 and own-preview Catch table')
         print(f'Exact donor admitted; function {index}: {before.bytecodeSizeInBytes} -> {after.bytecodeSizeInBytes} bytes')
         print(f'{branches} original branch targets and all other function headers preserved')
         print(f'{len(modifications)} original-body bytes changed, solely in length and target header; footer valid')

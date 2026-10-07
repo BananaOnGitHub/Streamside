@@ -1,6 +1,17 @@
-# Twitch 31.5 local sent-message display — build 59
+# Twitch 31.5 local sent-message display — build 60
 
 ## Device evidence and corrected seam
+
+Build 59 recorded one export discovery but zero native preview calls. The user
+reported that sent messages disappeared entirely, after sending a static square
+7TV code. This is a regression, not evidence of successful local rendering.
+The host instruction mock missed Hermes' sequential outgoing-frame writes.
+In donor frame 18, Call4 writes this/r7 to r10, body to r9, channel to r8, and
+native ranges to r7. Its callee is still read from r8 AFTER those writes, so
+the channel string replaces the callable. The resulting TypeError precedes
+native entry and the original emitLine. Frame 21 isolates all outgoing writes
+in r10..r20. A catch around only the preview resumes the original emitLine;
+it does not catch Twitch's send/translation/emission errors.
 
 The build-58 test sent one square static provider code. Module registration and
 patching were active, but export discoveries, local calls, rewrites, refusals and
@@ -13,7 +24,8 @@ The donor contains two chat clients. The preceding patches targeted TmiClient's
 buildLocalEcho return. A separate connection factory constructs LibraryTmiClient,
 whose inner TMIClient emits ordinary chat events, including local own messages. Build
 59 moves the local patch to that event's line, before its existing emitLine.
-This is a static donor finding; live use of the new hook still needs testing.
+Build 59's export discovery supports reaching module lookup on device, but
+successful native entry and local rendering remain unverified.
 
 | Function | Role |
 | --- | --- |
@@ -36,7 +48,7 @@ The injection runs in onChatEvent at the nonce-handling join, after the complete
 body and native ranges exist. It gates on event.sentByCurrentUser and refuses sourceRoomID lines.
 Resolve global.__r(16).default.buildLocalEcho, then call its synchronous method
 with line.body, line.channel and line.emotes. Missing loader/module/method or a
-null result leaves the original line unchanged. On a match, concatenate only
+null result or preview exception leaves the original line unchanged. On a match, concatenate only
 provider additions to the original native array and assign line.emotes.
 
 The line, identity, body, native range objects and client remain intact. Send
@@ -70,22 +82,32 @@ counters include its matching work.
 Source admission requires the original complete donor hash and the unchanged
 width patch. Stage two requires native registration, the exact function-34307
 small header and a valid width-patched footer. Failure keeps the width-only body.
-Append a copy of the own-event callback: 121 → 281 bytes (157-byte injection plus
-three bytes to widen its null-return branch). Original disk bundle is unchanged.
+Append a copy of the own-event callback: 121 → 288 bytes (164-byte injection plus
+three bytes to widen its null-return branch). Append an aligned large header
+and one exception-table entry; redirect only this callback's small header to
+them. The exact full header is 40 bytes, with flags at byte 36. The provisional
+hermes-dec 0.1.7 development-98 schema used 36 bytes/flags at 35; the verifier
+corrects that analysis schema and cross-checks the compiler's actual metadata.
+The protected interval covers only preview code and excludes Catch and
+original emitLine. Original disk bundle is unchanged.
 
 The null branch skips the injection. Both nonce-handling paths enter it. All
 five original local branch targets
 and all 34 width-function branch targets are checked. r4/r5 remain line/client;
-r1–r3/r6–r9 are dead Value registers at the join. Register banks, frame, caches,
-constant pools, exception/debug tables and other function headers stay intact.
-Only file length and the two target function headers change in the original
-body (13 differing bytes).
+r1–r3/r6–r9 are scratch Value registers at the join. Frame size is now 21;
+number/non-pointer counts, caches and original function identity are retained.
+Constant pools, original exception/debug data and all other function headers
+stay intact. Only file length and the two target function headers change in
+the original body (20 differing bytes).
 
 Host tests cover square static and wide animated provider routes, Unicode,
 repeated/punctuated codes, native overlap, malformed ranges, explicit room scope,
 refusal/disabled states, native-object identity and bridge availability. The
 exact-donor verifier checks all original instructions and branch targets;
-Hermes-98 independently disassembles the full patched container. These checks
+Sequential frame-write tests reproduce build 59's pre-entry TypeError, then
+verify frame 21 and exception fallback at every preview lookup/call/write.
+Hermes-98 independently compiles a comparable call/catch probe to confirm its
+eleven outgoing Call4 slots and disassembles the full patched container. These checks
 prove neither live module resolution nor device rendering.
 
 ```sh
@@ -97,7 +119,8 @@ PYTHONPATH=/path/to/hermes-dec ZIG=/path/to/zig \
 
 ## Device test
 
-Sign/install build 59 and fully relaunch Twitch. Load a channel's definitions,
+Sign/install build 60 and fully relaunch Twitch. First send ordinary text and
+check that exactly one own message appears. Load a channel's definitions,
 clear diagnostics, then manually send the same known square static code.
 Capture its display and the post-send report. Local calls should now increase;
 a matched code should increase rewritten and request its provider image. Export
@@ -158,7 +181,8 @@ remain byte-identical. Sign with the usual sideloading tool, then fully relaunch
 ordinary-chat own/scope gates. Framework/dylib guards, Python compilation and
 git diff checks passed. Exact donor method-binding, all original branches and
 instructions, NativeModules registration and Hermes-98 disassembly passed.
-Live local rendering remains pending.
+Its subsequent device report confirmed a regression: sent messages vanished;
+one export discovery and zero native calls were recorded.
 
 Unsigned package: `Twitch-31.5-Streamside-build59-local-emotes-unsigned.ipa`.
 Size: 191,820,916 bytes. SHA-256:
@@ -169,3 +193,25 @@ patch_ipa/verify_ipa passed. 4,251 donor entries remain byte-identical, none
 removed. Only executable injection header/padding and display-name plist change,
 plus the two framework entries. Embedded JS and React remain byte-identical.
 Sign with the usual sideloading tool, then fully relaunch.
+
+## Build 60 validation and unsigned package provenance
+
+71 host tests passed, none skipped, including reproduction of the frame-18
+pre-entry TypeError and fail-open checks for every preview lookup/call/write.
+Framework/dylib artifact guards, Python compilation and git diff checks passed.
+Exact donor method binding, all original instructions/branch targets and
+unchanged exception/debug metadata were checked. The same Hermes-98 compiler
+independently confirms eleven outgoing Call4 slots. Its disassembler recognizes
+the patched callback's frame 21 and Catch table using the actual 40-byte header.
+These checks do not prove live native-module invocation or local rendering.
+
+Unsigned package: `Twitch-31.5-Streamside-build60-local-emotes-unsigned.ipa`.
+Size: 191,821,011 bytes. SHA-256:
+`37ef0a5d55277832b852184f10e88e0dcc3ca677ead752235d99ffe2ede310e1`.
+Framework SHA-256:
+`f7cb05f0c652554762b3e08bff925ab8440e6694c9b1e2293f35d18577c36aab`.
+patch_ipa/verify_ipa passed. 4,251 donor entries remain byte-identical, none
+removed. Only executable injection header/padding and display-name plist change,
+plus the two framework entries. Embedded JS and React remain byte-identical.
+Sign with the usual sideloading tool, then fully relaunch and test plain text
+before the same static square provider code.

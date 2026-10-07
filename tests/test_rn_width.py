@@ -82,7 +82,15 @@ int main(int argc,char **argv) {
     copy[n-1]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[n-1]^=1;
     fail_sha=true;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));fail_sha=false;
     unsigned char *local=tas_rn_local_patch(copy,n,fixture_sha,&local_count);assert(local);
-    assert(local_count==n+121+3+local_extra);
+    size_t local_info=(n-20+121+3+local_extra+3)&~(size_t)3;
+    assert(local_count==local_info+40+16+20);
+    assert((tas_rn_u32(local+TAS_RN_LOCAL_HEADER)&0x00ffffffU)==(local_info&0x00ffffffU));
+    assert(local[TAS_RN_LOCAL_HEADER+11]==0x20);
+    assert(tas_rn_u32(local+local_info+28)==21 && local[local_info+36]==0x0a);
+    assert(tas_rn_u32(local+local_info+40)==1);
+    assert(tas_rn_u32(local+local_info+44)==0x6d);
+    assert(tas_rn_u32(local+local_info+48)==0x6d+local_extra-7);
+    assert(tas_rn_u32(local+local_info+52)==0x6d+local_extra-2);
     assert(!memcmp(local+TAS_RN_LARGE_HEADER,copy+TAS_RN_LARGE_HEADER,36));
     assert(!memcmp(local+TAS_RN_BODY_SIZE-20,copy+TAS_RN_BODY_SIZE-20,1207));
     assert(!memcmp(local+TAS_RN_LOCAL_OFFSET,copy+TAS_RN_LOCAL_OFFSET,121));
@@ -93,13 +101,63 @@ int main(int argc,char **argv) {
     assert(!memcmp(new_fn+0x6d,local_code,local_extra));
     assert(!memcmp(new_fn+0x6d+local_extra,body+TAS_RN_LOCAL_OFFSET+0x6a,121-0x6a));
     for(unsigned i=0;i<n-20;i++) {
-        if((i>=32&&i<36)||(i>=TAS_RN_LOCAL_HEADER&&i<TAS_RN_LOCAL_HEADER+6))continue;
+        if((i>=32&&i<36)||(i>=TAS_RN_LOCAL_HEADER&&i<TAS_RN_LOCAL_HEADER+12))continue;
         assert(copy[i]==local[i]);
     }
     assert(!tas_rn_local_patch(local,local_count,fixture_sha,&second));free(local);
     free(copy);free(body);return 0;
 }
 '''
+
+
+def execute_local(code, line, client, event, global_object, frame=21, fail_at=None, catch=True):
+    """Model fixed-call staging, including the writes omitted by build-59 tests.
+
+    Hermes-98 writes this at frame-8, args downward, then seven metadata
+    slots. It reads the callee register AFTER argument staging. No snapshots.
+    """
+    regs={4:line,5:client}; pos=0; stage=0; caught=0
+    while pos<len(code):
+        at=pos;op=code[pos];pos+=1
+        try:
+            if op==137:
+                dest,param=code[pos:pos+2];pos+=2;assert param==1;regs[dest]=event
+            elif op==61: regs[code[pos]]=global_object;pos+=1
+            elif op==144:
+                dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
+                regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho',40125:'sentByCurrentUser',59101:'sourceRoomID',80:'body',90:'channel',57438:'emotes',102:'concat'}[key]
+            elif op==139:
+                dest,val=code[pos:pos+2];pos+=2;regs[dest]=val
+            elif op==93:
+                dest,obj,key=code[pos:pos+3];pos+=3;stage+=1
+                if fail_at==stage:raise RuntimeError('lookup failure')
+                regs[dest]=(lambda this,other:this+other) if isinstance(regs[obj],list) else regs[obj].get(regs[key])
+            elif op in (179,177):
+                delta=struct.unpack_from('<i',code,pos)[0];test=code[pos+4];pos+=5
+                truth=regs[test] is not None and regs[test] is not False
+                if truth==(op==177):pos=at+delta
+            elif op in (110,112):
+                length=4 if op==110 else 6
+                dest,fn,this,*args=code[pos:pos+length];pos+=length;stage+=1
+                # Sequential writes are significant: do not pre-copy operands.
+                for i,reg in enumerate([this,*args]):regs[frame-8-i]=regs[reg]
+                callee=regs[fn]
+                for i in range(frame-7,frame):regs[i]=object()
+                if fail_at==stage:raise RuntimeError('call failure')
+                regs[dest]=callee(regs[frame-8],*(regs[frame-9-i] for i in range(len(args))))
+            elif op==96:
+                obj,key,val=code[pos:pos+3];pos+=3;stage+=1
+                if fail_at==stage:raise RuntimeError('write failure')
+                regs[obj][regs[key]]=regs[val]
+            elif op==175:
+                delta=struct.unpack_from('<i',code,pos)[0];pos=at+delta
+            elif op==119:
+                regs[code[pos]]=None;pos+=1;caught+=1
+            else:raise AssertionError(f'Unexpected local shim opcode {op}')
+        except (RuntimeError,TypeError,AttributeError):
+            if not catch or at>=len(code)-7:raise
+            pos=len(code)-2
+    return regs,caught,stage
 
 
 def evaluate(code, identity, gigantified=False):
@@ -202,31 +260,8 @@ class RNWidthTests(unittest.TestCase):
                     self.assertIs(this,global_object);self.assertEqual(identity,16);requires.append(identity)
                     return None if available<2 else exports
                 global_object={} if available<1 else {'__r':require}
-                regs={4:line,5:client};pos=0
-                while pos<len(code):
-                    at=pos;op=code[pos];pos+=1
-                    if op==137:
-                        dest,param=code[pos:pos+2];pos+=2;self.assertEqual(param,1);regs[dest]={'sentByCurrentUser':own}
-                    elif op==61: regs[code[pos]]=global_object;pos+=1
-                    elif op==144:
-                        dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
-                        regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho',40125:'sentByCurrentUser',59101:'sourceRoomID',80:'body',90:'channel',57438:'emotes',102:'concat'}[key]
-                    elif op==139:
-                        dest,val=code[pos:pos+2];pos+=2;regs[dest]=val
-                    elif op==93:
-                        dest,obj,key=code[pos:pos+3];pos+=3
-                        regs[dest]=(lambda this,other:this+other) if isinstance(regs[obj],list) else regs[obj].get(regs[key])
-                    elif op in (179,177):
-                        delta=struct.unpack_from('<i',code,pos)[0];test=code[pos+4];pos+=5
-                        truth=regs[test] is not None and regs[test] is not False
-                        if truth==(op==177):pos=at+delta
-                    elif op in (110,112):
-                        length=4 if op==110 else 6
-                        dest,fn,this,*args=code[pos:pos+length];pos+=length
-                        regs[dest]=regs[fn](regs[this],*(regs[arg] for arg in args))
-                    elif op==96:
-                        obj,key,val=code[pos:pos+3];pos+=3;regs[obj][regs[key]]=regs[val]
-                    else:self.fail(f'Unexpected local shim opcode {op}')
+                regs,caught,_=execute_local(code,line,client,{'sentByCurrentUser':own},global_object)
+                self.assertEqual(caught,0)
                 active=own and not shared
                 self.assertIs(regs[5],client);self.assertIs(regs[4],line)
                 self.assertEqual(len(calls),active and available>=5)
@@ -237,3 +272,32 @@ class RNWidthTests(unittest.TestCase):
                 self.assertEqual(line['emotes'],ranges+additions if active and available==6 else ranges)
                 for key in before:
                     if key!='emotes':self.assertIs(line[key],before[key])
+
+    def test_local_call_frame_regression_and_exception_fallback(self):
+        code=subprocess.run([self.binary,'localcode'],capture_output=True,check=True).stdout
+        calls=[];client=object();native={'id':'25','start':0,'end':4}
+        ranges=[native];additions=[{'id':'860000000001000','start':6,'end':11}]
+        def render(this,body,channel,emotes):
+            self.assertIs(this,module);self.assertEqual(body,'Kappa Square')
+            self.assertEqual(channel,'fixture');self.assertIs(emotes,ranges)
+            calls.append(body);return additions
+        module={'buildLocalEcho':render}
+        global_object={'__r':lambda this,identity:{'default':{'buildLocalEcho':module}}}
+        def line():return {'body':'Kappa Square','channel':'fixture','emotes':ranges,'sourceRoomID':None,'nonce':object()}
+        # Reproduce build 59: outgoing channel overwrites its r8 callee. It
+        # throws before native entry. The new catch then preserves emission.
+        broken=line()
+        with self.assertRaises(TypeError):execute_local(code,broken,client,{'sentByCurrentUser':True},global_object,frame=18,catch=False)
+        self.assertEqual(calls,[])
+        regs,caught,_=execute_local(code,broken,client,{'sentByCurrentUser':True},global_object,frame=18)
+        self.assertEqual(caught,1);self.assertIs(regs[4],broken);self.assertIs(regs[5],client)
+        fixed=line();regs,caught,stages=execute_local(code,fixed,client,{'sentByCurrentUser':True},global_object)
+        self.assertEqual(caught,0);self.assertEqual(len(calls),1)
+        self.assertEqual(fixed['emotes'],ranges+additions);self.assertIs(fixed['emotes'][0],native)
+        # Every getter/call/write can throw: all reach the original emitLine
+        # with the same body, client, nonce and untouched native ranges.
+        for stage in range(1,stages+1):
+            value=line();before=value.copy()
+            regs,caught,_=execute_local(code,value,client,{'sentByCurrentUser':True},global_object,fail_at=stage)
+            self.assertEqual(caught,1);self.assertIs(regs[4],value);self.assertIs(regs[5],client)
+            for key in before:self.assertIs(value[key],before[key])

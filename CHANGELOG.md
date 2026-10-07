@@ -2,6 +2,13 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 60 fixes the own-message disappearance reported on build 59. Its
+  injected Call4 staged channel/native ranges over the method/module registers
+  before native entry. Expand the local callback's frame from 18 to 21 and add
+  an isolated exception handler that resumes original emitLine on any preview
+  exception. Add sequential call-frame regression tests, failure injection at
+  every preview lookup/call/write, and an independent Hermes-98 compiler check.
+  Incoming rendering and width remain unchanged. Device validation pending.
 - Build 59 moves local emote matching to LibraryTmiClient's completed own-message
   ordinary-chat event. Builds 57/58 targeted the separate TmiClient path and recorded zero
   callback/export discoveries on device. Add provider-only display ranges to

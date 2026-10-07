@@ -127,11 +127,14 @@ uint64_t tas_emotes_catalog_revision(void) {
 static char g_last_room[32];
 static bool g_enabled;
 static IMP g_public_receive, g_private_receive;
+static IMP g_rn_receive;
+static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
 static IMP g_private_request, g_private_request_completion;
 static char g_wrapped_key;
 /* Aggregate counters contain no room IDs, message text, or request URLs. */
 static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
 static uint64_t g_rewritten_frames, g_image_rewrites;
+static uint64_t g_rn_calls, g_rn_irc, g_rn_rewritten, g_rn_refused, g_frame_refused;
 static uint64_t g_image_with_completion, g_image_without_completion;
 static uint64_t g_image_protocol_requests, g_image_protocol_cancelled, g_match_words, g_native_overlaps;
 static uint64_t g_words_scanned, g_punctuation_matches;
@@ -1022,6 +1025,24 @@ static char *rewrite_line(const char *line, size_t length) {
 #endif
         return NULL;
     }
+    /* Resolve only actual header tags. Similar tag names, duplicate emotes
+     * tags, and oversized native ranges must not hide native ownership. */
+    const char *old_tag = NULL, *value_end = NULL;
+    bool source_room_tag = false;
+    for (const char *p = line + 1; p < tags_end;) {
+        const char *next = memchr(p, ';', (size_t)(tags_end - p));
+        if (!next) next = tags_end;
+        if (next - p >= 7 && !memcmp(p, "emotes=", 7)) {
+            if (old_tag || next - (p + 7) >= 4096) return NULL;
+            old_tag = p;
+            value_end = next;
+        }
+        if (next - p >= 15 && !memcmp(p, "source-room-id=", 15)) {
+            if (source_room_tag) return NULL;
+            source_room_tag = true;
+        }
+        p = next + (next < tags_end);
+    }
     char room_id[32];
     if (!tag_value(line + 1, tags_end, "room-id", room_id, sizeof(room_id)) ||
         !valid_room(room_id)) {
@@ -1030,17 +1051,23 @@ static char *rewrite_line(const char *line, size_t length) {
 #endif
         return NULL;
     }
-    const char *privmsg = strstr(tags_end, " PRIVMSG #");
-    bool message = privmsg && privmsg < end;
-    if (!message && !strstr(tags_end, " ROOMSTATE #")) return NULL;
+    if (source_room_tag) {
+        char source_room[32];
+        if (!tag_value(line + 1, tags_end, "source-room-id", source_room, sizeof(source_room)) ||
+            !valid_room(source_room) || strcmp(source_room, room_id)) return NULL;
+    }
+    const char *command = strchr(tags_end + 2, ' ');
+    if (!command || command >= end) return NULL;
+    bool message = !strncmp(command, " PRIVMSG #", 10);
+    if (!message && strncmp(command, " ROOMSTATE #", 12)) return NULL;
+    const char *privmsg = message ? command : NULL;
     PROBE_INC(g_room_frames);
     pthread_mutex_lock(&g_emote_lock);
     snprintf(g_last_room, sizeof(g_last_room), "%s", room_id);
     pthread_mutex_unlock(&g_emote_lock);
     ensure_loaded(NULL, false);
     ensure_loaded(room_id, false);
-    const char *channel_start = strstr(tags_end, message ? " PRIVMSG #" : " ROOMSTATE #");
-    channel_start = channel_start ? strchr(channel_start, '#') + 1 : NULL;
+    const char *channel_start = command + (message ? 10 : 12);
     const char *channel_end = channel_start ? strchr(channel_start, ' ') : NULL;
     if (channel_end && channel_end - channel_start <= 96) {
         pthread_mutex_lock(&g_emote_lock);
@@ -1133,13 +1160,6 @@ static char *rewrite_line(const char *line, size_t length) {
     }
     pthread_mutex_unlock(&g_emote_lock);
     if (!written) return NULL;
-    const char *old_tag = strstr(line, "emotes=");
-    if (old_tag && old_tag < tags_end && old_tag != line + 1 && old_tag[-1] != ';') old_tag = NULL;
-    const char *value_end = NULL;
-    if (old_tag) {
-        value_end = memchr(old_tag, ';', (size_t)(tags_end - old_tag));
-        if (!value_end) value_end = tags_end;
-    }
     size_t capacity = length + written + 16;
     char *result = malloc(capacity);
     if (!result) return NULL;
@@ -1160,23 +1180,27 @@ static char *rewrite_line(const char *line, size_t length) {
     return result;
 }
 
-static id rewrite_message(id message) {
-    PROBE_INC(g_receive_calls);
-    if (!message || ((NSInteger (*)(id, SEL))objc_msgSend)(message, sel_registerName("type")) != 1)
-        return nil;
-    PROBE_INC(g_text_frames);
-    const char *input = text(call0(message, "string"));
-    if (!input) return nil;
+/* Shared IRC frame transform. Return an autoreleased NSString only on change.
+ * RN supplies NSString directly; NSURLSession supplies a message wrapper. */
+static id rewrite_text(id value) {
+    if (!g_enabled || !kind(value, "NSString")) return nil;
+    NSUInteger bytes = ((NSUInteger (*)(id, SEL, NSUInteger))objc_msgSend)(
+        value, sel_registerName("lengthOfBytesUsingEncoding:"), (NSUInteger)4);
+    if (bytes > MAX_FRAME) { PROBE_INC(g_frame_refused); return nil; }
+    const char *input = text(value);
+    if (!input) { PROBE_INC(g_frame_refused); return nil; }
     size_t length = strnlen(input, MAX_FRAME + 1);
-    if (length > MAX_FRAME || input[0] != '@') {
+    /* Refuse embedded NUL, oversized and invalid UTF-8 rather than truncating. */
+    if (length > MAX_FRAME || length != bytes) {
+        PROBE_INC(g_frame_refused);
 #if TAS_EMOTE_DIAGNOSTIC
-        if (length<=MAX_FRAME) probe_gate_line(input,length,"untagged-frame");
+        if (length<=MAX_FRAME) probe_gate_line(input,length,"refused-frame");
 #endif
         return nil;
     }
-    PROBE_INC(g_tagged_frames);
+    if (input[0] == '@' || strstr(input, "\r\n@")) PROBE_INC(g_tagged_frames);
     char *output = malloc(length * 2 + 4096);
-    if (!output) return nil;
+    if (!output) { PROBE_INC(g_frame_refused); return nil; }
     size_t used = 0;
     bool changed = false, complete = true;
     const char *line = input;
@@ -1208,18 +1232,55 @@ static id rewrite_message(id message) {
     }
     id rewritten = nil;
     if (changed && complete) {
-        PROBE_INC(g_rewritten_frames);
         output[used] = 0;
-        id value = str(output);
-        if (value) {
-            rewritten = ((id (*)(id, SEL, id))objc_msgSend)(
-                call0((id)objc_getClass("NSURLSessionWebSocketMessage"), "alloc"),
-                sel_registerName("initWithString:"), value);
-            rewritten = call0(rewritten, "autorelease");
-        }
+        rewritten = str(output);
+        if (rewritten) PROBE_INC(g_rewritten_frames);
+        else PROBE_INC(g_frame_refused);
     }
+    if (!complete) PROBE_INC(g_frame_refused);
     free(output);
     return rewritten;
+}
+
+static id rewrite_message(id message) {
+    PROBE_INC(g_receive_calls);
+    if (!message || ((NSInteger (*)(id, SEL))objc_msgSend)(message, sel_registerName("type")) != 1)
+        return nil;
+    PROBE_INC(g_text_frames);
+    id value = rewrite_text(call0(message, "string"));
+    if (!value) return nil;
+    id rewritten = ((id (*)(id, SEL, id))objc_msgSend)(
+        call0((id)objc_getClass("NSURLSessionWebSocketMessage"), "alloc"),
+        sel_registerName("initWithString:"), value);
+    return call0(rewritten, "autorelease");
+}
+
+static bool rn_irc_socket(id socket) {
+    if (!kind(socket, "SRWebSocket")) return false;
+    id url = call0(socket, "url");
+    if (!kind(url, "NSURL")) return false;
+    const char *host = text(call0(url, "host"));
+    const char *scheme = text(call0(url, "scheme"));
+    return host && !strcmp(host, "irc-ws.chat.twitch.tv") && scheme &&
+           (!strcmp(scheme, "wss") || !strcmp(scheme, "ws"));
+}
+
+/* No JS/event-emitter/catalog hook. The original delegate emits exactly once. */
+static void rn_receive(id self, SEL command, id socket, id message) {
+    PROBE_INC(g_rn_calls);
+    id replacement = nil;
+    if (g_enabled && rn_irc_socket(socket)) {
+        PROBE_INC(g_rn_irc);
+        if (kind(message, "NSString")) {
+            PROBE_INC(g_receive_calls);
+            PROBE_INC(g_text_frames);
+            replacement = rewrite_text(message);
+            if (replacement) PROBE_INC(g_rn_rewritten);
+        } else PROBE_INC(g_rn_refused);
+    }
+    IMP original = __atomic_load_n(&g_rn_receive, __ATOMIC_ACQUIRE);
+    ((void (*)(id, SEL, id, id))original)(self, command, socket,
+                                                          replacement ?: message);
 }
 
 typedef void (^ReceiveHandler)(id, id);
@@ -1588,6 +1649,33 @@ static void hook_own_method(Class cls, const char *selector, IMP replacement, IM
     free(methods);
 }
 
+static void install_rn_receive(void) {
+    pthread_mutex_lock(&g_rn_install_lock);
+    if (!g_rn_receive) {
+        Class cls = objc_getClass("RCTWebSocketModule");
+        Class socket = objc_getClass("SRWebSocket");
+        Method getter = socket ? class_getInstanceMethod(socket, sel_registerName("url")) : NULL;
+        const char *getter_type = getter ? method_getTypeEncoding(getter) : NULL;
+        if (cls && getter_type && (!strcmp(getter_type, "@16@0:8") || !strcmp(getter_type, "@@:"))) {
+            unsigned n = 0;
+            Method *methods = class_copyMethodList(cls, &n);
+            SEL target = sel_registerName("webSocket:didReceiveMessage:");
+            for (unsigned i = 0; i < n; i++) {
+                if (method_getName(methods[i]) != target) continue;
+                const char *type = method_getTypeEncoding(methods[i]);
+                if (!type || (strcmp(type, "v32@0:8@16@24") && strcmp(type, "v@:@@"))) break;
+                IMP original = method_getImplementation(methods[i]);
+                if (!original || original == (IMP)rn_receive) break;
+                __atomic_store_n(&g_rn_receive, original, __ATOMIC_RELEASE);
+                method_setImplementation(methods[i], (IMP)rn_receive);
+                break;
+            }
+            free(methods);
+        }
+    }
+    pthread_mutex_unlock(&g_rn_install_lock);
+}
+
 static void hook_method_including_inherited(Class cls, const char *selector,
                                              IMP replacement, IMP *original) {
     if (!cls || *original) return;
@@ -1644,6 +1732,7 @@ void tas_emotes_initialize(void) {
 
 void tas_emotes_retry_hooks(void) {
     if (!g_enabled) return;
+    install_rn_receive();
     if (!g_public_receive)
         hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),
                                         "receiveMessageWithCompletionHandler:",
@@ -1672,6 +1761,9 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "\nThird-party emotes (this launch)\n"
         "Active: %s\n"
         "WebSocket hooks (public/private): %s/%s\n"
+        "RN incoming synthetic-ID hook: %s\n"
+        "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
+        "IRC frames refused (size/encoding/allocation budget): %llu\n"
         "Image hooks (private task/completion): %s/%s\n"
         "WebSocket callbacks/text/tagged/room: %llu/%llu/%llu/%llu\n"
         "Rewritten frames/image requests: %llu/%llu\n"
@@ -1694,6 +1786,12 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "FFZ last global/channel: %s; %s\n",
         g_enabled ? "yes" : "no", g_public_receive ? "installed" : "missing",
         g_private_receive ? "installed" : "missing",
+        __atomic_load_n(&g_rn_receive, __ATOMIC_ACQUIRE) ? "installed" : "missing",
+        (unsigned long long)PROBE_GET(g_rn_calls),
+        (unsigned long long)PROBE_GET(g_rn_irc),
+        (unsigned long long)PROBE_GET(g_rn_rewritten),
+        (unsigned long long)PROBE_GET(g_rn_refused),
+        (unsigned long long)PROBE_GET(g_frame_refused),
         g_private_request ? "installed" : "missing",
         g_private_request_completion ? "installed" : "missing",
         (unsigned long long)PROBE_GET(g_receive_calls),

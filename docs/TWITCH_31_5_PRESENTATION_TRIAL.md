@@ -1,5 +1,10 @@
 # Twitch 31.5 native presentation trial — build 50
 
+> Scope correction: this trial targets the legacy chat present in the binary,
+> not the active React Native interface. It is preserved in
+> `archive/twitch-31.5-build50-legacy-chat`. RN implementation now begins with
+> [build 55's incoming-only synthetic-ID trial](RN_INCOMING_SYNTHETIC_TRIAL.md).
+
 ## Result and scope
 
 Implemented `TASEmotePresentation.c` on `compat/twitch-31.5`, following the

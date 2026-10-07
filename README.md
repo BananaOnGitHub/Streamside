@@ -13,14 +13,15 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.50`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.55`)
 - Upstream strategy: **VAFT solution 24**
-- Current device-tested app: **Twitch 31.5, arm64** (Streamside build 48)
-  - The tester reports mostly functional behavior, including composer previews
-    and incoming emotes. Third-party emotes in the tester's sent chat messages
-    do not render. Build 49 removes obsolete version constraints. Build 50 adds
-    native presentation enrichment for own messages, preserving synthetic IDs
-    and provider proportions; device validation is pending.
+- Target app: **Twitch 31.5, arm64**, with the active React Native chat.
+  - Builds 51–54 established the receive and presentation boundaries on the
+    separate diagnostic branch. Build 55 is the first incoming-only synthetic-ID
+    rendering experiment; visible provider rendering remains device-unvalidated.
+  - Build 50's adapter targets legacy chat present in the donor binary, not the
+    active RN interface. That baseline is preserved in
+    `archive/twitch-31.5-build50-legacy-chat`.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -60,14 +61,15 @@ cells to redraw. It maintains no separate image files. The composer keeps a boun
 thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
 image requests. It does not clear Twitch’s own image cache.
 
-Incoming emotes and composer previews work in the current compatibility test.
-Build 50 tests a native presentation adapter for the own sent-message regression.
-It adds provider definitions to Twitch's emote matcher while preserving the
-original message and tokens. Twitch creates its own attachments, whose synthetic
-IDs reach the existing image redirection and proportional geometry hooks.
-Square, wide, animated and animated-wide identities/geometry pass host harnesses;
-actual local-echo rendering and animation still need device validation. See the
-[build-50 implementation and test report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md).
+Build 55 hooks the confirmed RN IRC receive delegate and reuses the existing
+matcher to append synthetic IDs to incoming `emotes=` metadata. Twitch's own JS
+parser and EmotePart remain untouched; the existing image redirect resolves the
+synthetic Twitch CDN request to its provider asset. The first device acceptance
+case is a square static emote. No RN width, animation, catalog, picker, tap-detail
+or local-echo integration is claimed. See the
+[incoming-only experiment and test steps](docs/RN_INCOMING_SYNTHETIC_TRIAL.md).
+The [build-50 report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md) describes legacy chat
+only; its TextKit/layer sizing does not establish RN/Fabric proportional widths.
 Historical validation of the
 Reload Emotes row, provider tap details, proportional image widths and sent
 emotes is recorded separately. The detail sheet has a preview,

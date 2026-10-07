@@ -2,6 +2,13 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 55 begins incoming-only third-party emote rendering in Twitch 31.5's
+  React Native chat. Guard the IRC receive delegate by runtime ABI and socket
+  host, reuse Unicode-aware synthetic `emotes=` metadata and provider redirects,
+  preserve native ranges/body text and unchanged frame identity, and add only
+  aggregate receive counters. Duplicate/oversized native metadata and foreign
+  shared-chat source rooms pass through. No JS/catalog/picker/local-echo or
+  RN/Fabric geometry mutation. Square static rendering needs device validation.
 - Compatibility build 50 enriches the native per-message subscriber-emote
   definitions on Twitch 31.5. Preserve the original message and tokens; let
   Twitch construct presentation tokens and attachments using Streamside's
@@ -9,7 +16,8 @@
   layer proportions unchanged. Gate account/channel scope, native-name
   conflicts and moderated/shared-channel messages. Host identity/geometry
   checks cover square, wide, animated and animated-wide fixtures; device
-  local-echo and playback validation remain pending. Forensic probes are off.
+  local-echo and playback validation remain pending. This is the legacy chat
+  path present in the binary, not the active RN chat. Forensic probes are off.
 - Build 44 corrects diagnostic child roles using the attachment's actual fields,
   observes both native children, and admits visible layers ahead of hidden ones
   within the 64-layer budget. Report capacity denials, live observer evictions,

@@ -1,0 +1,212 @@
+"""Exercise the production RN delegate and shared IRC rewrite, not a JS mock."""
+import os
+import shutil
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+from test_emote_ui import RUNTIME
+from test_provider_presentation_route import HARNESS as ROUTE
+
+ROOT = Path(__file__).resolve().parent.parent
+EXTRA = r'''
+    else if(!strcmp(sel,"url"))result=o->children[0];
+    else if(!strcmp(sel,"scheme")) {
+        const char *end=strstr(o->value,"://");assert(end);char scheme[32];
+        size_t n=(size_t)(end-o->value);assert(n<sizeof(scheme));memcpy(scheme,o->value,n);scheme[n]=0;result=string(scheme);
+    } else if(!strcmp(sel,"lengthOfBytesUsingEncoding:")) {
+        assert(va_arg(args,unsigned long)==4);result=(id)(uintptr_t)(o->byte_count ? o->byte_count : strlen(o->payload ? o->payload : o->value));
+    } else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
+    else if(!strcmp(sel,"initWithString:")) { id s=va_arg(args,id);o->children[0]=s;result=o; }
+    else if(!strcmp(sel,"autorelease"))result=o;
+    else if(!strcmp(sel,"string"))result=o->children[0];
+    else if(!strcmp(sel,"type"))result=(id)(uintptr_t)o->number;
+'''
+MAIN = r'''
+void *_NSConcreteStackBlock[32];
+void tas_diag_log(const char *event,const char *detail) { (void)event;(void)detail; }
+static unsigned deliveries;
+static id delivered,expected_self,expected_socket;
+static void original(id self,SEL command,id socket,id message) {
+    assert(self==expected_self && socket==expected_socket);
+    assert(!strcmp(command,"webSocket:didReceiveMessage:"));deliveries++;delivered=message;
+}
+static void receive(id socket,id message) {
+    expected_socket=socket;unsigned before=deliveries;
+    rn_receive(expected_self,"webSocket:didReceiveMessage:",socket,message);
+    assert(deliveries==before+1);
+}
+static Room *ready(const char *number) {
+    Room *r=room_locked(number,time(NULL));snprintf(r->login,sizeof(r->login),"fixture");
+    for(unsigned i=0;i<3;i++)r->loaded[i]=true;return r;
+}
+static void check_body(id input,id output) {
+    const char *a=strstr(input->value," PRIVMSG #"),*b=strstr(output->value," PRIVMSG #");
+    assert(a && b && !strcmp(a,b)); /* command, channel and body byte-identical */
+}
+static void flow(void) {
+    g_enabled=true;for(unsigned i=0;i<3;i++)g_global.loaded[i]=true;
+    Room *r=ready("42");ready("43");
+    add_emote_locked(r,MAX_ROOM,"Square","https://cdn.7tv.app/emote/square/2x.webp",0,false,NULL,1);
+    add_emote_locked(r,MAX_ROOM,"Kappa","https://cdn.7tv.app/emote/collision/2x.webp",0,false,NULL,1);
+    add_emote_locked(&g_global,MAX_GLOBAL,"Global","https://cdn.betterttv.net/emote/global/2x",1,true,NULL,1);
+    uint64_t number=find_word(r,"Square")->fake_id;
+    expected_self=fresh("RCTWebSocketModule");g_rn_receive=(IMP)original;
+    id socket=fresh("SRWebSocket"),url=fresh("NSURL");socket->children[0]=url;
+    snprintf(url->value,sizeof(url->value),"wss://irc-ws.chat.twitch.tv:443");
+    id input=string("@room-id=42;emotes=25:0-4 :u!u@h PRIVMSG #fixture :Kappa Square");
+    receive(socket,input);assert(delivered!=input);check_body(input,delivered);
+    char expected[256];snprintf(expected,sizeof(expected),"@room-id=42;emotes=25:0-4/%llu:6-11 :u!u@h PRIVMSG #fixture :Kappa Square",(unsigned long long)number);
+    assert(!strcmp(delivered->value,expected));
+    /* Existing redirect resolves the same ID without modifying the request. */
+    id request=fresh("NSMutableURLRequest"),cdn=fresh("NSURL");request->children[0]=cdn;
+    snprintf(cdn->value,sizeof(cdn->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/default/dark/1.0",(unsigned long long)number);
+    id redirected=tas_emotes_rewrite_request_copy(request);
+    assert(redirected && !strcmp(redirected->children[0]->value,"https://cdn.7tv.app/emote/square/2x.webp"));
+    assert(strstr(cdn->value,"static-cdn.jtvnw.net"));
+    /* Unicode code points (not UTF-16 or bytes), punctuation, repeated matches. */
+    input=string("@room-id=42;emotes= :u!u@h PRIVMSG #fixture :😀 é Square (Square)");
+    receive(socket,input);snprintf(expected,sizeof(expected),"emotes=%llu:4-9/%llu:12-17",(unsigned long long)number,(unsigned long long)number);
+    assert(strstr(delivered->value,expected));check_body(input,delivered);
+    /* A control line at the start must not hide subsequent tagged IRC lines. */
+    input=string("PING :tmi.twitch.tv\r\n@room-id=42 :u!u@h PRIVMSG #fixture :Square\r\n");
+    receive(socket,input);assert(delivered!=input && !strncmp(delivered->value,"PING :tmi.twitch.tv\r\n",20));
+    assert(strstr(delivered->value,";emotes=") && strstr(delivered->value," :Square\r\n"));
+    /* Re-delivery is idempotent and retains the rewritten object's identity. */
+    input=delivered;receive(socket,input);assert(delivered==input);
+    /* Similar tag names cannot hide real native ranges or create duplicates. */
+    input=string("@room-id=42;notemotes=x;emotes=25:0-5 :u!u@h PRIVMSG #fixture :Square");
+    receive(socket,input);assert(delivered==input);
+    input=string("@room-id=42;notemotes=x;emotes= :u!u@h PRIVMSG #fixture :Square");
+    receive(socket,input);assert(delivered!=input && strstr(delivered->value,";notemotes=x;emotes=9"));
+    const char *unchanged[]={
+        "@room-id=42;emotes=25:0-5 :u!u@h PRIVMSG #fixture :Square",
+        "@room-id=42;emotes=25:2-8 :u!u@h PRIVMSG #fixture :Square", /* partial overlap */
+        "@room-id=42;emotes=;emotes= :u!u@h PRIVMSG #fixture :Square",
+        "@room-id=43 :u!u@h PRIVMSG #fixture :Square", /* no other-room fallback */
+        "@room-id=42;source-room-id=43 :u!u@h PRIVMSG #fixture :Square",
+        "@room-id=42;source-room-id=bad :u!u@h PRIVMSG #fixture :Square",
+        "@room-id=bad :u!u@h PRIVMSG #fixture :Square",
+        "@emotes= :u!u@h PRIVMSG #fixture :Square",
+        "@room-id=42 :s NOTICE #fixture :fake PRIVMSG #fixture :Square",
+        "@room-id=42 :s CLEARMSG #fixture :Square",
+        "@room-id=42 :s ROOMSTATE #fixture",
+        "@room-id=42 :u!u@h PRIVMSG #fixture :square unknown",
+        "PING :tmi.twitch.tv",
+        ""
+    };
+    for(unsigned i=0;i<sizeof(unchanged)/sizeof(unchanged[0]);i++) { input=string(unchanged[i]);receive(socket,input);assert(delivered==input); }
+    input=string("@room-id=43 :u!u@h PRIVMSG #fixture :Global");receive(socket,input);assert(delivered!=input);
+    /* Non-chat sockets, binary frames, disabled preference: original objects. */
+    input=string("@room-id=42 :u!u@h PRIVMSG #fixture :Square");
+    const char *hosts[]={"wss://example.com/","wss://irc-ws.chat.twitch.tv.evil/","https://irc-ws.chat.twitch.tv/"};
+    for(unsigned i=0;i<3;i++) { snprintf(url->value,sizeof(url->value),"%s",hosts[i]);receive(socket,input);assert(delivered==input); }
+    snprintf(url->value,sizeof(url->value),"wss://irc-ws.chat.twitch.tv/");
+    receive(fresh("NSObject"),input);assert(delivered==input);
+    id binary=fresh("NSData");receive(socket,binary);assert(delivered==binary);
+    receive(socket,nil);assert(!delivered);
+    g_enabled=false;receive(socket,input);assert(delivered==input);g_enabled=true;
+    /* Embedded NUL and oversized input must not truncate or partially rewrite. */
+    input=string("@room-id=42 :u!u@h PRIVMSG #fixture :Square");input->byte_count=strlen(input->value)+2;
+    receive(socket,input);assert(delivered==input);
+    char *large=malloc(MAX_FRAME+2);assert(large);memset(large,'a',MAX_FRAME+1);large[MAX_FRAME+1]=0;
+    input=fresh("NSString");input->payload=large;receive(socket,input);assert(delivered==input);free(large);
+    /* Oversized authentic metadata passes through instead of hiding overlaps. */
+    large=malloc(4500);assert(large);size_t used=(size_t)sprintf(large,"@room-id=42;emotes=");
+    memset(large+used,'1',4096);used+=4096;strcpy(large+used," :u!u@h PRIVMSG #fixture :Square");
+    input=fresh("NSString");input->payload=large;receive(socket,input);assert(delivered==input);free(large);
+    /* Refuse the entire frame when accumulated expansions exceed its budget. */
+    add_emote_locked(r,MAX_ROOM,"S","https://cdn.7tv.app/emote/s/2x.webp",0,false,NULL,1);
+    large=calloc(1,6000);assert(large);used=0;
+    for(unsigned row=0;row<10;row++) {
+        used+=(size_t)sprintf(large+used,"@room-id=42 :u!u@h PRIVMSG #fixture :");
+        for(unsigned word=0;word<200;word++) { large[used++]='S';large[used++]=' '; }
+        large[used++]='\r';large[used++]='\n';
+    }
+    large[used]=0;input=fresh("NSString");input->payload=large;
+    uint64_t rewrites=PROBE_GET(g_rn_rewritten);receive(socket,input);
+    assert(delivered==input && PROBE_GET(g_rn_rewritten)==rewrites);free(large);
+    /* Shared refactor preserves the old NSURLSession message wrapper contract. */
+    input=string("@room-id=42 :u!u@h PRIVMSG #fixture :Square");
+    id wrapped=fresh("NSURLSessionWebSocketMessage");wrapped->number=1;wrapped->children[0]=input;
+    id rewritten=rewrite_message(wrapped);assert(rewritten && rewritten!=wrapped && rewritten->children[0]!=input);
+    wrapped->number=0;assert(!rewrite_message(wrapped));
+    assert(PROBE_GET(g_rn_rewritten)>0 && PROBE_GET(g_frame_refused)==3);
+    assert(r->size==3 && !strcmp(find_word(r,"Square")->name,"Square"));
+}
+struct FakeMethod { SEL name;const char *encoding;IMP imp; };
+static struct FakeMethod receive_method={"webSocket:didReceiveMessage:","v32@0:8@16@24",(IMP)original};
+static struct FakeMethod url_method={"url","@16@0:8",(IMP)original};
+static bool has_class=true,own_method=true;
+static unsigned replacements;
+Method *class_copyMethodList(Class cls,unsigned *n) {
+    (void)cls;*n=own_method ? 1 : 0;Method *out=malloc(sizeof(Method));out[0]=&receive_method;return out;
+}
+Method class_getInstanceMethod(Class cls,SEL sel) { (void)cls;return !strcmp(sel,"url") && has_class ? &url_method : NULL; }
+SEL method_getName(Method m) { return sel_registerName(((struct FakeMethod *)m)->name); }
+const char *method_getTypeEncoding(Method m) { return ((struct FakeMethod *)m)->encoding; }
+IMP method_getImplementation(Method m) { return ((struct FakeMethod *)m)->imp; }
+IMP method_setImplementation(Method m,IMP replacement) { struct FakeMethod *f=m;IMP old=f->imp;f->imp=replacement;replacements++;return old; }
+static void installation(void) {
+    g_rn_receive=NULL;has_class=false;install_rn_receive();assert(!g_rn_receive);
+    has_class=true;own_method=false;install_rn_receive();assert(!g_rn_receive);
+    own_method=true;receive_method.encoding="@32@0:8@16@24";install_rn_receive();assert(!g_rn_receive);
+    receive_method.encoding="v32@0:8@16@24";url_method.encoding="q16@0:8";install_rn_receive();assert(!g_rn_receive);
+    url_method.encoding="@16@0:8";install_rn_receive();assert(g_rn_receive==(IMP)original && replacements==1);
+    install_rn_receive();assert(replacements==1); /* no self-hook recursion */
+}
+int main(int argc,char **argv) { assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else installation();return 0; }
+'''
+HARNESS = ROUTE[:ROUTE.index('int main(void)')]
+HARNESS = HARNESS.replace('uint64_t number;', 'uint64_t number;size_t byte_count;const char *payload;')
+HARNESS = HARNESS.replace('snprintf(o->value,sizeof(o->value),"%s",value);return o;',
+    'if(strlen(value)>=sizeof(o->value))o->payload=strdup(value);else snprintf(o->value,sizeof(o->value),"%s",value);return o;')
+HARNESS = HARNESS.replace('classes[8]', 'classes[32]').replace('class_count<8', 'class_count<32')
+HARNESS = HARNESS.replace('SEL sel_registerName(const char *name) { return name; }', r'''
+SEL sel_registerName(const char *name) {
+    static char names[128][96];static unsigned n;
+    for(unsigned i=0;i<n;i++)if(!strcmp(names[i],name))return names[i];
+    assert(n<128);snprintf(names[n],96,"%s",name);return names[n++];
+}''')
+HARNESS = HARNESS.replace('result=(id)o->value;', 'result=(id)(o->payload ? o->payload : o->value);')
+HARNESS = HARNESS.replace("const char *end=strchr(p,'/');assert(end);", "const char *end=strpbrk(p,\":/\");if(!end)end=p+strlen(p);")
+HARNESS = HARNESS.replace('else assert(!"unexpected provider route selector");', EXTRA+'else assert(!"unexpected RN selector");') + MAIN
+
+
+class RNIncomingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.folder = tempfile.TemporaryDirectory()
+        root = Path(cls.folder.name)
+        (root / "objc").mkdir()
+        declarations = RUNTIME + '\nMethod *class_copyMethodList(Class,unsigned *);\nSEL method_getName(Method);\n'
+        for name in ("runtime.h", "objc.h", "message.h"):
+            (root / "objc" / name).write_text(declarations)
+        source = root / "incoming.c"
+        source.write_text(HARNESS)
+        cls.binary = root / "incoming"
+        zig = os.environ.get("ZIG") or shutil.which("zig")
+        if not zig:
+            raise AssertionError("Zig required for production RN receive harness")
+        built = subprocess.run([zig, "cc", "-fblocks", "-Wall", "-Wextra", "-Werror",
+            "-Wno-cast-function-type-mismatch", "-ffunction-sections", "-fdata-sections",
+            "-fsanitize=address,undefined", "-I", str(root), "-I", str(ROOT / "src"),
+            str(source), "-Wl,--gc-sections", "-pthread", "-o", str(cls.binary)], capture_output=True, text=True)
+        if built.returncode:
+            raise AssertionError(built.stderr)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.folder.cleanup()
+
+    def run_harness(self, mode):
+        result = subprocess.run([self.binary, mode], capture_output=True, text=True,
+            env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_incoming_identity_metadata_unicode_room_scope_and_redirect(self):
+        self.run_harness("flow")
+
+    def test_hook_abi_ownership_and_retry_idempotence(self):
+        self.run_harness("install")

@@ -4,7 +4,7 @@
 #include "TASRNStripPayload.h"
 
 /* Second owned function graft, after the confirmed info-card graft. Only the
- * scoped ChatComposerBar export is wrapped. All existing functions, including
+ * ChatComposerBar export starts the scoped input/library adapters. All existing functions, including
  * preview clocks and provider sheets, retain their bodies and relative data. */
 static inline unsigned char *tas_rn_strip_patch(const unsigned char *body,
         size_t length,TASRNSHA1 sha1,size_t *result_length) {

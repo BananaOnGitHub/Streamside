@@ -26,6 +26,18 @@ EXTRA = r'''
     else if(!strcmp(sel,"string"))result=o->children[0];
     else if(!strcmp(sel,"type"))result=(id)(uintptr_t)o->number;
     else if(!strcmp(sel,"length"))result=(id)(uintptr_t)o->byte_count;
+    else if(!strcmp(sel,"standardUserDefaults")) { static id preferences; if(!preferences)preferences=fresh("NSUserDefaults");result=preferences; }
+    else if(!strcmp(sel,"arrayForKey:")) {
+        id key=va_arg(args,id);for(size_t i=0;i<o->count;i++)if(!strcmp(o->keys[i]->value,key->value))result=o->values[i];
+    } else if(!strcmp(sel,"isEqual:")) { id other=va_arg(args,id);result=(id)(uintptr_t)(o->number==other->number); }
+    else if(!strcmp(sel,"removeObject:")) {
+        id value=va_arg(args,id);for(size_t i=0;i<o->count;) {
+            if(!strcmp(o->children[i]->value,value->value)) { memmove(o->children+i,o->children+i+1,(o->count-i-1)*sizeof(id));o->count--; } else i++;
+        }
+    } else if(!strcmp(sel,"insertObject:atIndex:")) {
+        id value=va_arg(args,id);size_t index=va_arg(args,size_t);assert(index<=o->count && o->count<64);
+        memmove(o->children+index+1,o->children+index,(o->count-index)*sizeof(id));o->children[index]=value;o->count++;
+    }
 '''
 MAIN = r'''
 static int picker_mode;
@@ -514,6 +526,8 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
     else if(!strcmp(selector,"providerAction:action:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_action && !strcmp(encoding,"v32@0:8@16@24"));
     else if(!strcmp(selector,"pickerState"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_state && !strcmp(encoding,"@16@0:8"));
     else if(!strcmp(selector,"pickerSearch:query:"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_search && !strcmp(encoding,"@32@0:8@16@24"));
+    else if(!strcmp(selector,"librarySnapshot:"))assert(cls==local_allocated_class && imp==(IMP)rn_library_snapshot && !strcmp(encoding,"@24@0:8@16"));
+    else if(!strcmp(selector,"libraryRemember:name:identifier:"))assert(cls==local_allocated_class && imp==(IMP)rn_library_remember && !strcmp(encoding,"@40@0:8@16@24@32"));
     else {
         assert(cls==local_meta);
         if(!strcmp(selector,"moduleName"))assert(imp==(IMP)rn_local_module_name && !strcmp(encoding,"@16@0:8"));
@@ -523,6 +537,8 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
         else if(!strcmp(selector,"__rct_export__streamsideInfoAction"))assert(imp==(IMP)rn_popup_action_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsidePickerState"))assert(imp==(IMP)rn_strip_state_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsidePickerSearch"))assert(imp==(IMP)rn_strip_search_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideLibrarySnapshot"))assert(imp==(IMP)rn_library_snapshot_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideLibraryRemember"))assert(imp==(IMP)rn_library_remember_export && !strcmp(encoding,"^v16@0:8"));
         else assert(!strcmp(selector,"__rct_export__streamsideLocalEcho") && imp==(IMP)rn_local_export && !strcmp(encoding,"^v16@0:8"));
     }
     return YES;
@@ -540,6 +556,8 @@ static void local_registration(void) {
     assert(!info->synchronous && !strcmp(info->js_name,"sendAction") && !strcmp(info->objc_name,"providerAction:(id)identifier action:(NSNumber *)action"));
     info=rn_strip_state_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"getState") && !strcmp(info->objc_name,"pickerState"));
     info=rn_strip_search_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"search") && !strcmp(info->objc_name,"pickerSearch:(NSString *)channel query:(NSString *)query"));
+    info=rn_library_snapshot_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"getSnapshot") && !strcmp(info->objc_name,"librarySnapshot:(NSString *)channel"));
+    info=rn_library_remember_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"remember"));
 }
 static void popup_metadata(void) {
     g_enabled=true;Room *room=ready("42");
@@ -588,13 +606,49 @@ static void strip_search(void) {
     g_enabled=false;assert(!dict(rn_strip_state(nil,NULL),"enabled")->number);
     assert(!rn_strip_search(nil,NULL,string("42"),string("Wi")));
 }
+static void library_flow(void) {
+    g_enabled=true;Room *room=ready("42");id channel=string("42");
+    add_emote_locked(room,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,NULL,3);
+    add_emote_locked(&g_global,MAX_GLOBAL,"Global","https://cdn.betterttv.net/emote/global/2x",1,true,NULL,1);
+    assert(!rn_library_snapshot(nil,NULL,channel));g_rn_strip_ready=true;
+    for(int mode=0;mode<3;mode++) {
+        picker_mode=mode;id value=rn_library_snapshot(nil,NULL,channel);
+        assert(count(dict(value,"sections"))==2 && count(at(dict(value,"sections"),0))==1 && count(at(dict(value,"sections"),1))==1);
+        assert(count(dict(value,"recents"))==0 && count(dict(value,"labels"))==6);
+    }
+    id wide=tas_emotes_named_copy(channel,string("Wide")),global=tas_emotes_named_copy(channel,string("Global"));
+    assert(!rn_library_remember(nil,NULL,channel,string("Wide"),dict(global,"id")));
+    assert(rn_library_remember(nil,NULL,channel,string("Wide"),dict(wide,"id")));
+    id before=rn_library_snapshot(nil,NULL,channel);
+    assert(count(dict(before,"recents"))==1);
+    assert(rn_library_remember(nil,NULL,channel,string("Global"),dict(global,"id")));
+    id after=rn_library_snapshot(nil,NULL,channel);assert(count(dict(after,"recents"))==2);
+    assert(!strcmp(text(dict(at(dict(after,"recents"),0),"name")),"Global"));
+    assert(count(dict(before,"recents"))==1); /* snapshot graph remains owned */
+    assert(rn_library_remember(nil,NULL,channel,string("Wide"),dict(wide,"id")));
+    after=rn_library_snapshot(nil,NULL,channel);assert(count(dict(after,"recents"))==2);
+    assert(!strcmp(text(dict(at(dict(after,"recents"),0),"name")),"Wide"));
+    assert(!rn_library_snapshot(nil,NULL,string("other")));
+    assert(!rn_library_remember(nil,NULL,string("other"),string("Global"),dict(global,"id")));
+    assert(!rn_library_remember(nil,NULL,channel,string("unknown"),dict(wide,"id")));
+    /* Manually typed provider codes use the completed own-message display path. */
+    g_rn_local_ready=true;id native=call0((id)objc_getClass("NSMutableArray"),"new");
+    assert(rn_local_ranges(nil,NULL,string("Global"),string("fixture"),native));
+    after=rn_library_snapshot(nil,NULL,channel);
+    assert(!strcmp(text(dict(at(dict(after,"recents"),0),"name")),"Global"));
+    Room *other=ready("43");assert(!rn_library_snapshot(nil,NULL,string("fixture"))); /* ambiguous login */
+    reset_room_locked(other,true,time(NULL));reset_room_locked(room,true,time(NULL));
+    assert(!rn_library_remember(nil,NULL,channel,string("Wide"),dict(wide,"id"))); /* retired identity */
+    g_enabled=false;assert(!rn_library_snapshot(nil,NULL,channel));
+    assert(!rn_library_remember(nil,NULL,channel,string("Global"),dict(global,"id")));
+}
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
     else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
     else if(!strcmp(argv[1],"url"))image_url_flow();else if(!strcmp(argv[1],"url-install"))image_url_installation();
     else if(!strcmp(argv[1],"registration"))local_registration();else if(!strcmp(argv[1],"popup"))popup_metadata();
-    else if(!strcmp(argv[1],"strip"))strip_search();else installation();return 0;
+    else if(!strcmp(argv[1],"strip"))strip_search();else if(!strcmp(argv[1],"library"))library_flow();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
@@ -604,6 +658,7 @@ HARNESS = HARNESS.replace('snprintf(o->value,sizeof(o->value),"%s",value);return
 HARNESS = HARNESS.replace('(!strcmp(c->cls,"NSDictionary") && !strcmp(o->cls,"NSMutableDictionary"))', '( (!strcmp(c->cls,"NSDictionary") && !strcmp(o->cls,"NSMutableDictionary")) || (!strcmp(c->cls,"NSArray") && !strcmp(o->cls,"NSMutableArray")) )')
 HARNESS = HARNESS.replace('classes[8]', 'classes[32]').replace('class_count<8', 'class_count<32')
 HARNESS = HARNESS.replace('keys[8],values[8]', 'keys[16],values[16]').replace('o->count<8','o->count<16')
+HARNESS = HARNESS.replace('children[32]', 'children[64]').replace('o->count<32','o->count<64')
 HARNESS = HARNESS.replace('Class objc_getClass(const char *name) {',
     'static Class local_registered_class;\nClass objc_getClass(const char *name) {\nif(!strcmp(name,"TASRNLocalEchoModule"))return local_registered_class;')
 HARNESS = HARNESS.replace('SEL sel_registerName(const char *name) { return name; }', r'''
@@ -645,6 +700,9 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_composer_preview_map_draft_native_identity_provider_precedence_scope_and_bounds(self):
         self.run_harness("composer")
+
+    def test_library_snapshots_recents_identity_room_admission_and_inline_off(self):
+        self.run_harness("library")
 
     def test_native_composer_url_transport_mapping_callbacks_errors_and_fallback(self):
         self.run_harness("url")

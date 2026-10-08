@@ -1311,6 +1311,7 @@ static bool rn_local_position(id number, size_t limit, size_t *out) {
     }
     *out=result; return true;
 }
+static id rn_library_remember(id self,SEL command,id channel,id name,id identifier);
 static id rn_local_ranges(id self, SEL command, id body, id channel, id native) {
     if (!g_enabled || !__atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE)) {
         PROBE_INC(g_rn_local_calls); return nil;
@@ -1363,6 +1364,10 @@ static id rn_local_ranges(id self, SEL command, id body, id channel, id native) 
             for (unsigned i=0;i<3;i++) ((void (*)(id,SEL,id,id))objc_msgSend)(range,
                 sel_registerName("setObject:forKey:"),values[i],str(keys[i]));
             call1(result,"addObject:",range);
+            /* The completed own-message display path also records manually
+             * typed provider codes. Library snapshots stay frozen in JS. */
+            id item=tas_emotes_metadata_copy(strtoull(p,NULL,10));
+            if(item) { rn_library_remember(nil,NULL,str(login),dict(item,"name"),dict(item,"id")); objc_release(item); }
         }
         if (!separator) break;
         p=separator+1;
@@ -1475,6 +1480,78 @@ static const TASRNMethodInfo *rn_strip_search_export(id self,SEL command) {
     (void)self;(void)command;
     static const TASRNMethodInfo info={"search","pickerSearch:(NSString *)channel query:(NSString *)query",YES};return &info;
 }
+/* Library browsing is independent of inline suggestion mode. Room admission
+ * stays explicit; snapshots contain values only, never registry pointers. */
+static pthread_mutex_t g_rn_recent_lock=PTHREAD_MUTEX_INITIALIZER;
+static bool rn_library_room(id channel) {
+    if (!g_enabled || !__atomic_load_n(&g_rn_strip_ready,__ATOMIC_ACQUIRE) || !kind(channel,"NSString")) return false;
+    const char *identity=text(channel);
+    if (!identity || !*identity || strnlen(identity,97)>96) return false;
+    unsigned matches=0;
+    pthread_mutex_lock(&g_emote_lock);
+    for(unsigned i=0;i<MAX_ROOMS;i++) if(g_rooms[i].occupied &&
+        (!strcmp(identity,g_rooms[i].id) || !strcmp(identity,g_rooms[i].login))) matches++;
+    pthread_mutex_unlock(&g_emote_lock);
+    return matches==1;
+}
+static void rn_library_put(id target,const char *key,id value) {
+    if(value)((void (*)(id,SEL,id,id))objc_msgSend)(target,sel_registerName("setObject:forKey:"),value,str(key));
+}
+static id rn_library_snapshot(id self,SEL command,id channel) {
+    (void)self;(void)command;
+    if(!rn_library_room(channel)) return nil;
+    id result=call0((id)objc_getClass("NSMutableDictionary"),"new");
+    id sections=call0((id)objc_getClass("NSMutableArray"),"new");
+    for(int scope=0;scope<2;scope++) {
+        id items=tas_emotes_picker_copy(channel,0,scope,nil,MAX_ROOM+MAX_GLOBAL);
+        if(items) { ((void (*)(id,SEL,id))objc_msgSend)(sections,sel_registerName("addObject:"),items); objc_release(items); }
+    }
+    rn_library_put(result,"sections",sections);objc_release(sections);
+    id recents=call0((id)objc_getClass("NSMutableArray"),"new");
+    id prefs=call0((id)objc_getClass("NSUserDefaults"),"standardUserDefaults");
+    pthread_mutex_lock(&g_rn_recent_lock);
+    id saved=objc_retain(((id (*)(id,SEL,id))objc_msgSend)(prefs,sel_registerName("arrayForKey:"),str("StreamsideRecentEmotes")));
+    pthread_mutex_unlock(&g_rn_recent_lock);
+    if(kind(saved,"NSArray")) for(NSUInteger i=0;i<count(saved) && i<40;i++) {
+        id item=tas_emotes_named_copy(channel,at(saved,i));
+        if(item) { ((void (*)(id,SEL,id))objc_msgSend)(recents,sel_registerName("addObject:"),item); objc_release(item); }
+    }
+    objc_release(saved);rn_library_put(result,"recents",recents);objc_release(recents);
+    rn_library_put(result,"title",str("Third-party emotes"));
+    rn_library_put(result,"label",str("Recent third-party emotes"));
+    rn_library_put(result,"icon",str("✦"));
+    rn_library_put(result,"message",str("No emotes in this section"));
+    id labels=call0((id)objc_getClass("NSMutableArray"),"new");
+    const char *names[]={"All","7TV","BTTV","FFZ","Channel","Global"};
+    for(unsigned i=0;i<6;i++)((void (*)(id,SEL,id))objc_msgSend)(labels,sel_registerName("addObject:"),str(names[i]));
+    rn_library_put(result,"labels",labels);objc_release(labels);
+    return call0(result,"autorelease");
+}
+static id rn_library_remember(id self,SEL command,id channel,id name,id identifier) {
+    (void)self;(void)command;
+    if(!rn_library_room(channel) || !kind(identifier,"NSNumber"))return nil;
+    id item=tas_emotes_named_copy(channel,name);
+    if(!item)return nil;
+    if(!((BOOL (*)(id,SEL,id))objc_msgSend)(dict(item,"id"),sel_registerName("isEqual:"),identifier)) { objc_release(item);return nil; }
+    id prefs=call0((id)objc_getClass("NSUserDefaults"),"standardUserDefaults");
+    pthread_mutex_lock(&g_rn_recent_lock);
+    id saved=((id (*)(id,SEL,id))objc_msgSend)(prefs,sel_registerName("arrayForKey:"),str("StreamsideRecentEmotes"));
+    id list=kind(saved,"NSArray") ? call0(saved,"mutableCopy") : call0((id)objc_getClass("NSMutableArray"),"new");
+    ((void (*)(id,SEL,id))objc_msgSend)(list,sel_registerName("removeObject:"),dict(item,"name"));
+    ((void (*)(id,SEL,id,NSUInteger))objc_msgSend)(list,sel_registerName("insertObject:atIndex:"),dict(item,"name"),(NSUInteger)0);
+    while(count(list)>40)call0(list,"removeLastObject");
+    ((void (*)(id,SEL,id,id))objc_msgSend)(prefs,sel_registerName("setObject:forKey:"),list,str("StreamsideRecentEmotes"));
+    objc_release(list);pthread_mutex_unlock(&g_rn_recent_lock);
+    return call0(item,"autorelease");
+}
+static const TASRNMethodInfo *rn_library_snapshot_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"getSnapshot","librarySnapshot:(NSString *)channel",YES};return &info;
+}
+static const TASRNMethodInfo *rn_library_remember_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"remember","libraryRemember:(NSString *)channel name:(NSString *)name identifier:(NSNumber *)identifier",YES};return &info;
+}
 static id rn_popup_metadata(id self,SEL command,id identifier);
 static void rn_popup_action(id self,SEL command,id identifier,id action);
 static const TASRNMethodInfo *rn_popup_metadata_export(id self,SEL command) {
@@ -1518,6 +1595,8 @@ static void install_rn_local(void) {
                     class_addMethod(cls,sel_registerName("providerAction:action:"),(IMP)rn_popup_action,"v32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("pickerState"),(IMP)rn_strip_state,"@16@0:8") &&
                     class_addMethod(cls,sel_registerName("pickerSearch:query:"),(IMP)rn_strip_search,"@32@0:8@16@24") &&
+                    class_addMethod(cls,sel_registerName("librarySnapshot:"),(IMP)rn_library_snapshot,"@24@0:8@16") &&
+                    class_addMethod(cls,sel_registerName("libraryRemember:name:identifier:"),(IMP)rn_library_remember,"@40@0:8@16@24@32") &&
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
@@ -1525,7 +1604,9 @@ static void install_rn_local(void) {
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideInfo"),(IMP)rn_popup_metadata_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideInfoAction"),(IMP)rn_popup_action_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerState"),(IMP)rn_strip_state_export,"^v16@0:8") &&
-                    class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerSearch"),(IMP)rn_strip_search_export,"^v16@0:8");
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerSearch"),(IMP)rn_strip_search_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLibrarySnapshot"),(IMP)rn_library_snapshot_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLibraryRemember"),(IMP)rn_library_remember_export,"^v16@0:8");
                 if (ok) {
                     objc_registerClassPair(cls); register_module(cls);
                     __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);

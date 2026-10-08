@@ -107,7 +107,7 @@ void dispose(void *p){free(p);}
             assert h.strings[next(x.arg4 for x in composer_factory if x.inst.name=='PutByIdLoose')]=='ChatComposerBar'
             # Takeover adapters must target writable leaves, not read-only
             # barrel getters. The autocomplete adapter adds no hook slots.
-            for factory,export in [(4623,'useAutocomplete'),(4717,'ChatAutocompleteTray')]:
+            for factory,export in [(4623,'useAutocomplete'),(4717,'ChatAutocompleteTray'),(4178,'EmotePickerTray')]:
                 ops=list(parse_hbc_bytecode(h.function_headers[factory],h))
                 assert any(x.inst.name=='PutByIdLoose' and h.strings[x.arg4]==export for x in ops),(factory,export)
             assert dependencies(4619)[1]==4619
@@ -129,6 +129,21 @@ void dispose(void *p){free(p);}
                 assert any(x.inst.name in ('GetById','PutByIdLoose') and h.strings[x.arg4]==name for x in templates)
             print('Scoped composer factory 4869 -> 22083; Autocomplete input module 3759 -> 19094/19088 verified')
             print('Native catalog/templates; writable autocomplete leaves and live getter paths verified')
+            library=list(parse_hbc_bytecode(h.function_headers[20057],h))
+            assert dependencies(4178)[3:5]==[5,245]
+            assert dependencies(4178)[8]==2118
+            for position,element,test_id in [(0x1827,'SectionList','emote-grid-list'),(0x122c,'ScrollView','emote-nav-tablist')]:
+                i=next(i for i,x in enumerate(library) if x.original_pos==position)
+                assert library[i-1].inst.name=='GetById' and h.strings[library[i-1].arg4]==element
+                props=ast.literal_eval(str(library[i]).split('# Object: ',1)[1].replace('null','None').replace('true','True').replace('false','False'))
+                assert props['testID']==test_id
+            select=list(parse_hbc_bytecode(h.function_headers[37374],h))
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='trim' for x in select)
+            for slot,value in [(13,52),(14,28)]:
+                factory=list(parse_hbc_bytecode(h.function_headers[4178],h))
+                i=next(i for i,x in enumerate(factory) if x.inst.name=='StoreNPToEnvironment' and x.arg2==slot)
+                assert factory[i-1].inst.name=='LoadConstUInt8' and factory[i-1].arg2==value
+            print('Library leaf 4174, scoped grid/footer JSX, string insertion and native row/header geometry verified')
         for i,f in enumerate(h.function_headers):
             new=after.function_headers[i]
             for field in f._fields_:

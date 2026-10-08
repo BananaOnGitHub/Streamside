@@ -29,7 +29,7 @@ const RN={View:'view',Text:'text',Image:'image',Pressable:'button',ScrollView:'s
 const ui={useTheme:()=>({colors:{backgroundBase:'black',textAlt:'white'}})};
 const autocomplete={EMOTE_URL_TEMPLATE:'https://fixture/{id}/default',EMOTE_URL_TEMPLATE_STATIC:'https://fixture/{id}/static',caretFromEdit:(before,after)=>{let suffix=0;while(suffix<Math.min(before.length,after.length)&&before[before.length-suffix-1]===after[after.length-suffix-1])suffix++;return after.length-suffix;}};
 autocomplete.useAutocomplete=(...args)=>{hookCalls.push(args);return nativeResult;};
-const env={__r:id=>({72:React,5:RN,2118:ui,16:{default:{buildLocalEcho:bridge}},3759:inputs,4619:autocomplete,3337:buttons,4174:trays,4713:suggestions})[id],encodeURIComponent,WeakMap,
+const env={__r:id=>({72:React,5:RN,2118:ui,245:{},16:{default:{buildLocalEcho:bridge}},3759:inputs,4619:autocomplete,3337:buttons,4174:trays,4713:suggestions})[id],encodeURIComponent,WeakMap,
  setInterval:fn=>{timer=fn;return 1;},clearInterval:()=>{timer=null;}};
 vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);
 const Original='composer',Composer=env.install(Original),Input=inputs.EmoteTextInput;

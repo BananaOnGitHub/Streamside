@@ -18,6 +18,7 @@ EXTRA = r'''
     } else if(!strcmp(sel,"lengthOfBytesUsingEncoding:")) {
         assert(va_arg(args,unsigned long)==4);result=(id)(uintptr_t)(o->byte_count ? o->byte_count : strlen(o->payload ? o->payload : o->value));
     } else if(!strcmp(sel,"stringValue")) { char value[64];snprintf(value,sizeof(value),"%llu",(unsigned long long)o->number);result=string(value); }
+    else if(!strcmp(sel,"integerValue"))result=(id)(uintptr_t)o->number;
     else if(!strcmp(sel,"array") || !strcmp(sel,"dictionary"))result=fresh(o->cls);
     else if(!strcmp(sel,"alloc"))result=fresh(o->cls);
     else if(!strcmp(sel,"initWithString:")) { id s=va_arg(args,id);o->children[0]=s;result=o; }
@@ -507,11 +508,15 @@ Class object_getClass(id object) { assert(object==local_allocated_class);return 
 BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
     if(!strcmp(selector,"renderLocalBody:channel:nativeRanges:"))assert(cls==local_allocated_class && imp==(IMP)rn_local_ranges && !strcmp(encoding,"@40@0:8@16@24@32"));
     else if(!strcmp(selector,"previewMap:channel:nativeMap:"))assert(cls==local_allocated_class && imp==(IMP)rn_composer_map && !strcmp(encoding,"@40@0:8@16@24@32"));
+    else if(!strcmp(selector,"providerMetadata:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_metadata && !strcmp(encoding,"@24@0:8@16"));
+    else if(!strcmp(selector,"providerAction:action:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_action && !strcmp(encoding,"v32@0:8@16@24"));
     else {
         assert(cls==local_meta);
         if(!strcmp(selector,"moduleName"))assert(imp==(IMP)rn_local_module_name && !strcmp(encoding,"@16@0:8"));
         else if(!strcmp(selector,"requiresMainQueueSetup"))assert(imp==(IMP)rn_local_main_queue && !strcmp(encoding,"B16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideComposer"))assert(imp==(IMP)rn_composer_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideInfo"))assert(imp==(IMP)rn_popup_metadata_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideInfoAction"))assert(imp==(IMP)rn_popup_action_export && !strcmp(encoding,"^v16@0:8"));
         else assert(!strcmp(selector,"__rct_export__streamsideLocalEcho") && imp==(IMP)rn_local_export && !strcmp(encoding,"^v16@0:8"));
     }
     return YES;
@@ -523,13 +528,40 @@ static void local_registration(void) {
     local_protocol_available=true;g_enabled=false;install_rn_local();assert(!local_allocations);
     g_enabled=true;install_rn_local();assert(g_rn_local_registered && local_allocations==1 && local_registrations==1 && local_exports==1 && !local_disposals);
     install_rn_local();assert(local_allocations==1 && local_exports==1);
+    const TASRNMethodInfo *info=rn_popup_metadata_export(nil,NULL);
+    assert(info->synchronous && !strcmp(info->js_name,"getMetadata") && !strcmp(info->objc_name,"providerMetadata:(id)identifier"));
+    info=rn_popup_action_export(nil,NULL);
+    assert(!info->synchronous && !strcmp(info->js_name,"sendAction") && !strcmp(info->objc_name,"providerAction:(id)identifier action:(NSNumber *)action"));
+}
+static void popup_metadata(void) {
+    g_enabled=true;Room *room=ready("42");
+    add_emote_locked(room,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,"creator",3);
+    Emote *e=find_word(room,"Wide");e->width_id=860000000000123ULL;
+    char number[32];snprintf(number,sizeof(number),"%llu",(unsigned long long)e->fake_id);
+    assert(!rn_popup_metadata(nil,NULL,string(number))); /* admitted source required */
+    g_rn_popup_ready=true;id value=rn_popup_metadata(nil,NULL,string(number));
+    assert(value && !strcmp(text(dict(value,"name")),"Wide"));
+    assert(!strcmp(text(dict(value,"subtitle")),"7TV channel emote\nby creator"));
+    assert(!strcmp(text(dict(value,"title")),"Copy name") && !strcmp(text(dict(value,"openURL")),"Open in browser"));
+    assert(dict(value,"id")->number==e->fake_id);
+    id alias=rn_popup_metadata(nil,NULL,string("860000000000123"));assert(alias && dict(alias,"id")->number==e->fake_id);
+    assert(rn_popup_metadata(nil,NULL,dict(value,"id")));
+    const char *bad[]={"25","opaque-native","-900000000000123","+900000000000123","900000000000123x","99999999999999999"};
+    for(unsigned i=0;i<sizeof(bad)/sizeof(*bad);i++)assert(!rn_popup_metadata(nil,NULL,string(bad[i])));
+    assert(!rn_popup_metadata(nil,NULL,fresh("NSArray")));
+    /* Action capability refusal must be harmless, with no UI side effect. */
+    rn_popup_action(nil,NULL,dict(value,"id"),dict(value,"provider"));assert(PROBE_GET(g_rn_popup_refused)==1);
+    reset_room_locked(room,true,time(NULL));
+    assert(rn_popup_metadata(nil,NULL,string(number))); /* retired visible message */
+    assert(!strcmp(text(dict(value,"name")),"Wide")); /* owned snapshot */
+    g_enabled=false;assert(!rn_popup_metadata(nil,NULL,string(number)));
 }
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
     else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
     else if(!strcmp(argv[1],"url"))image_url_flow();else if(!strcmp(argv[1],"url-install"))image_url_installation();
-    else if(!strcmp(argv[1],"registration"))local_registration();else installation();return 0;
+    else if(!strcmp(argv[1],"registration"))local_registration();else if(!strcmp(argv[1],"popup"))popup_metadata();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
@@ -538,6 +570,7 @@ HARNESS = HARNESS.replace('snprintf(o->value,sizeof(o->value),"%s",value);return
     'if(strlen(value)>=sizeof(o->value))o->payload=strdup(value);else snprintf(o->value,sizeof(o->value),"%s",value);return o;')
 HARNESS = HARNESS.replace('(!strcmp(c->cls,"NSDictionary") && !strcmp(o->cls,"NSMutableDictionary"))', '( (!strcmp(c->cls,"NSDictionary") && !strcmp(o->cls,"NSMutableDictionary")) || (!strcmp(c->cls,"NSArray") && !strcmp(o->cls,"NSMutableArray")) )')
 HARNESS = HARNESS.replace('classes[8]', 'classes[32]').replace('class_count<8', 'class_count<32')
+HARNESS = HARNESS.replace('keys[8],values[8]', 'keys[16],values[16]').replace('o->count<8','o->count<16')
 HARNESS = HARNESS.replace('Class objc_getClass(const char *name) {',
     'static Class local_registered_class;\nClass objc_getClass(const char *name) {\nif(!strcmp(name,"TASRNLocalEchoModule"))return local_registered_class;')
 HARNESS = HARNESS.replace('SEL sel_registerName(const char *name) { return name; }', r'''
@@ -612,3 +645,6 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_local_module_registration_availability_exports_disabled_and_idempotence(self):
         self.run_harness("registration")
+
+    def test_provider_info_admission_exact_identity_alias_history_and_snapshot(self):
+        self.run_harness("popup")

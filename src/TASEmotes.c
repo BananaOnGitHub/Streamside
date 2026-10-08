@@ -16,6 +16,7 @@
 #include "TASEmoteImageProbe.h"
 #include "TASRNWidthPatch.h"
 #include "TASRNComposerPatch.h"
+#include "TASRNPopupPatch.h"
 #include "TASRNComposerUI.h"
 
 #include <dlfcn.h>
@@ -138,6 +139,8 @@ static bool g_rn_width_ready;
 static bool g_rn_local_registered, g_rn_local_ready;
 static uint64_t g_rn_local_exports, g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
 static bool g_rn_composer_ready;
+static bool g_rn_popup_ready;
+static uint64_t g_rn_popup_calls, g_rn_popup_resolved, g_rn_popup_missing, g_rn_popup_actions, g_rn_popup_refused;
 static uint64_t g_rn_composer_calls, g_rn_composer_maps, g_rn_composer_entries, g_rn_composer_refused, g_rn_composer_scope_misses;
 static char g_rn_width_data_key, g_rn_width_checked_key;
 static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_width_collisions;
@@ -1425,6 +1428,18 @@ static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
     static const TASRNMethodInfo info={"emoteMap","previewMap:(NSString *)body channel:(NSString *)channel nativeMap:(NSDictionary *)native",YES};
     return &info;
 }
+static id rn_popup_metadata(id self,SEL command,id identifier);
+static void rn_popup_action(id self,SEL command,id identifier,id action);
+static const TASRNMethodInfo *rn_popup_metadata_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"getMetadata","providerMetadata:(id)identifier",YES};
+    return &info;
+}
+static const TASRNMethodInfo *rn_popup_action_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"sendAction","providerAction:(id)identifier action:(NSNumber *)action",NO};
+    return &info;
+}
 static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
     (void)self; (void)command;
     PROBE_INC(g_rn_local_exports);
@@ -1452,10 +1467,14 @@ static void install_rn_local(void) {
                 bool ok=class_addProtocol(cls,protocol) &&
                     class_addMethod(cls,sel_registerName("renderLocalBody:channel:nativeRanges:"),(IMP)rn_local_ranges,"@40@0:8@16@24@32") &&
                     class_addMethod(cls,sel_registerName("previewMap:channel:nativeMap:"),(IMP)rn_composer_map,"@40@0:8@16@24@32") &&
+                    class_addMethod(cls,sel_registerName("providerMetadata:"),(IMP)rn_popup_metadata,"@24@0:8@16") &&
+                    class_addMethod(cls,sel_registerName("providerAction:action:"),(IMP)rn_popup_action,"v32@0:8@16@24") &&
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
-                    class_addMethod(meta,sel_registerName("__rct_export__streamsideComposer"),(IMP)rn_composer_export,"^v16@0:8");
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideComposer"),(IMP)rn_composer_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideInfo"),(IMP)rn_popup_metadata_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideInfoAction"),(IMP)rn_popup_action_export,"^v16@0:8");
                 if (ok) {
                     objc_registerClassPair(cls); register_module(cls);
                     __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);
@@ -1644,6 +1663,61 @@ id tas_emotes_metadata_copy(uint64_t synthetic_id) {
     Emote *e = emote_for_id_locked(synthetic_id);
     id metadata = e ? metadata_locked(e) : nil;
     pthread_mutex_unlock(&g_emote_lock); return metadata;
+}
+
+static uint64_t rn_popup_identifier(id identifier) {
+    if (!kind(identifier,"NSString") && !kind(identifier,"NSNumber")) return 0;
+    const char *s=kind(identifier,"NSString") ? text(identifier) : text(call0(identifier,"stringValue"));
+    if (!s || !*s || strnlen(s,17)>16) return 0;
+    uint64_t number=0;
+    for (;*s;s++) { if (*s<'0' || *s>'9') return 0; number=number*10+(unsigned)(*s-'0'); }
+    return number;
+}
+/* Copy only registry metadata for an exact synthetic ID, including width
+ * aliases/retired visible messages. Native IDs return nil and use Twitch's
+ * original card. No channel inference, GraphQL substitution or text retained.
+ */
+static id rn_popup_metadata(id self,SEL command,id identifier) {
+    (void)self;(void)command; PROBE_INC(g_rn_popup_calls);
+    if (!g_enabled || !__atomic_load_n(&g_rn_popup_ready,__ATOMIC_ACQUIRE)) return nil;
+    uint64_t number=rn_popup_identifier(identifier);
+    id metadata=tas_emotes_metadata_copy(number);
+    if (!metadata) { if (number>=FAKE_ID_START) PROBE_INC(g_rn_popup_missing); return nil; }
+    id mutable=call0(metadata,"mutableCopy");objc_release(metadata);
+    const char *keys[]={"title","label","openURL","closeLabel"};
+    const char *values[]={"Copy name","Copy image URL","Open in browser","Close"};
+    for (unsigned i=0;i<4;i++) ((void (*)(id,SEL,id,id))objc_msgSend)(mutable,
+        sel_registerName("setObject:forKey:"),str(values[i]),str(keys[i]));
+    id result=call0(mutable,"copy");objc_release(mutable);
+    PROBE_INC(g_rn_popup_resolved);return call0(result,"autorelease");
+}
+/* Called only by an explicit RN row tap, after onClosed. Re-resolve the ID;
+ * JS cannot supply arbitrary clipboard contents or a URL. UIKit work runs on
+ * main with an owned snapshot and never holds a presenter across Safari.
+ */
+static void rn_popup_action(id self,SEL command,id identifier,id action) {
+    (void)self;(void)command;
+    if (!g_enabled || !__atomic_load_n(&g_rn_popup_ready,__ATOMIC_ACQUIRE) || !kind(action,"NSNumber")) return;
+    NSInteger value=((NSInteger (*)(id,SEL))objc_msgSend)(action,sel_registerName("integerValue"));
+    if (value<0 || value>2) { PROBE_INC(g_rn_popup_refused); return; }
+    id metadata=tas_emotes_metadata_copy(rn_popup_identifier(identifier));
+    void (*async)(void *,void (^)(void))=(void (*)(void *,void (^)(void)))dlsym(RTLD_DEFAULT,"dispatch_async");
+    void *queue=dlsym(RTLD_DEFAULT,"_dispatch_main_q");
+    if (!metadata || !async || !queue) { if(metadata) objc_release(metadata);PROBE_INC(g_rn_popup_refused);return; }
+    PROBE_INC(g_rn_popup_actions);
+    async(queue,^{
+        if (value<2) {
+            id board=call0((id)objc_getClass("UIPasteboard"),"generalPasteboard");
+            ((void (*)(id,SEL,id))objc_msgSend)(board,sel_registerName("setString:"),dict(metadata,value==0 ? "name" : "url"));
+        } else {
+            id app=call0((id)objc_getClass("UIApplication"),"sharedApplication");
+            id url=((id (*)(id,SEL,id))objc_msgSend)((id)objc_getClass("NSURL"),sel_registerName("URLWithString:"),dict(metadata,"url"));
+            if (url && ((NSInteger (*)(id,SEL))objc_msgSend)(app,sel_registerName("applicationState"))==0)
+                ((void (*)(id,SEL,id,id,id))objc_msgSend)(app,sel_registerName("openURL:options:completionHandler:"),url,
+                    call0((id)objc_getClass("NSDictionary"),"dictionary"),nil);
+        }
+        objc_release(metadata);
+    });
 }
 
 static Room *picker_room_locked(id channel) {
@@ -2030,7 +2104,7 @@ static id rn_source_data(id self, SEL command) {
     }
     size_t count=0;
     unsigned char *patch=NULL;
-    bool local=false, composer=false;
+    bool local=false, composer=false, popup=false;
     if (kind(data,"NSData")) {
         size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
         TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
@@ -2043,6 +2117,11 @@ static id rn_source_data(id self, SEL command) {
                 size_t composer_count=0;
                 unsigned char *composer_patch=tas_rn_composer_patch(patch,count,sha1,&composer_count);
                 if (composer_patch) { free(patch); patch=composer_patch; count=composer_count; composer=true; }
+                if (composer) {
+                    size_t popup_count=0;
+                    unsigned char *popup_patch=tas_rn_popup_patch(patch,count,sha1,&popup_count);
+                    if (popup_patch) { free(patch);patch=popup_patch;count=popup_count;popup=true; }
+                }
             }
         }
     }
@@ -2057,10 +2136,12 @@ static id rn_source_data(id self, SEL command) {
         __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
         if (composer) __atomic_store_n(&g_rn_composer_ready,true,__ATOMIC_RELEASE);
+        if (popup) __atomic_store_n(&g_rn_popup_ready,true,__ATOMIC_RELEASE);
         PROBE_INC(g_rn_width_patches);
         tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
         if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
         if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
+        if (popup) tas_diag_log("RN_INFO_PATCH","Provider RN sheet installed in memory; native cards preserved");
     } else {
         PROBE_INC(g_rn_width_refused);
         tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
@@ -2333,4 +2414,11 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         last[0][0][0] ? last[0][0] : "none", last[0][1][0] ? last[0][1] : "none",
         last[1][0][0] ? last[1][0] : "none", last[1][1][0] ? last[1][1] : "none",
         last[2][0][0] ? last[2][0] : "none", last[2][1][0] ? last[2][1] : "none");
+    size_t used=strlen(buffer);
+    if (used<capacity) snprintf(buffer+used,capacity-used,
+        "\nRN provider info patch: %s\nRN provider info lookups/resolved/missing/actions/refused: %llu/%llu/%llu/%llu/%llu\n",
+        __atomic_load_n(&g_rn_popup_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_popup_calls),(unsigned long long)PROBE_GET(g_rn_popup_resolved),
+        (unsigned long long)PROBE_GET(g_rn_popup_missing),(unsigned long long)PROBE_GET(g_rn_popup_actions),
+        (unsigned long long)PROBE_GET(g_rn_popup_refused));
 }

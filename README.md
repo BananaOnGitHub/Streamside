@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.67`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.68`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -40,8 +40,12 @@ Publication is on hold for device testing and the forthcoming logo.
     and looks correct; see [the trial notes](docs/RN_PROVIDER_INFO_TRIAL.md).
     Build 67 adds a compact provider-only RN suggestion strip above the
     composer, using the existing Automatic / colon / Off setting. Twitch's
-    manual picker is unchanged. This strip awaits device validation; see
-    [the picker trial notes](docs/RN_HORIZONTAL_PICKER_TRIAL.md).
+    manual picker is unchanged. The user confirms the horizontal strip works.
+    Build 68 adds Twitch/subscriber entries to the compact strip. Stock inline
+    emote suggestions are suppressed while the feature and picker are enabled;
+    Off or disabling the feature restores them. The emote button continues to
+    open Twitch's library; its provider section is a later milestone.
+    Build 68 awaits device validation; see [the picker trial notes](docs/RN_HORIZONTAL_PICKER_TRIAL.md).
   - Build 50's adapter targets legacy chat present in the donor binary, not the
     active RN interface. That baseline is preserved in
     `archive/twitch-31.5-build50-legacy-chat`.

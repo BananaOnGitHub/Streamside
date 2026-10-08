@@ -105,7 +105,30 @@ void dispose(void *p){free(p);}
             composer_factory=list(parse_hbc_bytecode(h.function_headers[4869],h))
             assert any(x.inst.name=='CreateClosure' and x.arg3==22083 for x in composer_factory)
             assert h.strings[next(x.arg4 for x in composer_factory if x.inst.name=='PutByIdLoose')]=='ChatComposerBar'
+            # Takeover adapters must target writable leaves, not read-only
+            # barrel getters. The autocomplete adapter adds no hook slots.
+            for factory,export in [(4623,'useAutocomplete'),(4717,'ChatAutocompleteTray')]:
+                ops=list(parse_hbc_bytecode(h.function_headers[factory],h))
+                assert any(x.inst.name=='PutByIdLoose' and h.strings[x.arg4]==export for x in ops),(factory,export)
+            assert dependencies(4619)[1]==4619
+            for fid,index,export in [(21405,1,'useAutocomplete')]:
+                ops=list(parse_hbc_bytecode(h.function_headers[fid],h))
+                assert any(x.inst.name=='GetByIndex' and x.arg3==index for x in ops)
+                assert any(x.inst.name=='GetById' and h.strings[x.arg4]==export for x in ops)
+            assert dependencies(4711)[4]==4615 and dependencies(4717)[3]==4615
+            ac=list(parse_hbc_bytecode(h.function_headers[21601],h))
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='useAutocomplete' for x in ac)
+            catalog=list(parse_hbc_bytecode(h.function_headers[21334],h))
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='buildEmoteTokenMap' for x in catalog)
+            slots=ast.literal_eval(str(next(x for x in catalog if x.original_pos==0x93cf)).split('# Object: ',1)[1].replace('null','None'))
+            assert list(slots)[20]=='emoteMap'
+            assignment=next(x for x in catalog if x.original_pos==0x942f)
+            assert assignment.inst.name=='PutOwnBySlotIdx' and (assignment.arg1,assignment.arg2,assignment.arg3)==(25,136,20)
+            templates=list(parse_hbc_bytecode(h.function_headers[4623],h))
+            for name in ['makeEmoteURL','EMOTE_URL_TEMPLATE','EMOTE_URL_TEMPLATE_STATIC']:
+                assert any(x.inst.name in ('GetById','PutByIdLoose') and h.strings[x.arg4]==name for x in templates)
             print('Scoped composer factory 4869 -> 22083; Autocomplete input module 3759 -> 19094/19088 verified')
+            print('Native catalog/templates; writable autocomplete leaves and live getter paths verified')
         for i,f in enumerate(h.function_headers):
             new=after.function_headers[i]
             for field in f._fields_:

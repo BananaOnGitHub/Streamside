@@ -1,14 +1,18 @@
-/* Owned, provider-only RN suggestions. Twitch keeps its input/tokenizer and
- * manual picker. Context scopes the input adapter to this chat composer; no
+/* Unified RN suggestions. Twitch keeps its input/tokenizer and catalog.
+ * Stock autocomplete takeover is conditional. Context scopes input adapters; no
  * last-room fallback or global draft/selection state. */
 function install(original) {
   var React = __r(72); React = React.default || React;
   var RN = __r(5), ui = __r(2118);
   var bridge = __r(16).default.buildLocalEcho;
   var inputs = __r(3759), NativeInput = inputs.EmoteTextInput;
-  var caretFromEdit = __r(4619).caretFromEdit;
+  var autocomplete = __r(4619), caretFromEdit = autocomplete.caretFromEdit;
+  var nativeAutocomplete = autocomplete.useAutocomplete;
+  var suggestions = __r(4713), NativeSuggestions = suggestions.ChatAutocompleteTray;
   if (!React.createContext || !React.useContext || !RN.ScrollView || !RN.Pressable ||
-      !ui.useTheme || !NativeInput || !caretFromEdit || !bridge || !bridge.getState || !bridge.search) return original;
+      !ui.useTheme || !NativeInput || !caretFromEdit || !nativeAutocomplete || !NativeSuggestions ||
+      !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
+      !bridge || !bridge.getState || !bridge.search) return original;
   var Context = React.createContext(null);
   function properties(style) { var p = {}; p.style = style; return p; }
   function space(c) {
@@ -33,6 +37,75 @@ function install(original) {
   }
   function state() {
     try { return bridge.getState(); } catch (error) { return null; }
+  }
+  function takeover(config) { return !!config && !!config.enabled && (config.mode === 0 || config.mode === 1); }
+  function useConfig() {
+    var pair = React.useState(state), config = pair[0], update = pair[1];
+    React.useEffect(function () {
+      var timer = setInterval(function () {
+        var next = state();
+        update(function (old) {
+          return old && next && old.mode === next.mode && old.enabled === next.enabled ? old : next;
+        });
+      }, 250);
+      return function () { clearInterval(timer); };
+    }, []);
+    return config;
+  }
+  function emoteMatches(matches) {
+    return Array.isArray(matches) && matches.length > 0 && matches[0].type === "emote";
+  }
+  function StockSuggestions(p) {
+    var config = useConfig();
+    return takeover(config) && emoteMatches(p.matches) ? null : React.createElement(NativeSuggestions, p);
+  }
+  var providerCache = new WeakMap();
+  function useAutocomplete(draft, setDraft, providers, onCompleteSuggestion) {
+    var active = takeover(state()), filtered = providers;
+    // This adapter adds NO React hooks: the parent can have rendered before
+    // this child factory installs it. Keep Twitch's existing hook sequence.
+    if (active && Array.isArray(providers)) {
+      filtered = providerCache.get(providers);
+      if (!filtered) {
+        filtered = providers.filter(function (value) { return !value || value.autocompleteType !== "emote"; });
+        if (filtered.length === providers.length) filtered = providers;
+        providerCache.set(providers, filtered);
+      }
+    }
+    var result = nativeAutocomplete(draft, setDraft, filtered, onCompleteSuggestion);
+    // Twitch retains matches in state until an edit. Hide a pre-takeover
+    // emote match before its composer hook constructs native Send handlers.
+    if (active && emoteMatches(result.matches)) {
+      var copy = Object.assign({}, result); copy.matches = null;
+      copy.confirmHighlightedMatch = function () { return null; };
+      return copy;
+    }
+    return result;
+  }
+  function entriesFor(data, query) {
+    var entries = [], map = data.emoteMap;
+    var template = data.emoteAnimationsEnabled === false ? autocomplete.EMOTE_URL_TEMPLATE_STATIC : autocomplete.EMOTE_URL_TEMPLATE;
+    if (map && typeof map === "object") {
+      var keys = Object.keys(map), needle = query.toLowerCase();
+      if (keys.length <= 20000) for (var i = 0; i < keys.length; i++) {
+        var name = keys[i], id = map[name];
+        if (!name || name.length > 96 || name.toLowerCase().indexOf(needle) < 0 ||
+            typeof id !== "string" || !id || id.length > 256) continue;
+        var item = {}; item.name = name; item.id = id; item.native = true; item.aspect = 1;
+        item.url = template.replace("{id}", encodeURIComponent(id)); entries.push(item);
+      }
+    }
+    try {
+      var provider = bridge.search(data.channelID, query);
+      for (var i = 0; provider && i < provider.length; i++) {
+        if (!map || !Object.prototype.hasOwnProperty.call(map, provider[i].name)) entries.push(provider[i]);
+      }
+    } catch (error) {}
+    entries.sort(function (a, b) {
+      var x = a.name.toLowerCase(), y = b.name.toLowerCase();
+      return x < y ? -1 : x > y ? 1 : a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
+    return entries.slice(0, 64);
   }
   function Input(p) {
     var context = React.useContext(Context);
@@ -78,20 +151,24 @@ function install(original) {
       return function () { clearInterval(timer); };
     }, [focused]);
     var caret = selection && selection.channelID === p.channelID && selection.text === p.draft ? selection : null;
-    var span = config && config.enabled && focused && p.canSend && !p.viewerBanned && !p.viewerTimedOut &&
-      caret && completion(p.draft, caret.start, caret.end, config.mode);
+    var span = null;
+    if (takeover(config) && focused && p.canSend && !p.viewerBanned && !p.viewerTimedOut && caret) {
+      span = completion(p.draft, caret.start, caret.end, config.mode);
+    }
     var entries = React.useMemo(function () {
       if (!span) return null;
-      try { return bridge.search(p.channelID, span.text); } catch (error) { return null; }
-    }, [p.channelID, span && span.text, !!span, config && config.revision]);
+      return entriesFor(p, span.text);
+    }, [p.channelID, span && span.text, !!span, config && config.revision, p.emoteMap, p.emoteAnimationsEnabled]);
     current.current = {}; current.current.data = p; current.current.selection = caret;
     current.current.span = span; current.current.mode = config && config.mode;
+    current.current.focused = focused;
     React.useEffect(function () {
       if (scroll.current && scroll.current.scrollTo) { var point = {}; point.x = 0; point.animated = false; scroll.current.scrollTo(point); }
     }, [p.channelID, span && span.text]);
     function choose(item) {
       var latest = current.current, data = latest.data, selected = latest.selection, fresh = state();
-      if (!fresh || !fresh.enabled || fresh.mode === 2 || !selected || !data.onDraftChange ||
+      if (!takeover(fresh) || !latest.focused || !data.canSend || data.viewerBanned || data.viewerTimedOut ||
+          !selected || !data.onDraftChange ||
           data.draft !== p.draft || data.channelID !== p.channelID || !span ||
           selected.start !== caret.start || selected.end !== caret.end ||
           !native.current || native.current.text !== data.draft || native.current.channelID !== data.channelID ||
@@ -100,9 +177,9 @@ function install(original) {
       if (!range || !latest.span || range.start !== latest.span.start || range.end !== latest.span.end ||
           range.text !== latest.span.text || fresh.mode !== latest.mode) return;
       // Re-resolve in the current room before applying a possibly stale row.
-      var found = bridge.search(data.channelID, range.text), valid = false;
-      for (var i = 0; found && i < found.length; i++) if (found[i].id === item.id && found[i].name === item.name) valid = true;
-      if (!valid || (data.emoteMap && data.emoteMap[item.name])) return;
+      var found = entriesFor(data, range.text), valid = false;
+      for (var i = 0; i < found.length; i++) if (found[i].id === item.id && found[i].name === item.name && !!found[i].native === !!item.native) valid = true;
+      if (!valid) return;
       var tail = data.draft.slice(range.end), suffix = tail && space(tail.charCodeAt(0)) ? "" : " ";
       var value = data.draft.slice(0, range.start) + item.name + suffix + tail;
       if (typeof data.remaining === "number" && value.length - data.draft.length > data.remaining) return;
@@ -137,10 +214,9 @@ function install(original) {
       label.marginTop = 2; label.maxWidth = 100;
       for (var i = 0; i < entries.length; i++) {
         var item = entries[i];
-        if (p.emoteMap && p.emoteMap[item.name]) continue;
         var cell = {}; cell.height = 60; cell.minWidth = 52; cell.maxWidth = 112;
         cell.paddingHorizontal = 6; cell.alignItems = "center"; cell.justifyContent = "center";
-        var button = properties(cell); button.key = item.id; button.accessibilityRole = "button";
+        var button = properties(cell); button.key = item.name + "/" + (item.native ? item.url : item.id); button.accessibilityRole = "button";
         button.accessibilityLabel = item.name; button.onPress = (function (value) { return function () { choose(value); }; })(item);
         var image = {}; image.height = 32; image.width = Math.min(96, 32 * Math.max(0.1, item.aspect));
         var ip = properties(image), source = {}; source.uri = item.url; ip.source = source; ip.resizeMode = "contain";
@@ -159,6 +235,15 @@ function install(original) {
     return React.createElement(Context.Provider, provider,
       React.createElement(RN.View, properties(surface), strip, React.createElement(original, p)));
   }
-  inputs.EmoteTextInput = Input;
+  // Assign only verified, writable leaf exports. Public barrels use live
+  // getters. Roll back every adapter if any export cannot be installed.
+  try {
+    inputs.EmoteTextInput = Input; autocomplete.useAutocomplete = useAutocomplete;
+    suggestions.ChatAutocompleteTray = StockSuggestions;
+  } catch (error) {
+    inputs.EmoteTextInput = NativeInput; autocomplete.useAutocomplete = nativeAutocomplete;
+    suggestions.ChatAutocompleteTray = NativeSuggestions;
+    return original;
+  }
   return Composer;
 }

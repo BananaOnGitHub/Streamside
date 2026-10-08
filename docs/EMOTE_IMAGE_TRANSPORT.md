@@ -1,4 +1,4 @@
-# Shared provider image transport — build 71
+# Shared provider image transport — builds 71–72
 
 The device report describes slow emote images in chat, composer previews and
 the library, not only in the library browser. All three provider presentation
@@ -8,7 +8,7 @@ used the default shared HTTP cache and inherited each caller's request policy;
 every concurrent request created a separate data task. These are concrete
 optimization opportunities, not a measured diagnosis of the device's delay.
 
-## Changes
+## Build 71 changes (historical)
 
 - Reuse one dedicated provider session with a 32 MiB memory / 128 MiB disk
   `NSURLCache`. Public GET requests use protocol caching rather than inheriting
@@ -58,3 +58,55 @@ then type it into the input and open/reopen the library. Check both first-load
 latency and reuse, animation startup, and rapid library dismissal. If images
 remain slow while transport mostly completes in <=250 ms, investigate the native
 RN image decoder/queue next rather than increasing download concurrency again.
+
+## Build 72: cancellation-safe, bounded admission
+
+The build 71 report records 3,007 provider protocol requests and 2,656
+cancellations before completion, alongside 994 shared loads, 146 joins and 211
+transport completions. Eighty completions exceeded five seconds; 49 had an error
+or no response. Counts are not unique emotes, and cancellations do not establish
+why a view disappeared. They do expose a weakness in the previous lifecycle:
+when the last consumer disappeared, its unfinished download was immediately
+cancelled. A returning consumer could repeatedly restart that same resource
+without any completed response reaching the HTTP cache.
+
+- Active public-image transfers survive the last consumer's cancellation.
+  Stopped clients are removed and receive no late callbacks. A matching consumer
+  can rejoin the still-running flight, which may otherwise finish into
+  Foundation's existing HTTP cache (subject to CDN policy).
+- Admit at most eight tasks, including detached transfers. Direct library loads
+  occupy at most six slots. Synthetic-ID URL redirects attach a transient
+  foreground marker to the resulting URL object; recognized chat/input requests
+  can use the reserved capacity and take priority over queued library requests.
+  If a downstream URL copy loses this marker, the request remains correct but
+  receives ordinary priority. No marker is sent as a wire header or stored.
+- Queue up to 512 flights with 64 consumers each. Cancelling the final queued
+  consumer removes that flight without ever creating a task. A full consumer
+  group may create another bounded flight; a full registry/allocation failure
+  reports a client error rather than creating unbounded fallback downloads.
+- Set provider request/resource timeouts to 15/30 seconds. This bounds the
+  lifetime of detached active transfers, not the entire queue wait. HLS and
+  authenticated/ranged/non-GET independent requests retain their prior lifecycle.
+- Keep formats, proportional sizes, GIF preview clocks, JS grafts and all picker
+  UI unchanged. No catalog-wide prefetch, persistent decoded bitmap cache or
+  unconditional stale response reuse is introduced.
+
+New aggregate diagnostics record queue wait separately from task-to-completion
+time, abandoned queued requests, detached/rejoined/completed flights, error
+codes (cancelled/timeout/other), response-byte buckets and current active counts.
+Task completions include errors and HTTP cache hits; they are not network-only
+download timings. Response sizes are counts, not retained image contents.
+There are still no image URLs, IDs, headers or per-emote histories in the report.
+
+The production harness additionally verifies reserved admission, foreground
+promotion/ordering, queued cancellation, detached reuse, explicit budget
+failure, bounded draining and error buckets. It retains the HLS independence,
+header/policy isolation, missing-task and reentrant-stop coverage. URL-hook tests
+verify that only redirected URL objects are marked. These checks are not an
+on-device speed benchmark.
+
+Device check: rapidly scroll and reopen the library, then try a cold static and
+animated emote in chat and the composer without deleting/retyping it. Compare
+queue-wait and transport buckets, cancelled/timeout errors and large bodies.
+If both queue and transport are fast while images still appear late, the next
+target is native RN decoding/display rather than another transport adjustment.

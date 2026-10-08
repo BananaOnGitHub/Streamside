@@ -1976,6 +1976,10 @@ static char *url_for_id_locked(uint64_t id, time_t now) {
 /* Both NSURLRequest and NSURL overloads must use the same bounded registry
  * lookup. TwitchEmoteInputView uses sharedSession's URL completion overload,
  * which need not dispatch through either request selector we already hook. */
+static char g_image_redirect_key;
+bool tas_emotes_is_redirected_image_url(id url) {
+    return url && objc_getAssociatedObject(url, &g_image_redirect_key) != nil;
+}
 static id image_url_copy(id url) {
     if (!g_enabled || !url) return nil;
     const char *host = text(call0(url, "host"));
@@ -2006,6 +2010,7 @@ static id image_url_copy(id url) {
     id destination = call1((id)objc_getClass("NSURL"), "URLWithString:", str(image));
     free(image);
     if (!destination) return nil;
+    objc_setAssociatedObject(destination, &g_image_redirect_key, str("1"), 1);
     return objc_retain(destination);
 }
 

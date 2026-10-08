@@ -34,24 +34,25 @@ typedef signed char BOOL;
 struct Block { void *isa;int flags,reserved;void (*invoke)(void *,id,id,id);struct {uintptr_t reserved,size;} *descriptor; };
 struct Fake {
     const char *text;
-    id request,client,task,stopped,completed,url,header,session,headers,method,authorization,range;
+    id request,client,task,stopped,completed,consumer,url,header,session,headers,method,authorization,range;
     struct Block *completion;
     unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy;
-    bool stop_on_response;
+    bool stop_on_response,foreground;
+    NSInteger error_code;
     pthread_mutex_t monitor;
 };
-static struct Fake objects[4096],session_class,config_class,error_class,config,cache_class,queue_class;
+static struct Fake objects[16384],session_class,config_class,error_class,config,cache_class,queue_class;
 static size_t used;
 static unsigned starts,results,rewrites,cancellations;
 static bool block_manifest,manifest_entered,release_manifest;
 static pthread_mutex_t manifest_lock=PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t manifest_condition=PTHREAD_COND_INITIALIZER;
 static bool fail_task;
-static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key;
+static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key;
 static id g_protocol_session;
 void *_NSConcreteStackBlock[32];
 static id fresh(const char *text) {
-    assert(used<4096);id o=&objects[used++];o->text=text;
+    assert(used<16384);id o=&objects[used++];o->text=text;
     pthread_mutexattr_t attr;pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&o->monitor,&attr);pthread_mutexattr_destroy(&attr);return o;
@@ -72,11 +73,13 @@ static void objc_release(id o) { (void)o; }
 static int objc_sync_enter(id o) { return pthread_mutex_lock(&o->monitor); }
 static int objc_sync_exit(id o) { return pthread_mutex_unlock(&o->monitor); }
 static id objc_getAssociatedObject(id o,const void *k) {
-    return k==&g_protocol_task_key ? o->task : k==&g_protocol_completed_key ? o->completed : o->stopped;
+    return k==&g_protocol_task_key ? o->task : k==&g_protocol_completed_key ? o->completed :
+        k==&image_consumer_key ? o->consumer : o->stopped;
 }
 static void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t policy) {
     assert(policy==1);if(k==&g_protocol_task_key)o->task=value;
     else if(k==&g_protocol_completed_key)o->completed=value;
+    else if(k==&image_consumer_key)o->consumer=value;
     else { assert(k==&g_protocol_stopped_key);o->stopped=value; }
 }
 static void protocol_stop_loading(id,SEL);
@@ -105,6 +108,8 @@ static id dispatch(id o,SEL s,...) {
         assert(!strcmp(va_arg(a,id)->text,"StreamsideProviderImages"));r=o;
     } else if(!strcmp(s,"setURLCache:"))assert(va_arg(a,id));
     else if(!strcmp(s,"setHTTPMaximumConnectionsPerHost:"))assert(va_arg(a,NSUInteger)==8);
+    else if(!strcmp(s,"setTimeoutIntervalForRequest:"))assert(va_arg(a,double)==15.0);
+    else if(!strcmp(s,"setTimeoutIntervalForResource:"))assert(va_arg(a,double)==30.0);
     else if(!strcmp(s,"setMaxConcurrentOperationCount:"))assert(va_arg(a,NSInteger)==4);
     else if(!strcmp(s,"sessionWithConfiguration:delegate:delegateQueue:")) {
         assert(va_arg(a,id)==&config);assert(!va_arg(a,id));assert(va_arg(a,id));r=fresh("image-session");
@@ -118,6 +123,7 @@ static id dispatch(id o,SEL s,...) {
     } else if(!strcmp(s,"resume"))o->resumes++;
     else if(!strcmp(s,"cancel"))o->cancels++;
     else if(!strcmp(s,"statusCode"))r=(id)(uintptr_t)200;
+    else if(!strcmp(s,"code"))r=(id)(intptr_t)o->error_code;
     else if(!strcmp(s,"errorWithDomain:code:userInfo:")) {
         assert(!strcmp(va_arg(a,id)->text,"NSURLErrorDomain"));assert(va_arg(a,NSInteger)==-1);assert(!va_arg(a,id));r=fresh("error");
     } else if(!strcmp(s,"URLProtocol:didReceiveResponse:cacheStoragePolicy:")) {
@@ -142,6 +148,7 @@ static bool starts_with(const char *s,const char *part) { return s && !strncmp(s
 static bool is_twitch_hls_url(const char *s) { return contains(s,".m3u8"); }
 static bool is_cached_ad_segment(const char *s) { return contains(s,"blank-ad"); }
 static bool tas_emotes_is_provider_image_url(const char *s) { return contains(s,"cdn.7tv.app"); }
+static bool tas_emotes_is_redirected_image_url(id u) { return u && u->foreground; }
 static void tas_emotes_image_result_for_url(const char *u,id d,id r,id e) {
     assert(tas_emotes_is_provider_image_url(u));(void)d;(void)r;(void)e;results++;
 }
@@ -174,6 +181,12 @@ MAIN = r'''
 static id protocol(const char *url) {
     id p=fresh("protocol");p->request=fresh("request");p->request->url=fresh(url);p->client=fresh("client");return p;
 }
+static id task_for(id p) {
+    for(unsigned i=0;i<IMAGE_FLIGHTS;i++)
+        for(unsigned j=0;j<image_flights[i].count;j++)
+            if(image_flights[i].consumers[j]==p)return image_flights[i].task;
+    return p->task;
+}
 static void complete(id task,id data,id response,id error) {
     /* Foundation serializes a session's completion handlers on its queue. */
     pthread_mutex_lock(&task->session->monitor);
@@ -193,14 +206,14 @@ int main(void) {
     complete(task,data,response,nil);
     assert(!image->task && image->client->responses==1 && image->client->loads==1 && image->client->finishes==1 && results==1);
     id cancelled=protocol("https://cdn.7tv.app/emote/b/2x.gif");protocol_start_loading(cancelled,nil);task=cancelled->task;
-    protocol_stop_loading(cancelled,nil);assert(!cancelled->task && task->cancels==1);
+    protocol_stop_loading(cancelled,nil);assert(!cancelled->task && task->cancels==0);
     complete(task,data,response,nil);assert(!cancelled->client->responses && !cancelled->client->finishes && results==1);
-    protocol_stop_loading(cancelled,nil);assert(task->cancels==1 && cancellations==1); /* stop is idempotent */
+    protocol_stop_loading(cancelled,nil);assert(task->cancels==0 && cancellations==1); /* stop is idempotent */
     unsigned before=starts;id early=protocol("https://cdn.7tv.app/emote/c/2x.gif");
     protocol_stop_loading(early,nil);protocol_start_loading(early,nil);assert(starts==before && !early->task);
     id reentrant=protocol("https://cdn.7tv.app/emote/d/2x.gif");reentrant->client->stop_on_response=true;
     protocol_start_loading(reentrant,nil);task=reentrant->task;complete(task,data,response,nil);
-    assert(reentrant->client->responses==1 && !reentrant->client->loads && !reentrant->client->finishes && task->cancels==1 && cancellations==1);
+    assert(reentrant->client->responses==1 && !reentrant->client->loads && !reentrant->client->finishes && task->cancels==0 && cancellations==1);
     id failed=protocol("https://cdn.7tv.app/emote/e/2x.gif");protocol_start_loading(failed,nil);
     complete(failed->task,nil,nil,error);assert(failed->client->failures==1 && !failed->client->finishes && !failed->task);
     fail_task=true;id unavailable=protocol("https://cdn.7tv.app/emote/f/2x.gif");protocol_start_loading(unavailable,nil);
@@ -239,15 +252,15 @@ int main(void) {
     task=one->task;protocol_stop_loading(one,nil);assert(!task->cancels);
     complete(task,data,response,nil);
     assert(!one->client->loads && two->client->finishes==1 && three->client->finishes==1);
-    /* Last cancellation retires the group. Its late completion cannot consume
-     * a new request in the same slot (nor poison its delivery/cache). */
+    /* Last cancellation detaches the client but leaves the bounded transfer
+     * running. A remounted view rejoins it instead of starting over. */
     one=protocol("https://cdn.7tv.app/emote/retry/2x.gif");
     two=protocol("https://cdn.7tv.app/emote/retry/2x.gif");
     protocol_start_loading(one,nil);protocol_start_loading(two,nil);task=one->task;
-    protocol_stop_loading(one,nil);assert(!task->cancels);protocol_stop_loading(two,nil);assert(task->cancels==1);
-    three=protocol("https://cdn.7tv.app/emote/retry/2x.gif");protocol_start_loading(three,nil);id replacement=three->task;
-    complete(task,data,response,nil);assert(three->task==replacement && !three->client->loads);
-    complete(replacement,data,response,nil);assert(three->client->finishes==1);
+    protocol_stop_loading(one,nil);assert(!task->cancels);protocol_stop_loading(two,nil);assert(!task->cancels);
+    before=starts;three=protocol("https://cdn.7tv.app/emote/retry/2x.gif");protocol_start_loading(three,nil);
+    assert(three->task==task && starts==before && image_rejoined==1);
+    complete(task,data,response,nil);assert(three->client->finishes==1 && !one->client->loads && !two->client->loads);
     /* Request normalization never alters the outer request, and keeps HLS on
      * its original caching path. Both cached and cold image requests use the
      * HTTP cache's validation/expiry rules rather than forced reloads. */
@@ -270,14 +283,49 @@ int main(void) {
         assert(one->task->request->cache_policy==1 && two->task->request->cache_policy==1);
         complete(one->task,data,response,nil);complete(two->task,data,response,nil);
     }
-    /* A full coalescing table falls back rather than dropping an image. */
+    /* Library traffic cannot fill the two reserved foreground slots. Cancel a
+     * queued view before admission: it must never create a download. */
+    id background[8];char background_urls[8][96];before=starts;
+    for(unsigned i=0;i<8;i++) {
+        snprintf(background_urls[i],sizeof(background_urls[i]),"https://cdn.7tv.app/emote/background%u/2x.gif",i);
+        background[i]=protocol(background_urls[i]);protocol_start_loading(background[i],nil);
+    }
+    assert(starts==before+6 && image_active==6 && image_background_active==6);
+    assert(!task_for(background[6]) && !task_for(background[7]));
+    protocol_stop_loading(background[7],nil);assert(image_queued_cancelled==1 && starts==before+6);
+    id foreground[3];char foreground_urls[3][96];
+    for(unsigned i=0;i<3;i++) {
+        snprintf(foreground_urls[i],sizeof(foreground_urls[i]),"https://cdn.7tv.app/emote/foreground%u/2x.gif",i);
+        foreground[i]=protocol(foreground_urls[i]);foreground[i]->request->url->foreground=true;
+        protocol_start_loading(foreground[i],nil);
+    }
+    assert(starts==before+8 && image_active==8 && !task_for(foreground[2]));
+    complete(task_for(background[0]),data,response,nil);
+    assert(task_for(foreground[2]) && !task_for(background[6])); /* foreground goes first */
+    for(unsigned i=1;i<7;i++) {assert(task_for(background[i]));complete(task_for(background[i]),data,response,nil);}
+    for(unsigned i=0;i<3;i++)complete(task_for(foreground[i]),data,response,nil);
+    assert(!image_active && !image_background_active && !background[7]->client->finishes);
+    /* A foreground join promotes an existing queued library flight without
+     * opening a duplicate task; reserved capacity is immediately usable. */
+    for(unsigned i=0;i<7;i++) {background[i]=protocol(background_urls[i]);protocol_start_loading(background[i],nil);}
+    assert(!task_for(background[6]));one=protocol(background_urls[6]);one->request->url->foreground=true;
+    before=starts;protocol_start_loading(one,nil);
+    assert(starts==before+1 && task_for(one)==task_for(background[6]) && image_active==7);
+    for(unsigned i=0;i<7;i++)complete(task_for(background[i]),data,response,nil);
+    assert(one->client->finishes==1 && !image_active);
+    /* A full queue produces a normal client error, never unbounded independent
+     * task fallback. Admission remains bounded as the queue drains. */
     id crowded[IMAGE_FLIGHTS+1];char urls[IMAGE_FLIGHTS+1][96];
     for(unsigned i=0;i<IMAGE_FLIGHTS+1;i++) {
         snprintf(urls[i],sizeof(urls[i]),"https://cdn.7tv.app/emote/budget%u/2x.gif",i);
-        crowded[i]=protocol(urls[i]);protocol_start_loading(crowded[i],nil);assert(crowded[i]->task);
+        crowded[i]=protocol(urls[i]);protocol_start_loading(crowded[i],nil);
     }
-    for(unsigned i=0;i<IMAGE_FLIGHTS+1;i++) {complete(crowded[i]->task,data,response,nil);assert(crowded[i]->client->finishes==1);}
-    /* Consumer cap also falls back without starving requests. */
+    assert(image_active==6 && crowded[IMAGE_FLIGHTS]->client->failures==1 && image_refused==1);
+    for(unsigned i=0;i<IMAGE_FLIGHTS;i++) {
+        assert(task_for(crowded[i]));complete(task_for(crowded[i]),data,response,nil);
+        assert(crowded[i]->client->finishes==1 && image_active<=6);
+    }
+    /* Consumer cap makes another bounded flight without starving requests. */
     id viewers[IMAGE_CONSUMERS+1];before=starts;
     for(unsigned i=0;i<IMAGE_CONSUMERS+1;i++) {
         viewers[i]=protocol("https://cdn.7tv.app/emote/consumer-budget/2x.gif");protocol_start_loading(viewers[i],nil);
@@ -285,9 +333,35 @@ int main(void) {
     assert(starts==before+2);
     complete(viewers[0]->task,data,response,nil);complete(viewers[IMAGE_CONSUMERS]->task,data,response,nil);
     for(unsigned i=0;i<IMAGE_CONSUMERS+1;i++)assert(viewers[i]->client->finishes==1);
-    char stats[768];tas_image_transport_status(stats,sizeof(stats));
-    assert(strstr(stats,"Shared loads/coalesced/completed/errors:") && strstr(stats,"Timing excludes image decoding"));
-    assert(!strstr(stats,"shared/2x") && image_joined==3+IMAGE_CONSUMERS-1);
+    for(unsigned i=0;i<3;i++) {
+        one=protocol("https://cdn.7tv.app/emote/errors/2x.gif");protocol_start_loading(one,nil);
+        error->error_code=i==0 ? -999 : i==1 ? -1001 : -42;
+        complete(one->task,nil,nil,error);assert(one->client->failures==1);
+    }
+    assert(image_error_cancelled==1 && image_error_timeout==1 && image_error_other==3);
+    /* A late callback cannot consume a newly admitted generation in the same
+     * slot. Missing-task callbacks must drain a queue without recursive pumps. */
+    one=protocol("https://cdn.7tv.app/emote/generation-old/2x.gif");protocol_start_loading(one,nil);
+    unsigned slot=0;while(image_flights[slot].consumers[0]!=one)slot++;
+    uint64_t generation=image_flights[slot].generation;complete(task_for(one),data,response,nil);
+    two=protocol("https://cdn.7tv.app/emote/generation-new/2x.gif");protocol_start_loading(two,nil);
+    assert(image_flights[slot].consumers[0]==two);
+    image_flight_complete(slot,generation,data,response,nil);
+    assert(!two->client->loads && image_active==1);complete(task_for(two),data,response,nil);
+    for(unsigned i=0;i<6;i++) {background[i]=protocol(background_urls[i]);protocol_start_loading(background[i],nil);}
+    id no_tasks[32];char no_task_urls[32][96];
+    for(unsigned i=0;i<32;i++) {
+        snprintf(no_task_urls[i],sizeof(no_task_urls[i]),"https://cdn.7tv.app/emote/no-task%u/2x.gif",i);
+        no_tasks[i]=protocol(no_task_urls[i]);protocol_start_loading(no_tasks[i],nil);assert(!task_for(no_tasks[i]));
+    }
+    before=starts;fail_task=true;complete(task_for(background[0]),data,response,nil);fail_task=false;
+    assert(starts==before && image_active==5 && image_error_other==35);
+    for(unsigned i=0;i<32;i++)assert(no_tasks[i]->client->failures==1 && !no_tasks[i]->client->loads);
+    for(unsigned i=1;i<6;i++)complete(task_for(background[i]),data,response,nil);
+    assert(!image_active && !image_background_active);
+    char stats[2048];tas_image_transport_status(stats,sizeof(stats));
+    assert(strstr(stats,"Shared loads/coalesced/completed/errors:") && strstr(stats,"excludes queue wait and image decoding"));
+    assert(!strstr(stats,"shared/2x") && image_joined==5+IMAGE_CONSUMERS-1);
     return 0;
 }
 '''

@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.71`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.72`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -52,7 +52,12 @@ Publication is on hold for device testing and the forthcoming logo.
     chat, the input and the library. Build 71 addresses their shared provider
     transport with a dedicated HTTP cache, bounded in-flight request coalescing,
     and concurrent completions. Aggregate transport timings help distinguish
-    download latency from decoding; device performance remains to be verified.
+    download latency from decoding. The build 71 device report shows substantial
+    cancellation churn and many slow transport completions. Build 72 retains
+    bounded active transfers through view recycling, drops abandoned queued
+    requests, and reserves transport capacity for redirected chat/input images.
+    Queue wait, response-size and error-category counters separate remaining
+    transport bottlenecks; device performance remains to be verified.
     See [the transport notes](docs/EMOTE_IMAGE_TRANSPORT.md). The
     RN third-party library includes:
     a frozen-on-open recent scroller, provider and Channel/Global controls,

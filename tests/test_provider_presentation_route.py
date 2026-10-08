@@ -29,6 +29,8 @@ int main(void) {
             id request=fresh("NSMutableURLRequest"),url=fresh("NSURL");snprintf(url->value,sizeof(url->value),"%s",native);request->children[0]=url;
             id redirected=tas_emotes_rewrite_request_copy(request);
             assert(redirected && redirected!=request && !strcmp(redirected->children[0]->value,urls[i]));
+            assert(tas_emotes_is_redirected_image_url(redirected->children[0]));
+            assert(!tas_emotes_is_redirected_image_url(url));
             assert(!strcmp(request->children[0]->value,native));objc_release(redirected);
         }
         objc_release(metadata);
@@ -49,7 +51,16 @@ EXTRA=r'''
     else if(!strcmp(sel,"setURL:"))o->children[0]=va_arg(args,id);
 '''
 HARNESS=PICKER_RUNTIME[:PICKER_RUNTIME.index('static void add(Room')]
-HARNESS=HARNESS.replace('else assert(!"unexpected picker selector");',EXTRA+'    else assert(!"unexpected provider route selector");')+MAIN
+ASSOCIATED=r'''
+id objc_getAssociatedObject(id o,const void *key) {
+    for(size_t i=0;o && i<o->count;i++)if(o->keys[i]==(id)key)return o->values[i];
+    return nil;
+}
+void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
+    assert(o && policy==1 && o->count<8);o->keys[o->count]=(id)key;o->values[o->count++]=value;
+}
+'''
+HARNESS=HARNESS.replace('else assert(!"unexpected picker selector");',EXTRA+'    else assert(!"unexpected provider route selector");')+ASSOCIATED+MAIN
 
 class ProviderPresentationRouteTests(unittest.TestCase):
     def test_four_shapes_share_registry_ratios_and_all_native_url_modes(self):

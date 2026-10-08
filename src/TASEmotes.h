@@ -18,6 +18,9 @@ void tas_emotes_image_request(bool has_completion);
 void tas_emotes_image_result(id data, id response, id error);
 void tas_emotes_image_result_for_url(const char *url, id data, id response, id error);
 bool tas_emotes_is_provider_image_url(const char *url);
+/* Transient marker on the URL object produced by our synthetic-ID redirect.
+ * Not a wire header, persistent identity, or fallback to another chat room. */
+bool tas_emotes_is_redirected_image_url(id url);
 void tas_emotes_image_protocol_request(const char *url);
 void tas_emotes_image_protocol_cancel(const char *url);
 /* Retained snapshots; callers release them. No chat text is retained. */

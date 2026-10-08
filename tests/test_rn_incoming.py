@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from test_emote_ui import RUNTIME
-from test_provider_presentation_route import HARNESS as ROUTE
+from test_provider_presentation_route import HARNESS as ROUTE, ASSOCIATED as ROUTE_ASSOCIATED
 
 ROOT = Path(__file__).resolve().parent.parent
 EXTRA = r'''
@@ -115,6 +115,8 @@ static void flow(void) {
     snprintf(cdn->value,sizeof(cdn->value),"https://static-cdn.jtvnw.net/emoticons/v2/%llu/default/dark/1.0",(unsigned long long)number);
     id redirected=tas_emotes_rewrite_request_copy(request);
     assert(redirected && !strcmp(redirected->children[0]->value,"https://cdn.7tv.app/emote/square/2x.webp"));
+    assert(tas_emotes_is_redirected_image_url(redirected->children[0]));
+    assert(!tas_emotes_is_redirected_image_url(request->children[0]));
     assert(strstr(cdn->value,"static-cdn.jtvnw.net"));
     /* Unicode code points (not UTF-16 or bytes), punctuation, repeated matches. */
     input=string("@room-id=42;emotes= :u!u@h PRIVMSG #fixture :😀 é Square (Square)");
@@ -456,6 +458,8 @@ static void image_url_flow(void) {
     assert(public_url_task_completion(expected_url_session,sel,url,callback)==url_original_task);
     assert(url_original_calls==1 && url_callback_calls==1 && url_original_url!=url && url_original_completion!=callback);
     assert(!strcmp(text(url),original_text) && !strcmp(text(url_original_url),e->url));
+    assert(tas_emotes_is_redirected_image_url(url_original_url));
+    assert(!tas_emotes_is_redirected_image_url(url));
     assert(PROBE_GET(g_url_completion_mapped)==1 && PROBE_GET(g_url_completion_results)==1);
     assert(!PROBE_GET(g_url_completion_errors) && !PROBE_GET(g_url_completion_empty));
     /* Invoke only after the hook returns, just as a network completion does. */
@@ -661,7 +665,7 @@ int main(int argc,char **argv) {
     else if(!strcmp(argv[1],"strip"))strip_search();else if(!strcmp(argv[1],"library"))library_flow();else installation();return 0;
 }
 '''
-HARNESS = ROUTE[:ROUTE.index('int main(void)')]
+HARNESS = ROUTE[:ROUTE.index('int main(void)')].replace(ROUTE_ASSOCIATED, '')
 HARNESS = HARNESS.replace('uint64_t number;', 'uint64_t number;size_t byte_count;const char *payload;')
 HARNESS = HARNESS.replace('snprintf(o->value,sizeof(o->value),"%s",value);return o;',
     'if(strlen(value)>=sizeof(o->value))o->payload=strdup(value);else snprintf(o->value,sizeof(o->value),"%s",value);return o;')

@@ -656,6 +656,10 @@ static id protocol_session(bool provider_image) {
             objc_release(cache);
             ((void (*)(id,SEL,NSUInteger))objc_msgSend)(config,
                 sel_registerName("setHTTPMaximumConnectionsPerHost:"), 8);
+            ((void (*)(id,SEL,double))objc_msgSend)(config,
+                sel_registerName("setTimeoutIntervalForRequest:"), 15.0);
+            ((void (*)(id,SEL,double))objc_msgSend)(config,
+                sel_registerName("setTimeoutIntervalForResource:"), 30.0);
             id queue = msg0((id)objc_getClass("NSOperationQueue"), "new");
             ((void (*)(id,SEL,NSInteger))objc_msgSend)(queue,
                 sel_registerName("setMaxConcurrentOperationCount:"), 4);
@@ -675,19 +679,33 @@ static id protocol_session(bool provider_image) {
 /* Bounded, in-flight public-image fan-out. Each consumer retains its own
  * cancellation/delivery state. A stopped view must not cancel another view's
  * download. No client callbacks or cancel messages occur under this lock. */
-#define IMAGE_FLIGHTS 128
+#define IMAGE_FLIGHTS 512
 #define IMAGE_CONSUMERS 64
+#define IMAGE_ACTIVE 8
+#define IMAGE_BACKGROUND_ACTIVE 6
 typedef struct {
     char *url;
-    id request, task, consumers[IMAGE_CONSUMERS];
+    id request, session, task, consumers[IMAGE_CONSUMERS];
     unsigned count;
     uint64_t generation;
-    struct timespec started;
+    bool running, foreground;
+    struct timespec queued, started;
 } ImageFlight;
 static ImageFlight image_flights[IMAGE_FLIGHTS];
+static char image_consumer_key;
 static pthread_mutex_t image_transport_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t image_generation, image_downloads, image_joined, image_finished, image_errors;
-static uint64_t image_latency[4];
+static uint64_t image_latency[4], image_queue_latency[4], image_body_sizes[4];
+static uint64_t image_queued_cancelled, image_orphans, image_rejoined, image_orphan_finished, image_refused;
+static uint64_t image_error_cancelled, image_error_timeout, image_error_other;
+static unsigned image_active, image_background_active;
+static bool image_pumping;
+
+static unsigned image_bucket(double seconds) { return seconds<=.25 ? 0 : seconds<=1 ? 1 : seconds<=5 ? 2 : 3; }
+static double image_elapsed(struct timespec from, struct timespec to) {
+    return to.tv_sec-from.tv_sec+(to.tv_nsec-from.tv_nsec)/1000000000.0;
+}
+static void image_schedule(void);
 
 void tas_image_transport_status(char *buffer, size_t capacity) {
     pthread_mutex_lock(&image_transport_lock);
@@ -695,11 +713,23 @@ void tas_image_transport_status(char *buffer, size_t capacity) {
         "Provider image transport (shared; this launch)\n"
         "Shared loads/coalesced/completed/errors: %llu/%llu/%llu/%llu\n"
         "Transport completions <=250ms/<=1s/<=5s/>5s: %llu/%llu/%llu/%llu\n"
-        "HTTP cache memory/disk: 32/128 MiB; CDN expiry respected. Timing excludes image decoding.\n",
+        "Queue wait <=250ms/<=1s/<=5s/>5s: %llu/%llu/%llu/%llu\n"
+        "Queued cancellations/active detached/rejoined/detached completions/budget refusals: %llu/%llu/%llu/%llu/%llu\n"
+        "Transport errors cancelled/timeout/other: %llu/%llu/%llu\n"
+        "Response bodies <=64KiB/<=256KiB/<=1MiB/>1MiB: %llu/%llu/%llu/%llu\n"
+        "Active/background/limit: %u/%u/8 (background max 6); HTTP cache memory/disk: 32/128 MiB.\n"
+        "Transport timing excludes queue wait and image decoding; CDN expiry respected.\n",
         (unsigned long long)image_downloads, (unsigned long long)image_joined,
         (unsigned long long)image_finished, (unsigned long long)image_errors,
         (unsigned long long)image_latency[0], (unsigned long long)image_latency[1],
-        (unsigned long long)image_latency[2], (unsigned long long)image_latency[3]);
+        (unsigned long long)image_latency[2], (unsigned long long)image_latency[3],
+        (unsigned long long)image_queue_latency[0], (unsigned long long)image_queue_latency[1],
+        (unsigned long long)image_queue_latency[2], (unsigned long long)image_queue_latency[3],
+        (unsigned long long)image_queued_cancelled, (unsigned long long)image_orphans,
+        (unsigned long long)image_rejoined, (unsigned long long)image_orphan_finished, (unsigned long long)image_refused,
+        (unsigned long long)image_error_cancelled, (unsigned long long)image_error_timeout, (unsigned long long)image_error_other,
+        (unsigned long long)image_body_sizes[0], (unsigned long long)image_body_sizes[1],
+        (unsigned long long)image_body_sizes[2], (unsigned long long)image_body_sizes[3], image_active, image_background_active);
     pthread_mutex_unlock(&image_transport_lock);
 }
 
@@ -716,17 +746,23 @@ static void image_flight_complete(unsigned index, uint64_t generation, id data, 
     unsigned count = 0;
     pthread_mutex_lock(&image_transport_lock);
     ImageFlight *flight = &image_flights[index];
-    /* Last-consumer cancellation frees the slot immediately; a cancelled
-     * task can still complete later and must not consume a replacement. */
+    /* Active detached loads finish into the HTTP cache. Stopped clients are
+     * absent from this array; they receive no late callback. */
     if (flight->generation == generation && flight->url) {
         count = flight->count;
         memcpy(consumers, flight->consumers, count*sizeof(id));
         task = flight->task; request = flight->request;
         struct timespec now; clock_gettime(CLOCK_MONOTONIC, &now);
-        double seconds = now.tv_sec - flight->started.tv_sec +
-            (now.tv_nsec - flight->started.tv_nsec)/1000000000.0;
+        double seconds = image_elapsed(flight->started, now);
+        if (flight->running) { image_active--; if (!flight->foreground) image_background_active--; }
         image_finished++; if (error || !response) image_errors++;
-        image_latency[seconds<=.25 ? 0 : seconds<=1 ? 1 : seconds<=5 ? 2 : 3]++;
+        if (error) {
+            NSInteger code=imsg0(error,"code");
+            if (code==-999) image_error_cancelled++; else if (code==-1001) image_error_timeout++; else image_error_other++;
+        } else if (!response) image_error_other++;
+        image_latency[image_bucket(seconds)]++;
+        if (data) { size_t bytes=data_length(data); image_body_sizes[bytes<=65536 ? 0 : bytes<=262144 ? 1 : bytes<=1048576 ? 2 : 3]++; }
+        if (!count) image_orphan_finished++;
         free(flight->url); memset(flight, 0, sizeof(*flight));
     }
     pthread_mutex_unlock(&image_transport_lock);
@@ -735,9 +771,43 @@ static void image_flight_complete(unsigned index, uint64_t generation, id data, 
         objc_release(consumers[i]);
     }
     objc_release(task); objc_release(request);
+    image_schedule();
 }
 
-static bool image_flight_start(id self, id session, id request, const char *url) {
+/* Only eight transfers can be active, including detached ones. Two slots are
+ * reserved from direct-library requests for synthetic-ID chat/input loads.
+ * Queued consumers disappearing never start a network task. */
+static void image_schedule(void) {
+    pthread_mutex_lock(&image_transport_lock);
+    if (image_pumping) { pthread_mutex_unlock(&image_transport_lock); return; }
+    image_pumping=true;
+    for (;;) {
+        unsigned index=IMAGE_FLIGHTS;
+        for (unsigned i=0;image_active<IMAGE_ACTIVE && i<IMAGE_FLIGHTS;i++) {
+            ImageFlight *f=&image_flights[i];
+            if (!f->url || f->running || !f->count || (!f->foreground && image_background_active>=IMAGE_BACKGROUND_ACTIVE)) continue;
+            if (index==IMAGE_FLIGHTS || (f->foreground && !image_flights[index].foreground) ||
+                (f->foreground==image_flights[index].foreground && f->generation<image_flights[index].generation)) index=i;
+        }
+        if (index==IMAGE_FLIGHTS) break;
+        ImageFlight *f=&image_flights[index]; uint64_t generation=f->generation;
+        f->running=true; image_active++; if (!f->foreground) image_background_active++;
+        clock_gettime(CLOCK_MONOTONIC,&f->started);
+        image_queue_latency[image_bucket(image_elapsed(f->queued,f->started))]++;
+        f->task=objc_retain(((id (*)(id,SEL,id,id))objc_msgSend)(f->session,
+            sel_registerName("dataTaskWithRequest:completionHandler:"),f->request,
+            (id)^(id data,id response,id error) { image_flight_complete(index,generation,data,response,error); }));
+        id task=objc_retain(f->task); image_downloads++;
+        pthread_mutex_unlock(&image_transport_lock);
+        if (task) msg0(task,"resume"); else image_flight_complete(index,generation,nil,nil,nil);
+        objc_release(task);
+        pthread_mutex_lock(&image_transport_lock);
+    }
+    image_pumping=false;
+    pthread_mutex_unlock(&image_transport_lock);
+}
+
+static bool image_flight_start(id self, id session, id request, const char *url, bool foreground) {
     unsigned available = IMAGE_FLIGHTS;
     pthread_mutex_lock(&image_transport_lock);
     for (unsigned i = 0; i < IMAGE_FLIGHTS; i++) {
@@ -748,58 +818,66 @@ static bool image_flight_start(id self, id session, id request, const char *url)
          * headers. Cache policy is normalized before this comparison. */
         id a = msg0(flight->request, "allHTTPHeaderFields"), b = msg0(request, "allHTTPHeaderFields");
         if (a != b && !bmsg1(a, "isEqual:", b)) continue;
+        if (!flight->count) image_rejoined++;
+        if (foreground && !flight->foreground) {
+            if (flight->running) image_background_active--;
+            flight->foreground=true;
+        }
         flight->consumers[flight->count++] = objc_retain(self);
+        objc_setAssociatedObject(self, &image_consumer_key, nsstr("1"), 1);
         objc_setAssociatedObject(self, &g_protocol_task_key, flight->task, 1);
         image_joined++;
         pthread_mutex_unlock(&image_transport_lock);
+        image_schedule();
         return true;
     }
-    if (available == IMAGE_FLIGHTS) { pthread_mutex_unlock(&image_transport_lock); return false; }
+    if (available == IMAGE_FLIGHTS) { image_refused++; pthread_mutex_unlock(&image_transport_lock); protocol_deliver(self,nil,nil,nil); return true; }
     ImageFlight *flight = &image_flights[available];
     flight->url = strdup(url);
-    if (!flight->url) { pthread_mutex_unlock(&image_transport_lock); return false; }
+    if (!flight->url) { image_refused++; pthread_mutex_unlock(&image_transport_lock); protocol_deliver(self,nil,nil,nil); return true; }
     flight->generation = ++image_generation;
     uint64_t generation = flight->generation;
     flight->request = objc_retain(request);
+    flight->session=session; flight->foreground=foreground;
     flight->consumers[flight->count++] = objc_retain(self);
-    clock_gettime(CLOCK_MONOTONIC, &flight->started);
-    flight->task = objc_retain(((id (*)(id,SEL,id,id))objc_msgSend)(session,
-        sel_registerName("dataTaskWithRequest:completionHandler:"), request,
-        (id)^(id data, id response, id error) {
-            image_flight_complete(available, generation, data, response, error);
-        }));
-    id task = objc_retain(flight->task);
-    objc_setAssociatedObject(self, &g_protocol_task_key, task, 1);
-    image_downloads++;
+    clock_gettime(CLOCK_MONOTONIC, &flight->queued);
+    objc_setAssociatedObject(self, &image_consumer_key, nsstr("1"), 1);
     pthread_mutex_unlock(&image_transport_lock);
-    if (task) msg0(task, "resume");
-    else image_flight_complete(available, generation, nil, nil, nil);
-    objc_release(task);
+    image_schedule();
+    /* The initiating consumer's monitor is held by startLoading. Queued
+     * consumers are found by identity on stop, not by a future task pointer. */
+    pthread_mutex_lock(&image_transport_lock);
+    if (flight->url && flight->generation==generation)
+        objc_setAssociatedObject(self, &g_protocol_task_key, flight->task, 1);
+    pthread_mutex_unlock(&image_transport_lock);
     return true;
 }
 
-/* Returns true when this task belongs to the shared transport, including when
- * completion has already detached the consumers for delivery. */
-static bool image_flight_stop(id self, id task) {
+/* Detach this consumer by identity, including queued consumers without tasks.
+ * Completion may already have removed it; its stopped flag still blocks delivery. */
+static bool image_flight_stop(id self) {
     bool shared = false;
-    id cancelled = nil, request = nil, consumer = nil;
+    id request = nil, consumer = nil;
     pthread_mutex_lock(&image_transport_lock);
     for (unsigned i = 0; i < IMAGE_FLIGHTS && !shared; i++) {
         ImageFlight *flight = &image_flights[i];
-        if (!flight->url || flight->task != task) continue;
+        if (!flight->url) continue;
         for (unsigned j = 0; j < flight->count; j++) if (flight->consumers[j] == self) {
             shared = true; consumer = flight->consumers[j];
             memmove(&flight->consumers[j], &flight->consumers[j+1], (--flight->count-j)*sizeof(id));
             if (!flight->count) {
-                cancelled = flight->task; request = flight->request;
-                free(flight->url); memset(flight, 0, sizeof(*flight));
+                if (flight->running) image_orphans++;
+                else {
+                    image_queued_cancelled++; request=flight->request;
+                    free(flight->url); memset(flight,0,sizeof(*flight));
+                }
             }
             break;
         }
     }
     pthread_mutex_unlock(&image_transport_lock);
-    msg0(cancelled, "cancel");
-    objc_release(cancelled); objc_release(request); objc_release(consumer);
+    objc_release(request); objc_release(consumer);
+    image_schedule();
     return shared;
 }
 
@@ -844,7 +922,8 @@ static void protocol_start_loading(id self, SEL command) {
     objc_sync_enter(self);
     if (!objc_getAssociatedObject(self, &g_protocol_stopped_key)) {
         if (provider_image) tas_emotes_image_protocol_request(original_url);
-        if (share_image && image_flight_start(self, session, request, original_url)) {
+        if (share_image && image_flight_start(self, session, request, original_url,
+                tas_emotes_is_redirected_image_url(msg0(original,"URL")))) {
             objc_sync_exit(self);
             objc_release(request);
             return;
@@ -872,14 +951,16 @@ static void protocol_start_loading(id self, SEL command) {
 static void protocol_stop_loading(id self, SEL command) {
     (void)command;
     objc_sync_enter(self);
+    bool was_stopped=objc_getAssociatedObject(self,&g_protocol_stopped_key)!=nil;
     objc_setAssociatedObject(self, &g_protocol_stopped_key, nsstr("stopped"), 1);
     id task = objc_retain(objc_getAssociatedObject(self, &g_protocol_task_key));
     objc_setAssociatedObject(self, &g_protocol_task_key, nil, 1);
-    if (task && !objc_getAssociatedObject(self, &g_protocol_completed_key)) {
+    bool shared=objc_getAssociatedObject(self,&image_consumer_key)!=nil;
+    if (!was_stopped && (task || shared) && !objc_getAssociatedObject(self, &g_protocol_completed_key)) {
         const char *url = utf8(msg0(msg0(msg0(self, "request"), "URL"), "absoluteString"));
         if (tas_emotes_is_provider_image_url(url)) tas_emotes_image_protocol_cancel(url);
     }
-    if (!task || !image_flight_stop(self, task)) msg0(task, "cancel");
+    if (shared) image_flight_stop(self); else msg0(task, "cancel");
     objc_release(task);
     objc_sync_exit(self);
 }

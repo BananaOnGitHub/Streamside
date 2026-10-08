@@ -2,6 +2,14 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Diagnostic build 65 traces the actual EmotePart tap closure, ChatCardHost,
+  emote sheet and EmoteCard content in the verified Twitch 31.5 RN bundle.
+  Merge compat build 64 into diagnostic/rn-chat-boundary, preserving its extra
+  boundary probes and both histories. Add fixed aggregate ID classifications
+  and handler-presence counters without retaining IDs/tokens/text/URLs. Keep
+  working width/local/composer behavior and original popup presentation. User
+  confirms build 64 composer animation starts correctly on first load.
+
 - Build 60 fixes the own-message disappearance reported on build 59. Its
   injected Call4 staged channel/native ranges over the method/module registers
   before native entry. Expand the local callback's frame from 18 to 21 and add

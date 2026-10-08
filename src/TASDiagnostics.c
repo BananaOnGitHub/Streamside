@@ -41,7 +41,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.64"
+#define TAS_REPORT_VERSION "3.0.0-build.65"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -314,7 +314,7 @@ static id diagnostic_report_create(void) {
         (unsigned long long)events);
 
     id report = msg1((id)objc_getClass("NSMutableString"), "stringWithString:", nsstr(header));
-    char emote_status[4096], menu_status[1536];
+    char emote_status[8192], menu_status[1536];
     char button_target[96], button_action[96], presented_class[96], appeared_class[96];
     char navigation_top[96], navigation_visible[96];
     pthread_mutex_lock(&g_diag_lock);

@@ -17,6 +17,9 @@
 #include "TASRNWidthPatch.h"
 #include "TASRNComposerPatch.h"
 #include "TASRNComposerUI.h"
+#if TAS_RN_CHAT_DIAGNOSTIC
+#include "TASRNInfoPatch.h"
+#endif
 
 #include <dlfcn.h>
 #include <objc/runtime.h>
@@ -1425,6 +1428,47 @@ static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
     static const TASRNMethodInfo info={"emoteMap","previewMap:(NSString *)body channel:(NSString *)channel nativeMap:(NSDictionary *)native",YES};
     return &info;
 }
+#if TAS_RN_CHAT_DIAGNOSTIC
+static bool g_rn_info_ready;
+static uint64_t g_rn_info_calls[5],g_rn_info_kinds[5][4],g_rn_info_tappable[2];
+static uint64_t g_rn_info_exports,g_rn_info_refused,g_rn_info_patch_refused;
+static Emote *emote_for_id_locked(uint64_t synthetic_id);
+/* No payload retention, hashes or event-by-event logging. Render calls may be
+ * frequent; fixed aggregate counters measure each seam independently. */
+static id rn_info_trace(id self,SEL command,id seam,id identifier,id tappable) {
+    (void)self;(void)command;
+    if (!g_enabled || !__atomic_load_n(&g_rn_info_ready,__ATOMIC_ACQUIRE)) return nil;
+    if (!kind(seam,"NSNumber")) goto refused;
+    NSInteger boundary=((NSInteger (*)(id,SEL))objc_msgSend)(seam,sel_registerName("integerValue"));
+    if (boundary<0 || boundary>=5) goto refused;
+    unsigned category=3; /* missing or unsupported */
+    if (kind(identifier,"NSString") || kind(identifier,"NSNumber")) {
+        const char *value=kind(identifier,"NSString") ? text(identifier) : text(call0(identifier,"stringValue"));
+        if (value && *value && strnlen(value,97)<=96) {
+            char *end=NULL;uint64_t number=strtoull(value,&end,10);
+            bool decimal=*value>='0' && *value<='9' && end && !*end;
+            if (decimal && number>=FAKE_ID_START) {
+                pthread_mutex_lock(&g_emote_lock);
+                category=emote_for_id_locked(number) ? 1:2;
+                pthread_mutex_unlock(&g_emote_lock);
+            } else category=0; /* ordinary Twitch ID, including nonnumeric IDs */
+        }
+    }
+    PROBE_INC(g_rn_info_calls[boundary]);PROBE_INC(g_rn_info_kinds[boundary][category]);
+    if (boundary==0) {
+        bool press=kind(tappable,"NSNumber") && ((BOOL (*)(id,SEL))objc_msgSend)(tappable,sel_registerName("boolValue"));
+        PROBE_INC(g_rn_info_tappable[press ? 1:0]);
+    }
+    return nil;
+refused:
+    PROBE_INC(g_rn_info_refused);return nil;
+}
+static const TASRNMethodInfo *rn_info_export(id self,SEL command) {
+    (void)self;(void)command;PROBE_INC(g_rn_info_exports);
+    static const TASRNMethodInfo info={"trace","traceInfo:(NSNumber *)seam identifier:(id)identifier tappable:(id)tappable",YES};
+    return &info;
+}
+#endif
 static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
     (void)self; (void)command;
     PROBE_INC(g_rn_local_exports);
@@ -1456,6 +1500,10 @@ static void install_rn_local(void) {
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideComposer"),(IMP)rn_composer_export,"^v16@0:8");
+#if TAS_RN_CHAT_DIAGNOSTIC
+                ok=ok && class_addMethod(cls,sel_registerName("traceInfo:identifier:tappable:"),(IMP)rn_info_trace,"@40@0:8@16@24@32") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideInfoTrace"),(IMP)rn_info_export,"^v16@0:8");
+#endif
                 if (ok) {
                     objc_registerClassPair(cls); register_module(cls);
                     __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);
@@ -2031,6 +2079,9 @@ static id rn_source_data(id self, SEL command) {
     size_t count=0;
     unsigned char *patch=NULL;
     bool local=false, composer=false;
+#if TAS_RN_CHAT_DIAGNOSTIC
+    bool info=false;
+#endif
     if (kind(data,"NSData")) {
         size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
         TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
@@ -2043,6 +2094,16 @@ static id rn_source_data(id self, SEL command) {
                 size_t composer_count=0;
                 unsigned char *composer_patch=tas_rn_composer_patch(patch,count,sha1,&composer_count);
                 if (composer_patch) { free(patch); patch=composer_patch; count=composer_count; composer=true; }
+#if TAS_RN_CHAT_DIAGNOSTIC
+                if (composer) {
+                    size_t info_count=0;
+                    unsigned char *info_patch=tas_rn_info_patch(patch,count,sha1,&info_count);
+                    if (info_patch) {
+                        free(patch);patch=info_patch;count=info_count;
+                        info=true;
+                    } else PROBE_INC(g_rn_info_patch_refused);
+                }
+#endif
             }
         }
     }
@@ -2057,6 +2118,9 @@ static id rn_source_data(id self, SEL command) {
         __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
         if (composer) __atomic_store_n(&g_rn_composer_ready,true,__ATOMIC_RELEASE);
+#if TAS_RN_CHAT_DIAGNOSTIC
+        if (info) __atomic_store_n(&g_rn_info_ready,true,__ATOMIC_RELEASE);
+#endif
         PROBE_INC(g_rn_width_patches);
         tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
         if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
@@ -2333,4 +2397,29 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         last[0][0][0] ? last[0][0] : "none", last[0][1][0] ? last[0][1] : "none",
         last[1][0][0] ? last[1][0] : "none", last[1][1][0] ? last[1][1] : "none",
         last[2][0][0] ? last[2][0] : "none", last[2][1][0] ? last[2][1] : "none");
+#if TAS_RN_CHAT_DIAGNOSTIC
+    size_t used=strlen(buffer);
+    if (used<capacity) {
+        int written=snprintf(buffer+used,capacity-used,
+            "\nRN emote info trace (aggregate; this launch)\n"
+            "Patch/export discoveries/refused calls/refused patches: %s/%llu/%llu/%llu\n"
+            "EmotePart without/with tap handler: %llu/%llu\n"
+            "Seam calls/native/provider resolved/provider missing/no ID:\n",
+            __atomic_load_n(&g_rn_info_ready,__ATOMIC_ACQUIRE) ? "active":"inactive",
+            (unsigned long long)PROBE_GET(g_rn_info_exports),(unsigned long long)PROBE_GET(g_rn_info_refused),
+            (unsigned long long)PROBE_GET(g_rn_info_patch_refused),
+            (unsigned long long)PROBE_GET(g_rn_info_tappable[0]),(unsigned long long)PROBE_GET(g_rn_info_tappable[1]));
+        if (written>0) used+=(size_t)written;
+        const char *names[]={"EmotePart","emote tap","ChatCardHost","emote sheet","EmoteCard content"};
+        for (unsigned i=0;i<5 && used<capacity;i++) {
+            written=snprintf(buffer+used,capacity-used,"  %s: %llu/%llu/%llu/%llu/%llu\n",names[i],
+                (unsigned long long)PROBE_GET(g_rn_info_calls[i]),
+                (unsigned long long)PROBE_GET(g_rn_info_kinds[i][0]),
+                (unsigned long long)PROBE_GET(g_rn_info_kinds[i][1]),
+                (unsigned long long)PROBE_GET(g_rn_info_kinds[i][2]),
+                (unsigned long long)PROBE_GET(g_rn_info_kinds[i][3]));
+            if (written>0) used+=(size_t)written;
+        }
+    }
+#endif
 }

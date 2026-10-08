@@ -2,6 +2,47 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+- Build 60 fixes the own-message disappearance reported on build 59. Its
+  injected Call4 staged channel/native ranges over the method/module registers
+  before native entry. Expand the local callback's frame from 18 to 21 and add
+  an isolated exception handler that resumes original emitLine on any preview
+  exception. Add sequential call-frame regression tests, failure injection at
+  every preview lookup/call/write, and an independent Hermes-98 compiler check.
+  Incoming rendering and width remain unchanged. Device validation pending.
+- Build 59 moves local emote matching to LibraryTmiClient's completed own-message
+  ordinary-chat event. Builds 57/58 targeted the separate TmiClient path and recorded zero
+  callback/export discoveries on device. Add provider-only display ranges to
+  the original native array, after translation and nonce handling; preserve line identity,
+  native objects and send handling. Verify the short-branch widening, both
+  nonce-handling branches, bounded native-array adapter, Unicode and explicit-room
+  matching. Device rendering remains pending; catalog/picker stay deferred.
+- Build 58 corrects the local-preview bridge lookup to Twitch's existing Metro
+  NativeModules module, including its classic bridge configuration fallback.
+  Build 57 was registered/patched on device but recorded zero local calls and
+  did not render the user's emote. Add aggregate export-discovery diagnostics;
+  preserve the preview matcher, incoming width patch and send path. Device
+  validation remains pending.
+- Build 57 experiments with provider emotes in the local sent-message preview.
+  Extend exact-body admission to the completed TmiClient local echo, call a
+  separate synchronous RN module, and reuse room-scoped matching/native ranges,
+  image aliases, proportional styles and provider redirects. Keep the outgoing
+  send path byte-identical. Add aggregate preview diagnostics and refusal tests.
+  Catalog/picker integration remains deferred; local device validation pending.
+- Build 56 tests proportional incoming RN emote width. Gate an in-memory
+  EmotePart patch to the exact verified Hermes-98 body; override both wrapper
+  and image styles before Fabric measurement. Carry bounded aspect ratios in
+  collision-checked incoming-only image aliases; retain native styles and the
+  build-55 fallback on admission failure. No catalog, picker, local echo or
+  animation changes. Host/donor checks pass; the user's build-56 device report
+  confirms working proportional reception for the tested cases.
+- Build 55 begins incoming-only third-party emote rendering in Twitch 31.5's
+  React Native chat. Guard the IRC receive delegate by runtime ABI and socket
+  host, reuse Unicode-aware synthetic `emotes=` metadata and provider redirects,
+  preserve native ranges/body text and unchanged frame identity, and add only
+  aggregate receive counters. Duplicate/oversized native metadata and foreign
+  shared-chat source rooms pass through. No JS/catalog/picker/local-echo or
+  RN/Fabric geometry mutation. Square static rendering needs device validation.
+
 - Diagnostic build 54 records build 53 device findings and adds passive native
   attachment initialization/image assignment and chat-scoped RN paragraph
   observations. Exact ABI checks, main-thread guards and bounded attribute-run
@@ -32,7 +73,8 @@
   layer proportions unchanged. Gate account/channel scope, native-name
   conflicts and moderated/shared-channel messages. Host identity/geometry
   checks cover square, wide, animated and animated-wide fixtures; device
-  local-echo and playback validation remain pending. Forensic probes are off.
+  local-echo and playback validation remain pending. This is the legacy chat
+  path present in the binary, not the active RN chat. Forensic probes are off.
 - Build 44 corrects diagnostic child roles using the attachment's actual fields,
   observes both native children, and admits visible layers ahead of hidden ones
   within the 64-layer budget. Report capacity denials, live observer evictions,

@@ -14,7 +14,11 @@
 #include "TASDiagnostics.h"
 #include "TASEmoteProbe.h"
 #include "TASEmoteImageProbe.h"
+#include "TASRNWidthPatch.h"
+#include "TASRNComposerPatch.h"
+#include "TASRNComposerUI.h"
 
+#include <dlfcn.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <pthread.h>
@@ -87,6 +91,7 @@ typedef struct {
     char *owner;
     double aspect;
     uint64_t fake_id;
+    uint64_t width_id; /* incoming RN alias, frozen at first presentation */
     unsigned char provider; /* 0: 7TV; 1: BTTV; 2: FFZ */
     bool global;
 } Emote;
@@ -127,11 +132,25 @@ uint64_t tas_emotes_catalog_revision(void) {
 static char g_last_room[32];
 static bool g_enabled;
 static IMP g_public_receive, g_private_receive;
+static IMP g_rn_receive;
+static IMP g_rn_source_data;
+static bool g_rn_width_ready;
+static bool g_rn_local_registered, g_rn_local_ready;
+static uint64_t g_rn_local_exports, g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
+static bool g_rn_composer_ready;
+static uint64_t g_rn_composer_calls, g_rn_composer_maps, g_rn_composer_entries, g_rn_composer_refused, g_rn_composer_scope_misses;
+static char g_rn_width_data_key, g_rn_width_checked_key;
+static uint64_t g_rn_width_patches, g_rn_width_refused, g_rn_width_words, g_rn_width_collisions;
+static pthread_mutex_t g_rn_install_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_rn_width_lock = PTHREAD_MUTEX_INITIALIZER;
 static IMP g_private_request, g_private_request_completion;
+static IMP g_public_url_completion, g_private_url_completion;
+static uint64_t g_url_completion_calls, g_url_completion_mapped, g_url_completion_results, g_url_completion_errors, g_url_completion_empty;
 static char g_wrapped_key;
 /* Aggregate counters contain no room IDs, message text, or request URLs. */
 static uint64_t g_receive_calls, g_text_frames, g_tagged_frames, g_room_frames;
 static uint64_t g_rewritten_frames, g_image_rewrites;
+static uint64_t g_rn_calls, g_rn_irc, g_rn_rewritten, g_rn_refused, g_frame_refused;
 static uint64_t g_image_with_completion, g_image_without_completion;
 static uint64_t g_image_protocol_requests, g_image_protocol_cancelled, g_match_words, g_native_overlaps;
 static uint64_t g_words_scanned, g_punctuation_matches;
@@ -580,12 +599,14 @@ static bool identity_available_locked(uint64_t number, const char *name, const c
         Room *room = r == MAX_ROOMS ? &g_global : &g_rooms[r];
         for (size_t i = 0; i < room->size; i++) {
             Emote *e = &room->items[i];
-            if (e->fake_id == number && (strcmp(e->name,name) || strcmp(e->url,url))) return false;
+            if ((e->fake_id == number || e->width_id == number) &&
+                (strcmp(e->name,name) || strcmp(e->url,url))) return false;
         }
     }
     for (size_t i = 0; i < MAX_HISTORY; i++) {
         Emote *e = &g_old[i].emote;
-        if (e->fake_id == number && e->url && (strcmp(e->name,name) || strcmp(e->url,url))) return false;
+        if ((e->fake_id == number || e->width_id == number) && e->url &&
+            (strcmp(e->name,name) || strcmp(e->url,url))) return false;
     }
     return true; /* A collision fails closed; never assign another URL to it. */
 }
@@ -615,6 +636,7 @@ static void add_emote_locked(Room *room, size_t max, const char *name,
             existing->name = word;
             existing->url = image;
             existing->fake_id = number;
+            existing->width_id = 0;
             existing->provider = provider;
             existing->global = global;
             existing->owner = duplicate(owner, 128);
@@ -1007,7 +1029,7 @@ static void probe_gate_line(const char *line,size_t length,const char *outcome) 
 #endif
 
 /* Returns a replacement for one IRC line, or NULL if it is unchanged. */
-static char *rewrite_line(const char *line, size_t length) {
+static char *rewrite_line_mode(const char *line, size_t length, bool proportional, bool local) {
     if (length < 3 || line[0] != '@') {
 #if TAS_EMOTE_DIAGNOSTIC
         probe_gate_line(line,length,"untagged-line");
@@ -1022,6 +1044,24 @@ static char *rewrite_line(const char *line, size_t length) {
 #endif
         return NULL;
     }
+    /* Resolve only actual header tags. Similar tag names, duplicate emotes
+     * tags, and oversized native ranges must not hide native ownership. */
+    const char *old_tag = NULL, *value_end = NULL;
+    bool source_room_tag = false;
+    for (const char *p = line + 1; p < tags_end;) {
+        const char *next = memchr(p, ';', (size_t)(tags_end - p));
+        if (!next) next = tags_end;
+        if (next - p >= 7 && !memcmp(p, "emotes=", 7)) {
+            if (old_tag || next - (p + 7) >= 4096) return NULL;
+            old_tag = p;
+            value_end = next;
+        }
+        if (next - p >= 15 && !memcmp(p, "source-room-id=", 15)) {
+            if (source_room_tag) return NULL;
+            source_room_tag = true;
+        }
+        p = next + (next < tags_end);
+    }
     char room_id[32];
     if (!tag_value(line + 1, tags_end, "room-id", room_id, sizeof(room_id)) ||
         !valid_room(room_id)) {
@@ -1030,30 +1070,39 @@ static char *rewrite_line(const char *line, size_t length) {
 #endif
         return NULL;
     }
-    const char *privmsg = strstr(tags_end, " PRIVMSG #");
-    bool message = privmsg && privmsg < end;
-    if (!message && !strstr(tags_end, " ROOMSTATE #")) return NULL;
-    PROBE_INC(g_room_frames);
-    pthread_mutex_lock(&g_emote_lock);
-    snprintf(g_last_room, sizeof(g_last_room), "%s", room_id);
-    pthread_mutex_unlock(&g_emote_lock);
-    ensure_loaded(NULL, false);
-    ensure_loaded(room_id, false);
-    const char *channel_start = strstr(tags_end, message ? " PRIVMSG #" : " ROOMSTATE #");
-    channel_start = channel_start ? strchr(channel_start, '#') + 1 : NULL;
-    const char *channel_end = channel_start ? strchr(channel_start, ' ') : NULL;
-    if (channel_end && channel_end - channel_start <= 96) {
+    if (source_room_tag) {
+        char source_room[32];
+        if (!tag_value(line + 1, tags_end, "source-room-id", source_room, sizeof(source_room)) ||
+            !valid_room(source_room) || strcmp(source_room, room_id)) return NULL;
+    }
+    const char *command = strchr(tags_end + 2, ' ');
+    if (!command || command >= end) return NULL;
+    bool message = !strncmp(command, " PRIVMSG #", 10);
+    if (!message && strncmp(command, " ROOMSTATE #", 12)) return NULL;
+    const char *privmsg = message ? command : NULL;
+    if (!local) {
+        PROBE_INC(g_room_frames);
         pthread_mutex_lock(&g_emote_lock);
-        for (size_t i = 0; i < MAX_ROOMS; i++)
-            if (g_rooms[i].occupied && !strcmp(g_rooms[i].id, room_id)) {
-                size_t n = (size_t)(channel_end - channel_start);
-                if (strlen(g_rooms[i].login) != n || memcmp(g_rooms[i].login, channel_start, n)) {
-                    memcpy(g_rooms[i].login, channel_start, n);
-                    g_rooms[i].login[n] = 0;
-                    catalog_changed_locked();
-                }
-            }
+        snprintf(g_last_room, sizeof(g_last_room), "%s", room_id);
         pthread_mutex_unlock(&g_emote_lock);
+        ensure_loaded(NULL, false);
+        ensure_loaded(room_id, false);
+        const char *channel_start = command + (message ? 10 : 12);
+        const char *channel_end = memchr(channel_start, ' ', (size_t)(end-channel_start));
+        if (!channel_end && !message) channel_end=end;
+        if (channel_end && channel_end - channel_start <= 96) {
+            pthread_mutex_lock(&g_emote_lock);
+            for (size_t i = 0; i < MAX_ROOMS; i++)
+                if (g_rooms[i].occupied && !strcmp(g_rooms[i].id, room_id)) {
+                    size_t n = (size_t)(channel_end - channel_start);
+                    if (strlen(g_rooms[i].login) != n || memcmp(g_rooms[i].login, channel_start, n)) {
+                        memcpy(g_rooms[i].login, channel_start, n);
+                        g_rooms[i].login[n] = 0;
+                        catalog_changed_locked();
+                    }
+                }
+            pthread_mutex_unlock(&g_emote_lock);
+        }
     }
     if (!message) return NULL;
     const char *separator = strstr(privmsg, " :");
@@ -1106,9 +1155,21 @@ static char *rewrite_line(const char *line, size_t length) {
                     continue;
                 }
                 PROBE_INC(g_match_words);
+                uint64_t presentation_id = emote->fake_id;
+                if (proportional) {
+                    if (!emote->width_id) {
+                        uint64_t alias=tas_rn_width_id(emote->fake_id,emote->aspect);
+                        if (identity_available_locked(alias,emote->name,emote->url)) emote->width_id=alias;
+                        else PROBE_INC(g_rn_width_collisions);
+                    }
+                    if (emote->width_id) {
+                        presentation_id=emote->width_id;
+                        PROBE_INC(g_rn_width_words);
+                    }
+                }
                 int n = snprintf(additions + written, sizeof(additions) - written,
                                  "%s%llu:%zu-%zu", written ? "/" : "",
-                                 (unsigned long long)emote->fake_id, first, first + matched_span - 1);
+                                 (unsigned long long)presentation_id, first, first + matched_span - 1);
                 if (n > 0 && (size_t)n < sizeof(additions) - written) {
                     written += (size_t)n;
 #if TAS_EMOTE_DIAGNOSTIC
@@ -1133,13 +1194,6 @@ static char *rewrite_line(const char *line, size_t length) {
     }
     pthread_mutex_unlock(&g_emote_lock);
     if (!written) return NULL;
-    const char *old_tag = strstr(line, "emotes=");
-    if (old_tag && old_tag < tags_end && old_tag != line + 1 && old_tag[-1] != ';') old_tag = NULL;
-    const char *value_end = NULL;
-    if (old_tag) {
-        value_end = memchr(old_tag, ';', (size_t)(tags_end - old_tag));
-        if (!value_end) value_end = tags_end;
-    }
     size_t capacity = length + written + 16;
     char *result = malloc(capacity);
     if (!result) return NULL;
@@ -1160,23 +1214,279 @@ static char *rewrite_line(const char *line, size_t length) {
     return result;
 }
 
-static id rewrite_message(id message) {
-    PROBE_INC(g_receive_calls);
-    if (!message || ((NSInteger (*)(id, SEL))objc_msgSend)(message, sel_registerName("type")) != 1)
-        return nil;
-    PROBE_INC(g_text_frames);
-    const char *input = text(call0(message, "string"));
-    if (!input) return nil;
+static char *rewrite_line_impl(const char *line, size_t length, bool proportional) {
+    return rewrite_line_mode(line,length,proportional,false);
+}
+
+static char *rewrite_line(const char *line, size_t length) {
+    return rewrite_line_impl(line,length,false);
+}
+
+/* Private local carrier, built by rn_local_ranges below. Its explicit channel
+ * resolves one known room; never borrow g_last_room. A temporary room tag uses
+ * the shared matcher without network, replay, UIKit work or incoming counters.
+ */
+static id rn_local_echo(id self, SEL command, id value) {
+    (void)self; (void)command;
+    PROBE_INC(g_rn_local_calls);
+    if (!g_enabled || !__atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE)) return value;
+    if (!kind(value,"NSString")) { PROBE_INC(g_rn_local_refused); return value; }
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(
+        value,sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    if (!bytes || bytes>MAX_FRAME) { PROBE_INC(g_rn_local_refused); return value; }
+    const char *line=text(value);
+    if (!line || strnlen(line,MAX_FRAME+1)!=bytes || line[0]!='@' || strchr(line,'\r') || strchr(line,'\n')) {
+        PROBE_INC(g_rn_local_refused); return value;
+    }
+    for (const unsigned char *p=(const unsigned char *)line;*p;p++)
+        if (*p<32 && *p!='\t') { PROBE_INC(g_rn_local_refused); return value; }
+    const char *tags_end=strstr(line," :");
+    const char *verb=tags_end ? strchr(tags_end+2,' ') : NULL;
+    if (!verb || strncmp(verb," PRIVMSG #",10)) { PROBE_INC(g_rn_local_refused); return value; }
+    char identity[64];
+    if (!tag_value(line+1,tags_end,"id",identity,sizeof(identity)) ||
+        strncmp(identity,"local-echo-",11) || !identity[11]) {
+        PROBE_INC(g_rn_local_refused); return value;
+    }
+    for (const char *p=identity+11;*p;p++) if (*p<'0' || *p>'9') { PROBE_INC(g_rn_local_refused); return value; }
+    for (const char *p=line+1;p<tags_end;) {
+        const char *end=memchr(p,';',(size_t)(tags_end-p)); if (!end) end=tags_end;
+        if ((end-p>=8 && !memcmp(p,"room-id=",8)) ||
+            (end-p>=15 && !memcmp(p,"source-room-id=",15))) { PROBE_INC(g_rn_local_refused); return value; }
+        p=end+(end<tags_end);
+    }
+    const char *login=verb+10, *login_end=strchr(login,' ');
+    if (!login_end || login_end==login || login_end-login>96 || strncmp(login_end," :",2)) {
+        PROBE_INC(g_rn_local_refused); return value;
+    }
+    char room_id[32]=""; unsigned matches=0;
+    pthread_mutex_lock(&g_emote_lock);
+    for (size_t i=0;i<MAX_ROOMS;i++) {
+        Room *r=&g_rooms[i];
+        if (r->occupied && strlen(r->login)==(size_t)(login_end-login) &&
+            !memcmp(r->login,login,(size_t)(login_end-login))) {
+            snprintf(room_id,sizeof(room_id),"%s",r->id); matches++;
+        }
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    if (matches!=1) { PROBE_INC(g_rn_local_scope_misses); return value; }
+    char prefix[48]; int n=snprintf(prefix,sizeof(prefix),"@room-id=%s;",room_id);
+    if (n<=0 || (size_t)n>=sizeof(prefix)) { PROBE_INC(g_rn_local_refused); return value; }
+    size_t extra=(size_t)n-1;
+    char *temporary=malloc((size_t)bytes+extra+1);
+    if (!temporary) { PROBE_INC(g_rn_local_refused); return value; }
+    memcpy(temporary,prefix,(size_t)n);
+    memcpy(temporary+n,line+1,(size_t)bytes); /* includes terminator */
+    char *rewritten=rewrite_line_mode(temporary,(size_t)bytes+extra,true,true);
+    free(temporary);
+    if (!rewritten) return value;
+    /* Shared rewrite preserves the injected prefix byte-for-byte. */
+    rewritten[extra]='@';
+    id result=str(rewritten+extra);
+    free(rewritten);
+    if (!result) { PROBE_INC(g_rn_local_refused); return value; }
+    PROBE_INC(g_rn_local_changed);
+    return result;
+}
+
+/* Adapt the completed LibraryTmiClient display line, never its send payload.
+ * Native ranges are used only for ownership; their JS objects remain intact.
+ * A private IRC carrier reuses the confirmed matcher and returns additions only.
+ */
+static bool rn_local_position(id number, size_t limit, size_t *out) {
+    if (!kind(number,"NSNumber")) return false;
+    const char *value=text(call0(number,"stringValue"));
+    if (!value || !*value) return false;
+    size_t result=0;
+    for (const unsigned char *p=(const unsigned char *)value;*p;p++) {
+        if (*p<'0' || *p>'9' || result>limit/10) return false;
+        result=result*10+(*p-'0'); if (result>=limit) return false;
+    }
+    *out=result; return true;
+}
+static id rn_local_ranges(id self, SEL command, id body, id channel, id native) {
+    if (!g_enabled || !__atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE)) {
+        PROBE_INC(g_rn_local_calls); return nil;
+    }
+    if (!kind(body,"NSString") || !kind(channel,"NSString") || !kind(native,"NSArray") || count(native)>128) goto refused;
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(body,
+        sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    const char *message=text(body), *login=text(channel);
+    if (!message || !bytes || bytes>MAX_FRAME-4096 || strnlen(message,MAX_FRAME+1)!=bytes || !login) goto refused;
+    if (*login=='#') login++;
+    size_t login_length=strnlen(login,97);
+    if (!login_length || login_length>96) goto refused;
+    for (const unsigned char *p=(const unsigned char *)login;*p;p++)
+        if (!((*p>='a' && *p<='z') || (*p>='0' && *p<='9') || *p=='_')) goto refused;
+    size_t limit=codepoints(message,(size_t)bytes), used=0;
+    char ownership[4096]="";
+    for (NSUInteger i=0;i<count(native);i++) {
+        id range=at(native,i); size_t first,last;
+        if (!rn_local_position(dict(range,"start"),limit,&first) ||
+            !rn_local_position(dict(range,"end"),limit,&last) || last<first) goto refused;
+        int n=snprintf(ownership+used,sizeof(ownership)-used,"%s25:%zu-%zu",used ? "/" : "",first,last);
+        if (n<=0 || (size_t)n>=sizeof(ownership)-used) goto refused;
+        used+=(size_t)n;
+    }
+    size_t capacity=(size_t)bytes+used+login_length+128;
+    char *carrier=malloc(capacity);
+    if (!carrier) goto refused;
+    snprintf(carrier,capacity,"@id=local-echo-0;emotes=%s :local PRIVMSG #%s :%s",ownership,login,message);
+    id input=str(carrier); free(carrier);
+    if (!input) goto refused;
+    id rewritten=rn_local_echo(self,command,input);
+    if (rewritten==input) return nil;
+    const char *line=text(rewritten), *end=line ? strstr(line," :") : NULL;
+    char additions[8192];
+    if (!end || !tag_value(line+1,end,"emotes",additions,sizeof(additions))) return nil;
+    id result=call0((id)objc_getClass("NSMutableArray"),"array");
+    for (char *p=additions;*p;) {
+        char *separator=strchr(p,'/'); if (separator) *separator=0;
+        char *colon=strchr(p,':'), *dash=colon ? strchr(colon+1,'-') : NULL;
+        if (!colon || !dash) return nil;
+        *colon=0; *dash=0;
+        if (strcmp(p,"25")) {
+            id range=call0((id)objc_getClass("NSMutableDictionary"),"dictionary");
+            id values[]={str(p), ((id (*)(id,SEL,uint64_t))objc_msgSend)(
+                (id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedLongLong:"),strtoull(colon+1,NULL,10)),
+                ((id (*)(id,SEL,uint64_t))objc_msgSend)((id)objc_getClass("NSNumber"),
+                    sel_registerName("numberWithUnsignedLongLong:"),strtoull(dash+1,NULL,10))};
+            const char *keys[]={"id","start","end"};
+            if (!result || !range || !values[0] || !values[1] || !values[2]) return nil;
+            for (unsigned i=0;i<3;i++) ((void (*)(id,SEL,id,id))objc_msgSend)(range,
+                sel_registerName("setObject:forKey:"),values[i],str(keys[i]));
+            call1(result,"addObject:",range);
+        }
+        if (!separator) break;
+        p=separator+1;
+    }
+    return count(result) ? result : nil;
+refused:
+    PROBE_INC(g_rn_local_calls); PROBE_INC(g_rn_local_refused); return nil;
+}
+
+typedef struct { const char *js_name; const char *objc_name; BOOL synchronous; } TASRNMethodInfo;
+/* Native TwitchEmoteInputView consumes [String:String] name -> emote ID.
+ * Enrich only a copy of its presentation map, from this composer's explicit
+ * channel ID and literal draft. Never touch the TMI session/library map or
+ * use the most recently seen room. Native input owns tokenization, IME,
+ * caret/selection conversion, deletion and reconstruction of plain text.
+ */
+static id rn_composer_map(id self, SEL command, id body, id channel, id native) {
+    (void)self; (void)command;
+    PROBE_INC(g_rn_composer_calls);
+    if (!g_enabled || !__atomic_load_n(&g_rn_composer_ready,__ATOMIC_ACQUIRE)) return nil;
+    if (!kind(body,"NSString") || !kind(channel,"NSString") ||
+        (native && (!kind(native,"NSDictionary") || count(native)>20000))) goto refused;
+    const char *draft=text(body), *identity=text(channel);
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(body,
+        sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    if (!draft || bytes>8192 || strnlen(draft,8193)!=bytes || !identity ||
+        !*identity || strnlen(identity,97)>96) goto refused;
+    if (!bytes) return nil;
+    pthread_mutex_lock(&g_emote_lock);
+    Room *room=NULL; unsigned scopes=0;
+    for (unsigned i=0;i<MAX_ROOMS;i++) if (g_rooms[i].occupied &&
+        (!strcmp(identity,g_rooms[i].id) || !strcmp(identity,g_rooms[i].login))) {
+        room=&g_rooms[i]; scopes++;
+    }
+    if (scopes!=1) {
+        pthread_mutex_unlock(&g_emote_lock); PROBE_INC(g_rn_composer_scope_misses); return nil;
+    }
+    id result=nil; unsigned added=0;
+    for (const char *p=draft;*p;) {
+        if (*p==' ' || *p=='\t' || *p=='\r' || *p=='\n') { p++; continue; }
+        const char *start=p;
+        while (*p && *p!=' ' && *p!='\t' && *p!='\r' && *p!='\n') p++;
+        size_t n=(size_t)(p-start);
+        if (!n || n>96) continue;
+        char word[97]; memcpy(word,start,n); word[n]=0;
+        Emote *e=find_word(room,word);
+        if (!e) e=find_word(&g_global,word);
+        if (!e) continue;
+        id key=str(word);
+        if (dict(native,word) || (result && dict(result,word))) continue;
+        if (!result) result=native ? call0(native,"mutableCopy") : call0((id)objc_getClass("NSMutableDictionary"),"new");
+        if (!result) break;
+        char number[32]; snprintf(number,sizeof(number),"%llu",(unsigned long long)e->fake_id);
+        ((void (*)(id,SEL,id,id))objc_msgSend)(result,sel_registerName("setObject:forKey:"),str(number),key);
+        added++;
+        if (added==128) break;
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    if (!result) return nil;
+    PROBE_INC(g_rn_composer_maps); __atomic_add_fetch(&g_rn_composer_entries,added,__ATOMIC_RELAXED);
+    return call0(result,"autorelease");
+refused:
+    PROBE_INC(g_rn_composer_refused); return nil;
+}
+static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
+    (void)self; (void)command;
+    static const TASRNMethodInfo info={"emoteMap","previewMap:(NSString *)body channel:(NSString *)channel nativeMap:(NSDictionary *)native",YES};
+    return &info;
+}
+static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
+    (void)self; (void)command;
+    PROBE_INC(g_rn_local_exports);
+    static const TASRNMethodInfo info={"buildLocalEcho","renderLocalBody:(NSString *)body channel:(NSString *)channel nativeRanges:(NSArray *)native",YES};
+    return &info;
+}
+static id rn_local_module_name(id self, SEL command) { (void)self; (void)command; return str("buildLocalEcho"); }
+static BOOL rn_local_main_queue(id self, SEL command) { (void)self; (void)command; return NO; }
+
+/* Standard RCTBridgeModule registration/export ABI, a separate NSObject module.
+ * Install before JS/source evaluation; no existing native module is modified.
+ * The exact donor exports RCTRegisterModule and has legacy TurboModule interop.
+ * Runtime availability is measured separately from successful JS calls.
+ */
+static void install_rn_local(void) {
+    pthread_mutex_lock(&g_rn_install_lock);
+    if (!__atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE)) {
+        void (*register_module)(Class)=(void (*)(Class))dlsym(RTLD_DEFAULT,"RCTRegisterModule");
+        void *protocol=objc_getProtocol("RCTBridgeModule");
+        Class parent=objc_getClass("NSObject");
+        if (g_enabled && register_module && protocol && parent && !objc_getClass("TASRNLocalEchoModule")) {
+            Class cls=objc_allocateClassPair(parent,"TASRNLocalEchoModule",0);
+            if (cls) {
+                Class meta=object_getClass((id)cls);
+                bool ok=class_addProtocol(cls,protocol) &&
+                    class_addMethod(cls,sel_registerName("renderLocalBody:channel:nativeRanges:"),(IMP)rn_local_ranges,"@40@0:8@16@24@32") &&
+                    class_addMethod(cls,sel_registerName("previewMap:channel:nativeMap:"),(IMP)rn_composer_map,"@40@0:8@16@24@32") &&
+                    class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
+                    class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideComposer"),(IMP)rn_composer_export,"^v16@0:8");
+                if (ok) {
+                    objc_registerClassPair(cls); register_module(cls);
+                    __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);
+                } else objc_disposeClassPair(cls);
+            }
+        }
+    }
+    pthread_mutex_unlock(&g_rn_install_lock);
+}
+
+/* Shared IRC frame transform. Return an autoreleased NSString only on change.
+ * RN supplies NSString directly; NSURLSession supplies a message wrapper. */
+static id rewrite_text_impl(id value, bool proportional) {
+    if (!g_enabled || !kind(value, "NSString")) return nil;
+    NSUInteger bytes = ((NSUInteger (*)(id, SEL, NSUInteger))objc_msgSend)(
+        value, sel_registerName("lengthOfBytesUsingEncoding:"), (NSUInteger)4);
+    if (bytes > MAX_FRAME) { PROBE_INC(g_frame_refused); return nil; }
+    const char *input = text(value);
+    if (!input) { PROBE_INC(g_frame_refused); return nil; }
     size_t length = strnlen(input, MAX_FRAME + 1);
-    if (length > MAX_FRAME || input[0] != '@') {
+    /* Refuse embedded NUL, oversized and invalid UTF-8 rather than truncating. */
+    if (length > MAX_FRAME || length != bytes) {
+        PROBE_INC(g_frame_refused);
 #if TAS_EMOTE_DIAGNOSTIC
-        if (length<=MAX_FRAME) probe_gate_line(input,length,"untagged-frame");
+        if (length<=MAX_FRAME) probe_gate_line(input,length,"refused-frame");
 #endif
         return nil;
     }
-    PROBE_INC(g_tagged_frames);
+    if (input[0] == '@' || strstr(input, "\r\n@")) PROBE_INC(g_tagged_frames);
     char *output = malloc(length * 2 + 4096);
-    if (!output) return nil;
+    if (!output) { PROBE_INC(g_frame_refused); return nil; }
     size_t used = 0;
     bool changed = false, complete = true;
     const char *line = input;
@@ -1187,7 +1497,8 @@ static id rewrite_message(id message) {
         if (!temporary) { complete = false; break; }
         memcpy(temporary, line, line_length);
         temporary[line_length] = 0;
-        char *replacement = rewrite_line(temporary, line_length);
+        char *replacement = proportional ? rewrite_line_impl(temporary,line_length,true) :
+                                          rewrite_line(temporary,line_length);
         const char *chosen = replacement ? replacement : temporary;
         size_t n = strlen(chosen);
         if (used + n + 3 > length * 2 + 4096) {
@@ -1208,18 +1519,57 @@ static id rewrite_message(id message) {
     }
     id rewritten = nil;
     if (changed && complete) {
-        PROBE_INC(g_rewritten_frames);
         output[used] = 0;
-        id value = str(output);
-        if (value) {
-            rewritten = ((id (*)(id, SEL, id))objc_msgSend)(
-                call0((id)objc_getClass("NSURLSessionWebSocketMessage"), "alloc"),
-                sel_registerName("initWithString:"), value);
-            rewritten = call0(rewritten, "autorelease");
-        }
+        rewritten = str(output);
+        if (rewritten) PROBE_INC(g_rewritten_frames);
+        else PROBE_INC(g_frame_refused);
     }
+    if (!complete) PROBE_INC(g_frame_refused);
     free(output);
     return rewritten;
+}
+
+static id rewrite_text(id value) { return rewrite_text_impl(value,false); }
+
+static id rewrite_message(id message) {
+    PROBE_INC(g_receive_calls);
+    if (!message || ((NSInteger (*)(id, SEL))objc_msgSend)(message, sel_registerName("type")) != 1)
+        return nil;
+    PROBE_INC(g_text_frames);
+    id value = rewrite_text(call0(message, "string"));
+    if (!value) return nil;
+    id rewritten = ((id (*)(id, SEL, id))objc_msgSend)(
+        call0((id)objc_getClass("NSURLSessionWebSocketMessage"), "alloc"),
+        sel_registerName("initWithString:"), value);
+    return call0(rewritten, "autorelease");
+}
+
+static bool rn_irc_socket(id socket) {
+    if (!kind(socket, "SRWebSocket")) return false;
+    id url = call0(socket, "url");
+    if (!kind(url, "NSURL")) return false;
+    const char *host = text(call0(url, "host"));
+    const char *scheme = text(call0(url, "scheme"));
+    return host && !strcmp(host, "irc-ws.chat.twitch.tv") && scheme &&
+           (!strcmp(scheme, "wss") || !strcmp(scheme, "ws"));
+}
+
+/* No JS/event-emitter/catalog hook. The original delegate emits exactly once. */
+static void rn_receive(id self, SEL command, id socket, id message) {
+    PROBE_INC(g_rn_calls);
+    id replacement = nil;
+    if (g_enabled && rn_irc_socket(socket)) {
+        PROBE_INC(g_rn_irc);
+        if (kind(message, "NSString")) {
+            PROBE_INC(g_receive_calls);
+            PROBE_INC(g_text_frames);
+            replacement = rewrite_text_impl(message,__atomic_load_n(&g_rn_width_ready,__ATOMIC_ACQUIRE));
+            if (replacement) PROBE_INC(g_rn_rewritten);
+        } else PROBE_INC(g_rn_refused);
+    }
+    IMP original = __atomic_load_n(&g_rn_receive, __ATOMIC_ACQUIRE);
+    ((void (*)(id, SEL, id, id))original)(self, command, socket,
+                                                          replacement ?: message);
 }
 
 typedef void (^ReceiveHandler)(id, id);
@@ -1250,12 +1600,12 @@ bool tas_emotes_enabled_this_launch(void) { return g_enabled; }
 static Emote *emote_for_id_locked(uint64_t synthetic_id) {
     if (synthetic_id < FAKE_ID_START) return NULL;
     for (size_t i = 0; i < g_global.size; i++)
-        if (g_global.items[i].fake_id == synthetic_id) return &g_global.items[i];
+        if (g_global.items[i].fake_id == synthetic_id || g_global.items[i].width_id == synthetic_id) return &g_global.items[i];
     for (size_t r = 0; r < MAX_ROOMS; r++)
         for (size_t i = 0; i < g_rooms[r].size; i++)
-            if (g_rooms[r].items[i].fake_id == synthetic_id) return &g_rooms[r].items[i];
+            if (g_rooms[r].items[i].fake_id == synthetic_id || g_rooms[r].items[i].width_id == synthetic_id) return &g_rooms[r].items[i];
     for (size_t i = 0; i < MAX_HISTORY; i++)
-        if (g_old[i].emote.fake_id == synthetic_id && g_old[i].emote.url &&
+        if ((g_old[i].emote.fake_id == synthetic_id || g_old[i].emote.width_id == synthetic_id) && g_old[i].emote.url &&
             time(NULL) - g_old[i].retired_at < HISTORY_SECONDS) return &g_old[i].emote;
     return NULL;
 }
@@ -1395,29 +1745,33 @@ id tas_emotes_local_matches_copy(id channel, id content) {
 
 static char *url_for_id_locked(uint64_t id, time_t now) {
     for (size_t i = 0; i < g_global.size; i++)
-        if (g_global.items[i].fake_id == id) return strdup(g_global.items[i].url);
+        if (g_global.items[i].fake_id == id || g_global.items[i].width_id == id) return strdup(g_global.items[i].url);
     for (size_t r = 0; r < MAX_ROOMS; r++)
         for (size_t i = 0; i < g_rooms[r].size; i++)
-            if (g_rooms[r].items[i].fake_id == id) return strdup(g_rooms[r].items[i].url);
+            if (g_rooms[r].items[i].fake_id == id || g_rooms[r].items[i].width_id == id) return strdup(g_rooms[r].items[i].url);
     for (size_t i = 0; i < MAX_HISTORY; i++)
-        if (g_old[i].emote.fake_id == id && g_old[i].emote.url &&
+        if ((g_old[i].emote.fake_id == id || g_old[i].emote.width_id == id) && g_old[i].emote.url &&
             now - g_old[i].retired_at < HISTORY_SECONDS) return strdup(g_old[i].emote.url);
     return NULL;
 }
 
-id tas_emotes_rewrite_request_copy(id request) {
-    if (!g_enabled || !request) return nil;
-    id url = call0(request, "URL");
+/* Both NSURLRequest and NSURL overloads must use the same bounded registry
+ * lookup. TwitchEmoteInputView uses sharedSession's URL completion overload,
+ * which need not dispatch through either request selector we already hook. */
+static id image_url_copy(id url) {
+    if (!g_enabled || !url) return nil;
     const char *host = text(call0(url, "host"));
     const char *path = text(call0(url, "path"));
     const char *prefix = "/emoticons/v2/";
     if (!host || strcmp(host, "static-cdn.jtvnw.net") || !path ||
         strncmp(path, prefix, strlen(prefix))) return nil;
     const char *digits = path + strlen(prefix);
-    if (strncmp(digits, "9", 1)) return nil;
+    if (digits[0]!='9' && strncmp(digits,"860",3)) return nil;
     char *end;
     uint64_t fake_id = strtoull(digits, &end, 10);
     if (end == digits || *end != '/' || fake_id < FAKE_ID_START) return nil;
+    if (digits[0]!='9' && (end-digits!=15 || fake_id<TAS_RN_WIDTH_BASE ||
+                            fake_id>=TAS_RN_WIDTH_END)) return nil;
     pthread_mutex_lock(&g_emote_lock);
     char *image = url_for_id_locked(fake_id, time(NULL));
     pthread_mutex_unlock(&g_emote_lock);
@@ -1434,8 +1788,16 @@ id tas_emotes_rewrite_request_copy(id request) {
     id destination = call1((id)objc_getClass("NSURL"), "URLWithString:", str(image));
     free(image);
     if (!destination) return nil;
+    return objc_retain(destination);
+}
+
+id tas_emotes_rewrite_request_copy(id request) {
+    if (!g_enabled || !request) return nil;
+    id destination=image_url_copy(call0(request,"URL"));
+    if (!destination) return nil;
     id mutable = call0(request, "mutableCopy");
     ((void (*)(id, SEL, id))objc_msgSend)(mutable, sel_registerName("setURL:"), destination);
+    objc_release(destination);
     return mutable;
 }
 
@@ -1571,6 +1933,70 @@ static id private_task_completion(id self, SEL command, id request, id completio
     return result;
 }
 
+static id image_url_task(id self, SEL command, id url, id completion, IMP original) {
+    PROBE_INC(g_url_completion_calls);
+    id replacement=image_url_copy(url);
+    id handler=completion;
+    const char *path=replacement ? text(call0(url,"path")) : NULL;
+    uint64_t number=path ? strtoull(path+strlen("/emoticons/v2/"),NULL,10) : 0;
+    /* A typed block capture is required in plain C: capturing an id pointer
+     * alone would not copy Twitch's completion when Foundation copies ours. */
+    void (^callback)(id,id,id)=(void (^)(id,id,id))completion;
+    void (^wrapped)(id,id,id)=^(id data,id response,id error) {
+        PROBE_INC(g_url_completion_results);
+        if (error) PROBE_INC(g_url_completion_errors);
+        if (!data || !((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length")))
+            PROBE_INC(g_url_completion_empty);
+        tas_rn_composer_ui_image(number,data,response,error);
+        /* Foundation copies this block before returning. Keep its bytes,
+         * response, error, callback queue and callback count unchanged. */
+        callback(data,response,error);
+    };
+    if (replacement) {
+        PROBE_INC(g_url_completion_mapped);
+        tas_emotes_image_request(true);
+        if (completion) handler=(id)wrapped;
+    }
+    id task=((id (*)(id,SEL,id,id))original)(self,command,replacement ?: url,handler);
+    if (replacement) objc_release(replacement);
+    return task;
+}
+static id public_url_task_completion(id self, SEL command, id url, id completion) {
+    return image_url_task(self,command,url,completion,__atomic_load_n(&g_public_url_completion,__ATOMIC_ACQUIRE));
+}
+static id private_url_task_completion(id self, SEL command, id url, id completion) {
+    return image_url_task(self,command,url,completion,__atomic_load_n(&g_private_url_completion,__ATOMIC_ACQUIRE));
+}
+
+/* Override only a concrete, owned method with the exact object-return ABI.
+ * Never replace an inherited base method a second time through a subclass. */
+static void install_image_url_method(Class cls, IMP hook, IMP *original) {
+    if (!cls || __atomic_load_n(original,__ATOMIC_ACQUIRE)) return;
+    unsigned n=0; Method *methods=class_copyMethodList(cls,&n);
+    SEL target=sel_registerName("dataTaskWithURL:completionHandler:");
+    for (unsigned i=0;i<n;i++) {
+        Method method=methods[i];
+        if (method_getName(method)!=target) continue;
+        const char *type=method_getTypeEncoding(method);
+        /* Blocks are encoded @? or @ depending on runtime metadata. */
+        if (!type || (strcmp(type,"@32@0:8@16@?24") && strcmp(type,"@32@0:8@16@24") &&
+                      strcmp(type,"@@:@@?") && strcmp(type,"@@:@@"))) break;
+        IMP saved=method_getImplementation(method);
+        if (!saved || saved==hook) break;
+        __atomic_store_n(original,saved,__ATOMIC_RELEASE);
+        method_setImplementation(method,hook);
+        break;
+    }
+    free(methods);
+}
+static void install_image_url(void) {
+    if (!g_enabled) return;
+    pthread_mutex_lock(&g_rn_install_lock);
+    install_image_url_method(objc_getClass("NSURLSession"),(IMP)public_url_task_completion,&g_public_url_completion);
+    install_image_url_method(objc_getClass("__NSURLSessionLocal"),(IMP)private_url_task_completion,&g_private_url_completion);
+    pthread_mutex_unlock(&g_rn_install_lock);
+}
+
 /* Only override methods implemented directly by the concrete class. Replacing
  * an inherited method here would modify NSURLSession's existing VAFT hook. */
 static void hook_own_method(Class cls, const char *selector, IMP replacement, IMP *original) {
@@ -1586,6 +2012,110 @@ static void hook_own_method(Class cls, const char *selector, IMP replacement, IM
         }
     }
     free(methods);
+}
+
+/* RCTInstance consumes source.data as its JS buffer. Patch only the exact
+ * admitted body, before Hermes sees it; preserve the source URL and disk file.
+ * Source-owned cache makes repeated getter calls return the same +0 NSData.
+ * The optional own-preview patch shares this exact original-body admission. */
+static id rn_source_data(id self, SEL command) {
+    IMP original=__atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE);
+    id data=((id (*)(id,SEL))original)(self,command);
+    if (!g_enabled) return data;
+    pthread_mutex_lock(&g_rn_width_lock);
+    id cached=objc_getAssociatedObject(self,&g_rn_width_data_key);
+    if (cached || objc_getAssociatedObject(self,&g_rn_width_checked_key)) {
+        pthread_mutex_unlock(&g_rn_width_lock);
+        return cached ?: data;
+    }
+    size_t count=0;
+    unsigned char *patch=NULL;
+    bool local=false, composer=false;
+    if (kind(data,"NSData")) {
+        size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
+        TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
+        if (length==TAS_RN_BODY_SIZE && sha1) {
+            patch=tas_rn_width_patch((const unsigned char *)call0(data,"bytes"),length,sha1,&count);
+            if (patch && __atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE)) {
+                size_t local_count=0;
+                unsigned char *local_patch=tas_rn_local_patch(patch,count,sha1,&local_count);
+                if (local_patch) { free(patch); patch=local_patch; count=local_count; local=true; }
+                size_t composer_count=0;
+                unsigned char *composer_patch=tas_rn_composer_patch(patch,count,sha1,&composer_count);
+                if (composer_patch) { free(patch); patch=composer_patch; count=composer_count; composer=true; }
+            }
+        }
+    }
+    if (patch) {
+        cached=((id (*)(id,SEL,const void *,NSUInteger))objc_msgSend)(
+            (id)objc_getClass("NSData"),sel_registerName("dataWithBytes:length:"),patch,(NSUInteger)count);
+        free(patch);
+    }
+    objc_setAssociatedObject(self,&g_rn_width_checked_key,str("checked"),1);
+    if (cached) {
+        objc_setAssociatedObject(self,&g_rn_width_data_key,cached,1);
+        __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
+        if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
+        if (composer) __atomic_store_n(&g_rn_composer_ready,true,__ATOMIC_RELEASE);
+        PROBE_INC(g_rn_width_patches);
+        tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
+        if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
+        if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
+    } else {
+        PROBE_INC(g_rn_width_refused);
+        tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
+    }
+    pthread_mutex_unlock(&g_rn_width_lock);
+    return cached ?: data;
+}
+
+static void install_rn_width(void) {
+    pthread_mutex_lock(&g_rn_install_lock);
+    if (!g_rn_source_data) {
+        Class cls=objc_getClass("RCTSource");
+        unsigned n=0;
+        Method *methods=cls ? class_copyMethodList(cls,&n) : NULL;
+        SEL target=sel_registerName("data");
+        for (unsigned i=0;i<n;i++) {
+            if (method_getName(methods[i])!=target) continue;
+            const char *type=method_getTypeEncoding(methods[i]);
+            if (!type || (strcmp(type,"@16@0:8") && strcmp(type,"@@:"))) break;
+            IMP original=method_getImplementation(methods[i]);
+            if (!original || original==(IMP)rn_source_data) break;
+            __atomic_store_n(&g_rn_source_data,original,__ATOMIC_RELEASE);
+            method_setImplementation(methods[i],(IMP)rn_source_data);
+            break;
+        }
+        free(methods);
+    }
+    pthread_mutex_unlock(&g_rn_install_lock);
+}
+
+static void install_rn_receive(void) {
+    pthread_mutex_lock(&g_rn_install_lock);
+    if (!g_rn_receive) {
+        Class cls = objc_getClass("RCTWebSocketModule");
+        Class socket = objc_getClass("SRWebSocket");
+        Method getter = socket ? class_getInstanceMethod(socket, sel_registerName("url")) : NULL;
+        const char *getter_type = getter ? method_getTypeEncoding(getter) : NULL;
+        if (cls && getter_type && (!strcmp(getter_type, "@16@0:8") || !strcmp(getter_type, "@@:"))) {
+            unsigned n = 0;
+            Method *methods = class_copyMethodList(cls, &n);
+            SEL target = sel_registerName("webSocket:didReceiveMessage:");
+            for (unsigned i = 0; i < n; i++) {
+                if (method_getName(methods[i]) != target) continue;
+                const char *type = method_getTypeEncoding(methods[i]);
+                if (!type || (strcmp(type, "v32@0:8@16@24") && strcmp(type, "v@:@@"))) break;
+                IMP original = method_getImplementation(methods[i]);
+                if (!original || original == (IMP)rn_receive) break;
+                __atomic_store_n(&g_rn_receive, original, __ATOMIC_RELEASE);
+                method_setImplementation(methods[i], (IMP)rn_receive);
+                break;
+            }
+            free(methods);
+        }
+    }
+    pthread_mutex_unlock(&g_rn_install_lock);
 }
 
 static void hook_method_including_inherited(Class cls, const char *selector,
@@ -1644,6 +2174,11 @@ void tas_emotes_initialize(void) {
 
 void tas_emotes_retry_hooks(void) {
     if (!g_enabled) return;
+    install_rn_local();
+    install_rn_width();
+    install_rn_receive();
+    install_image_url();
+    tas_rn_composer_ui_retry_hooks();
     if (!g_public_receive)
         hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),
                                         "receiveMessageWithCompletionHandler:",
@@ -1672,7 +2207,19 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "\nThird-party emotes (this launch)\n"
         "Active: %s\n"
         "WebSocket hooks (public/private): %s/%s\n"
+        "RN incoming synthetic-ID hook: %s\n"
+        "RN width source hook/patch active: %s/%s\n"
+        "RN width bodies patched/refused; alias matches/collisions: %llu/%llu; %llu/%llu\n"
+        "RN local preview module/patch: %s/%s\n"
+        "RN local preview export discoveries: %llu\n"
+        "RN local preview calls/rewritten/refused/scope misses: %llu/%llu/%llu/%llu\n"
+        "RN composer preview patch: %s\n"
+        "RN composer preview calls/maps/entries/refused/scope misses: %llu/%llu/%llu/%llu/%llu\n"
+        "RN receive callbacks/IRC/rewritten/non-text: %llu/%llu/%llu/%llu\n"
+        "IRC frames refused (size/encoding/allocation budget): %llu\n"
         "Image hooks (private task/completion): %s/%s\n"
+        "Image URL completion hooks (public/private): %s/%s\n"
+        "Image URL calls/mapped/completed/errors/empty: %llu/%llu/%llu/%llu/%llu\n"
         "WebSocket callbacks/text/tagged/room: %llu/%llu/%llu/%llu\n"
         "Rewritten frames/image requests: %llu/%llu\n"
         "Image tasks (completion/delegate): %llu/%llu\n"
@@ -1694,8 +2241,40 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         "FFZ last global/channel: %s; %s\n",
         g_enabled ? "yes" : "no", g_public_receive ? "installed" : "missing",
         g_private_receive ? "installed" : "missing",
+        __atomic_load_n(&g_rn_receive, __ATOMIC_ACQUIRE) ? "installed" : "missing",
+        __atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE) ? "installed" : "missing",
+        __atomic_load_n(&g_rn_width_ready,__ATOMIC_ACQUIRE) ? "yes" : "no",
+        (unsigned long long)PROBE_GET(g_rn_width_patches),
+        (unsigned long long)PROBE_GET(g_rn_width_refused),
+        (unsigned long long)PROBE_GET(g_rn_width_words),
+        (unsigned long long)PROBE_GET(g_rn_width_collisions),
+        __atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE) ? "registered" : "missing",
+        __atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_local_exports),
+        (unsigned long long)PROBE_GET(g_rn_local_calls),
+        (unsigned long long)PROBE_GET(g_rn_local_changed),
+        (unsigned long long)PROBE_GET(g_rn_local_refused),
+        (unsigned long long)PROBE_GET(g_rn_local_scope_misses),
+        __atomic_load_n(&g_rn_composer_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_composer_calls),
+        (unsigned long long)PROBE_GET(g_rn_composer_maps),
+        (unsigned long long)PROBE_GET(g_rn_composer_entries),
+        (unsigned long long)PROBE_GET(g_rn_composer_refused),
+        (unsigned long long)PROBE_GET(g_rn_composer_scope_misses),
+        (unsigned long long)PROBE_GET(g_rn_calls),
+        (unsigned long long)PROBE_GET(g_rn_irc),
+        (unsigned long long)PROBE_GET(g_rn_rewritten),
+        (unsigned long long)PROBE_GET(g_rn_refused),
+        (unsigned long long)PROBE_GET(g_frame_refused),
         g_private_request ? "installed" : "missing",
         g_private_request_completion ? "installed" : "missing",
+        __atomic_load_n(&g_public_url_completion,__ATOMIC_ACQUIRE) ? "installed" : "missing",
+        __atomic_load_n(&g_private_url_completion,__ATOMIC_ACQUIRE) ? "installed" : "missing",
+        (unsigned long long)PROBE_GET(g_url_completion_calls),
+        (unsigned long long)PROBE_GET(g_url_completion_mapped),
+        (unsigned long long)PROBE_GET(g_url_completion_results),
+        (unsigned long long)PROBE_GET(g_url_completion_errors),
+        (unsigned long long)PROBE_GET(g_url_completion_empty),
         (unsigned long long)PROBE_GET(g_receive_calls),
         (unsigned long long)PROBE_GET(g_text_frames),
         (unsigned long long)PROBE_GET(g_tagged_frames),

@@ -38,6 +38,9 @@ BOOL class_addMethod(Class,SEL,IMP,const char *);
 IMP method_setImplementation(Method,IMP);
 Class objc_allocateClassPair(Class,const char *,size_t);
 void objc_registerClassPair(Class);
+void objc_disposeClassPair(Class);
+void *objc_getProtocol(const char *);
+BOOL class_addProtocol(Class,void *);
 extern id (*objc_msgSend)(id,SEL,...);
 '''
 HARNESS = r'''

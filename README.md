@@ -13,13 +13,31 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source on this diagnostic branch: **3.0.0**, diagnostic build `3.0.0-build.54`
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.64`)
 - Upstream strategy: **VAFT solution 24**
-- Twitch 31.5 contains legacy and React Native chat implementations. Earlier
-  build-48–50 validation exercised legacy chat. On the active RN renderer,
-  Streamside's chat ingress, presentation, composer and picker hooks are bypassed.
-- Builds 51–54 are [passive RN boundary probes](docs/RN_CHAT_BOUNDARY_PROBE.md),
-  isolated on `diagnostic/rn-chat-boundary`. They do not add RN emote support.
+- Target app: **Twitch 31.5, arm64**, with the active React Native chat.
+  - Builds 51–54 established the receive and presentation boundaries on the
+    separate diagnostic branch. Build 55 is the first incoming-only synthetic-ID
+    rendering experiment. Device reports B/C confirm observed correct static and
+    animated images, with animation continuing after scrolling. Build 56's
+    proportional incoming width is device-confirmed for the user's tested cases.
+    Build 59 reached local-preview export discovery but hid sent messages before
+    any native preview call. Build 60 corrects its outgoing call-frame overlap
+    and adds exception fallback to original emission. The user confirms sent
+    messages and emotes now render correctly. Build 61 adds channel-scoped
+    provider preview maps to the active native text input. Its device trial
+    produces a placeholder without an image. Build 62 covers the native input's
+    URL-based completion transport, which bypassed the request redirects;
+    images are device-confirmed but appear square and static. Build 63 adds
+    provider-only native attachment widths and independent GIF preview clocks.
+    Width is device-confirmed; GIFs play after deleting and retyping, but miss
+    first-download startup. Build 64 tracks pending inputs before decoder
+    creation so the existing download completion can start the original
+    attachment. That correction awaits device validation. Incoming and
+    sent-message rendering are unchanged.
+  - Build 50's adapter targets legacy chat present in the donor binary, not the
+    active RN interface. That baseline is preserved in
+    `archive/twitch-31.5-build50-legacy-chat`.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 
 Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
@@ -59,14 +77,28 @@ cells to redraw. It maintains no separate image files. The composer keeps a boun
 thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
 image requests. It does not clear Twitch’s own image cache.
 
-Incoming emotes and composer previews worked in the legacy chat test.
-Build 50 tests a legacy native presentation adapter for the own sent-message regression.
-It adds provider definitions to Twitch's emote matcher while preserving the
-original message and tokens. Twitch creates its own attachments, whose synthetic
-IDs reach the existing image redirection and proportional geometry hooks.
-Square, wide, animated and animated-wide identities/geometry pass host harnesses;
-actual local-echo rendering and animation still need device validation. See the
-[build-50 implementation and test report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md).
+The confirmed RN IRC delegate reuses the matcher to append synthetic IDs to
+incoming `emotes=` metadata. The image redirect resolves synthetic Twitch CDN
+requests to provider assets. Build 55 device observations confirmed rendering
+and continued animation after scrolling. Build 56 adds an exact-bundle-gated,
+in-memory EmotePart style patch: the image and inline wrapper get the same
+proportional width before Fabric measures them. The donor bundle on disk and
+native emote styles stay unchanged. Build 59 adds provider-only ranges to
+LibraryTmiClient's completed own-message display line, preserving its native
+range objects, body and identity. Builds 57/58 recorded zero local callbacks;
+their TmiClient preview seam belongs to a separate client. Build 59 uses the
+LibraryTmiClient own event and the existing NativeModules loader. Local device
+rendering is device-confirmed after build 60's call-frame correction. It reuses
+the image/width route. Catalog, picker and tap-detail remain deferred. Build 63
+adds animation only to native text-box provider attachments. See the
+[incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and
+[width experiment and device test](docs/RN_INCOMING_WIDTH_TRIAL.md) and
+[local sent-message trial](docs/RN_LOCAL_ECHO_TRIAL.md).
+The [native text-box trial](docs/RN_COMPOSER_PREVIEW_TRIAL.md) covers build 63's
+proportional sizing and bounded GIF playback; non-GIF images retain native
+decoding and still-image fallback.
+The [build-50 report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md) describes legacy chat
+only; its TextKit/layer sizing does not establish RN/Fabric proportional widths.
 Historical validation of the
 Reload Emotes row, provider tap details, proportional image widths and sent
 emotes is recorded separately. The detail sheet has a preview,

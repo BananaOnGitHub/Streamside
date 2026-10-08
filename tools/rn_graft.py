@@ -81,7 +81,7 @@ def assemble(reader, fid, strings, base):
                   for e in reader.function_id_to_exc_handlers.get(fid,[])]
     return bytes(body), exceptions
 
-def generate(donor, compiler, source, output):
+def generate(donor, compiler, source, output, *, prefix='POPUP', factory_id=3801, function_base=None):
     original = Path(donor).read_bytes()
     if hashlib.sha256(original).hexdigest() != '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b':
         raise ValueError('Wrong donor')
@@ -94,7 +94,7 @@ def generate(donor, compiler, source, output):
         raise ValueError('Unexpected compiler/entry point')
     # Global function is never imported/invoked. Function 1 is install(),
     # compiled without parent captures, and all closures are within its tree.
-    base = h.header.functionCount-1
+    base = (h.header.functionCount if function_base is None else function_base)-1
     payload = bytearray(); entries=[]
     for fid,f in enumerate(owned.function_headers):
         if not fid: continue
@@ -110,12 +110,13 @@ def generate(donor, compiler, source, output):
             payload.extend(struct.pack('<I',len(exc)))
             for e in exc: payload.extend(struct.pack('<3I',*e))
         entries.append(info)
-    factory=h.function_headers[3801]
-    small=original[128+3801*12:128+3802*12]
+    factory=h.function_headers[factory_id]
+    small=original[128+factory_id*12:128+(factory_id+1)*12]
+    if not small[11]&32: raise ValueError('Factory must use a full header')
     factory_info=(int.from_bytes(small[:4],'little')&0xffffff) | ((int.from_bytes(small[4:8],'little')>>14)<<24)
-    lines=['/* Generated from owned ProviderEmoteInfo.js; tools/rn_graft.py. */',
+    lines=['/* Generated from owned '+Path(source).name+'; tools/rn_graft.py. */',
            '#define TAS_RN_POPUP_FUNCTIONS '+str(len(entries))+'U',
-           '#define TAS_RN_POPUP_BASE '+str(h.header.functionCount)+'U',
+           '#define TAS_RN_POPUP_BASE '+str(base+1)+'U',
            '#define TAS_RN_POPUP_FACTORY_OFFSET '+str(factory.offset)+'U',
            '#define TAS_RN_POPUP_FACTORY_SIZE '+str(factory.bytecodeSizeInBytes)+'U',
            '#define TAS_RN_POPUP_FACTORY_INFO '+str(factory_info)+'U',
@@ -125,7 +126,8 @@ def generate(donor, compiler, source, output):
            'static const unsigned char tas_rn_popup_payload[]={']
     for i in range(0,len(payload),24): lines.append(' '+','.join(map(str,payload[i:i+24]))+',')
     lines+=['};','']
-    Path(output).write_text('\n'.join(lines))
+    content='\n'.join(lines).replace('TAS_RN_POPUP','TAS_RN_'+prefix).replace('tas_rn_popup','tas_rn_'+prefix.lower())
+    Path(output).write_text(content)
     print('Owned graft:',len(entries),'functions,',len(payload),'bytes; factory frame',factory.frameSize)
 
 if __name__ == '__main__':

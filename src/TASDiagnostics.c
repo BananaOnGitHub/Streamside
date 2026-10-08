@@ -40,7 +40,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.66"
+#define TAS_REPORT_VERSION "3.0.0-build.67"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -477,7 +477,7 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     (void)command;
     (void)table;
     if (section == 1) {
-        return nsstr("7TV, BTTV and FFZ emotes in chat. The emote keyboard includes a third-party tab and recents. Suggestions can be automatic, colon-triggered, or off. Changes to the enable switch take effect after relaunching Twitch.");
+        return nsstr("7TV, BTTV and FFZ emotes in chat and the text box. A compact horizontal provider strip can open automatically, with a colon, or stay off. Twitch's manual picker is unchanged. Changes to the enable switch take effect after relaunching Twitch.");
     }
     if (section == 2) {
 #if TAS_EMOTE_DIAGNOSTIC

@@ -9,6 +9,7 @@
  */
 #include "TASEmotes.h"
 #include "SSComposerModel.h"
+#include "SSComposer.h"
 #include "TASEmoteGeometry.h"
 #include "TASEmoteFetch.h"
 #include "TASDiagnostics.h"
@@ -17,6 +18,7 @@
 #include "TASRNWidthPatch.h"
 #include "TASRNComposerPatch.h"
 #include "TASRNPopupPatch.h"
+#include "TASRNStripPatch.h"
 #include "TASRNComposerUI.h"
 
 #include <dlfcn.h>
@@ -140,6 +142,8 @@ static bool g_rn_local_registered, g_rn_local_ready;
 static uint64_t g_rn_local_exports, g_rn_local_calls, g_rn_local_changed, g_rn_local_refused, g_rn_local_scope_misses;
 static bool g_rn_composer_ready;
 static bool g_rn_popup_ready;
+static bool g_rn_strip_ready;
+static uint64_t g_rn_strip_searches, g_rn_strip_entries, g_rn_strip_refused;
 static uint64_t g_rn_popup_calls, g_rn_popup_resolved, g_rn_popup_missing, g_rn_popup_actions, g_rn_popup_refused;
 static uint64_t g_rn_composer_calls, g_rn_composer_maps, g_rn_composer_entries, g_rn_composer_refused, g_rn_composer_scope_misses;
 static char g_rn_width_data_key, g_rn_width_checked_key;
@@ -1428,6 +1432,49 @@ static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
     static const TASRNMethodInfo info={"emoteMap","previewMap:(NSString *)body channel:(NSString *)channel nativeMap:(NSDictionary *)native",YES};
     return &info;
 }
+/* Only immutable provider snapshots cross this synchronous bridge. The
+ * persistent setting is the same one used by Streamside's segmented control.
+ * JS polls this tiny revision/config snapshot only while the input is focused;
+ * catalog entries are searched on token/revision changes, never on each tick. */
+static id rn_strip_state(id self,SEL command) {
+    (void)self;(void)command;
+    id result=call0((id)objc_getClass("NSMutableDictionary"),"new");
+    if (!result) return nil;
+    id values[]={((id (*)(id,SEL,int))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithInt:"),ss_composer_suggestion_mode()),
+        ((id (*)(id,SEL,uint64_t))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedLongLong:"),tas_emotes_catalog_revision()),
+        ((id (*)(id,SEL,int))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithInt:"),
+            g_enabled && __atomic_load_n(&g_rn_strip_ready,__ATOMIC_ACQUIRE))};
+    const char *keys[]={"mode","revision","enabled"};
+    for(unsigned i=0;i<3;i++)((void (*)(id,SEL,id,id))objc_msgSend)(result,sel_registerName("setObject:forKey:"),values[i],str(keys[i]));
+    return call0(result,"autorelease");
+}
+static id rn_strip_search(id self,SEL command,id channel,id query) {
+    (void)self;(void)command;PROBE_INC(g_rn_strip_searches);
+    if (!g_enabled || !__atomic_load_n(&g_rn_strip_ready,__ATOMIC_ACQUIRE) || ss_composer_suggestion_mode()==2) return nil;
+    if (!kind(channel,"NSString") || !kind(query,"NSString")) goto refused;
+    const char *identity=text(channel),*fragment=text(query);
+    NSUInteger bytes=((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(query,sel_registerName("lengthOfBytesUsingEncoding:"),(NSUInteger)4);
+    if (!identity || !*identity || strnlen(identity,97)>96 || !fragment || bytes>96 || strnlen(fragment,97)!=bytes) goto refused;
+    pthread_mutex_lock(&g_emote_lock);
+    unsigned scopes=0;
+    for(unsigned i=0;i<MAX_ROOMS;i++)if(g_rooms[i].occupied &&
+        (!strcmp(identity,g_rooms[i].id) || !strcmp(identity,g_rooms[i].login)))scopes++;
+    pthread_mutex_unlock(&g_emote_lock);
+    if(scopes!=1)goto refused;
+    id result=tas_emotes_picker_copy(channel,0,-1,query,64);
+    if(result)__atomic_add_fetch(&g_rn_strip_entries,count(result),__ATOMIC_RELAXED);
+    return result ? call0(result,"autorelease") : nil;
+refused:
+    PROBE_INC(g_rn_strip_refused);return nil;
+}
+static const TASRNMethodInfo *rn_strip_state_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"getState","pickerState",YES};return &info;
+}
+static const TASRNMethodInfo *rn_strip_search_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"search","pickerSearch:(NSString *)channel query:(NSString *)query",YES};return &info;
+}
 static id rn_popup_metadata(id self,SEL command,id identifier);
 static void rn_popup_action(id self,SEL command,id identifier,id action);
 static const TASRNMethodInfo *rn_popup_metadata_export(id self,SEL command) {
@@ -1469,12 +1516,16 @@ static void install_rn_local(void) {
                     class_addMethod(cls,sel_registerName("previewMap:channel:nativeMap:"),(IMP)rn_composer_map,"@40@0:8@16@24@32") &&
                     class_addMethod(cls,sel_registerName("providerMetadata:"),(IMP)rn_popup_metadata,"@24@0:8@16") &&
                     class_addMethod(cls,sel_registerName("providerAction:action:"),(IMP)rn_popup_action,"v32@0:8@16@24") &&
+                    class_addMethod(cls,sel_registerName("pickerState"),(IMP)rn_strip_state,"@16@0:8") &&
+                    class_addMethod(cls,sel_registerName("pickerSearch:query:"),(IMP)rn_strip_search,"@32@0:8@16@24") &&
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideComposer"),(IMP)rn_composer_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideInfo"),(IMP)rn_popup_metadata_export,"^v16@0:8") &&
-                    class_addMethod(meta,sel_registerName("__rct_export__streamsideInfoAction"),(IMP)rn_popup_action_export,"^v16@0:8");
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideInfoAction"),(IMP)rn_popup_action_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerState"),(IMP)rn_strip_state_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerSearch"),(IMP)rn_strip_search_export,"^v16@0:8");
                 if (ok) {
                     objc_registerClassPair(cls); register_module(cls);
                     __atomic_store_n(&g_rn_local_registered,true,__ATOMIC_RELEASE);
@@ -2104,7 +2155,7 @@ static id rn_source_data(id self, SEL command) {
     }
     size_t count=0;
     unsigned char *patch=NULL;
-    bool local=false, composer=false, popup=false;
+    bool local=false, composer=false, popup=false,strip=false;
     if (kind(data,"NSData")) {
         size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
         TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
@@ -2121,6 +2172,11 @@ static id rn_source_data(id self, SEL command) {
                     size_t popup_count=0;
                     unsigned char *popup_patch=tas_rn_popup_patch(patch,count,sha1,&popup_count);
                     if (popup_patch) { free(patch);patch=popup_patch;count=popup_count;popup=true; }
+                    if(popup) {
+                        size_t strip_count=0;
+                        unsigned char *strip_patch=tas_rn_strip_patch(patch,count,sha1,&strip_count);
+                        if(strip_patch){free(patch);patch=strip_patch;count=strip_count;strip=true;}
+                    }
                 }
             }
         }
@@ -2137,11 +2193,13 @@ static id rn_source_data(id self, SEL command) {
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
         if (composer) __atomic_store_n(&g_rn_composer_ready,true,__ATOMIC_RELEASE);
         if (popup) __atomic_store_n(&g_rn_popup_ready,true,__ATOMIC_RELEASE);
+        if (strip) __atomic_store_n(&g_rn_strip_ready,true,__ATOMIC_RELEASE);
         PROBE_INC(g_rn_width_patches);
         tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
         if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
         if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
         if (popup) tas_diag_log("RN_INFO_PATCH","Provider RN sheet installed in memory; native cards preserved");
+        if (strip) tas_diag_log("RN_STRIP_PATCH","Scoped horizontal provider suggestions installed in memory");
     } else {
         PROBE_INC(g_rn_width_refused);
         tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");
@@ -2421,4 +2479,10 @@ void tas_emotes_status(char *buffer, size_t capacity) {
         (unsigned long long)PROBE_GET(g_rn_popup_calls),(unsigned long long)PROBE_GET(g_rn_popup_resolved),
         (unsigned long long)PROBE_GET(g_rn_popup_missing),(unsigned long long)PROBE_GET(g_rn_popup_actions),
         (unsigned long long)PROBE_GET(g_rn_popup_refused));
+    used=strlen(buffer);
+    if(used<capacity)snprintf(buffer+used,capacity-used,
+        "RN horizontal picker patch: %s\nRN picker searches/entries/refused: %llu/%llu/%llu\n",
+        __atomic_load_n(&g_rn_strip_ready,__ATOMIC_ACQUIRE) ? "active" : "inactive",
+        (unsigned long long)PROBE_GET(g_rn_strip_searches),(unsigned long long)PROBE_GET(g_rn_strip_entries),
+        (unsigned long long)PROBE_GET(g_rn_strip_refused));
 }

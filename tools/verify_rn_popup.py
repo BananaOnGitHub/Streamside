@@ -19,7 +19,7 @@ from rn_graft import read, generate, parse_hbc_bytecode
 
 ROOT=Path(__file__).resolve().parent.parent
 
-def verify(donor,zig,hermesc):
+def verify(donor,zig,hermesc,strip=False):
     with zipfile.ZipFile(donor) as archive:
         body=archive.read('Payload/Twitch.app/index.ios.bundle')
     with tempfile.TemporaryDirectory() as tmp:
@@ -28,12 +28,17 @@ def verify(donor,zig,hermesc):
         generated=tmp/'payload.h'
         generate(original,hermesc,ROOT/'src/rn/ProviderEmoteInfo.js',generated)
         assert generated.read_bytes()==(ROOT/'src/TASRNPopupPayload.h').read_bytes(), 'Stale payload'
-        (tmp/'patch.c').write_text('''#include "TASRNPopupPatch.h"
+        if strip:
+            generate(original,hermesc,ROOT/'src/rn/ProviderEmoteStrip.js',generated,
+                     prefix='STRIP',factory_id=4869,function_base=47322)
+            assert generated.read_bytes()==(ROOT/'src/TASRNStripPayload.h').read_bytes(),'Stale strip payload'
+        (tmp/'patch.c').write_text('''#include "TASRNStripPatch.h"
 void *patch(const void *p,size_t n,TASRNSHA1 sha,size_t *out,unsigned step) {
  if(step==0)return tas_rn_width_patch(p,n,sha,out);
  if(step==1)return tas_rn_local_patch(p,n,sha,out);
  if(step==2)return tas_rn_composer_patch(p,n,sha,out);
- return tas_rn_popup_patch(p,n,sha,out);
+ if(step==3)return tas_rn_popup_patch(p,n,sha,out);
+ return tas_rn_strip_patch(p,n,sha,out);
 }
 void dispose(void *p){free(p);}
 ''')
@@ -63,6 +68,15 @@ void dispose(void *p){free(p);}
         bad=bytearray(before);bad[128+3801*12]^=1
         bad[-20:]=hashlib.sha1(bad[:-20]).digest();assert not apply(bytes(bad),3),'Changed target accepted'
         assert not apply(patched,3),'Duplicate patch accepted'
+        target,join,step=3801,0x5e,3
+        if strip:
+            before=patched;patched=apply(before,4);assert patched,'Strip patch refused'
+            target,join,step=4869,0x46,4
+            assert not apply(body,4),'Ungated strip donor accepted'
+            assert not apply(patched,4),'Duplicate strip patch accepted'
+            bad=bytearray(before);bad[100]^=1;assert not apply(bytes(bad),4),'Bad strip footer accepted'
+            bad=bytearray(before);bad[128+target*12]^=1
+            bad[-20:]=hashlib.sha1(bad[:-20]).digest();assert not apply(bytes(bad),4),'Changed strip target accepted'
         assert hashlib.sha1(patched[:-20]).digest()==patched[-20:]
         h=read(before);after=read(patched);base=h.header.functionCount;delta=(after.header.functionCount-base)*12
         assert after.strings==h.strings
@@ -82,32 +96,42 @@ void dispose(void *p){free(p);}
         jsx_ops=list(parse_hbc_bytecode(h.function_headers[250],h))
         assert any(x.inst.name=='PutByIdStrict' and h.strings[x.arg4]=='jsx' for x in jsx_ops)
         print('Original module bindings verified: React 72, RN 5, useTheme/sheet 2118; 245 is JSX runtime')
+        if strip:
+            assert dependencies(3763)[3:6]==[72,5,245]
+            assert dependencies(4623)[10]==3758 and dependencies(3762)[0]==3759
+            getter=list(parse_hbc_bytecode(h.function_headers[19082],h))
+            assert any(x.inst.name=='GetByIndex' and x.arg3==0 for x in getter)
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='EmoteTextInput' for x in getter)
+            composer_factory=list(parse_hbc_bytecode(h.function_headers[4869],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==22083 for x in composer_factory)
+            assert h.strings[next(x.arg4 for x in composer_factory if x.inst.name=='PutByIdLoose')]=='ChatComposerBar'
+            print('Scoped composer factory 4869 -> 22083; Autocomplete input module 3759 -> 19094/19088 verified')
         for i,f in enumerate(h.function_headers):
             new=after.function_headers[i]
             for field in f._fields_:
                 name=field[0]
-                if name=='offset' or (i==3801 and name in ('bytecodeSizeInBytes','hasExceptionHandler')):continue
+                if name=='offset' or (i==target and name in ('bytecodeSizeInBytes','hasExceptionHandler')):continue
                 a,b=getattr(f,name),getattr(new,name)
                 if isinstance(a,ctypes.Array):a,b=bytes(a),bytes(b)
                 assert a==b,(i,name,a,b)
             old_code=before[f.offset:f.offset+f.bytecodeSizeInBytes]
             new_code=patched[new.offset:new.offset+new.bytecodeSizeInBytes]
-            if i==3801:
+            if i==target:
                 extra=new.bytecodeSizeInBytes-f.bytecodeSizeInBytes
-                assert new_code[:0x5e]==old_code[:0x5e] and new_code[0x5e+extra:]==old_code[0x5e:]
+                assert new_code[:join]==old_code[:join] and new_code[join+extra:]==old_code[join:]
                 instructions=list(parse_hbc_bytecode(new,after))
-                insert=[x for x in instructions if 0x5e<=x.original_pos<0x5e+extra]
-                assert [x.inst.name for x in insert]==['CreateClosure','Call2','JmpFalse','StoreToEnvironment','Jmp','Catch']
-                assert insert[0].arg3==base and insert[1].arg3==2 and insert[1].arg4==4
-                assert insert[3].arg1==5 and insert[3].arg2==13
+                insert=[x for x in instructions if join<=x.original_pos<join+extra]
+                assert [x.inst.name for x in insert]==['CreateClosure','Call2','JmpFalse','Mov' if strip else 'StoreToEnvironment','Jmp','Catch']
+                assert insert[0].arg3==base and insert[1].arg3==(1 if strip else 2) and insert[1].arg4==(2 if strip else 4)
+                assert (insert[3].arg1,insert[3].arg2)==((2,8) if strip else (5,13))
                 assert new.frameSize-7-2>9,'Outgoing staging overwrites live factory registers'
                 exc=after.function_id_to_exc_handlers[i][0]
-                assert (exc.start,exc.end,exc.target)==(0x5e,0x68,0x71)
+                assert (exc.start,exc.end,exc.target)==(join,join+10,join+extra-2)
                 # All factory original branches start/land after insertion.
                 for x in parse_hbc_bytecode(f,h):
                     for n,o in enumerate(x.inst.operands,1):
                         if o.operand_type.name.startswith('Addr'):
-                            assert x.original_pos>=0x5e and x.original_pos+getattr(x,'arg'+str(n))>=0x5e
+                            assert x.original_pos>=join and x.original_pos+getattr(x,'arg'+str(n))>=join
             else:
                 assert new.offset==f.offset+delta,(i,'offset')
                 assert new_code==old_code,(i,'body')
@@ -133,4 +157,5 @@ void dispose(void *p){free(p);}
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('donor',type=Path);p.add_argument('--zig',type=Path,default=os.environ.get('ZIG','zig'));p.add_argument('--hermesc',type=Path,required=True)
-    a=p.parse_args();verify(a.donor,a.zig,a.hermesc)
+    p.add_argument('--strip',action='store_true')
+    a=p.parse_args();verify(a.donor,a.zig,a.hermesc,a.strip)

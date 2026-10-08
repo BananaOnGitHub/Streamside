@@ -28,6 +28,8 @@ EXTRA = r'''
     else if(!strcmp(sel,"length"))result=(id)(uintptr_t)o->byte_count;
 '''
 MAIN = r'''
+static int picker_mode;
+int ss_composer_suggestion_mode(void) { return picker_mode; }
 void *_NSConcreteStackBlock[32];
 /* Minimal Blocks ABI lifetime fixture. Foundation copies escaping completions;
  * exercise compiler-generated copy/dispose helpers, including nested blocks. */
@@ -510,6 +512,8 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
     else if(!strcmp(selector,"previewMap:channel:nativeMap:"))assert(cls==local_allocated_class && imp==(IMP)rn_composer_map && !strcmp(encoding,"@40@0:8@16@24@32"));
     else if(!strcmp(selector,"providerMetadata:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_metadata && !strcmp(encoding,"@24@0:8@16"));
     else if(!strcmp(selector,"providerAction:action:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_action && !strcmp(encoding,"v32@0:8@16@24"));
+    else if(!strcmp(selector,"pickerState"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_state && !strcmp(encoding,"@16@0:8"));
+    else if(!strcmp(selector,"pickerSearch:query:"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_search && !strcmp(encoding,"@32@0:8@16@24"));
     else {
         assert(cls==local_meta);
         if(!strcmp(selector,"moduleName"))assert(imp==(IMP)rn_local_module_name && !strcmp(encoding,"@16@0:8"));
@@ -517,6 +521,8 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
         else if(!strcmp(selector,"__rct_export__streamsideComposer"))assert(imp==(IMP)rn_composer_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideInfo"))assert(imp==(IMP)rn_popup_metadata_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideInfoAction"))assert(imp==(IMP)rn_popup_action_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsidePickerState"))assert(imp==(IMP)rn_strip_state_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsidePickerSearch"))assert(imp==(IMP)rn_strip_search_export && !strcmp(encoding,"^v16@0:8"));
         else assert(!strcmp(selector,"__rct_export__streamsideLocalEcho") && imp==(IMP)rn_local_export && !strcmp(encoding,"^v16@0:8"));
     }
     return YES;
@@ -532,6 +538,8 @@ static void local_registration(void) {
     assert(info->synchronous && !strcmp(info->js_name,"getMetadata") && !strcmp(info->objc_name,"providerMetadata:(id)identifier"));
     info=rn_popup_action_export(nil,NULL);
     assert(!info->synchronous && !strcmp(info->js_name,"sendAction") && !strcmp(info->objc_name,"providerAction:(id)identifier action:(NSNumber *)action"));
+    info=rn_strip_state_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"getState") && !strcmp(info->objc_name,"pickerState"));
+    info=rn_strip_search_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"search") && !strcmp(info->objc_name,"pickerSearch:(NSString *)channel query:(NSString *)query"));
 }
 static void popup_metadata(void) {
     g_enabled=true;Room *room=ready("42");
@@ -556,12 +564,37 @@ static void popup_metadata(void) {
     assert(!strcmp(text(dict(value,"name")),"Wide")); /* owned snapshot */
     g_enabled=false;assert(!rn_popup_metadata(nil,NULL,string(number)));
 }
+static void strip_search(void) {
+    g_enabled=true;Room *room=ready("42");
+    add_emote_locked(room,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,NULL,3);
+    add_emote_locked(&g_global,MAX_GLOBAL,"Global","https://cdn.betterttv.net/emote/global/2x",1,true,NULL,1);
+    assert(!dict(rn_strip_state(nil,NULL),"enabled")->number);
+    assert(!rn_strip_search(nil,NULL,string("42"),string("Wi")));
+    g_rn_strip_ready=true;
+    for(int mode=0;mode<3;mode++) {
+        picker_mode=mode;id config=rn_strip_state(nil,NULL);
+        assert(count(config)==3 && dict(config,"enabled")->number==1 && dict(config,"mode")->number==(uint64_t)mode);
+        assert(dict(config,"revision")->number==tas_emotes_catalog_revision());
+        id items=rn_strip_search(nil,NULL,string("42"),string("Wi"));
+        if(mode==2)assert(!items);else assert(items && count(items)==1 && !strcmp(text(dict(at(items,0),"name")),"Wide"));
+    }
+    picker_mode=0;id items=rn_strip_search(nil,NULL,string("42"),string(""));assert(count(items)==2);
+    assert(!rn_strip_search(nil,NULL,string("other"),string(""))); /* no last-room/global-only fallback */
+    assert(!rn_strip_search(nil,NULL,fresh("NSNumber"),string("Wi")));
+    assert(!rn_strip_search(nil,NULL,string("42"),fresh("NSArray")));
+    char large[98];memset(large,'x',97);large[97]=0;assert(!rn_strip_search(nil,NULL,string("42"),string(large)));
+    id embedded=string("Wi");embedded->byte_count=3;assert(!rn_strip_search(nil,NULL,string("42"),embedded));
+    assert(PROBE_GET(g_rn_strip_refused)==5);
+    g_enabled=false;assert(!dict(rn_strip_state(nil,NULL),"enabled")->number);
+    assert(!rn_strip_search(nil,NULL,string("42"),string("Wi")));
+}
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
     else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
     else if(!strcmp(argv[1],"url"))image_url_flow();else if(!strcmp(argv[1],"url-install"))image_url_installation();
-    else if(!strcmp(argv[1],"registration"))local_registration();else if(!strcmp(argv[1],"popup"))popup_metadata();else installation();return 0;
+    else if(!strcmp(argv[1],"registration"))local_registration();else if(!strcmp(argv[1],"popup"))popup_metadata();
+    else if(!strcmp(argv[1],"strip"))strip_search();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')]
@@ -648,3 +681,6 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_provider_info_admission_exact_identity_alias_history_and_snapshot(self):
         self.run_harness("popup")
+
+    def test_horizontal_picker_bridge_modes_scope_bounds_and_metadata(self):
+        self.run_harness("strip")

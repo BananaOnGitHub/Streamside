@@ -527,6 +527,7 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
     else if(!strcmp(selector,"pickerState"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_state && !strcmp(encoding,"@16@0:8"));
     else if(!strcmp(selector,"pickerSearch:query:"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_search && !strcmp(encoding,"@32@0:8@16@24"));
     else if(!strcmp(selector,"librarySnapshot:"))assert(cls==local_allocated_class && imp==(IMP)rn_library_snapshot && !strcmp(encoding,"@24@0:8@16"));
+    else if(!strcmp(selector,"libraryLookup:name:"))assert(cls==local_allocated_class && imp==(IMP)rn_library_lookup && !strcmp(encoding,"@32@0:8@16@24"));
     else if(!strcmp(selector,"libraryRemember:name:identifier:"))assert(cls==local_allocated_class && imp==(IMP)rn_library_remember && !strcmp(encoding,"@40@0:8@16@24@32"));
     else {
         assert(cls==local_meta);
@@ -538,6 +539,7 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
         else if(!strcmp(selector,"__rct_export__streamsidePickerState"))assert(imp==(IMP)rn_strip_state_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsidePickerSearch"))assert(imp==(IMP)rn_strip_search_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideLibrarySnapshot"))assert(imp==(IMP)rn_library_snapshot_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideLibraryLookup"))assert(imp==(IMP)rn_library_lookup_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideLibraryRemember"))assert(imp==(IMP)rn_library_remember_export && !strcmp(encoding,"^v16@0:8"));
         else assert(!strcmp(selector,"__rct_export__streamsideLocalEcho") && imp==(IMP)rn_local_export && !strcmp(encoding,"^v16@0:8"));
     }
@@ -558,6 +560,7 @@ static void local_registration(void) {
     info=rn_strip_search_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"search") && !strcmp(info->objc_name,"pickerSearch:(NSString *)channel query:(NSString *)query"));
     info=rn_library_snapshot_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"getSnapshot") && !strcmp(info->objc_name,"librarySnapshot:(NSString *)channel"));
     info=rn_library_remember_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"remember"));
+    info=rn_library_lookup_export(nil,NULL);assert(info->synchronous && !strcmp(info->js_name,"lookup") && !strcmp(info->objc_name,"libraryLookup:(NSString *)channel name:(NSString *)name"));
 }
 static void popup_metadata(void) {
     g_enabled=true;Room *room=ready("42");
@@ -610,11 +613,15 @@ static void library_flow(void) {
     g_enabled=true;Room *room=ready("42");id channel=string("42");
     add_emote_locked(room,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,NULL,3);
     add_emote_locked(&g_global,MAX_GLOBAL,"Global","https://cdn.betterttv.net/emote/global/2x",1,true,NULL,1);
-    assert(!rn_library_snapshot(nil,NULL,channel));g_rn_strip_ready=true;
+    assert(!rn_library_snapshot(nil,NULL,channel));assert(!rn_library_lookup(nil,NULL,channel,string("Wide")));g_rn_strip_ready=true;
     for(int mode=0;mode<3;mode++) {
         picker_mode=mode;id value=rn_library_snapshot(nil,NULL,channel);
         assert(count(dict(value,"sections"))==2 && count(at(dict(value,"sections"),0))==1 && count(at(dict(value,"sections"),1))==1);
         assert(count(dict(value,"recents"))==0 && count(dict(value,"labels"))==6);
+        assert(rn_library_lookup(nil,NULL,channel,string("Wide")));
+        assert(rn_library_lookup(nil,NULL,channel,string("Global")));
+        assert(!rn_library_lookup(nil,NULL,channel,string("wide")));
+        assert(!rn_library_lookup(nil,NULL,channel,string("Wide extra")));
     }
     id wide=tas_emotes_named_copy(channel,string("Wide")),global=tas_emotes_named_copy(channel,string("Global"));
     assert(!rn_library_remember(nil,NULL,channel,string("Wide"),dict(global,"id")));
@@ -629,6 +636,7 @@ static void library_flow(void) {
     after=rn_library_snapshot(nil,NULL,channel);assert(count(dict(after,"recents"))==2);
     assert(!strcmp(text(dict(at(dict(after,"recents"),0),"name")),"Wide"));
     assert(!rn_library_snapshot(nil,NULL,string("other")));
+    assert(!rn_library_lookup(nil,NULL,string("other"),string("Global")));
     assert(!rn_library_remember(nil,NULL,string("other"),string("Global"),dict(global,"id")));
     assert(!rn_library_remember(nil,NULL,channel,string("unknown"),dict(wide,"id")));
     /* Manually typed provider codes use the completed own-message display path. */
@@ -637,9 +645,11 @@ static void library_flow(void) {
     after=rn_library_snapshot(nil,NULL,channel);
     assert(!strcmp(text(dict(at(dict(after,"recents"),0),"name")),"Global"));
     Room *other=ready("43");assert(!rn_library_snapshot(nil,NULL,string("fixture"))); /* ambiguous login */
+    assert(!rn_library_lookup(nil,NULL,string("fixture"),string("Global")));
     reset_room_locked(other,true,time(NULL));reset_room_locked(room,true,time(NULL));
     assert(!rn_library_remember(nil,NULL,channel,string("Wide"),dict(wide,"id"))); /* retired identity */
     g_enabled=false;assert(!rn_library_snapshot(nil,NULL,channel));
+    assert(!rn_library_lookup(nil,NULL,channel,string("Global")));
     assert(!rn_library_remember(nil,NULL,channel,string("Global"),dict(global,"id")));
 }
 int main(int argc,char **argv) {

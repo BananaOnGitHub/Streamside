@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.69`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.70`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -45,7 +45,10 @@ Publication is on hold for device testing and the forthcoming logo.
     emote suggestions are suppressed while the feature and picker are enabled;
     Off or disabling the feature restores them. The emote button continues to
     open Twitch's library; its provider section is a later milestone.
-    Build 68 was confirmed on device. Build 69 adds the RN third-party library:
+    Build 69's RN library was confirmed on device. Build 70 refines its controls,
+    fixes provider browsing at five rows with virtualized horizontal columns,
+    and adds provider recognition to Twitch's library backspace helper. The
+    RN third-party library includes:
     a frozen-on-open recent scroller, provider and Channel/Global controls,
     and a footer section shortcut. See [the library port notes](docs/RN_LIBRARY_PORT.md).
   - Build 50's adapter targets legacy chat present in the donor binary, not the

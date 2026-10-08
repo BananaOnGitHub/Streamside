@@ -9,6 +9,8 @@ function install(original) {
   var autocomplete = __r(4619), caretFromEdit = autocomplete.caretFromEdit;
   var nativeAutocomplete = autocomplete.useAutocomplete;
   var suggestions = __r(4713), NativeSuggestions = suggestions.ChatAutocompleteTray;
+  var composerHooks = __r(4687) || {}, nativeComposer = composerHooks.useChatComposer;
+  var smartBackspace = (__r(3758) || {}).smartBackspace, aliases = (__r(3382) || {}).emoteTokenAliases;
   if (!React.createContext || !React.useContext || !RN.ScrollView || !RN.Pressable ||
       !ui.useTheme || !NativeInput || !caretFromEdit || !nativeAutocomplete || !NativeSuggestions ||
       !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
@@ -39,6 +41,31 @@ function install(original) {
     try { return bridge.getState(); } catch (error) { return null; }
   }
   function takeover(config) { return !!config && !!config.enabled && (config.mode === 0 || config.mode === 1); }
+  // No additional hook slots or catalog mutations. Use Twitch's functional
+  // draft setter and its existing token/Unicode deletion helper. Recognition
+  // adds provider codes only in this hook's explicit channel, including Off.
+  function useChatComposer(p) {
+    var result = nativeComposer(p), config = state();
+    if (!config || !config.enabled || !result.setDraft) return result;
+    var copy = Object.assign({}, result);
+    copy.backspaceDraft = function () {
+      result.setDraft(function (value) {
+        if (typeof value !== "string") return value;
+        function recognized(code) {
+          if (Object.prototype.hasOwnProperty.call(p.emoteTokenMap || {}, code) ||
+              Object.prototype.hasOwnProperty.call(result.cheermoteTokenImages || {}, code) ||
+              (p.emoteSuggestions || []).some(function (item) { return aliases(item.token).includes(code); })) return true;
+          var fresh = state();
+          if (!fresh || !fresh.enabled) return false;
+          try {
+            return !!bridge.lookup(p.channelID, code);
+          } catch (error) { return false; }
+        }
+        return smartBackspace(value, value.length, recognized).value;
+      });
+    };
+    return copy;
+  }
   function useConfig() {
     var pair = React.useState(state), config = pair[0], update = pair[1];
     React.useEffect(function () {
@@ -332,11 +359,13 @@ function install(original) {
     row.borderRadius = 15; row.backgroundColor = context.theme.colors.backgroundAlt;
     for (var i = first; i < last; i++) {
       var style = {}; style.flex = 1; style.borderRadius = 15; style.alignItems = "center"; style.justifyContent = "center";
-      if (i - first === selected) style.backgroundColor = context.theme.colors.backgroundAlt2;
+      // Contrast stays explicit in both themes; backgroundAlt2 was identical
+      // to the track on the shipped dark theme.
+      if (i - first === selected) style.backgroundColor = context.theme.colors.textBase;
       var bp = properties(style); bp.key = i; bp.accessibilityRole = "tab"; bp.accessibilityLabel = context.data.labels[i];
       var selectedState = {}; selectedState.selected = i - first === selected; bp.accessibilityState = selectedState;
       bp.onPress = (function (index) { return function () { set(index); }; })(i - first);
-      var text = {}; text.fontSize = 13; text.color = context.theme.colors.textBase;
+      var text = {}; text.fontSize = 13; text.color = i - first === selected ? context.theme.colors.backgroundBase : context.theme.colors.textBase;
       children.push(React.createElement(RN.Pressable, bp, React.createElement(RN.Text, properties(text), context.data.labels[i])));
     }
     return React.createElement(RN.View, properties(row), children);
@@ -353,10 +382,10 @@ function install(original) {
     var current = React.useRef(null), ref = React.useRef(null);
     var columns = Math.max(3, Math.min(12, Math.floor(width / 60)));
     var items = context.data.sections[context.scope].filter(function (item) { return !context.provider || item.provider === context.provider - 1; });
-    var rows = [];
-    for (var i = 0; i < items.length; i += columns) { var row = {}; row.key = context.data.title + "/" + i; row.emotes = items.slice(i, i + columns); rows.push(row); }
-    if (!rows.length) { var row = {}; row.key = "provider"; row.emotes = []; rows.push(row); }
-    var section = {}; section.key = "provider"; section.title = context.data.title; section.data = rows;
+    // One bounded outer row; virtualize horizontal columns of five inside it.
+    // Native sections retain their ordinary 52-point rows and vertical list.
+    var row = {}; row.key = "provider"; row.emotes = items;
+    var section = {}; section.key = "provider"; section.title = context.data.title; section.data = [row];
     var sections = native.sections.filter(function (s) { return s.key !== "provider"; });
     var position = sections.length && sections[0].key === "recents" ? 1 : 0;
     sections = sections.slice(0, position).concat([section], sections.slice(position));
@@ -397,21 +426,34 @@ function install(original) {
       var cursor = 0, offset = headerHeight;
       for (var s = 0; s < sections.length; s++) {
         var n = sections[s].data.length, h = sections[s].key === "provider" ? 88 : 28;
+        var rowHeight = sections[s].key === "provider" ? 260 : 52;
         var length = 0;
         if (index === cursor) length = h;
-        else if (index > cursor && index <= cursor + n) { offset += h + (index - cursor - 1) * 52; length = 52; }
-        else if (index === cursor + n + 1) offset += h + n * 52;
-        else { cursor += n + 2; offset += h + n * 52; continue; }
+        else if (index > cursor && index <= cursor + n) { offset += h + (index - cursor - 1) * rowHeight; length = rowHeight; }
+        else if (index === cursor + n + 1) offset += h + n * rowHeight;
+        else { cursor += n + 2; offset += h + n * rowHeight; continue; }
         var layout = {}; layout.index = index; layout.offset = offset; layout.length = length; return layout;
       }
       var layout = {}; layout.index = index; layout.offset = offset; layout.length = 0; return layout;
     };
     copy.renderItem = function (info) {
       if (info.section.key !== "provider") return native.renderItem(info);
-      var row = {}; row.height = 52; row.flexDirection = "row";
-      var children = info.item.emotes.map(function (item) { return tile(item, context, width / columns); });
-      if (!children.length) children = [title(context.data.message, context, 52)];
-      return React.createElement(RN.View, properties(row), children);
+      var groups = [], cellWidth = width / columns;
+      for (var i = 0; i < info.item.emotes.length; i += 5) {
+        var column = {}; column.key = context.data.title + "/" + i; column.emotes = info.item.emotes.slice(i, i + 5); groups.push(column);
+      }
+      var style = {}; style.height = 260; style.flexGrow = 0;
+      if (!groups.length) return React.createElement(RN.View, properties(style), title(context.data.message, context, 52));
+      var fp = properties(style); fp.key = context.provider + "/" + context.scope; fp.horizontal = true; fp.data = groups;
+      fp.showsHorizontalScrollIndicator = false; fp.keyboardShouldPersistTaps = "always";
+      fp.initialNumToRender = columns + 1; fp.maxToRenderPerBatch = columns + 1; fp.windowSize = 3;
+      fp.keyExtractor = function (item) { return item.key; };
+      fp.getItemLayout = function (data, index) { var layout = {}; layout.length = cellWidth; layout.offset = cellWidth * index; layout.index = index; return layout; };
+      fp.renderItem = function (info) {
+        var style = {}; style.width = cellWidth; style.height = 260;
+        return React.createElement(RN.View, properties(style), info.item.emotes.map(function (item) { return tile(item, context, cellWidth); }));
+      };
+      return React.createElement(RN.FlatList, fp);
     };
     copy.renderSectionHeader = function (info) {
       if (info.section.key !== "provider") return native.renderSectionHeader(info);
@@ -464,12 +506,14 @@ function install(original) {
   try {
     inputs.EmoteTextInput = Input; autocomplete.useAutocomplete = useAutocomplete;
     suggestions.ChatAutocompleteTray = StockSuggestions;
-    if (NativeLibrary && nativeJSX && nativeJSXS && RN.SectionList && bridge.getSnapshot && bridge.remember && React.Children && React.cloneElement) {
+    if (nativeComposer && smartBackspace && aliases && bridge.lookup) composerHooks.useChatComposer = useChatComposer;
+    if (NativeLibrary && nativeJSX && nativeJSXS && RN.SectionList && RN.FlatList && bridge.getSnapshot && bridge.remember && React.Children && React.cloneElement) {
       trays.EmotePickerTray = Library; jsxRuntime.jsx = jsx; jsxRuntime.jsxs = jsxs;
     }
   } catch (error) {
     inputs.EmoteTextInput = NativeInput; autocomplete.useAutocomplete = nativeAutocomplete;
     suggestions.ChatAutocompleteTray = NativeSuggestions;
+    composerHooks.useChatComposer = nativeComposer;
     trays.EmotePickerTray = NativeLibrary; jsxRuntime.jsx = nativeJSX; jsxRuntime.jsxs = nativeJSXS;
     return original;
   }

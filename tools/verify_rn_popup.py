@@ -144,6 +144,32 @@ void dispose(void *p){free(p);}
                 i=next(i for i,x in enumerate(factory) if x.inst.name=='StoreNPToEnvironment' and x.arg2==slot)
                 assert factory[i-1].inst.name=='LoadConstUInt8' and factory[i-1].arg2==value
             print('Library leaf 4174, scoped grid/footer JSX, string insertion and native row/header geometry verified')
+            hook=list(parse_hbc_bytecode(h.function_headers[4691],h))
+            i=next(i for i,x in enumerate(hook) if x.inst.name=='CreateClosure' and x.arg3==21555)
+            assert h.strings[hook[i+1].arg4]=='useChatComposer' and hook[i+1].inst.name=='PutByIdLoose'
+            assert dependencies(4691)[19:21]==[3382,3758]
+            backspace=list(parse_hbc_bytecode(h.function_headers[37375],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==44613 for x in backspace)
+            updater=list(parse_hbc_bytecode(h.function_headers[44613],h))
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='smartBackspace' for x in updater)
+            assert any(x.inst.name=='GetByIdShort' and h.strings[x.arg4]=='length' for x in updater)
+            pure=list(parse_hbc_bytecode(h.function_headers[3766],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==19095 for x in pure)
+            assert any(x.inst.name=='PutByIdLoose' and h.strings[x.arg4]=='smartBackspace' for x in pure)
+            # The adapter uses the exact same functional setter and native
+            # recognition inputs; only provider lookup extends that predicate.
+            composer=list(parse_hbc_bytecode(h.function_headers[21555],h))
+            output=next(x for x in composer if x.inst.name=='NewObjectWithBufferLong' and "'backspaceDraft'" in str(x))
+            props=ast.literal_eval(str(output).split('# Object: ',1)[1].replace('null','None'))
+            assert 'setDraft' in props and 'cheermoteTokenImages' in props
+            recognition=list(parse_hbc_bytecode(h.function_headers[44612],h))
+            assert sum(x.inst.name=='GetById' and h.strings[x.arg4]=='hasOwn' for x in recognition)==2
+            assert any(x.inst.name=='LoadFromEnvironment' and x.arg3==7 for x in recognition)
+            assert any(x.inst.name=='LoadFromEnvironment' and x.arg3==73 for x in recognition)
+            assert any(x.inst.name=='CreateClosure' and x.arg3==46706 for x in recognition)
+            alias=list(parse_hbc_bytecode(h.function_headers[46706],h))
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='emoteTokenAliases' for x in alias)
+            print('Writable composer leaf 4687, functional end-of-draft backspace, native token/alias/Unicode helper verified')
         for i,f in enumerate(h.function_headers):
             new=after.function_headers[i]
             for field in f._fields_:

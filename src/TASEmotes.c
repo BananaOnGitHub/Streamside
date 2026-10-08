@@ -1497,6 +1497,12 @@ static bool rn_library_room(id channel) {
 static void rn_library_put(id target,const char *key,id value) {
     if(value)((void (*)(id,SEL,id,id))objc_msgSend)(target,sel_registerName("setObject:forKey:"),value,str(key));
 }
+static id rn_library_lookup(id self,SEL command,id channel,id name) {
+    (void)self;(void)command;
+    if(!rn_library_room(channel))return nil;
+    id item=tas_emotes_named_copy(channel,name);
+    return item ? call0(item,"autorelease") : nil;
+}
 static id rn_library_snapshot(id self,SEL command,id channel) {
     (void)self;(void)command;
     if(!rn_library_room(channel)) return nil;
@@ -1548,6 +1554,10 @@ static const TASRNMethodInfo *rn_library_snapshot_export(id self,SEL command) {
     (void)self;(void)command;
     static const TASRNMethodInfo info={"getSnapshot","librarySnapshot:(NSString *)channel",YES};return &info;
 }
+static const TASRNMethodInfo *rn_library_lookup_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"lookup","libraryLookup:(NSString *)channel name:(NSString *)name",YES};return &info;
+}
 static const TASRNMethodInfo *rn_library_remember_export(id self,SEL command) {
     (void)self;(void)command;
     static const TASRNMethodInfo info={"remember","libraryRemember:(NSString *)channel name:(NSString *)name identifier:(NSNumber *)identifier",YES};return &info;
@@ -1596,6 +1606,7 @@ static void install_rn_local(void) {
                     class_addMethod(cls,sel_registerName("pickerState"),(IMP)rn_strip_state,"@16@0:8") &&
                     class_addMethod(cls,sel_registerName("pickerSearch:query:"),(IMP)rn_strip_search,"@32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("librarySnapshot:"),(IMP)rn_library_snapshot,"@24@0:8@16") &&
+                    class_addMethod(cls,sel_registerName("libraryLookup:name:"),(IMP)rn_library_lookup,"@32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("libraryRemember:name:identifier:"),(IMP)rn_library_remember,"@40@0:8@16@24@32") &&
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
@@ -1606,6 +1617,7 @@ static void install_rn_local(void) {
                     class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerState"),(IMP)rn_strip_state_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerSearch"),(IMP)rn_strip_search_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLibrarySnapshot"),(IMP)rn_library_snapshot_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideLibraryLookup"),(IMP)rn_library_lookup_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLibraryRemember"),(IMP)rn_library_remember_export,"^v16@0:8");
                 if (ok) {
                     objc_registerClassPair(cls); register_module(cls);

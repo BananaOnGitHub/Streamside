@@ -24,6 +24,7 @@
 
 #include "TASDiagnostics.h"
 #include "TASEmotes.h"
+#include "TASImageTransport.h"
 
 typedef unsigned long NSUInteger;
 typedef long NSInteger;
@@ -635,18 +636,171 @@ static void protocol_complete(id self, id data, id response, id error) {
 
 static id protocol_session(bool provider_image) {
     static id image_session;
+    static pthread_mutex_t session_lock = PTHREAD_MUTEX_INITIALIZER;
     /* HLS completions synchronously fetch alternate tokens/manifests. A
-     * separate session gives images their own serial completion queue, so
+     * separate session gives images their own bounded concurrent queue, so
      * those fetches cannot hold image delivery behind an ad-bearing playlist. */
-    pthread_mutex_lock(&g_lock);
+    pthread_mutex_lock(&session_lock);
     id *slot = provider_image ? &image_session : &g_protocol_session;
     if (!*slot) {
         id config = msg0((id)objc_getClass("NSURLSessionConfiguration"), "defaultSessionConfiguration");
-        *slot = objc_retain(msg1((id)objc_getClass("NSURLSession"), "sessionWithConfiguration:", config));
+        if (provider_image) {
+            /* The native input and RN image loader use different outer caches.
+             * Both now share a dedicated HTTP cache, obeying CDN expiry/Vary/
+             * no-store rules rather than inheriting Twitch's reload policy. */
+            id cache = ((id (*)(id,SEL,NSUInteger,NSUInteger,id))objc_msgSend)(
+                msg0((id)objc_getClass("NSURLCache"), "alloc"),
+                sel_registerName("initWithMemoryCapacity:diskCapacity:diskPath:"),
+                32*1024*1024, 128*1024*1024, nsstr("StreamsideProviderImages"));
+            vmsg1(config, "setURLCache:", cache);
+            objc_release(cache);
+            ((void (*)(id,SEL,NSUInteger))objc_msgSend)(config,
+                sel_registerName("setHTTPMaximumConnectionsPerHost:"), 8);
+            id queue = msg0((id)objc_getClass("NSOperationQueue"), "new");
+            ((void (*)(id,SEL,NSInteger))objc_msgSend)(queue,
+                sel_registerName("setMaxConcurrentOperationCount:"), 4);
+            *slot = objc_retain(((id (*)(id,SEL,id,id,id))objc_msgSend)(
+                (id)objc_getClass("NSURLSession"),
+                sel_registerName("sessionWithConfiguration:delegate:delegateQueue:"), config, nil, queue));
+            objc_release(queue);
+        } else {
+            *slot = objc_retain(msg1((id)objc_getClass("NSURLSession"), "sessionWithConfiguration:", config));
+        }
     }
     id session = *slot;
-    pthread_mutex_unlock(&g_lock);
+    pthread_mutex_unlock(&session_lock);
     return session;
+}
+
+/* Bounded, in-flight public-image fan-out. Each consumer retains its own
+ * cancellation/delivery state. A stopped view must not cancel another view's
+ * download. No client callbacks or cancel messages occur under this lock. */
+#define IMAGE_FLIGHTS 128
+#define IMAGE_CONSUMERS 64
+typedef struct {
+    char *url;
+    id request, task, consumers[IMAGE_CONSUMERS];
+    unsigned count;
+    uint64_t generation;
+    struct timespec started;
+} ImageFlight;
+static ImageFlight image_flights[IMAGE_FLIGHTS];
+static pthread_mutex_t image_transport_lock = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t image_generation, image_downloads, image_joined, image_finished, image_errors;
+static uint64_t image_latency[4];
+
+void tas_image_transport_status(char *buffer, size_t capacity) {
+    pthread_mutex_lock(&image_transport_lock);
+    snprintf(buffer, capacity,
+        "Provider image transport (shared; this launch)\n"
+        "Shared loads/coalesced/completed/errors: %llu/%llu/%llu/%llu\n"
+        "Transport completions <=250ms/<=1s/<=5s/>5s: %llu/%llu/%llu/%llu\n"
+        "HTTP cache memory/disk: 32/128 MiB; CDN expiry respected. Timing excludes image decoding.\n",
+        (unsigned long long)image_downloads, (unsigned long long)image_joined,
+        (unsigned long long)image_finished, (unsigned long long)image_errors,
+        (unsigned long long)image_latency[0], (unsigned long long)image_latency[1],
+        (unsigned long long)image_latency[2], (unsigned long long)image_latency[3]);
+    pthread_mutex_unlock(&image_transport_lock);
+}
+
+static bool image_public_request(id request) {
+    const char *method = utf8(msg0(request, "HTTPMethod"));
+    return (!method || !strcmp(method, "GET")) && !msg0(request, "HTTPBody") &&
+        !msg1(request, "valueForHTTPHeaderField:", nsstr("Authorization")) &&
+        !msg1(request, "valueForHTTPHeaderField:", nsstr("Cookie")) &&
+        !msg1(request, "valueForHTTPHeaderField:", nsstr("Range"));
+}
+
+static void image_flight_complete(unsigned index, uint64_t generation, id data, id response, id error) {
+    id consumers[IMAGE_CONSUMERS], task = nil, request = nil;
+    unsigned count = 0;
+    pthread_mutex_lock(&image_transport_lock);
+    ImageFlight *flight = &image_flights[index];
+    /* Last-consumer cancellation frees the slot immediately; a cancelled
+     * task can still complete later and must not consume a replacement. */
+    if (flight->generation == generation && flight->url) {
+        count = flight->count;
+        memcpy(consumers, flight->consumers, count*sizeof(id));
+        task = flight->task; request = flight->request;
+        struct timespec now; clock_gettime(CLOCK_MONOTONIC, &now);
+        double seconds = now.tv_sec - flight->started.tv_sec +
+            (now.tv_nsec - flight->started.tv_nsec)/1000000000.0;
+        image_finished++; if (error || !response) image_errors++;
+        image_latency[seconds<=.25 ? 0 : seconds<=1 ? 1 : seconds<=5 ? 2 : 3]++;
+        free(flight->url); memset(flight, 0, sizeof(*flight));
+    }
+    pthread_mutex_unlock(&image_transport_lock);
+    for (unsigned i = 0; i < count; i++) {
+        protocol_complete(consumers[i], data, response, error);
+        objc_release(consumers[i]);
+    }
+    objc_release(task); objc_release(request);
+}
+
+static bool image_flight_start(id self, id session, id request, const char *url) {
+    unsigned available = IMAGE_FLIGHTS;
+    pthread_mutex_lock(&image_transport_lock);
+    for (unsigned i = 0; i < IMAGE_FLIGHTS; i++) {
+        ImageFlight *flight = &image_flights[i];
+        if (!flight->url) { if (available == IMAGE_FLIGHTS) available = i; continue; }
+        if (strcmp(flight->url, url) || flight->count == IMAGE_CONSUMERS) continue;
+        /* Respect request variants; never conflate differing Accept/other
+         * headers. Cache policy is normalized before this comparison. */
+        id a = msg0(flight->request, "allHTTPHeaderFields"), b = msg0(request, "allHTTPHeaderFields");
+        if (a != b && !bmsg1(a, "isEqual:", b)) continue;
+        flight->consumers[flight->count++] = objc_retain(self);
+        objc_setAssociatedObject(self, &g_protocol_task_key, flight->task, 1);
+        image_joined++;
+        pthread_mutex_unlock(&image_transport_lock);
+        return true;
+    }
+    if (available == IMAGE_FLIGHTS) { pthread_mutex_unlock(&image_transport_lock); return false; }
+    ImageFlight *flight = &image_flights[available];
+    flight->url = strdup(url);
+    if (!flight->url) { pthread_mutex_unlock(&image_transport_lock); return false; }
+    flight->generation = ++image_generation;
+    uint64_t generation = flight->generation;
+    flight->request = objc_retain(request);
+    flight->consumers[flight->count++] = objc_retain(self);
+    clock_gettime(CLOCK_MONOTONIC, &flight->started);
+    flight->task = objc_retain(((id (*)(id,SEL,id,id))objc_msgSend)(session,
+        sel_registerName("dataTaskWithRequest:completionHandler:"), request,
+        (id)^(id data, id response, id error) {
+            image_flight_complete(available, generation, data, response, error);
+        }));
+    id task = objc_retain(flight->task);
+    objc_setAssociatedObject(self, &g_protocol_task_key, task, 1);
+    image_downloads++;
+    pthread_mutex_unlock(&image_transport_lock);
+    if (task) msg0(task, "resume");
+    else image_flight_complete(available, generation, nil, nil, nil);
+    objc_release(task);
+    return true;
+}
+
+/* Returns true when this task belongs to the shared transport, including when
+ * completion has already detached the consumers for delivery. */
+static bool image_flight_stop(id self, id task) {
+    bool shared = false;
+    id cancelled = nil, request = nil, consumer = nil;
+    pthread_mutex_lock(&image_transport_lock);
+    for (unsigned i = 0; i < IMAGE_FLIGHTS && !shared; i++) {
+        ImageFlight *flight = &image_flights[i];
+        if (!flight->url || flight->task != task) continue;
+        for (unsigned j = 0; j < flight->count; j++) if (flight->consumers[j] == self) {
+            shared = true; consumer = flight->consumers[j];
+            memmove(&flight->consumers[j], &flight->consumers[j+1], (--flight->count-j)*sizeof(id));
+            if (!flight->count) {
+                cancelled = flight->task; request = flight->request;
+                free(flight->url); memset(flight, 0, sizeof(*flight));
+            }
+            break;
+        }
+    }
+    pthread_mutex_unlock(&image_transport_lock);
+    msg0(cancelled, "cancel");
+    objc_release(cancelled); objc_release(request); objc_release(consumer);
+    return shared;
 }
 
 static void protocol_start_loading(id self, SEL command) {
@@ -681,13 +835,21 @@ static void protocol_start_loading(id self, SEL command) {
     }
 
     bool provider_image = original_url && tas_emotes_is_provider_image_url(original_url);
+    bool share_image = provider_image && image_public_request(request);
+    if (share_image) ((void (*)(id,SEL,NSUInteger))objc_msgSend)(request,
+        sel_registerName("setCachePolicy:"), 0); /* NSURLRequestUseProtocolCachePolicy */
     /* Mark the inner request before it enters our swizzled session factory,
      * so the protocol cannot intercept its own transport recursively. */
     id session = protocol_session(provider_image);
     objc_sync_enter(self);
     if (!objc_getAssociatedObject(self, &g_protocol_stopped_key)) {
-        id held = objc_retain(self);
         if (provider_image) tas_emotes_image_protocol_request(original_url);
+        if (share_image && image_flight_start(self, session, request, original_url)) {
+            objc_sync_exit(self);
+            objc_release(request);
+            return;
+        }
+        id held = objc_retain(self);
         id task = ((id (*)(id, SEL, id, id))objc_msgSend)(session,
             sel_registerName("dataTaskWithRequest:completionHandler:"), request,
             (id)^(id data, id response, id error) {
@@ -717,7 +879,7 @@ static void protocol_stop_loading(id self, SEL command) {
         const char *url = utf8(msg0(msg0(msg0(self, "request"), "URL"), "absoluteString"));
         if (tas_emotes_is_provider_image_url(url)) tas_emotes_image_protocol_cancel(url);
     }
-    msg0(task, "cancel");
+    if (!task || !image_flight_stop(self, task)) msg0(task, "cancel");
     objc_release(task);
     objc_sync_exit(self);
 }

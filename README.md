@@ -13,7 +13,7 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.70`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.71`)
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -48,6 +48,12 @@ Publication is on hold for device testing and the forthcoming logo.
     Build 69's RN library was confirmed on device. Build 70 refines its controls,
     fixes provider browsing at five rows with virtualized horizontal columns,
     and adds provider recognition to Twitch's library backspace helper. The
+    user confirms the library layout works, but reports slow image loading in
+    chat, the input and the library. Build 71 addresses their shared provider
+    transport with a dedicated HTTP cache, bounded in-flight request coalescing,
+    and concurrent completions. Aggregate transport timings help distinguish
+    download latency from decoding; device performance remains to be verified.
+    See [the transport notes](docs/EMOTE_IMAGE_TRANSPORT.md). The
     RN third-party library includes:
     a frozen-on-open recent scroller, provider and Channel/Global controls,
     and a footer section shortcut. See [the library port notes](docs/RN_LIBRARY_PORT.md).

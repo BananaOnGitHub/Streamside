@@ -17,6 +17,7 @@ PRELUDE = r'''
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 typedef struct Fake *id;
 typedef id Class;
 typedef const char *SEL;
@@ -33,13 +34,13 @@ typedef signed char BOOL;
 struct Block { void *isa;int flags,reserved;void (*invoke)(void *,id,id,id);struct {uintptr_t reserved,size;} *descriptor; };
 struct Fake {
     const char *text;
-    id request,client,task,stopped,completed,url,header,session;
+    id request,client,task,stopped,completed,url,header,session,headers,method,authorization,range;
     struct Block *completion;
-    unsigned resumes,cancels,responses,loads,finishes,failures;
+    unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy;
     bool stop_on_response;
     pthread_mutex_t monitor;
 };
-static struct Fake objects[256],session_class,config_class,error_class,config;
+static struct Fake objects[4096],session_class,config_class,error_class,config,cache_class,queue_class;
 static size_t used;
 static unsigned starts,results,rewrites,cancellations;
 static bool block_manifest,manifest_entered,release_manifest;
@@ -48,10 +49,9 @@ static pthread_cond_t manifest_condition=PTHREAD_COND_INITIALIZER;
 static bool fail_task;
 static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key;
 static id g_protocol_session;
-static pthread_mutex_t g_lock=PTHREAD_MUTEX_INITIALIZER;
 void *_NSConcreteStackBlock[32];
 static id fresh(const char *text) {
-    assert(used<256);id o=&objects[used++];o->text=text;
+    assert(used<4096);id o=&objects[used++];o->text=text;
     pthread_mutexattr_t attr;pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&o->monitor,&attr);pthread_mutexattr_destroy(&attr);return o;
@@ -63,6 +63,8 @@ static SEL sel_registerName(const char *s) { return s; }
 static Class objc_getClass(const char *s) {
     if(!strcmp(s,"NSURLSession"))return &session_class;
     if(!strcmp(s,"NSURLSessionConfiguration"))return &config_class;
+    if(!strcmp(s,"NSURLCache"))return &cache_class;
+    if(!strcmp(s,"NSOperationQueue"))return &queue_class;
     assert(!strcmp(s,"NSError"));return &error_class;
 }
 static id objc_retain(id o) { return o; }
@@ -84,12 +86,29 @@ static id dispatch(id o,SEL s,...) {
     else if(!strcmp(s,"client"))r=o->client;
     else if(!strcmp(s,"URL"))r=o->url;
     else if(!strcmp(s,"absoluteString"))r=o;
-    else if(!strcmp(s,"mutableCopy")) { r=fresh(o->text);r->url=o->url;r->header=o->header; }
+    else if(!strcmp(s,"mutableCopy")) { r=fresh(o->text);r->url=o->url;r->header=o->header;r->headers=o->headers;
+        r->method=o->method;r->authorization=o->authorization;r->range=o->range;r->cache_policy=o->cache_policy; }
     else if(!strcmp(s,"setValue:forHTTPHeaderField:")) { o->header=va_arg(a,id);assert(!strcmp(va_arg(a,id)->text,TAS_INTERNAL_HEADER)); }
-    else if(!strcmp(s,"valueForHTTPHeaderField:")) { (void)va_arg(a,id);r=o->header; }
+    else if(!strcmp(s,"valueForHTTPHeaderField:")) { id key=va_arg(a,id);
+        r=!strcmp(key->text,TAS_INTERNAL_HEADER) ? o->header : !strcmp(key->text,"Authorization") ? o->authorization :
+            !strcmp(key->text,"Range") ? o->range : nil; }
+    else if(!strcmp(s,"allHTTPHeaderFields"))r=o->headers;
+    else if(!strcmp(s,"HTTPMethod"))r=o->method;
+    else if(!strcmp(s,"isEqual:")) { id other=va_arg(a,id);r=(id)(uintptr_t)(other && !strcmp(o->text,other->text)); }
+    else if(!strcmp(s,"setCachePolicy:"))o->cache_policy=(unsigned)va_arg(a,NSUInteger);
     else if(!strcmp(s,"setURL:"))o->url=va_arg(a,id);
     else if(!strcmp(s,"HTTPBody"))r=nil;
     else if(!strcmp(s,"defaultSessionConfiguration"))r=&config;
+    else if(!strcmp(s,"alloc") || !strcmp(s,"new"))r=fresh("allocated");
+    else if(!strcmp(s,"initWithMemoryCapacity:diskCapacity:diskPath:")) {
+        assert(va_arg(a,NSUInteger)==32*1024*1024);assert(va_arg(a,NSUInteger)==128*1024*1024);
+        assert(!strcmp(va_arg(a,id)->text,"StreamsideProviderImages"));r=o;
+    } else if(!strcmp(s,"setURLCache:"))assert(va_arg(a,id));
+    else if(!strcmp(s,"setHTTPMaximumConnectionsPerHost:"))assert(va_arg(a,NSUInteger)==8);
+    else if(!strcmp(s,"setMaxConcurrentOperationCount:"))assert(va_arg(a,NSInteger)==4);
+    else if(!strcmp(s,"sessionWithConfiguration:delegate:delegateQueue:")) {
+        assert(va_arg(a,id)==&config);assert(!va_arg(a,id));assert(va_arg(a,id));r=fresh("image-session");
+    }
     else if(!strcmp(s,"sessionWithConfiguration:")) { assert(va_arg(a,id)==&config);r=fresh("session"); }
     else if(!strcmp(s,"dataTaskWithRequest:completionHandler:")) {
         id request=va_arg(a,id);struct Block *b=va_arg(a,void *);
@@ -110,13 +129,14 @@ static id dispatch(id o,SEL s,...) {
     else { fprintf(stderr,"unexpected selector %s\n",s);assert(0); }
     va_end(a);return r;
 }
-static id (*objc_msgSend)(id,SEL,...)=dispatch;
+static void *objc_msgSend=(void *)dispatch;
 static id msg0(id o,const char *s) { return dispatch(o,s); }
 static id msg1(id o,const char *s,id a) { return dispatch(o,s,a); }
 static void vmsg1(id o,const char *s,id a) { dispatch(o,s,a); }
 static void vmsg2(id o,const char *s,id a,id b) { dispatch(o,s,a,b); }
 static void vmsg3(id o,const char *s,id a,id b,NSInteger c) { dispatch(o,s,a,b,c); }
 static NSInteger imsg0(id o,const char *s) { return (NSInteger)(uintptr_t)dispatch(o,s); }
+static BOOL bmsg1(id o,const char *s,id a) { return (BOOL)(uintptr_t)dispatch(o,s,a); }
 static bool contains(const char *s,const char *part) { return s && strstr(s,part); }
 static bool starts_with(const char *s,const char *part) { return s && !strncmp(s,part,strlen(part)); }
 static bool is_twitch_hls_url(const char *s) { return contains(s,".m3u8"); }
@@ -209,6 +229,65 @@ int main(void) {
     assert(image_transport!=blocked->task->session);
     pthread_mutex_lock(&manifest_lock);release_manifest=true;pthread_cond_broadcast(&manifest_condition);pthread_mutex_unlock(&manifest_lock);
     assert(!pthread_join(thread,NULL) && blocked->client->finishes==1);alarm(0);
+    /* Same asset across chat/composer/library has one task. Removing one
+     * consumer does not cancel it; delivery skips just that consumer. */
+    id one=protocol("https://cdn.7tv.app/emote/shared/2x.gif"),
+       two=protocol("https://cdn.7tv.app/emote/shared/2x.gif"),
+       three=protocol("https://cdn.7tv.app/emote/shared/2x.gif");
+    before=starts;protocol_start_loading(one,nil);protocol_start_loading(two,nil);protocol_start_loading(three,nil);
+    assert(starts==before+1 && one->task==two->task && two->task==three->task);
+    task=one->task;protocol_stop_loading(one,nil);assert(!task->cancels);
+    complete(task,data,response,nil);
+    assert(!one->client->loads && two->client->finishes==1 && three->client->finishes==1);
+    /* Last cancellation retires the group. Its late completion cannot consume
+     * a new request in the same slot (nor poison its delivery/cache). */
+    one=protocol("https://cdn.7tv.app/emote/retry/2x.gif");
+    two=protocol("https://cdn.7tv.app/emote/retry/2x.gif");
+    protocol_start_loading(one,nil);protocol_start_loading(two,nil);task=one->task;
+    protocol_stop_loading(one,nil);assert(!task->cancels);protocol_stop_loading(two,nil);assert(task->cancels==1);
+    three=protocol("https://cdn.7tv.app/emote/retry/2x.gif");protocol_start_loading(three,nil);id replacement=three->task;
+    complete(task,data,response,nil);assert(three->task==replacement && !three->client->loads);
+    complete(replacement,data,response,nil);assert(three->client->finishes==1);
+    /* Request normalization never alters the outer request, and keeps HLS on
+     * its original caching path. Both cached and cold image requests use the
+     * HTTP cache's validation/expiry rules rather than forced reloads. */
+    one=protocol("https://cdn.7tv.app/emote/cache/2x.gif");one->request->cache_policy=1;
+    protocol_start_loading(one,nil);assert(one->request->cache_policy==1 && one->task->request->cache_policy==0);
+    complete(one->task,data,response,nil);
+    /* Header variants must not share a task; non-GET/range/auth requests
+     * retain their original cache policy and independent transport. */
+    one=protocol("https://cdn.7tv.app/emote/vary/2x.gif");two=protocol("https://cdn.7tv.app/emote/vary/2x.gif");
+    one->request->headers=fresh("Accept: image/gif");two->request->headers=fresh("Accept: image/webp");
+    protocol_start_loading(one,nil);protocol_start_loading(two,nil);assert(one->task!=two->task);
+    complete(one->task,data,response,nil);complete(two->task,data,response,nil);
+    for(unsigned variant=0;variant<3;variant++) {
+        one=protocol("https://cdn.7tv.app/emote/special/2x.gif");two=protocol("https://cdn.7tv.app/emote/special/2x.gif");
+        one->request->cache_policy=two->request->cache_policy=1;
+        if(variant==0)one->request->method=two->request->method=fresh("POST");
+        if(variant==1)one->request->authorization=two->request->authorization=fresh("private");
+        if(variant==2)one->request->range=two->request->range=fresh("bytes=0-9");
+        protocol_start_loading(one,nil);protocol_start_loading(two,nil);assert(one->task!=two->task);
+        assert(one->task->request->cache_policy==1 && two->task->request->cache_policy==1);
+        complete(one->task,data,response,nil);complete(two->task,data,response,nil);
+    }
+    /* A full coalescing table falls back rather than dropping an image. */
+    id crowded[IMAGE_FLIGHTS+1];char urls[IMAGE_FLIGHTS+1][96];
+    for(unsigned i=0;i<IMAGE_FLIGHTS+1;i++) {
+        snprintf(urls[i],sizeof(urls[i]),"https://cdn.7tv.app/emote/budget%u/2x.gif",i);
+        crowded[i]=protocol(urls[i]);protocol_start_loading(crowded[i],nil);assert(crowded[i]->task);
+    }
+    for(unsigned i=0;i<IMAGE_FLIGHTS+1;i++) {complete(crowded[i]->task,data,response,nil);assert(crowded[i]->client->finishes==1);}
+    /* Consumer cap also falls back without starving requests. */
+    id viewers[IMAGE_CONSUMERS+1];before=starts;
+    for(unsigned i=0;i<IMAGE_CONSUMERS+1;i++) {
+        viewers[i]=protocol("https://cdn.7tv.app/emote/consumer-budget/2x.gif");protocol_start_loading(viewers[i],nil);
+    }
+    assert(starts==before+2);
+    complete(viewers[0]->task,data,response,nil);complete(viewers[IMAGE_CONSUMERS]->task,data,response,nil);
+    for(unsigned i=0;i<IMAGE_CONSUMERS+1;i++)assert(viewers[i]->client->finishes==1);
+    char stats[768];tas_image_transport_status(stats,sizeof(stats));
+    assert(strstr(stats,"Shared loads/coalesced/completed/errors:") && strstr(stats,"Timing excludes image decoding"));
+    assert(!strstr(stats,"shared/2x") && image_joined==3+IMAGE_CONSUMERS-1);
     return 0;
 }
 '''

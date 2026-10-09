@@ -1,0 +1,14 @@
+{
+  "id": "build78-fractional-columns-v1",
+  "viewport_widths": [320, 360, 370, 375, 390, 393, 402, 414, 430, 768, 834, 1024],
+  "catalog_sizes": [1, 24, 124, 838, 1001, 5000],
+  "idle_calculations_per_opening": 20,
+  "expected_window_calculations": 7344,
+  "device_case": {
+    "viewport_width": 370,
+    "catalog_size": 838,
+    "first_range": {"first": 0, "last": 11},
+    "idle_range": {"first": 0, "last": 11},
+    "reopen_range": {"first": 0, "last": 11}
+  }
+}

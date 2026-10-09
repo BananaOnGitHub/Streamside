@@ -412,3 +412,86 @@ close/reopen, stay stationary ten seconds and capture B. Verify that the first
 range stops near the viewport/overscan window instead of continuing +7 toward
 168, that visible images render, and that dismissal releases old consumers.
 No further general tracing system or full-catalog scrolling pass is requested.
+
+## Build 78 device confirmation and regression baseline
+
+The supplied reports A and B confirm the geometry correction on Twitch 31.5.
+They cover a stationary first opening, scrolling, dismissal and stationary
+reopening of a large provider catalog. No further calculation tracing or
+diagnostic IPA is needed to preserve this result.
+
+| Observation | Build 77 | Build 78 A / B |
+| --- | --- | --- |
+| Catalog columns / viewport width | 168 / 370 pt | 168 / 370 pt |
+| Stationary first opening | 0..6 -> 0..13 -> 0..20, continued growth | 0..6 -> 0..11 -> 0..11 |
+| Stationary library JS live instances | 838 | 60 |
+| Reopening | Full catalog in prior build 75 reports | 0..6 -> 0..11 -> 0..11; 60 live |
+| Scroll calculated range / render mask peak | Not exercised in build 77 report | 19 / 26 columns; 130 JS instances |
+
+Report B is cumulative across three openings, not an independent second launch.
+Its library totals are 370 mounts, 310 unmounts, 60 currently live, peak 130,
+370 load starts and 370 successful onLoad callbacks, with no errors or unmatched
+callbacks. The scroll stage had 190 mounts and 120 unmounts. Two close stages
+account for 190 further library unmounts and 48 recent-image unmounts, matching
+the outgoing 130- and 60-instance library windows and two 24-instance recents
+sets. This supports cleanup across the exercised dismissals; it does not
+establish cancellation of an active network request during dismissal because
+the reports have no protocol cancellation observations. The range and render
+mask have different sizes; a mask can include retained initial cells. Neither
+is synonymous with cumulative loads or unique assets. Native attribution still
+remains unknown; the scoped counts are JS instances.
+
+All 370 library source-to-onLoad callbacks completed within five seconds:
+140 <=250 ms, 122 <=1 s, 108 <=5 s. This measures source assignment to load
+callback, not pixel display. Report A had 74 network / 6 local-cache Foundation
+transactions; cumulative B had 259 / 108. First-opening queue waits still
+included 56 in the 1–5 second bucket. These reports do not establish a cache
+delivery path independent of saturated network admission. Phases 2 and 3 remain
+unchanged and unimplemented by this regression-only follow-up.
+
+### Maintained checks
+
+`tests/fixtures/window_baseline.json` names the confirmed baseline as
+`build78-fractional-columns-v1`. It retains the observed 370-point, 838-emote
+first/idle/reopen result 0..11 and a broader 12-width, six-catalog matrix up to
+5000 emotes. The exact 0..11 assertion is specific to that donor/configuration;
+a deliberate future RN change may require reviewed expectations. The geometry
+and proportional-window invariants must remain satisfied.
+
+* Ordinary CI runs `test_fractional_columns_and_identity_on_first_open_and_fresh_reopen`.
+  It executes owned production JS through the React host facade, checking exact
+  adjacent endpoints, fractional widths, five-row item mapping and stable
+  column/tile keys through rerender and a fresh grid remount. It requires no
+  redistributed Twitch bundle. It does not simulate RN window calculations.
+* The compiled Hermes fixture executes the production graft and unchanged donor
+  overlap/window bytecode. It retains the old-geometry runaway as a negative
+  control. Each matrix case now runs 20 stationary calculations after first
+  opening and 20 after an actual host grid-state reset and new layout event,
+  under both feature-flag settings. It also retains gradual/rapid/backward
+  scroll calculations, bounded ranges and visible-image element/source checks.
+  The total is 7344 successful window calculations. Repeated idle calculations
+  must stay fixed rather than spending another batch toward the catalog end.
+* `check_gate` explicitly requires the named baseline, complete window scenario
+  count, successful window validation, pinned donor/runtime and current input
+  hashes alongside the snapshot result. Missing, failed, partial, wrong-donor
+  and stale records are tested and block diagnostic packaging.
+* `make test-rn-virtualization` is the required compiled check for library changes
+  and Twitch ports. Unlike the environment-dependent unittest, it fails when
+  toolchain/donor inputs are absent. Public CI still lacks the donor and does
+  not claim compiled Hermes coverage. A new Twitch bundle cannot inherit the
+  old record: review the donor hash, bindings and feature adapters, and execute
+  the actual new donor algorithm before approving the port.
+
+The host facade resets owned grid state and exercises logical reopening but
+does not model Fabric recycling or native scroll event scheduling. Device A/B
+provide the actual first/open/scroll/reopen observations for this baseline;
+they do not certify untested widths, filters, channels or every future donor.
+No shipping JS, payload, transport, concurrency, cache policy or build number
+changes are part of this follow-up.
+
+Validation: all 98 host tests passed with matching Hermes execution enabled;
+the required compiled target passed 7344 window calculations and 32 accepted
+snapshots. A temporary negative-control copy with the old constant-length
+geometry failed the ordinary CI endpoint test. The compiled target also
+rejected absent toolchain/donor inputs. No production file was mutated for
+either negative control, and no new on-device behavior is claimed beyond A/B.

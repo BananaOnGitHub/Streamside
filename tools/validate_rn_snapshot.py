@@ -17,10 +17,12 @@ import tempfile
 ROOT=Path(__file__).resolve().parent.parent
 RUNTIME_COMMIT='40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c'
 DONOR_SHA='422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
+WINDOW_BASELINE=json.loads((ROOT/'tests/fixtures/window_baseline.json').read_text())
 INPUTS=['src/rn/ProviderEmoteStrip.js','src/TASRNStripPayload.h','src/TASDemandRNBridge.h',
         'src/TASImageDemand.c','src/TASImageDemand.h','src/TASEmotes.c',
         'tests/native/hermes_snapshot_runner.cpp','tests/fixtures/snapshot_exercise.js',
-        'tests/fixtures/window_algorithm.js','tests/fixtures/window_exercise.js',
+        'tests/fixtures/window_algorithm.js','tests/fixtures/window_exercise.js','tests/fixtures/window_baseline.json',
+        'tests/fixtures/window_geometry.js',
         'tests/test_image_demand.py','tests/test_rn_library.py','tools/validate_rn_snapshot.py',
         'tools/rn_graft.py','tools/build_snapshot_runtime.py','tests/test_rn_snapshot_runtime.py','src/TASDiagnostics.c','build.sh']
 INPUTS += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'src').glob('TASRN*Patch.h'))]
@@ -31,6 +33,8 @@ def check_gate(path):
     data=json.loads(path.read_text())
     if data.get('runtime_commit')!=RUNTIME_COMMIT or data.get('donor_sha256')!=DONOR_SHA or data.get('accepted_snapshots',0)<1 or not data.get('passed') or data.get('inputs')!=fingerprints():
         raise ValueError('Snapshot runtime validation is missing, failed or stale; no diagnostic build/device scrolling test is allowed')
+    if data.get('window_algorithm_validated') is not True or data.get('window_baseline')!=WINDOW_BASELINE['id'] or data.get('window_scenarios')!=WINDOW_BASELINE['expected_window_calculations']:
+        raise ValueError('RN virtualization regression baseline is missing, failed or incomplete; rerun compiled validation')
     print('Compiled snapshot pipeline gate passed (host Hermes + production native handler).')
 def constant_script(path,name):
     tree=ast.parse(path.read_text())
@@ -131,7 +135,7 @@ def validate(a):
         (tmp/'algorithm-donor.hbc').write_bytes(test_entry(a.donor.read_bytes(),a.hermesc,tmp,350))
         (tmp/'algorithm.js').write_text((ROOT/'tests/fixtures/window_algorithm.js').read_text())
         compile_js(a.hermesc,tmp/'algorithm.js',tmp/'algorithm.hbc')
-        (tmp/'window.js').write_text(prefix+(ROOT/'tests/fixtures/window_exercise.js').read_text())
+        (tmp/'window.js').write_text(prefix+'\n_runtimeGlobal._windowBaseline='+json.dumps(WINDOW_BASELINE)+';\n'+(ROOT/'tests/fixtures/window_exercise.js').read_text())
         compile_js(a.hermesc,tmp/'window.js',tmp/'window.hbc')
         windows=subprocess.run([str(a.runner),str(native),str(tmp/'algorithm-donor.hbc'),str(tmp/'algorithm.hbc'),str(tmp/'grafted.hbc'),str(tmp/'window.hbc')],capture_output=True,text=True)
         if windows.returncode:raise RuntimeError(windows.stderr or 'Donor window/owned layout validation failed')
@@ -142,7 +146,7 @@ def validate(a):
         assert 'calc list=2 transition=16' in result.stdout,result.stdout
         assert 'PRIVATE-SENTINEL' not in result.stdout
         (a.record.parent/'snapshot-runtime-report.txt').write_text(result.stdout)
-        a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'accepted_snapshots':32,'window_algorithm_validated':True,'window_scenarios':1584,'runner_sha256':stamp['runner_sha256'],'compiler_sha256':hashlib.sha256(a.hermesc.read_bytes()).hexdigest(),'inputs':fingerprints(),'evidence':'Host Hermes-98 graft + production RN handler/parser. No iOS Fabric/RCTMethod/device execution.'},indent=2)+'\n')
+        a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'accepted_snapshots':32,'window_algorithm_validated':True,'window_baseline':WINDOW_BASELINE['id'],'window_scenarios':WINDOW_BASELINE['expected_window_calculations'],'runner_sha256':stamp['runner_sha256'],'compiler_sha256':hashlib.sha256(a.hermesc.read_bytes()).hexdigest(),'inputs':fingerprints(),'evidence':'Host Hermes-98 graft + production RN handler/parser. No iOS Fabric/RCTMethod/device execution.'},indent=2)+'\n')
         print('Actual grafted Hermes snapshot generation and native acceptance passed; 32 bounded snapshots accepted.')
         check_gate(a.record)
 if __name__=='__main__':

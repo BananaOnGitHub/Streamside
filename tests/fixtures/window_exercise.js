@@ -14,8 +14,10 @@ for (var n=0;n<20;n++) {
   oldRange = next;
 }
 check(oldRange.last > 120, 'old stationary window expands far beyond viewport');
+var baseline = _runtimeGlobal._windowBaseline, calculations = 0, gridInstance = null;
 var p = {channelID:'42',emotePickerSID:'window',sections:[{id:'channel'}],onSelectEmote:function () {}};
 function cleanup(key) { (slots.get(key)||[]).forEach(function (s) { if (s&&s.cleanup) s.cleanup(); });slots.delete(key); }
+function close() { cleanup('window-columns');if (gridInstance) cleanup(gridInstance);cleanup('42/'+p.emotePickerSID); }
 function open() {
   var wrapper=render(trays.EmotePickerTray,p),session=render(wrapper.type,wrapper.props,wrapper.props.key);
   check(session.type==='provider','provider library');context=session.props.value;
@@ -23,19 +25,42 @@ function open() {
 function grid() {
   var native={testID:'emote-grid-list',sections:[{key:'recents',data:[]},{key:'channel',data:[]}],renderItem:function (x) { return x.item; },renderSectionHeader:function (x) { return x.section; }};
   var routed=jsx.jsx(RN.SectionList,native,'grid'),adapted=render(routed.type,routed.props);
-  return render(adapted.type,adapted.props);
+  gridInstance=adapted.type;return render(adapted.type,adapted.props);
 }
 function flat(view) {
   var row=view.props.renderItem({section:view.props.sections[1],item:view.props.sections[1].data[0]});
   return typeof row.type === 'function' ? render(row.type,row.props,'window-columns') : row;
 }
-var widths=[320,360,370,375,390,393,402,414,430,768,834,1024],sizes=[1,24,124,838,1001,5000];
+function measure(width) {
+  var view=grid();view.props.onLayout({nativeEvent:{layout:{width:width,height:625}}});
+  return flat(grid()).props;
+}
+function stationary(fp,width,size,reopening) {
+  var props=Object.assign({},fp,{getItemCount:function (d) { return d.length; }});
+  var metric={getCellMetricsApprox:function (i) { return fp.getItemLayout(null,i); }};
+  for (var flag=0;flag<2;flag++) {
+    _runtimeGlobal._windowFeature=!!flag;
+    var previous={first:0,last:Math.min(fp.data.length-1,fp.initialNumToRender-1)},settled=null;
+    for (var pass=0;pass<baseline.idle_calculations_per_opening;pass++) {
+      var range=alg.computeWindowedRenderLimits(props,fp.maxToRenderPerBatch,fp.windowSize,previous,metric,{visibleLength:width,offset:0,velocity:0,zoomScale:1});calculations++;
+      check(range.first===0 && range.last-range.first+1<=Math.ceil(2*width/fp.getItemLayout(null,0).length)+1,'stationary first/reopen window bounded');
+      if (settled) check(range.first===settled.first && range.last===settled.last,'idle must not keep expanding the window');
+      settled=range;
+      if (width===baseline.device_case.viewport_width && size===baseline.device_case.catalog_size) {
+        var expected=reopening?baseline.device_case.reopen_range:pass===0?baseline.device_case.first_range:baseline.device_case.idle_range;
+        check(range.first===expected.first && range.last===expected.last,'build78 device first/idle/reopen range');
+      }
+      previous=range;
+    }
+  }
+}
+var widths=baseline.viewport_widths,sizes=baseline.catalog_sizes;
 for (var w=0;w<widths.length;w++) for (var catalogCase=0;catalogCase<sizes.length;catalogCase++) {
-  cleanup('42/'+p.emotePickerSID);p.emotePickerSID='window-'+w+'-'+catalogCase;
+  close();p.emotePickerSID='window-'+w+'-'+catalogCase;
   channel=Array.from({length:sizes[catalogCase]},function (_,i) { return Object.assign({},a,{id:1000+i}); });
   config=Object.assign({},config,{revision:config.revision+1});open();
-  var view=grid();view.props.onLayout({nativeEvent:{layout:{width:widths[w],height:625}}});view=grid();
-  var row=flat(view),fp=row.props,props=Object.assign({},fp,{getItemCount:function (d) { return d.length; }});
+  var fp=measure(widths[w]),props=Object.assign({},fp,{getItemCount:function (d) { return d.length; }});
+  stationary(fp,widths[w],sizes[catalogCase],false);
   check(fp.horizontal && fp.windowSize===3 && fp.style.height===260,'five-row configuration preserved');
   var count=fp.data.length,stride=fp.getItemLayout(null,0).length;
   check(count===Math.ceil(sizes[catalogCase]/5),'five-row item mapping');
@@ -57,6 +82,7 @@ for (var w=0;w<widths.length;w++) for (var catalogCase=0;catalogCase<sizes.lengt
     for (var move=0;move<offsets.length;move++) {
       var offset=Math.min(extent,offsets[move]),velocity=move===7?10:move===8?-10:0;
       var range=alg.computeWindowedRenderLimits(props,fp.maxToRenderPerBatch,fp.windowSize,previous,metric,{visibleLength:widths[w],offset:offset,velocity:velocity,zoomScale:1});
+      calculations++;
       var visible=alg.elementsThatOverlapOffsets([offset,offset+widths[w]],props,metric,1);
       check(range.first>=0 && range.last<count,'range in bounds');
       check(range.last-range.first+1<=Math.ceil(3*widths[w]/stride)+2,'window bounded to viewport and overscan');
@@ -74,8 +100,9 @@ for (var w=0;w<widths.length;w++) for (var catalogCase=0;catalogCase<sizes.lengt
     }
   }
   // Closing/reopening uses the same layout and stable logical identities.
-  cleanup('window-columns');cleanup('42/'+p.emotePickerSID);open();var reopened=flat(grid());
-  // Grid layout state is retained by the host facade; new native layout events
-  // on an actual reopened surface remain a device validation requirement.
-  check(JSON.stringify(keys)===JSON.stringify(reopened.props.data.map(reopened.props.keyExtractor)),'reopen logical identities');
+  close();open();var reopened=measure(widths[w]);
+  check(JSON.stringify(keys)===JSON.stringify(reopened.data.map(reopened.keyExtractor)),'reopen logical identities');
+  stationary(reopened,widths[w],sizes[catalogCase],true);
 }
+close();
+check(calculations===baseline.expected_window_calculations,'all baseline opening/idle/scroll/reopen calculations executed');

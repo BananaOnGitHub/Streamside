@@ -1,4 +1,6 @@
 """Library session, navigation and insertion behavior in an owned RN mock."""
+import ast
+import json
 import shutil
 import subprocess
 import unittest
@@ -8,6 +10,17 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class RNLibraryTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node required for RN host facade')
+    def test_fractional_columns_and_identity_on_first_open_and_fresh_reopen(self):
+        tree=ast.parse(Path(__file__).read_text())
+        existing=next(n.value.value for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='script' for t in n.targets))
+        prefix=existing.split('vm.createContext(env);')[0]
+        baseline=json.loads((ROOT/'tests/fixtures/window_baseline.json').read_text())
+        exercise=prefix+"vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);env.install('composer');\n"
+        exercise+='const baseline='+json.dumps(baseline)+';\n'+(ROOT/'tests/fixtures/window_geometry.js').read_text()
+        result=subprocess.run(['node','-e',exercise,str(ROOT/'src/rn/ProviderEmoteStrip.js')],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+
     @unittest.skipUnless(shutil.which('node'), 'Node required for RN mocks')
     def test_open_snapshot_filters_geometry_navigation_and_fallback(self):
         script = r'''

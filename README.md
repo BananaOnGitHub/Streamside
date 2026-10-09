@@ -263,6 +263,23 @@ To use a Zig binary outside `PATH`:
 ZIG=/path/to/zig make verify test
 ```
 
+RN provider-library changes and Twitch bundle ports must also pass the
+[build 78 virtualization regression baseline](docs/EMOTE_DEMAND_PHASE1B_CALCULATION.md#build-78-device-confirmation-and-regression-baseline).
+Ordinary `make test` checks fractional column endpoints, five-row mapping and
+stable logical identities on opening/rerender/reopening without a donor bundle.
+The compiled check executes the production Hermes graft and Twitch's actual
+window algorithm; it cannot skip missing runtime inputs:
+
+```bash
+TAS_RN_DONOR=/path/original.hbc ZIG=/path/zig TAS_HERMESC=/path/hermesc TAS_HERMES_SNAPSHOT_RUNNER=/path/hermes-build/bin/streamside-snapshot-runner TAS_HERMES_SOURCE=/path/hermes make test-rn-virtualization
+```
+
+Use the matching Hermes runtime and parser setup documented with that baseline.
+A future Twitch port must explicitly review the pinned donor fingerprint,
+factory/function bindings and feature-flag adapters, then rerun this check.
+Passing the host tests does not replace device checks of actual mounting and
+image display. Diagnostic packaging requires a current passing compiled record.
+
 The build produces both identities:
 
 - `build/Streamside.dylib` for rootful/rootless jailbreak packages.

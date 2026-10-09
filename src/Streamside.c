@@ -680,7 +680,7 @@ static id protocol_session(bool provider_image) {
         }
     }
     id session = *slot;
-    if(provider_image)__atomic_store_n(&image_cache_session,session,__ATOMIC_RELEASE);
+    if(provider_image)__atomic_store_n(&image_cache_session,(void *)session,__ATOMIC_RELEASE);
     pthread_mutex_unlock(&session_lock);
     return session;
 }
@@ -1021,7 +1021,7 @@ static void protocol_start_loading(id self, SEL command) {
      * so the protocol cannot intercept its own transport recursively. */
     /* Public-image cache/session initialization and disk lookup run only on
      * the bounded worker lane. Independent requests and HLS are unchanged. */
-    id session = share_image ? __atomic_load_n(&image_cache_session,__ATOMIC_ACQUIRE):protocol_session(provider_image);
+    id session = share_image ? (id)__atomic_load_n(&image_cache_session,__ATOMIC_ACQUIRE):protocol_session(provider_image);
     objc_sync_enter(self);
     if (!objc_getAssociatedObject(self, &g_protocol_stopped_key)) {
         if (provider_image) tas_emotes_image_protocol_request(original_url);

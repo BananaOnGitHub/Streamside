@@ -3,6 +3,7 @@
 #import <Foundation/Foundation.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
+#include <objc/objc-sync.h>
 #include <dispatch/dispatch.h>
 #include <pthread.h>
 #include <stdbool.h>

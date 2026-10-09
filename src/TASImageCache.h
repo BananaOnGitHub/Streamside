@@ -6,7 +6,8 @@
 static char image_cache_start_key;
 static id image_cache_epoch;
 static id image_cache_store;
-static id image_cache_session;
+/* Raw pointer permits the same acquire/release publication in C and ObjC. */
+static void *image_cache_session;
 static pthread_mutex_t image_cache_metadata_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t image_cache_proposals,image_cache_annotations;
 static bool image_cache_eligible(id request);

@@ -699,7 +699,10 @@ function install(original) {
         fp.onViewableItemsChanged = viewable.current;
       }
       fp.keyExtractor = function (item) { return item.key; };
-      fp.getItemLayout = function (data, index) { var layout = {}; layout.length = cellWidth; layout.offset = cellWidth * index; layout.index = index; return layout; };
+      // RN's overlap search compares offset + length against the next offset.
+      // Derive both ends from the same stride so fractional widths cannot leave
+      // a floating-point hole at a column boundary. Visual widths stay intact.
+      fp.getItemLayout = function (data, index) { var layout = {}; layout.offset = cellWidth * index; layout.length = cellWidth * (index + 1) - layout.offset; layout.index = index; return layout; };
       fp.renderItem = function (info) {
         var style = {}; style.width = cellWidth; style.height = 260;
         return React.createElement(RN.View, properties(style), info.item.emotes.map(function (item) { return tile(item, context, cellWidth); }));

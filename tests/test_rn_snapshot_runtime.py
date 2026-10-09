@@ -35,7 +35,7 @@ class SnapshotGateTests(unittest.TestCase):
                 '--hermesc',os.environ['TAS_HERMESC'],'--runner',os.environ['TAS_HERMES_SNAPSHOT_RUNNER'],
                 '--runtime-source',os.environ['TAS_HERMES_SOURCE']],capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-            data=json.loads(path.read_text());self.assertEqual(data['accepted_snapshots'],32);check_gate(path)
+            data=json.loads(path.read_text());self.assertEqual(data['accepted_snapshots'],32);self.assertTrue(data['window_algorithm_validated']);self.assertEqual(data['window_scenarios'],1584);check_gate(path)
             report=(path.parent/'snapshot-runtime-report.txt').read_text()
             self.assertIn('viewport/content=370.00/10360.00',report)
             self.assertIn('calc list=2 transition=16',report)

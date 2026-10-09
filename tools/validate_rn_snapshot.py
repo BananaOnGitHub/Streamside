@@ -20,6 +20,7 @@ DONOR_SHA='422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
 INPUTS=['src/rn/ProviderEmoteStrip.js','src/TASRNStripPayload.h','src/TASDemandRNBridge.h',
         'src/TASImageDemand.c','src/TASImageDemand.h','src/TASEmotes.c',
         'tests/native/hermes_snapshot_runner.cpp','tests/fixtures/snapshot_exercise.js',
+        'tests/fixtures/window_algorithm.js','tests/fixtures/window_exercise.js',
         'tests/test_image_demand.py','tests/test_rn_library.py','tools/validate_rn_snapshot.py',
         'tools/rn_graft.py','tools/build_snapshot_runtime.py','tests/test_rn_snapshot_runtime.py','src/TASDiagnostics.c','build.sh']
 INPUTS += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'src').glob('TASRN*Patch.h'))]
@@ -60,14 +61,14 @@ void dispose(void *p){free(p);}
         finally:lib.dispose(p)
     return donor
 
-def test_entry(body,compiler,tmp):
+def test_entry(body,compiler,tmp,entry_id=47322):
     from rn_graft import read, assemble
     h=read(body);ids={s:i for i,s in reversed(list(enumerate(h.strings)))}
     (tmp/'entry.js').write_text('function buildLocalEcho() {}')
     compile_js(compiler,tmp/'entry.js',tmp/'entry.hbc')
     stub=read((tmp/'entry.hbc').read_bytes());f=stub.function_headers[0]
-    code,exc=assemble(stub,0,ids,47321);assert not exc
-    # Function 1 -> actual owned installer 47322; only global bootstrap changes.
+    code,exc=assemble(stub,0,ids,entry_id-1);assert not exc
+    # Function 1 -> selected existing factory; only global bootstrap changes.
     out=bytearray(body[:-20]);start=len(out);out.extend(code)
     while len(out)%4:out.append(0)
     info=len(out);out.extend(struct.pack('<8I',start,f.paramCount,f.loopDepth,len(code),ids[''],f.numberRegCount,f.nonPtrRegCount,f.frameSize))
@@ -125,13 +126,23 @@ def validate(a):
         prefix+='\n_runtimeGlobal.__r=env.__r;_runtimeGlobal.setInterval=env.setInterval;_runtimeGlobal.clearInterval=env.clearInterval;\n'
         (tmp/'exercise.js').write_text(prefix+(ROOT/'tests/fixtures/snapshot_exercise.js').read_text())
         compile_js(a.hermesc,tmp/'exercise.js',tmp/'exercise.hbc')
+        # Execute Twitch's unchanged RN factory 350/7242/7244, then the shipped
+        # graft's layout callback. No replica of the window/search algorithm.
+        (tmp/'algorithm-donor.hbc').write_bytes(test_entry(a.donor.read_bytes(),a.hermesc,tmp,350))
+        (tmp/'algorithm.js').write_text((ROOT/'tests/fixtures/window_algorithm.js').read_text())
+        compile_js(a.hermesc,tmp/'algorithm.js',tmp/'algorithm.hbc')
+        (tmp/'window.js').write_text(prefix+(ROOT/'tests/fixtures/window_exercise.js').read_text())
+        compile_js(a.hermesc,tmp/'window.js',tmp/'window.hbc')
+        windows=subprocess.run([str(a.runner),str(native),str(tmp/'algorithm-donor.hbc'),str(tmp/'algorithm.hbc'),str(tmp/'grafted.hbc'),str(tmp/'window.hbc')],capture_output=True,text=True)
+        if windows.returncode:raise RuntimeError(windows.stderr or 'Donor window/owned layout validation failed')
+        print('Unchanged donor RN overlap/window algorithm and compiled owned layout validation passed.')
         result=subprocess.run([str(a.runner),str(native),str(tmp/'grafted.hbc'),str(tmp/'exercise.hbc')],capture_output=True,text=True)
         if result.returncode:raise RuntimeError(result.stderr or ('Hermes runtime validation failed, exit '+str(result.returncode)))
         assert 'calc list=1 transition=1' in result.stdout,result.stdout
         assert 'calc list=2 transition=16' in result.stdout,result.stdout
         assert 'PRIVATE-SENTINEL' not in result.stdout
         (a.record.parent/'snapshot-runtime-report.txt').write_text(result.stdout)
-        a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'accepted_snapshots':32,'runner_sha256':stamp['runner_sha256'],'compiler_sha256':hashlib.sha256(a.hermesc.read_bytes()).hexdigest(),'inputs':fingerprints(),'evidence':'Host Hermes-98 graft + production RN handler/parser. No iOS Fabric/RCTMethod/device execution.'},indent=2)+'\n')
+        a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'accepted_snapshots':32,'window_algorithm_validated':True,'window_scenarios':1584,'runner_sha256':stamp['runner_sha256'],'compiler_sha256':hashlib.sha256(a.hermesc.read_bytes()).hexdigest(),'inputs':fingerprints(),'evidence':'Host Hermes-98 graft + production RN handler/parser. No iOS Fabric/RCTMethod/device execution.'},indent=2)+'\n')
         print('Actual grafted Hermes snapshot generation and native acceptance passed; 32 bounded snapshots accepted.')
         check_gate(a.record)
 if __name__=='__main__':

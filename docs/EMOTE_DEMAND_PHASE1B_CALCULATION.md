@@ -322,3 +322,93 @@ helper outcome totals of 1/2/38 each, 40 assembled arrays, and 32 accepted
 snapshots. The independent HBC verification preserved all 47,322 preexisting
 donor functions and regenerated the 127 owned functions successfully. These
 counts describe the bounded test fixture, not actual device mounting.
+
+
+## Build 77 device result and build 78 geometry correction
+
+Build 77 accepted all 16 startup snapshots with no preparation failures,
+unsupported calls, original exceptions, or packet refusals. All 16 previous
+ranges were readable. The nested-list helper threw on all 16 observations;
+its independently guarded -1 field no longer prevented useful snapshots.
+This explains the build-76 probe failure without claiming that helper throws
+caused the rendering defect.
+
+The stationary range expanded 0..6 -> 0..13 -> 0..20 -> ... -> 0..118,
+adding seven columns at every observed adjustment. Capture ended at its
+16-row bound. Later aggregate observations showed the range/mask spanning all
+168 columns, with 838 committed library image instances live. The viewport
+remained 370 points, zoom was 1, pending count 0, batch size 7 and window size
+3. All 29 real metric queries per adjustment were valid and agreed with owned
+geometry to the existing 0.5-point comparison tolerance. The first content
+length was 10080, then 10360; this transient did not explain continuing growth.
+Native view attribution remains unknown; these are JS-instance counts.
+
+### Reproduced calculation defect
+
+The owned LibraryGrid supplies fractional-width horizontal columns. At 370
+points and six columns per viewport, stride is 370/6. Its old getItemLayout
+returned offset = index * stride and length = stride independently. In binary
+floating-point arithmetic, column 11's offset + length is
+739.9999999999999 while column 12's offset is exactly 740. RN factory 350's
+unchanged overlap search (7242) cannot match the overscan endpoint 740 to
+either interval. The returned overlap array has no fourth index.
+
+We executed the actual donor factory 350, overlap function 7242 and window
+function 7244 in the matching Hermes runtime. With the library's old fractional
+geometry, viewport 370, zoom 1, offset 0, batch 7, window 3 and 168 columns,
+the result is exactly 0..13, then 0..20, matching the device's startup sequence.
+The undefined overscan-end index falls back to itemCount - 1 (167); each new
+calculation spends another seven-item batch expanding toward that fallback.
+The fixture retains Babel array conversion and feature-flag adapters but does
+not reproduce the search or window implementation in JavaScript.
+
+This supplies an evidence-backed explanation: inconsistent floating-point
+interval endpoints in owned geometry, rather than a physically oversized
+viewport, eager catalog image construction, unstable keys, zero zoom or a
+transport capacity problem. The device report rounds sampled coordinates and
+therefore does not directly expose the sub-picopoint gap; the exact geometry
+and algorithm reproduction bridge that limitation. No assertion relies only
+on cumulative loads or the number of queued requests.
+
+### Smallest correction
+
+Build 78 changes only the owned horizontal getItemLayout callback: offset still
+uses index * stride, but length is calculated as the next column's offset minus
+the current offset. Adjacent interval endpoints now agree exactly. Fractional
+visual widths, five rows, adaptive columns, keys, image sources, animations,
+filters, recents, insertion, long press, footer navigation, native sections,
+initial rendering, batching and window size remain unchanged. The original RN
+algorithm and all donor function bodies are unchanged. There is no artificial
+window clamp, added prefetch, capacity/concurrency increase, transport change,
+cache-admission change, or queue-overflow redesign.
+
+The compiled validation gate additionally executes the unchanged donor RN
+window algorithm with the production graft's actual getItemLayout callback.
+It covers 12 viewport widths (320–1024), six catalog sizes (1–5000 emotes), both
+collapse-window feature-flag branches, and 11 stationary/gradual/rapid/backward
+positions: 1584 window calculations. It checks contiguous geometry, bounded
+ranges, inclusion of visible columns, five-row mapping, stable column/tile
+keys on rerender/reopen, and preserved image elements/sources for visible
+logical items. Existing library fixtures retain provider/scope changes,
+channel changes, native callbacks, search, details, disable fallback and
+consumer cleanup coverage. Host React facade tests do not establish actual
+Fabric recycling, physical display, animations or device cancellation.
+The snapshot pipeline still must produce 32 native-accepted host packets.
+
+### Transport evidence and next device check
+
+Build 77 was mixed traffic: 610 Foundation network transactions and 41 cache
+transactions, with 651 measured completions. Queue waits were 14 <=250ms,
+26 <=1s, 617 <=5s; current/peak queued flights were 140 and oldest queued age
+4.4 seconds. Library source-to-onLoad had 463 callbacks above five seconds.
+Those queues are flights, not 140 simultaneous image views. Completion timing
+still mixes cache/network and excludes queue and decode; source-to-onLoad does
+not prove pixel display. This does not establish cache correctness/performance
+under eight occupied network slots. Phase 2 and Phase 3 remain separate.
+
+Next device validation: restart Twitch, open the same large-catalog library,
+stay stationary for ten seconds and capture A. Then scroll horizontally once,
+close/reopen, stay stationary ten seconds and capture B. Verify that the first
+range stops near the viewport/overscan window instead of continuing +7 toward
+168, that visible images render, and that dismissal releases old consumers.
+No further general tracing system or full-catalog scrolling pass is requested.

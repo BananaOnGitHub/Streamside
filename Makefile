@@ -1,4 +1,4 @@
-.PHONY: all build test test-rn-virtualization verify clean deb release ipa
+.PHONY: all build test test-rn-virtualization test-foundation-cache verify clean deb release ipa
 
 all: build
 
@@ -7,6 +7,11 @@ build:
 
 test:
 	python3 -m unittest discover -s tests -v
+
+# Mandatory Apple HTTP integration: unlike ordinary Linux tests, cannot skip.
+test-foundation-cache:
+	@python3 -c 'import platform,shutil; assert platform.system()=="Darwin" and shutil.which("xcrun"), "Apple Foundation/Xcode required; this gate cannot skip"'
+	python3 -m unittest discover -s tests -p test_foundation_cache.py -v
 
 # Required donor/Hermes regression check for RN library changes or Twitch ports.
 # Unlike the optional unittest, this target cannot silently skip missing inputs.

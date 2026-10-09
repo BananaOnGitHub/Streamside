@@ -18,6 +18,11 @@ PRELUDE = r'''
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
+static int sysctlbyname(const char *name,void *value,size_t *length,void *new_value,size_t new_length) {
+    assert(!strcmp(name,"kern.boottime") && !new_value && !new_length && *length==sizeof(struct timeval));
+    struct timeval boot={12345,678};memcpy(value,&boot,sizeof(boot));return 0;
+}
 typedef struct Fake *id;
 typedef id Class;
 typedef const char *SEL;
@@ -34,25 +39,29 @@ typedef signed char BOOL;
 struct Block { void *isa;int flags,reserved;void (*invoke)(void *,id,id,id);struct {uintptr_t reserved,size;} *descriptor; };
 struct Fake {
     const char *text;
-    id request,client,task,stopped,completed,consumer,url,header,session,headers,method,authorization,range;
+    id request,client,task,stopped,completed,consumer,url,header,session,headers,method,authorization,range,cache_start;
+    id data,response,info,cache,epoch;
+    id keys[32],values[32];unsigned entries;
     struct Block *completion;
     unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy;
     bool stop_on_response,foreground;
     NSInteger error_code;
     pthread_mutex_t monitor;
 };
-static struct Fake objects[16384],session_class,config_class,error_class,config,cache_class,queue_class;
+static struct Fake objects[200000],session_class,config_class,error_class,config,cache_class,queue_class,other_class;
 static size_t used;
 static unsigned starts,results,rewrites,cancellations;
 static bool block_manifest,manifest_entered,release_manifest;
 static pthread_mutex_t manifest_lock=PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t manifest_condition=PTHREAD_COND_INITIALIZER;
 static bool fail_task;
-static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key;
+static bool complete_on_resume;
+static id immediate_data,immediate_response;
+static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key,image_cache_start_key;
 static id g_protocol_session;
 void *_NSConcreteStackBlock[32];
 static id fresh(const char *text) {
-    assert(used<16384);id o=&objects[used++];o->text=text;
+    size_t slot=__atomic_fetch_add(&used,1,__ATOMIC_RELAXED);assert(slot<200000);id o=&objects[slot];o->text=text ? strdup(text):NULL;
     pthread_mutexattr_t attr;pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&o->monitor,&attr);pthread_mutexattr_destroy(&attr);return o;
@@ -66,7 +75,27 @@ static Class objc_getClass(const char *s) {
     if(!strcmp(s,"NSURLSessionConfiguration"))return &config_class;
     if(!strcmp(s,"NSURLCache"))return &cache_class;
     if(!strcmp(s,"NSOperationQueue"))return &queue_class;
-    assert(!strcmp(s,"NSError"));return &error_class;
+    if(!strcmp(s,"NSError"))return &error_class;
+    if(!strcmp(s,"TASProviderCacheDelegate"))return &other_class;
+    if(!strcmp(s,"NSUUID") || !strcmp(s,"NSAutoreleasePool") || !strcmp(s,"NSMutableDictionary") || !strcmp(s,"NSCachedURLResponse"))return &other_class;
+    assert(0);return nil;
+}
+typedef void (*IMP)(void);
+static Class objc_allocateClassPair(Class c,const char *s,size_t n){(void)c;(void)s;(void)n;return &other_class;}
+static BOOL class_addMethod(Class c,SEL s,IMP i,const char *t){(void)c;(void)s;(void)i;(void)t;return YES;}
+static void objc_disposeClassPair(Class c){(void)c;}
+static void objc_registerClassPair(Class c){(void)c;}
+static bool cache_defer;
+static void (*cache_work[2])(void *);static unsigned work_count;
+static id cancel_during_lookup;
+static bool cache_pause,cache_release;
+static unsigned lookups_entered,lookups_live,lookups_live_peak;
+static pthread_mutex_t lookup_lock=PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t lookup_condition=PTHREAD_COND_INITIALIZER;
+#define DISPATCH_QUEUE_PRIORITY_DEFAULT 0
+static void *dispatch_get_global_queue(long priority,unsigned long flags){assert(!priority && !flags);return NULL;}
+static void dispatch_async_f(void *q,void *context,void (*work)(void *)) {
+    assert(!q && !context);if(cache_defer){assert(work_count<2);cache_work[work_count++]=work;}else work(context);
 }
 static id objc_retain(id o) { return o; }
 static void objc_release(id o) { (void)o; }
@@ -74,12 +103,13 @@ static int objc_sync_enter(id o) { return pthread_mutex_lock(&o->monitor); }
 static int objc_sync_exit(id o) { return pthread_mutex_unlock(&o->monitor); }
 static id objc_getAssociatedObject(id o,const void *k) {
     return k==&g_protocol_task_key ? o->task : k==&g_protocol_completed_key ? o->completed :
-        k==&image_consumer_key ? o->consumer : o->stopped;
+        k==&image_consumer_key ? o->consumer : k==&image_cache_start_key ? o->cache_start:o->stopped;
 }
 static void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t policy) {
     assert(policy==1);if(k==&g_protocol_task_key)o->task=value;
     else if(k==&g_protocol_completed_key)o->completed=value;
     else if(k==&image_consumer_key)o->consumer=value;
+    else if(k==&image_cache_start_key)o->cache_start=value;
     else { assert(k==&g_protocol_stopped_key);o->stopped=value; }
 }
 static void protocol_stop_loading(id,SEL);
@@ -90,29 +120,56 @@ static id dispatch(id o,SEL s,...) {
     else if(!strcmp(s,"URL"))r=o->url;
     else if(!strcmp(s,"absoluteString"))r=o;
     else if(!strcmp(s,"mutableCopy")) { r=fresh(o->text);r->url=o->url;r->header=o->header;r->headers=o->headers;
-        r->method=o->method;r->authorization=o->authorization;r->range=o->range;r->cache_policy=o->cache_policy; }
+        r->method=o->method;r->authorization=o->authorization;r->range=o->range;r->cache_policy=o->cache_policy;
+        r->entries=o->entries;memcpy(r->keys,o->keys,sizeof(r->keys));memcpy(r->values,o->values,sizeof(r->values)); }
     else if(!strcmp(s,"setValue:forHTTPHeaderField:")) { o->header=va_arg(a,id);assert(!strcmp(va_arg(a,id)->text,TAS_INTERNAL_HEADER)); }
     else if(!strcmp(s,"valueForHTTPHeaderField:")) { id key=va_arg(a,id);
         r=!strcmp(key->text,TAS_INTERNAL_HEADER) ? o->header : !strcmp(key->text,"Authorization") ? o->authorization :
-            !strcmp(key->text,"Range") ? o->range : nil; }
+            !strcmp(key->text,"Range") ? o->range : nil;
+        for(unsigned i=0;i<o->entries;i++)if(!strcasecmp(o->keys[i]->text,key->text))r=o->values[i]; }
+    else if(!strcmp(s,"objectForKey:")) {id key=va_arg(a,id);for(unsigned i=0;i<o->entries;i++)if(!strcmp(o->keys[i]->text,key->text))r=o->values[i];}
+    else if(!strcmp(s,"setObject:forKey:")) {id value=va_arg(a,id),key=va_arg(a,id);unsigned i=0;
+        while(i<o->entries && strcmp(o->keys[i]->text,key->text))i++;assert(i<32);
+        if(i==o->entries)o->entries++;o->keys[i]=key;o->values[i]=value;}
+    else if(!strcmp(s,"UUID"))r=fresh("uuid");
+    else if(!strcmp(s,"UUIDString"))r=fresh("test-epoch");
+    else if(!strcmp(s,"drain")){}
+    else if(!strcmp(s,"originalRequest"))r=o->request;
+    else if(!strcmp(s,"response"))r=o->response;
+    else if(!strcmp(s,"data"))r=o->data;
+    else if(!strcmp(s,"userInfo"))r=o->info;
+    else if(!strcmp(s,"storagePolicy"))r=(id)(uintptr_t)o->cache_policy;
+    else if(!strcmp(s,"cachedResponseForRequest:")) {id request=va_arg(a,id);r=o->cache;
+        pthread_mutex_lock(&lookup_lock);lookups_entered++;lookups_live++;
+        if(lookups_live>lookups_live_peak)lookups_live_peak=lookups_live;
+        pthread_cond_broadcast(&lookup_condition);
+        while(cache_pause && !cache_release)pthread_cond_wait(&lookup_condition,&lookup_lock);
+        lookups_live--;pthread_mutex_unlock(&lookup_lock);
+        if(r && strcmp(r->response->url->text,request->url->text))r=nil;
+        if(cancel_during_lookup){id p=cancel_during_lookup;cancel_during_lookup=nil;protocol_stop_loading(p,nil);}}
+    else if(!strcmp(s,"initWithResponse:data:userInfo:storagePolicy:")) {
+        o->response=va_arg(a,id);o->data=va_arg(a,id);o->info=va_arg(a,id);o->cache_policy=(unsigned)va_arg(a,NSUInteger);r=o;
+    }
     else if(!strcmp(s,"allHTTPHeaderFields"))r=o->headers;
     else if(!strcmp(s,"HTTPMethod"))r=o->method;
     else if(!strcmp(s,"isEqual:")) { id other=va_arg(a,id);r=(id)(uintptr_t)(other && !strcmp(o->text,other->text)); }
     else if(!strcmp(s,"setCachePolicy:"))o->cache_policy=(unsigned)va_arg(a,NSUInteger);
+    else if(!strcmp(s,"cachePolicy"))r=(id)(uintptr_t)o->cache_policy;
     else if(!strcmp(s,"setURL:"))o->url=va_arg(a,id);
-    else if(!strcmp(s,"HTTPBody"))r=nil;
+    else if(!strcmp(s,"HTTPBody") || !strcmp(s,"HTTPBodyStream"))r=nil;
     else if(!strcmp(s,"defaultSessionConfiguration"))r=&config;
     else if(!strcmp(s,"alloc") || !strcmp(s,"new"))r=fresh("allocated");
     else if(!strcmp(s,"initWithMemoryCapacity:diskCapacity:diskPath:")) {
         assert(va_arg(a,NSUInteger)==32*1024*1024);assert(va_arg(a,NSUInteger)==128*1024*1024);
         assert(!strcmp(va_arg(a,id)->text,"StreamsideProviderImages"));r=o;
-    } else if(!strcmp(s,"setURLCache:"))assert(va_arg(a,id));
+    } else if(!strcmp(s,"setURLCache:")){o->cache=va_arg(a,id);assert(o->cache);}
     else if(!strcmp(s,"setHTTPMaximumConnectionsPerHost:"))assert(va_arg(a,NSUInteger)==8);
-    else if(!strcmp(s,"setTimeoutIntervalForRequest:"))assert(va_arg(a,double)==15.0);
-    else if(!strcmp(s,"setTimeoutIntervalForResource:"))assert(va_arg(a,double)==30.0);
+    /* objc_msgSend uses a fixed floating-point ABI; a C variadic adapter
+     * cannot portably read its FP arguments. Values are checked on Apple. */
+    else if(!strcmp(s,"setTimeoutIntervalForRequest:") || !strcmp(s,"setTimeoutIntervalForResource:")){}
     else if(!strcmp(s,"setMaxConcurrentOperationCount:"))assert(va_arg(a,NSInteger)==4);
     else if(!strcmp(s,"sessionWithConfiguration:delegate:delegateQueue:")) {
-        assert(va_arg(a,id)==&config);assert(!va_arg(a,id));assert(va_arg(a,id));r=fresh("image-session");
+        assert(va_arg(a,id)==&config);assert(va_arg(a,id));assert(va_arg(a,id));r=fresh("image-session");
     }
     else if(!strcmp(s,"sessionWithConfiguration:")) { assert(va_arg(a,id)==&config);r=fresh("session"); }
     else if(!strcmp(s,"dataTaskWithRequest:completionHandler:")) {
@@ -120,7 +177,8 @@ static id dispatch(id o,SEL s,...) {
         assert(request->header && !strcmp(request->header->text,"1"));
         if(!fail_task) { r=fresh("task");r->session=o;r->request=request;r->completion=malloc(b->descriptor->size);
             memcpy(r->completion,b,b->descriptor->size);starts++; }
-    } else if(!strcmp(s,"resume"))o->resumes++;
+    } else if(!strcmp(s,"resume")) {o->resumes++;
+        if(complete_on_resume){struct Block *b=o->completion;b->invoke(b,immediate_data,immediate_response,nil);free(b);o->completion=NULL;}}
     else if(!strcmp(s,"cancel"))o->cancels++;
     else if(!strcmp(s,"statusCode"))r=(id)(uintptr_t)200;
     else if(!strcmp(s,"code"))r=(id)(intptr_t)o->error_code;
@@ -374,7 +432,7 @@ class ProtocolTests(unittest.TestCase):
     def test_demand_probes_preserve_production_lifecycle_and_bounds(self):
         self.run_transport(True)
 
-    def run_transport(self, diagnostic):
+    def run_transport(self, diagnostic, main_override=None):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)
         source = (ROOT / "src/Streamside.c").read_text()
@@ -389,8 +447,8 @@ unsigned tas_demand_url_scope(void *u){(void)u;return 0;}
 void *tas_demand_delegate(void){return NULL;}
 void tas_demand_transport(unsigned a,unsigned q,unsigned c,uint64_t n){(void)a;(void)q;(void)c;(void)n;}
 ''' if diagnostic else ''
-            main = MAIN
-            if diagnostic:
+            main = main_override or MAIN
+            if diagnostic and not main_override:
                 main = main.replace('    return 0;\n}', '''
     assert(demand_flight_peak==512 && demand_queue_peak>=506 && demand_consumer_peak>=512);
     assert(demand_consumer_full && demand_header_mismatch && demand_url_matches);
@@ -404,5 +462,5 @@ void tas_demand_transport(unsigned a,unsigned q,unsigned c,uint64_t n){(void)a;(
                                     '-DTAS_IMAGE_DEMAND_DIAGNOSTIC='+str(int(diagnostic)), '-I', str(ROOT/'src'),
                                     str(harness), "-pthread", "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(built.returncode, 0, built.stderr)
-            ran = subprocess.run([binary], capture_output=True, text=True)
+            ran = subprocess.run([binary], capture_output=True, text=True, timeout=60)
             self.assertEqual(ran.returncode, 0, ran.stderr)

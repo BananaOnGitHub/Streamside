@@ -10,11 +10,11 @@ exports:
                        __NSConcreteGlobalBlock, __tlv_bootstrap, _dladdr,
                        __availability_version_check, _sys_icache_invalidate,
                        _arc4random_uniform, _bzero,
-                       _calloc, _clock_gettime, _dlopen, _dlsym, _dispatch_queue_create, _fprintf, _free,
+                       _calloc, _clock_gettime, _dlopen, _dlsym, _dispatch_queue_create, _dispatch_async_f, _dispatch_get_global_queue, _fprintf, _free,
                        _fwrite, _malloc, _memchr, _memcpy, _memmove,
                        _pthread_mutex_lock, _pthread_mutex_unlock, _realloc,
-                       _snprintf, _strcat, _strchr, _strcmp, _strdup, _strlen,
+                       _snprintf, _sscanf, _strcasecmp, _strcasestr, _strcat, _strchr, _strcmp, _strdup, _strlen,
                        _strnlen, _strncmp, _strstr, _strtod, _strtok_r, _strtoll, _strtoul,
-                       _strtoull, _time,
+                       _strtoull, _time, _sysctlbyname,
                        dyld_stub_binder ]
 ...

@@ -11,6 +11,13 @@ permissions:
   contents: read
 
 jobs:
+  foundation-cache:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test real Foundation cache-first and HTTP revalidation
+        run: make test-foundation-cache
+
   build:
     runs-on: ubuntu-24.04
 

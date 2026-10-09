@@ -443,14 +443,38 @@ function install(original) {
           pass(2); begin(3);
           var zoomCode = typeof zoom !== "number" ? 4 : !Number.isFinite(zoom) ? 5 : zoom === 0 ? 0 : zoom === 1 ? 1 : zoom < 0 ? 3 : 2;
           var branch = metrics.visibleLength <= 0 || content <= 0 ? 2 : props.disableVirtualization ? 4 : pending > 0 ? 3 : 1;
-          pass(3); begin(4);
-          values = [number(previousRange.first), number(previousRange.last), 0, 0,
+          pass(3);
+          // Independent optional observations: neither failure masks the other
+          // or aborts the calculation snapshot. Unknown numeric fields are -1.
+          var previousFirst = -1, previousLast = -1, previousOutcome = 2;
+          try {
+            if (previousRange == null) previousOutcome = 1;
+            else if (typeof previousRange === "object") {
+              var rangeStart = previousRange.first, rangeEnd = previousRange.last;
+              if (typeof rangeStart === "number" && typeof rangeEnd === "number" && Number.isFinite(rangeStart) && Number.isFinite(rangeEnd) &&
+                  rangeStart >= 0 && rangeStart < 10000000 && Math.floor(rangeStart) === rangeStart && Math.floor(rangeEnd) === rangeEnd &&
+                  rangeEnd < 10000000 && (rangeEnd >= rangeStart || (rangeStart === 0 && rangeEnd === -1))) {
+                previousFirst = rangeStart; previousLast = rangeEnd; previousOutcome = 3;
+              }
+            }
+          } catch (error) { previousOutcome = 2; }
+          observe(31, 0, null, previousOutcome);
+          var nestedValue = -1, nestedOutcome = 4;
+          try {
+            var nestedHelper = this._isNestedWithSameOrientation;
+            if (typeof nestedHelper === "function") {
+              nestedValue = nestedHelper.call(this) ? 1 : 0; nestedOutcome = 6;
+            }
+          } catch (error) { nestedOutcome = 5; }
+          observe(31, 0, null, nestedOutcome);
+          begin(4);
+          values = [previousFirst, previousLast, 0, 0,
             number(metrics.visibleLength), number(content), zoomCode, number(zoom),
             metrics.offset === 0 ? 0 : metrics.offset > 0 ? 1 : metrics.offset < 0 ? -1 : 2,
             typeof velocity !== "number" || !Number.isFinite(velocity) ? 2 : velocity > 1 ? 1 : velocity < -1 ? -1 : 0,
             number(pending), number(count), number(props.initialNumToRender), number(props.maxToRenderPerBatch), number(props.windowSize), branch,
-            0, 0, 0, this._isNestedWithSameOrientation() ? 1 : 0, typeof props.getItemLayout === "function" ? 1 : 0];
-          pass(4); begin(5); get = metric.getCellMetricsApprox;
+            0, 0, 0, nestedValue, typeof props.getItemLayout === "function" ? 1 : 0];
+          observe(31, 0, null, 7); pass(4); begin(5); get = metric.getCellMetricsApprox;
           if (typeof get !== "function") throw new Error();
           metricOwned = Object.prototype.hasOwnProperty.call(metric, "getCellMetricsApprox");
           pass(5); begin(6);
@@ -501,7 +525,7 @@ function install(original) {
             begin(12); mark(trace.type);
             var accepted = bridge.observe(27, 0, signature, slot, 0);
             if (accepted !== 1 && accepted !== true) throw new Error();
-            last = signature; records++; pass(12);
+            last = signature; records++; observe(31, 0, null, 8); pass(12);
           }
         } catch (error) { fail(preparation); observe(29, 0, null, 3); }
         if (calls >= 128 || records >= 16) stop(calls >= 128 ? 4 : 6);

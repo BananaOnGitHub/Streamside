@@ -8,7 +8,7 @@
 #endif
 /* Separate from legacy emote provenance probes. Only aggregate observations;
  * no loading decisions, cache queries, retries or retained request objects. */
-enum { TAS_DEMAND_SCOPES=7, TAS_DEMAND_EVENTS=31 };
+enum { TAS_DEMAND_SCOPES=7, TAS_DEMAND_EVENTS=32 };
 /* JS/native scopes: unknown/library/recents/suggestions/info/chat/URL-input.
  * Explicit request scope 5 means synthetic native redirect, not chat proof. */
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC

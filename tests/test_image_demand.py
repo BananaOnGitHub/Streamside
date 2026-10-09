@@ -134,6 +134,14 @@ int main(void){
  for(unsigned step=1;step<=12;step++)for(unsigned outcome=0;outcome<3;outcome++)tas_demand_event(30,0,NULL,step,outcome);
  tas_demand_event(30,0,NULL,1.5,2);tas_demand_event(30,0,NULL,13,2);tas_demand_event(30,0,NULL,1,3);
  for(unsigned step=1;step<=12;step++)for(unsigned outcome=0;outcome<3;outcome++)assert(calculation_steps[step][outcome]==1);
+ for(unsigned outcome=1;outcome<=8;outcome++)tas_demand_event(31,0,NULL,outcome,0);
+ tas_demand_event(31,0,NULL,0,0);tas_demand_event(31,0,NULL,9,0);tas_demand_event(31,0,NULL,1.5,0);tas_demand_event(31,0,NULL,1,1);
+ for(unsigned outcome=1;outcome<=8;outcome++)assert(calculation_checks[outcome]==1);
+ assert(sizeof(calculation_checks)==72);
+ tas_demand_status(report_text,sizeof(report_text));
+ assert(strstr(report_text,"Previous range unavailable/malformed/readable: 1/1/1"));
+ assert(strstr(report_text,"Nested-list helper unavailable/throws/succeeds: 1/1/1"));
+ assert(strstr(report_text,"Base values assembled successfully: 1; snapshots emitted successfully (native accepted): 1"));
  assert(!tas_demand_snapshot(packet,NAN) && !tas_demand_snapshot(packet,INFINITY));
  tas_demand_status(report_text,sizeof(report_text));assert(strstr(report_text,"Snapshot step native delivery attempted/passed/failed: 1/1/1"));
  assert(strstr(report_text,"No asset values or fingerprints reported."));

@@ -58,7 +58,27 @@ failure(2,function(){list._listMetrics.getContentLength=function(){throw thrown;
 var finite=Number.isFinite;
 failure(3,function(){Number.isFinite=undefined;},function(){Number.isFinite=finite;});
 var nested=list._isNestedWithSameOrientation;
-failure(4,function(){list._isNestedWithSameOrientation=function(){throw thrown;};},function(){list._isNestedWithSameOrientation=nested;});
+// Deliberate independent failures through the actual compiled snapshot path.
+function observation(range,helper,rangeOutcome,helperOutcome) {
+ var start=events.length;previous=range;list._isNestedWithSameOrientation=helper;call();
+ var added=events.slice(start);
+ check(added.some(function(x){return x[0]===31&&x[3]===rangeOutcome;}),'previous range classified');
+ check(added.some(function(x){return x[0]===31&&x[3]===helperOutcome;}),'helper independently classified');
+ check(added.some(function(x){return x[0]===31&&x[3]===7;}),'base assembled despite optional observation failure');
+ var packet=added.filter(function(x){return x[0]===27;})[0];check(!!packet,'guarded observations still emit snapshot');
+ var v=JSON.parse(packet[2]);
+ check((rangeOutcome===3 || (v[0]===-1&&v[1]===-1)) && (helperOutcome===6 || v[19]===-1),'unknown fields use sentinel');
+ check(added.some(function(x){return x[0]===31&&x[3]===8;}),'emitted requires native acceptance');
+}
+observation(undefined,undefined,1,4);
+observation({first:'PRIVATE-SENTINEL',last:6},function(){check(this===list,'helper bound receiver');return true;},2,6);
+observation({first:0,last:6},function(){throw thrown;},3,5);
+var badRange={};Object.defineProperty(badRange,'first',{get:function(){throw thrown;}});
+observation(badRange,function(){throw thrown;},2,5);
+observation({first:0,last:-1},function(){check(this===list,'empty-range helper receiver');return false;},3,6);
+previous={first:0,last:6};list._isNestedWithSameOrientation=nested;
+var windowSize=list.props.windowSize;
+failure(4,function(){Object.defineProperty(list.props,'windowSize',{get:function(){throw thrown;},configurable:true});},function(){Object.defineProperty(list.props,'windowSize',{value:windowSize,writable:true,configurable:true});});
 failure(5,function(){list._listMetrics.getCellMetricsApprox=null;queried=false;},function(){list._listMetrics=metrics();queried=true;});
 failure(6,function(){Object.defineProperty(list._listMetrics,'getCellMetricsApprox',{value:getter,writable:false,configurable:true});},function(){list._listMetrics=metrics();});
 failure(8,function(){

@@ -266,3 +266,59 @@ rerunning validation. Set `TAS_HERMES_SNAPSHOT_RUNNER`, `TAS_HERMES_SOURCE`,
 `TAS_HERMESC`, `TAS_RN_DONOR` and `ZIG` to include this execution test in the full
 unittest suite. A missing runtime may skip that expensive unittest, but cannot
 bypass the diagnostic build gate.
+
+
+## Build 77: independent base-value observations
+
+Build 76 stationary Report A reached preparation step 4 on 26 calls, failed
+all 26 there, and produced no calculation snapshots. Steps 1–3 all passed;
+frame sampling and native delivery were never reached. The library still held
+838 committed JS image instances across 168 columns with seven viewable
+columns. Foundation recorded 855 local-cache transactions and one network
+transaction; this does not establish cache behavior under saturated network
+admission. The report does not identify which operation within step 4 failed.
+
+Build 77 separates the previous-range read and nested-list helper into distinct
+guards before assembling the numeric array. Each guard records exactly one
+aggregate outcome even when the other guard fails:
+
+* Previous range: unavailable (null/undefined), malformed (other type, invalid
+  numeric shape, or a throwing property read), or readable. Integer nonnegative
+  ordered ranges and RN's empty range 0..-1 are readable. Both properties are
+  read once; malformed reads retain neither property value nor exception text.
+* Nested-list helper: unavailable (not callable), throws (including property
+  retrieval), or succeeds. A captured callable is invoked with the actual list
+  receiver; its boolean result is retained only as 0 or 1.
+* Base values assembled successfully and snapshot emitted successfully have
+  separate counters. Emission success requires the existing native acceptance
+  acknowledgement; duplicate suppression and rejected delivery do not count.
+
+Optional range/helper failures leave -1 in the corresponding numeric fields
+and do not prevent the remaining snapshot from being generated. Thus a missing
+helper cannot conceal the range result or the actual calculated window. The
+existing preparation-stage counters still identify failures in later work.
+Event 31 adds eight fixed counters (72 bytes), no exception messages, asset
+histories, retries, or new capture budget. All original calculations, arguments,
+results, query identities, window limits, and transport paths remain unchanged.
+
+Compiled Hermes tests invoke the production graft and native handler with
+unavailable values, malformed fields, a throwing range getter, a throwing
+helper, both failures together, a correctly bound successful helper, and the
+empty-range lifecycle shape. These are host fixtures, not evidence of the
+actual on-device helper/range shape or the cause of the expanded RN window.
+The fixed 32 accepted-row limit, all preparation failures, restoration, native
+rejections, privacy, and report bounds remain tested.
+
+No additional full scrolling test is requested. The next device check, after
+compiled validation, is one stationary first opening for ten seconds and one
+report. An accepted calculation row must be established on device before
+requesting full scrolling. Phase 2 cache admission and Phase 3 queue overflow
+remain outside this diagnostic change.
+
+Validation completed: all 96 host tests passed with compiled runtime validation
+enabled. The matching Hermes runner delivered 32 snapshots through the
+production native handler. Its report recorded independent previous-range and
+helper outcome totals of 1/2/38 each, 40 assembled arrays, and 32 accepted
+snapshots. The independent HBC verification preserved all 47,322 preexisting
+donor functions and regenerated the 127 owned functions successfully. These
+counts describe the bounded test fixture, not actual device mounting.

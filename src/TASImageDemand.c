@@ -52,6 +52,10 @@ static unsigned calculation_count[CALC_SLOTS];
 static uint64_t calculation_status[8],calculation_calls,calculation_records,calculation_refused;
 /* Per-adjustment attempted/passed/failed stage counters, no error strings. */
 static uint64_t calculation_steps[13][3];
+/* Eight fixed outcomes, no per-call history or exception strings. Event 31:
+ * range unavailable/malformed/readable, helper unavailable/throws/succeeds,
+ * base assembled, snapshot accepted. */
+static uint64_t calculation_checks[9];
 static bool calculation_values(const char *text,double out[CALC_VALUES]) {
     if(!text || strnlen(text,4097)>4096 || *text++!='[')return false;
     for(unsigned i=0;i<CALC_VALUES;i++) {
@@ -104,6 +108,7 @@ void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,dou
         if(event==28 && a>=0 && a<=128 && b>=0 && b<=16) {calculation_calls+=(uint64_t)a;calculation_records+=(uint64_t)b;}
         else if(event==29 && a>=1 && a<8 && floor(a)==a)calculation_status[(unsigned)a]++;
         else if(event==30 && a>=1 && a<=12 && floor(a)==a && b>=0 && b<=2 && floor(b)==b)calculation_steps[(unsigned)a][(unsigned)b]++;
+        else if(event==31 && a>=1 && a<=8 && floor(a)==a && b==0)calculation_checks[(unsigned)a]++;
         pthread_mutex_unlock(&lock);return;
     }
     Key k=key(url);pthread_mutex_lock(&lock);events[scope][event]++;
@@ -291,7 +296,11 @@ void tas_demand_status(char *buffer,size_t capacity) {
     APPEND("Branch: 1=window algorithm 2=missing dimensions 3=pending update 4=virtualization disabled. Zoom: 0=zero 1=unit 2=positive non-unit 3=negative 4=missing 5=non-finite. Offset: sign only, 2=invalid. Velocity: direction above unit threshold, 2=invalid. Cell samples are the first four distinct indices actually queried, not extra RN queries; -1=missing/invalid.\n");
     const char *step_names[]={"","props/catalog","content/scroll metrics","numeric classification","base values","metric getter","metric observer install","frame sampling","metric observer restore","result values","frame packing","serialization","native delivery"};
     for(unsigned i=1;i<=12;i++)APPEND("Snapshot step %s attempted/passed/failed: %llu/%llu/%llu\n",step_names[i],(unsigned long long)calculation_steps[i][0],(unsigned long long)calculation_steps[i][1],(unsigned long long)calculation_steps[i][2]);
-    APPEND("Snapshot delivery counts require native acceptance; failure stages retain no exception text. Full scrolling tests are gated on compiled-runtime snapshot validation.\n");
+    APPEND("Previous range unavailable/malformed/readable: %llu/%llu/%llu\nNested-list helper unavailable/throws/succeeds: %llu/%llu/%llu\nBase values assembled successfully: %llu; snapshots emitted successfully (native accepted): %llu\n",
+        (unsigned long long)calculation_checks[1],(unsigned long long)calculation_checks[2],(unsigned long long)calculation_checks[3],
+        (unsigned long long)calculation_checks[4],(unsigned long long)calculation_checks[5],(unsigned long long)calculation_checks[6],
+        (unsigned long long)calculation_checks[7],(unsigned long long)calculation_checks[8]);
+    APPEND("Range/helper failures are independent; unavailable fields use -1. Snapshot delivery counts require native acceptance; failure stages retain no exception text. Full scrolling tests are gated on compiled-runtime snapshot validation.\n");
     for(unsigned s=0;s<CALC_SLOTS;s++)for(unsigned row=0;row<calculation_count[s];row++) {
         Calculation *c=&calculations[s][row];double *v=c->value;
         APPEND("calc list=%u transition=%u stage=%s branch=%.0f prev=%.0f..%.0f result=%.0f..%.0f viewport/content=%.2f/%.2f zoom(code/value)=%.0f/%.4f offset/velocity=%.0f/%.0f pending/catalog=%.0f/%.0f initial/batch/window=%.0f/%.0f/%.0f nested/layout=%.0f/%.0f queries/invalid/mismatch=%.0f/%.0f/%.0f\n",

@@ -137,12 +137,16 @@ accepted compiled-runtime snapshots. Diagnostic iOS cross-compilation passes.
 
 Apple CI run 37910936725 reached eight active transfers but failed the cached-hit
 deadline: the original completion-handler candidate had zero cache proposals
-and annotations. The delegate-task correction is implemented and passes local
-production-path tests, but its real Foundation rerun is **pending publication
-approval**. Auto-review blocked uploading the existing source file to
-`BananaOnGitHub/Streamside`, despite the earlier general push authorization.
-Phase 2 is **not platform-validated or ready for a device test yet**. The older
-packaged candidate must not be treated as a completed cache-first build.
+and annotations. The delegate-task correction was published after explicit
+diagnostic-branch approval, in commit `8a439c4d166c9c7ed56ec64c2e83ef5b3927aaaf`.
+Its real Foundation gate **passed** on macOS 15 in CI run
+[37912335269](https://github.com/BananaOnGitHub/Streamside/actions/runs/37912335269),
+as did the build/ordinary test job. The gate confirms cached delivery within
+1.5 seconds with eight delayed transfers active, one origin request for the
+cached fixture across repeated consumers, and a real conditional HTTP 304.
+This is Apple Foundation platform evidence, not physical-device/Fabric evidence.
+The final diagnostic IPA is rebuilt from the corrected source; earlier packaged
+completion-handler candidates must not be used as the Phase 2 baseline.
 
 The Apple integration job and on-device cache behavior remain separate evidence,
 never inferred from warm-cache task counters.

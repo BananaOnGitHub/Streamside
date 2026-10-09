@@ -2,8 +2,11 @@
 
 Baseline: diagnostic build 73, commit
 `58b82e3124b1361cff369cc952ef66cf297a1638` (build-72 rendering and transport).
-This revision is diagnostic build 74. No virtualization correction is yet
-justified. Phase 1B remains open pending the targeted device test below.
+The implementation is diagnostic build 74. Its four-report device pass has now
+been analyzed. A full-catalog startup range is established, but the update and
+cell metrics that produce it are not. No virtualization correction is yet
+justified; Phase 1B remains open. The remaining evidence needed is described
+below, rather than asking for the original ten-report matrix again.
 Cache admission, flight identity, cancellation decisions, the 512-flight
 capacity, eight active slots and six background slots remain unchanged.
 
@@ -49,6 +52,117 @@ All six captures report zero header mismatches and zero probe-table evictions.
 Foundation's local-cache transaction durations are all at most 250 ms, but the
 aggregate snapshots cannot pair an individual cached transaction with its queue
 wait. No cache-first change is included here.
+
+## Build-74 four-report device results
+
+Source: the supplied 79-page `Build 74 testing logs.pdf`, reports A-D. These
+correspond to the reduced baseline / first opening / scrolling / close and
+stationary reopen pass. Reports are cumulative within one process. C also
+records backward movement; its forward and backward stage totals must not be
+treated as separate captures. D has two openings, and the close-stage cleanup
+accounts for all 107 library instances live at C.
+
+| Capture | Cumulative JS mounts | Cumulative unmounts | Live | Launch peak | Load starts | Successful loads |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| A: closed baseline | 0 | 0 | 0 | 0 | 0 | 0 |
+| B: first stationary opening | 837 | 0 | 837 | 837 | 837 | 595 |
+| C: scrolling, including backward movement | 2,426 | 2,319 | 107 | 837 | 2,426 | 2,426 |
+| D: close and reopen | 2,501 | 2,426 | 75 | 837 | 2,501 | 2,501 |
+
+First-open stage observations:
+
+- 837 mounts, zero unmounts, 837 peak/live instances before stabilization.
+  There are 834 bounded unique asset fingerprints and three concurrent
+  duplicate-asset mounts, with zero table evictions or probe refusals.
+- RN reports 168 cells around the viewport and 168 non-spacer mask columns
+  against a 168-column catalog. Internal viewport length is at most 370 points,
+  content length 10,360 points, and external viewability at most seven columns.
+  Maxima are separate observations; the existing stage summary does not retain
+  synchronized tuples or the sequence of window adjustments.
+- Actual initial/batch counts are seven columns; window size is three. In the
+  13 startup samples there are no zero/missing zoom, same-orientation nesting,
+  disabled-virtualization, pending-update, or nonzero-offset observations.
+  Non-unit/non-finite zoom and cell-metric validity are not classified.
+- The settle probe reports no timeout. Idle adds zero mounts and zero unmounts,
+  so all 837 instances remain mounted after the initial telemetry stabilizes.
+  Only 595 have completed their image callback at B.
+- There are 4,016 committed renders but only 837 source-value assignments and
+  837 load starts. The 3,179 same-source commits are not evidence of a download
+  per render. Recents are a separate 22 live instances; suggestions/info are zero.
+
+**Established defect boundary:** the owned provider row's horizontal FlatList
+reaches a full-catalog `cellsAroundViewport` range on first opening. This is
+not merely a focused/initial region added to a small viewport range: the range
+itself expands, as does the mask. The small measured viewport and configured
+seven-column initial batch do not bound the actual startup image population.
+The data does not support blaming eager recents, disabled virtualization,
+persistently excessive layout width, source-object rerenders or multiple full
+library instances for the startup count.
+
+**Still not established:** which update or metric makes RN choose that range.
+Stage maxima cannot show whether the viewport/range/zoom/cell metrics were
+valid together at the expanding update. The sample interval can miss a
+transient invalid input. Donor inspection confirms the constructor initializes
+zoom to one, FlatList forwards `getItemLayout`, and the viewport adjustment
+uses `computeWindowedRenderLimits` (7244), except for missing dimensions,
+pending updates or disabled virtualization. Function 40828 schedules its
+state updater 45709; the aggregate report does not record that updater's input
+and output. A zero-zoom clamp, smaller window, forced key reset or custom
+virtualizer is therefore still a guess, and none is applied.
+
+After scrolling, C has 107 live instances, despite 1,589 additional mounts.
+Forward/back stage remounts total 1,586; these are asset reappearances after
+their observed library live count reached zero, not proof of unstable React
+keys. The 837 stage peaks can inherit the initial live population and are not
+proof that every later scroll mounted the catalog again. Range/mask maxima
+also remain aggregate, not a time series. Close releases 107 library and 22
+recent instances. The new opening reports a seven-column range/mask in three
+startup samples and 70 mounts before settling; five further mounts are
+classified under scroll. D ends with 75 live and all 75 new load callbacks
+completed. Do not equate its seven-column sampled mask with all later live
+instances, or assume that the five stage-classified mounts reflect a deliberate
+user swipe: initialization can generate native scroll events.
+
+| Capture | Shared task starts / completed | Queue waits >5 seconds | Current / peak queue | Registry refusals | Foundation network / local-cache transactions |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| A | 0 / 0 | 0 | 0 / 0 | 0 | 0 / 0 |
+| B | 617 / 611 | 109 | 165 / 165 | 0 | 482 / 129 |
+| C | 1,628 / 1,628 | 345 | 0 / 165 | 0 | 688 / 940 |
+| D | 1,722 / 1,722 | 345 | 0 / 165 | 0 | 688 / 1,034 |
+
+All captures have zero queued cancellations, active detaches, header mismatches
+and transport errors. These are global provider transport counts, not library
+consumer counts. Foundation's local-cache fetches all fall within 250 ms;
+they start only once a shared transfer slot admits the task. At B the library's
+source-to-onLoad buckets are 2 / 3 / 140 / 450, and at C they are
+1,591 / 3 / 140 / 692. These include queueing and downstream work; they are not
+network-only durations or isolated decode/display latency. The cache scheduling
+issue remains Phase 2. This pass demonstrates slow initial completion even
+without any registry refusal; raising capacity would not correct that cause.
+
+Native library attribution remains zero in all reports. The conclusions above
+use reliable JS-instance and RN-state observations, not the unknown Fabric pool.
+The logs cannot prove pixel visibility or enumerate every hidden native section.
+
+### Remaining targeted boundary evidence
+
+Do not repeat the ten-stage test to fill fields it cannot expose. The missing
+discriminator is a bounded observation of the **expanding window calculation**:
+previous and proposed range; synchronized visible length, zero/nonzero offset,
+finite/unit zoom, pending count and catalog length; and a small fixed sample of
+cell length/offset validity compared with the owned `getItemLayout` geometry.
+It must distinguish a stale retained range from incorrect overlap inputs and
+stay scoped to the owned provider list. A read-only probe must not replace
+RN methods globally, log item identities, or change window calculations.
+
+If such instrumentation can be implemented safely, the device pass can be just
+first stationary opening and stationary reopening, with one scroll between
+them. Otherwise retain these findings and defer the correction. No additional
+device report is requested against unchanged build 74: its current aggregates
+cannot resolve the missing inputs. No code, payload, binary, cache, scheduler,
+capacity or concurrency changes accompany this analysis. The previously
+validated 92-test implementation remains unchanged; documentation-only updates
+do not constitute new device or virtualization test evidence.
 
 ## Exact boundary inspected
 
@@ -103,12 +217,12 @@ Important distinctions:
 - The outer list may retain the provider row while it is offscreen. The current
   report does not establish the precise lifetime of all hidden native sections.
 
-**Cause not yet established:** excessive startup JS demand is demonstrated,
-but no evidence yet distinguishes an expanded runtime window/mask, transient
-internal metrics, focused-cell retention, or another startup path. Static
-configuration is insufficient to pick one. In particular, donor 40823 accepts
-zero zoom scale and 7244 uses it in overlap calculations; build 73 did not
-observe zoom values. This is a diagnostic discriminator, not a diagnosed bug.
+**Underlying cause not yet established:** build 74 demonstrates an expanded
+viewport range and mask, narrowing the earlier alternatives. It does not
+capture the inputs and update that create them. Static configuration is
+insufficient to choose a correction. Donor 40823 accepts zero zoom scale and
+7244 uses it in overlap calculations, but build 74 reports no zero zoom in
+sampled startup states. This hypothesis is not established by the device data.
 No guessed clamp, custom virtualizer, key reset or tile hiding is applied.
 
 ## Build-74 observations and limits
@@ -170,7 +284,10 @@ URLs, headers, tokens, image bytes, fingerprints, pointers or session sequence
 values are reported. Tables remain fixed at 2,048 assets/requests and 4,096
 native observations, below 512 KiB combined, plus seven fixed stage summaries.
 
-## Targeted device test
+## Original full device matrix (reference; superseded for this tracing pass)
+
+The user completed the reduced four-report pass above. This original matrix
+is retained for eventual regression coverage, not a request for ten more logs.
 
 Use build 74 and restart Twitch once before testing; do not restart between
 steps. Clearing the text log does not clear these cumulative counters. Use a

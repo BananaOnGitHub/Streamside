@@ -716,6 +716,7 @@ static void image_demand_occupancy(void) {
     if(occupied>demand_flight_peak)demand_flight_peak=occupied;
     if(queued>demand_queue_peak)demand_queue_peak=queued;
     if(consumers>demand_consumer_peak)demand_consumer_peak=consumers;
+    tas_demand_transport(image_active,queued,consumers,image_queued_cancelled+image_orphans);
 }
 #endif
 
@@ -803,6 +804,9 @@ static void image_flight_complete(unsigned index, uint64_t generation, id data, 
         if(!count)demand_detached_time[image_bucket(image_elapsed(flight->detached,now))]++;
 #endif
         free(flight->url); memset(flight, 0, sizeof(*flight));
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        image_demand_occupancy();
+#endif
     }
     pthread_mutex_unlock(&image_transport_lock);
     for (unsigned i = 0; i < count; i++) {
@@ -843,6 +847,9 @@ static void image_schedule(void) {
         pthread_mutex_lock(&image_transport_lock);
     }
     image_pumping=false;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    image_demand_occupancy();
+#endif
     pthread_mutex_unlock(&image_transport_lock);
 }
 
@@ -938,6 +945,9 @@ static bool image_flight_stop(id self) {
             break;
         }
     }
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    image_demand_occupancy();
+#endif
     pthread_mutex_unlock(&image_transport_lock);
     objc_release(request); objc_release(consumer);
     image_schedule();

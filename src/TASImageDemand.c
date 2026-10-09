@@ -13,7 +13,7 @@ extern id objc_getAssociatedObject(id,const void *);
 extern void objc_setAssociatedObject(id,const void *,id,uintptr_t);
 enum { ASSETS=2048, VIEWS=4096, URL_BUDGET=2048, HEADER_BUDGET=16384 };
 typedef struct {uint64_t x,y;} Key;
-typedef struct {Key key; unsigned mask; uint64_t requests,headers;} Asset;
+typedef struct {Key key; unsigned mask,mounted,stages,library_live; uint64_t requests,headers;} Asset;
 typedef struct {Key key;uint64_t headers;bool occupied;} Request;
 typedef struct {void *view; unsigned scope; bool window;} View;
 static Asset assets[ASSETS];
@@ -30,6 +30,18 @@ static uint64_t native_samples,native_refused,native_recycles;
 static uint64_t metrics_calls,metrics_missing,metrics_truncated,fetches[4],fetch_time[4][4],geometry[4][2];
 static IMP move_original,layout_original,recycle_original,dealloc_original;
 static char scope_key;
+/* Seven aggregate stages, no per-open or per-image histories. The JS sequence
+ * is only a monotonic ephemeral ordering guard; never reported. */
+typedef struct {
+    uint64_t mount,unmount,peak,starts,loads,errors,unique,remount,recent_mount,recent_unmount,recent_peak;
+    uint64_t samples,range,mask,items,visible,content,zero_zoom,missing_zoom,nested,disabled;
+    uint64_t active,queued,consumers,cancelled;
+    uint64_t pending,initial,window,batch,nonzero_offset,duplicates;
+} Stage;
+static Stage stages[7];
+static unsigned stage=4,transport_active,transport_queued,transport_consumers;
+static uint64_t epoch,opens,late_stage,stable_timeouts,window_refused,transport_cancelled;
+static bool stage_current=true;
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
 static id m1(id o,const char *s,id a){return ((id (*)(id,SEL,id))objc_msgSend)(o,sel_registerName(s),a);}
 static unsigned long integer(id o,const char *s){return ((unsigned long (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
@@ -54,9 +66,38 @@ static Asset *asset_locked(Key k) {
 void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,double b) {
     if(event>=TAS_DEMAND_EVENTS || scope>=TAS_DEMAND_SCOPES || !isfinite(a) || !isfinite(b))return;
     Key k=key(url);pthread_mutex_lock(&lock);events[scope][event]++;
+    if(event==22 && scope==0 && b>=1 && b<=9007199254740991.0 && a>=0 && a<=5 && floor(a)==a && floor(b)==b) {
+        stage_current=(uint64_t)b>=epoch;
+        if(!stage_current)late_stage++;
+        else {
+            if((uint64_t)b>epoch){epoch=(uint64_t)b;opens++;}
+            stage=(unsigned)a; if(stage==0 && opens>1)stage=5;else if(stage==5)stage=6;
+            Stage *s=&stages[stage];
+            if(live[1]>s->peak)s->peak=live[1];if(live[2]>s->recent_peak)s->recent_peak=live[2];
+            if(transport_active>s->active)s->active=transport_active;
+            if(transport_queued>s->queued)s->queued=transport_queued;
+            if(transport_consumers>s->consumers)s->consumers=transport_consumers;
+        }
+    }
     if(event==1){if(++live[scope]>peak[scope])peak[scope]=live[scope];}
     if(event==2 && live[scope])live[scope]--;
-    if(event==3 && url){Asset *v=asset_locked(k);if(v)v->mask|=1U<<scope;}
+    if(scope==2 && stage_current){Stage *s=&stages[stage];if(event==1)s->recent_mount++;if(event==2)s->recent_unmount++;if(live[2]>s->recent_peak)s->recent_peak=live[2];}
+    if(scope==1 && stage_current) {
+        Stage *s=&stages[stage];
+        if(event==1) {
+            s->mount++; if(live[1]>s->peak)s->peak=live[1];
+            Asset *v=asset_locked(k);
+            if(v){if(v->library_live)s->duplicates++;else if(v->mounted&2)s->remount++;v->mounted|=2;v->library_live++;
+                if(!(v->stages&(1U<<stage))){s->unique++;v->stages|=1U<<stage;}}
+        }
+        if(event==2)s->unmount++;
+        if(event==5)s->starts++;
+        if(event==6)s->loads++;
+        if(event==7)s->errors++;
+    }
+    if(event==2 && scope==1 && k.x)for(unsigned i=0;i<ASSETS;i++)if(equal(assets[i].key,k)){if(assets[i].library_live)assets[i].library_live--;break;}
+    if(event==3 && url){Asset *v=asset_locked(k);if(v){v->mask|=1U<<scope;
+        if(scope==1 && stage_current && !(v->stages&(1U<<stage))){stages[stage].unique++;v->stages|=1U<<stage;}}}
     /* Geometry is aggregate maxima only; no scroll coordinates retained. */
     if(scope==0 && (event==8 || event==9 || event==10 || event==11)) {
         uint64_t x=a>0 && a<10000000 ? (uint64_t)a : 0,y=b>0 && b<10000000 ? (uint64_t)b : 0;
@@ -64,7 +105,26 @@ void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,dou
         if(y>geometry[event-8][1])geometry[event-8][1]=y;
     }
     if(event==6)events[scope][bucket(a/1000.0)+8]++;
+    if(scope==0 && event>=16 && event<=20) {
+        Stage *s=&stages[stage];
+        if(event==16){uint64_t n=a>=0 && b>=a && b<20000 ? (uint64_t)(b-a+1):0;if(n>s->range)s->range=n;s->samples++;}
+        if(event==17){if(a>0 && a<20000 && a>s->mask)s->mask=(uint64_t)a;if(b>0 && b<20000 && b>s->items)s->items=(uint64_t)b;}
+        if(event==18){if(a>0 && a<10000000 && a>s->visible)s->visible=(uint64_t)a;if(b>0 && b<10000000 && b>s->content)s->content=(uint64_t)b;}
+        if(event==19){s->zero_zoom+=a==0;s->missing_zoom+=a<0;if(b>0 && b<20000 && b>s->pending)s->pending=(uint64_t)b;}
+        if(event==20){s->nested+=a!=0;s->disabled+=b!=0;}
+    }
+    if(scope==0 && event==21){if(a>0 && a<20000 && a>stages[stage].initial)stages[stage].initial=(uint64_t)a;if(b>0 && b<20000 && b>stages[stage].window)stages[stage].window=(uint64_t)b;}
+    if(scope==0 && event==24){if(a>0 && a<20000 && a>stages[stage].batch)stages[stage].batch=(uint64_t)a;stages[stage].nonzero_offset+=b!=0;}
+    if(scope==0 && event==25)window_refused++;
+    if(scope==0 && event==26)stable_timeouts++;
     pthread_mutex_unlock(&lock);
+}
+void tas_demand_transport(unsigned active,unsigned queued,unsigned consumers,uint64_t cancelled) {
+    pthread_mutex_lock(&lock);Stage *s=&stages[stage];
+    transport_active=active;transport_queued=queued;transport_consumers=consumers;
+    if(active>s->active)s->active=active;if(queued>s->queued)s->queued=queued;if(consumers>s->consumers)s->consumers=consumers;
+    if(cancelled>=transport_cancelled)s->cancelled+=cancelled-transport_cancelled;
+    transport_cancelled=cancelled;pthread_mutex_unlock(&lock);
 }
 /* Header values are inspected transiently and never copied. This is a bounded
  * order-independent signature, not a new request key or a dedup decision. */
@@ -173,6 +233,18 @@ void tas_demand_status(char *buffer,size_t capacity) {
 #define APPEND(...) do {if(used<capacity){int n=snprintf(buffer+used,capacity-used,__VA_ARGS__);if(n>0)used+=(size_t)n;}}while(0)
     APPEND("Provider demand trace (passive; this launch)\nNative Fabric hooks window/layout/recycle/dealloc: %s/%s/%s/%s\n",
         move_original?"installed":"missing",layout_original?"installed":"missing",recycle_original?"installed":"missing",dealloc_original?"installed":"missing");
+    const char *stage_names[]={"open","idle","scroll","scroll-back","close","reopen","filter/scope"};
+    APPEND("Library stages: openings=%llu; window refusals/settle timeouts/late stage signals=%llu/%llu/%llu\n",(unsigned long long)opens,(unsigned long long)window_refused,(unsigned long long)stable_timeouts,(unsigned long long)late_stage);
+    for(unsigned i=0;i<7;i++){Stage *s=&stages[i];
+        APPEND("%s mounts/unmounts/peak live/unique assets/remounts/load starts/loads/errors: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu; RN samples/max range/mask/catalog columns/visible/content: %llu/%llu/%llu/%llu/%llu/%llu; zero/missing zoom/nested/disabled: %llu/%llu/%llu/%llu; temporal transport peak active/queued/consumers/cancellations: %llu/%llu/%llu/%llu\n",stage_names[i],
+            (unsigned long long)s->mount,(unsigned long long)s->unmount,(unsigned long long)s->peak,(unsigned long long)s->unique,(unsigned long long)s->remount,(unsigned long long)s->starts,(unsigned long long)s->loads,(unsigned long long)s->errors,
+            (unsigned long long)s->samples,(unsigned long long)s->range,(unsigned long long)s->mask,(unsigned long long)s->items,(unsigned long long)s->visible,(unsigned long long)s->content,
+            (unsigned long long)s->zero_zoom,(unsigned long long)s->missing_zoom,(unsigned long long)s->nested,(unsigned long long)s->disabled,
+            (unsigned long long)s->active,(unsigned long long)s->queued,(unsigned long long)s->consumers,(unsigned long long)s->cancelled);
+        APPEND("  recents mounts/unmounts/peak: %llu/%llu/%llu; RN max initial/window/batch/pending/nonzero-offset samples: %llu/%llu/%llu/%llu/%llu; concurrent duplicate assets: %llu\n",
+            (unsigned long long)s->recent_mount,(unsigned long long)s->recent_unmount,(unsigned long long)s->recent_peak,(unsigned long long)s->initial,(unsigned long long)s->window,(unsigned long long)s->batch,(unsigned long long)s->pending,(unsigned long long)s->nonzero_offset,(unsigned long long)s->duplicates);
+    }
+    APPEND("Stages aggregate repeated openings. Transport stages are temporal ALL-provider observations, not library caller attribution. Asset uniqueness/remounts are bounded fingerprint observations; evictions qualify them.\n");
     const char *names[]={"unknown","library","recents","suggestions","info","chat","URL input"};
     for(unsigned s=1;s<6;s++) APPEND("%s JS mount/unmount/live/peak/commits/source changes/same source/load starts/loads/errors: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
         names[s],(unsigned long long)events[s][1],(unsigned long long)events[s][2],(unsigned long long)live[s],(unsigned long long)peak[s],

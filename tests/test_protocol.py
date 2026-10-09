@@ -387,6 +387,7 @@ class ProtocolTests(unittest.TestCase):
 void tas_demand_request(void *r,unsigned s){(void)r;(void)s;}
 unsigned tas_demand_url_scope(void *u){(void)u;return 0;}
 void *tas_demand_delegate(void){return NULL;}
+void tas_demand_transport(unsigned a,unsigned q,unsigned c,uint64_t n){(void)a;(void)q;(void)c;(void)n;}
 ''' if diagnostic else ''
             main = MAIN
             if diagnostic:

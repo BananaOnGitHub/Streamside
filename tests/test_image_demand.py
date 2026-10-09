@@ -90,10 +90,33 @@ int main(void){
  assert(tas_demand_delegate());
  struct Fake cache={.type=3},network={.type=1},rows={.n=2,.entries={&cache,&network}},report={.rows=&rows};
  metrics(nil,NULL,nil,nil,&report);assert(fetches[3]==1 && fetches[1]==1 && metrics_calls==1);
- char report_text[8192];tas_demand_status(report_text,sizeof(report_text));
+ char report_text[16384];tas_demand_status(report_text,sizeof(report_text));
  assert(!strstr(report_text,"cdn.test") && !strstr(report_text,"private-emote") && !strstr(report_text,"SECRET"));
  assert(strstr(report_text,"local-cache"));
  char tiny[16];tas_demand_status(tiny,sizeof(tiny));assert(tiny[15]==0);
+
+ /* Stage attribution is separate from launch totals and real native mounts. */
+ memset(stages,0,sizeof(stages));memset(assets,0,sizeof(assets));live[1]=0;
+ tas_demand_event(22,0,NULL,0,1);
+ for(unsigned i=0;i<950;i++){char u[80];snprintf(u,sizeof(u),"https://cdn.test/stage-%u",i);
+   tas_demand_event(1,1,u,0,0);tas_demand_event(3,1,u,0,0);tas_demand_event(5,1,NULL,0,0);}
+ assert(stages[0].mount==950 && stages[0].peak==950 && stages[0].unique==950 && stages[0].starts==950 && !stages[0].remount);
+ tas_demand_event(16,0,NULL,0,189);tas_demand_event(17,0,NULL,190,190);
+ tas_demand_event(18,0,NULL,370,11716);tas_demand_event(19,0,NULL,0,1);
+ assert(stages[0].range==190 && stages[0].mask==190 && stages[0].zero_zoom==1 && stages[0].pending==1);
+ tas_demand_transport(6,128,134,7);assert(stages[0].active==6 && stages[0].queued==128 && stages[0].cancelled==7);
+ tas_demand_event(22,0,NULL,1,1);assert(stages[1].peak==950 && !stages[1].mount);
+ tas_demand_event(22,0,NULL,2,1);
+ for(unsigned i=0;i<950;i++){char u[80];snprintf(u,sizeof(u),"https://cdn.test/stage-%u",i);tas_demand_event(2,1,u,0,0);}
+ tas_demand_event(22,0,NULL,3,1);tas_demand_event(1,1,"https://cdn.test/stage-1",0,0);
+ assert(stages[3].remount==1 && stages[3].unique==1 && stages[3].peak==1);
+ tas_demand_event(1,1,"https://cdn.test/stage-1",0,0);assert(stages[3].duplicates==1 && stages[3].remount==1);
+ tas_demand_event(22,0,NULL,4,1);tas_demand_event(2,1,"https://cdn.test/stage-1",0,0);tas_demand_event(2,1,"https://cdn.test/stage-1",0,0);assert(!live[1]);
+ tas_demand_event(22,0,NULL,0,2);tas_demand_event(1,1,"https://cdn.test/stage-1",0,0);assert(opens==2 && stages[5].mount==1 && stages[5].remount==1);
+ tas_demand_event(22,0,NULL,0,1);tas_demand_event(5,1,NULL,0,0);assert(late_stage==1 && !stages[5].starts);
+ tas_demand_event(22,0,NULL,5,2);tas_demand_event(1,1,"https://cdn.test/filter",0,0);assert(stages[6].mount==1);
+ tas_demand_status(report_text,sizeof(report_text));assert(strstr(report_text,"scroll-back") && strstr(report_text,"temporal ALL-provider"));
+ assert(!strstr(report_text,"cdn.test") && !strstr(report_text,"stage-1"));
  for(unsigned i=0;i<ASSETS+50;i++){char u[80];snprintf(u,sizeof(u),"https://cdn.test/%u",i);tas_demand_event(3,1,u,0,0);}
  assert(evictions>=50 && sizeof(assets)+sizeof(requests)+sizeof(views)<512*1024);
  char huge[URL_BUDGET+2];memset(huge,'x',sizeof(huge));huge[sizeof(huge)-1]=0;
@@ -120,8 +143,10 @@ int main(void){
         tree=ast.parse((ROOT/'tests/test_rn_library.py').read_text())
         script=next(n.value.value for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='script' for t in n.targets))
         script=script.replace('deps.some((x,j)=>x!==old.deps[j])){if(old', '(!deps||deps.some((x,j)=>x!==old.deps[j]))){if(old')
+        script=script.replace("const row=()=>g.props.renderItem({section:g.props.sections[1],item:g.props.sections[1].data[0]});", "const row=()=>{const e=g.props.renderItem({section:g.props.sections[1],item:g.props.sections[1].data[0]});return typeof e.type==='function'?render(e.type,e.props,'columns'):e;};")
         script += r'''
 let observations=[],clock=0;env.performance={now:()=>clock};
+env.setTimeout=()=>1;env.clearTimeout=()=>{};
 bridge.observe=(...a)=>observations.push(a);
 p.channelID='42';p.emotePickerSID='probe';library();g=grid();
 const imageCell=cells()[0].children[0];assert.equal(typeof imageCell.type,'function');

@@ -24,30 +24,34 @@ function install(original) {
   function DemandImage(p) {
     var ip = p.data, scope = p.index, uri = ip.source && ip.source.uri || ip.src;
     var current = React.useRef(null);
-    React.useEffect(function () { observe(1, scope); return function () { observe(2, scope); }; }, [scope]);
+    function signal(event, asset, duration) {
+      if (p.context) observe(22, 0, null, p.context.type, p.context.index);
+      observe(event, scope, asset, duration);
+    }
+    React.useEffect(function () { signal(1, uri); return function () { signal(2, uri); }; }, [scope]);
     React.useEffect(function () {
       observe(0, scope);
       if (!current.current || current.current.uri !== uri) {
         current.current = {}; current.current.uri = uri; current.current.start = performance.now(); current.current.loaded = false;
-        observe(3, scope, uri);
+        signal(3, uri);
       } else observe(4, scope);
     });
     var copy = Object.assign({}, ip);
     if(scope !== 5) copy.testID = scope === 1 ? "provider" : scope === 2 ? "recents" : scope === 3 ? "emote" : "EmoteCard";
-    copy.onLoadStart = function (event) { observe(5, scope); if (ip.onLoadStart) ip.onLoadStart(event); };
+    copy.onLoadStart = function (event) { signal(5); if (ip.onLoadStart) ip.onLoadStart(event); };
     copy.onLoad = function (event) {
       var latest = current.current;
       if (latest && latest.uri === uri && !latest.loaded) {
-        latest.loaded = true; observe(6, scope, null, Math.max(0, performance.now() - latest.start));
+        latest.loaded = true; signal(6, null, Math.max(0, performance.now() - latest.start));
       } else if (!latest || latest.uri !== uri) observe(14, scope);
       if (ip.onLoad) ip.onLoad(event);
     };
-    copy.onError = function (event) { observe(7, scope); if (ip.onError) ip.onError(event); };
+    copy.onError = function (event) { signal(7); if (ip.onError) ip.onError(event); };
     return React.createElement(p.type || RN.Image, copy);
   }
-  function imageElement(ip, scope) {
+  function imageElement(ip, scope, trace) {
     if (!bridge.observe) return React.createElement(RN.Image, ip);
-    var p = {}; p.data = ip; p.index = scope; return React.createElement(DemandImage, p);
+    var p = {}; p.data = ip; p.index = scope; p.context = trace; return React.createElement(DemandImage, p);
   }
   function properties(style) { var p = {}; p.style = style; return p; }
   function space(c) {
@@ -302,6 +306,7 @@ function install(original) {
   var trays = __r(4174), NativeLibrary = trays.EmotePickerTray;
   var jsxRuntime = __r(245), nativeJSX = jsxRuntime.jsx, nativeJSXS = jsxRuntime.jsxs;
   var LibraryContext = React.createContext(null);
+  var librarySequence = 0;
   function snapshot(channel) {
     try { return bridge.getSnapshot(channel); } catch (error) { return null; }
   }
@@ -312,6 +317,11 @@ function install(original) {
   function LibrarySession(child) {
     var p = child.data, config = useConfig(), theme = ui.useTheme();
     var opened = React.useRef(null), list = React.useRef(null), latest = React.useRef(null);
+    var trace = React.useRef(null);
+    if (bridge.observe && !trace.current) { trace.current = {}; trace.current.index = ++librarySequence; trace.current.type = 0; }
+    React.useEffect(function () { return function () {
+      if (trace.current) { trace.current.type = 4; observe(22, 0, null, 4, trace.current.index); }
+    }; }, []);
     var filter = React.useState(0), provider = filter[0], setProvider = filter[1];
     var domain = React.useState(0), scope = domain[0], setScope = domain[1];
     var highlight = React.useState(false), active = highlight[0], setActive = highlight[1];
@@ -325,8 +335,11 @@ function install(original) {
     latest.current = p;
     if (!data) return React.createElement(NativeLibrary, p);
     var value = {}; value.data = data; value.recents = opened.current;
+    value.trace = trace.current;
     value.provider = provider; value.scope = scope;
-    value.onValueChange = function (next) { setProvider(next); setScope(0); }; value.onChange = setScope;
+    function changed() { if (trace.current) { trace.current.type = 5; observe(22, 0, null, 5, trace.current.index); } }
+    value.onValueChange = function (next) { changed(); setProvider(next); setScope(0); };
+    value.onChange = function (next) { changed(); setScope(next); };
     value.active = active; value.setActive = setActive; value.theme = theme; value.list = list;
     value.onSelectEmote = function (item) {
       var current = latest.current, fresh = state();
@@ -380,7 +393,67 @@ function install(original) {
     var image = {}; image.height = Math.min(40, (width - 8) / Math.max(0.1, item.aspect));
     image.width = Math.min(width - 8, 40 * Math.max(0.1, item.aspect));
     var ip = properties(image), source = {}; source.uri = item.url; ip.source = source; ip.resizeMode = "contain";
-    return React.createElement(RN.Pressable, bp, imageElement(ip, scope || 1));
+    return React.createElement(RN.Pressable, bp, imageElement(ip, scope || 1, context.trace));
+  }
+  // Diagnostic-only adapter. Read the exact donor's VirtualizedList state;
+  // never patch its methods, metrics, props or render mask. One bounded startup
+  // sampler distinguishes layout callbacks from the metrics used by RN.
+  function LibraryColumnsTrace(p) {
+    var native = p.data, trace = p.context, ref = React.useRef(null), timer = React.useRef(null);
+    var previous = React.useRef(null), samples = React.useRef(0), offset = React.useRef(0);
+    var latest = React.useRef(native); latest.current = native;
+    function mark(stage) { trace.type = stage; observe(22, 0, null, stage, trace.index); }
+    function sample(stabilizing) {
+      mark(trace.type);
+      try {
+        var list = ref.current && ref.current._listRef;
+        var state = list && list.state, metrics = list && list._scrollMetrics;
+        var range = state && state.cellsAroundViewport, mask = state && state.renderMask;
+        if (!range || !metrics || !mask || !mask.enumerateRegions) { observe(25, 0); return false; }
+        var regions = mask.enumerateRegions(), count = 0;
+        if (!Array.isArray(regions) || regions.length > 16) { observe(25, 0); return false; }
+        for (var i = 0; i < regions.length; i++) if (!regions[i].isSpacer) count += regions[i].last - regions[i].first + 1;
+        var content = list._listMetrics && list._listMetrics.getContentLength();
+        observe(16, 0, null, range.first, range.last);
+        observe(17, 0, null, count, latest.current.data.length);
+        observe(18, 0, null, metrics.visibleLength, content);
+        observe(19, 0, null, typeof metrics.zoomScale === "number" ? metrics.zoomScale : -1, state.pendingScrollUpdateCount);
+        observe(20, 0, null, list._isNestedWithSameOrientation() ? 1 : 0, list.props.disableVirtualization ? 1 : 0);
+        observe(21, 0, null, list.props.initialNumToRender, list.props.windowSize);
+        observe(24, 0, null, list.props.maxToRenderPerBatch, metrics.offset === 0 ? 0 : 1);
+        var signature = range.first + "/" + range.last + "/" + count + "/" + metrics.visibleLength + "/" + content + "/" + metrics.zoomScale + "/" + state.pendingScrollUpdateCount;
+        var stable = metrics.visibleLength > 0 && content > 0 && previous.current === signature;
+        if (stabilizing) previous.current = signature; return stable;
+      } catch (error) { observe(25, 0); return false; }
+    }
+    function settle() {
+      timer.current = null;
+      if (sample(true)) { mark(1); return; }
+      if (++samples.current < 20) timer.current = setTimeout(settle, 250);
+      else observe(26, 0);
+    }
+    React.useEffect(function () {
+      if (trace.value !== undefined && trace.value !== native.key) mark(5);
+      trace.value = native.key;
+      mark(trace.type); timer.current = setTimeout(settle, 250);
+      return function () { if (timer.current !== null) clearTimeout(timer.current); timer.current = null; };
+    }, []);
+    var copy = Object.assign({}, native);
+    copy.ref = function (value) { ref.current = value; };
+    copy.onLayout = function (event) { if (native.onLayout) native.onLayout(event); sample(); };
+    copy.onContentSizeChange = function (w, h) { if (native.onContentSizeChange) native.onContentSizeChange(w, h); sample(); };
+    copy.onViewableItemsChanged = React.useRef(function (event) {
+      if (latest.current.onViewableItemsChanged) latest.current.onViewableItemsChanged(event); sample();
+    }).current;
+    copy.onScroll = function (event) {
+      var next = event.nativeEvent.contentOffset.x;
+      if (next !== offset.current) mark(next < offset.current ? 3 : 2);
+      offset.current = next; sample();
+      if (native.onScroll) native.onScroll(event);
+      if (timer.current !== null) clearTimeout(timer.current);
+      samples.current = 0; previous.current = null; timer.current = setTimeout(settle, 250);
+    };
+    return React.createElement(RN.FlatList, copy);
   }
   function title(text, context, height) {
     var style = {}; style.height = height; style.paddingHorizontal = 12; style.fontSize = 14;
@@ -495,6 +568,7 @@ function install(original) {
         var style = {}; style.width = cellWidth; style.height = 260;
         return React.createElement(RN.View, properties(style), info.item.emotes.map(function (item) { return tile(item, context, cellWidth); }));
       };
+      if (bridge.observe) { var probe = {}; probe.data = fp; probe.context = context.trace; probe.key = fp.key; return React.createElement(LibraryColumnsTrace, probe); }
       return React.createElement(RN.FlatList, fp);
     };
     copy.renderSectionHeader = function (info) {

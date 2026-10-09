@@ -43,7 +43,7 @@ struct Fake {
     id data,response,info,cache,epoch;
     id keys[32],values[32];unsigned entries;
     struct Block *completion;
-    unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy;
+    unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy,status;
     bool stop_on_response,foreground,delegated;
     NSInteger error_code;
     pthread_mutex_t monitor;
@@ -54,7 +54,7 @@ static unsigned starts,results,rewrites,cancellations;
 static bool block_manifest,manifest_entered,release_manifest;
 static pthread_mutex_t manifest_lock=PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t manifest_condition=PTHREAD_COND_INITIALIZER;
-static bool fail_task;
+static bool fail_task,fail_cached_response;
 static bool complete_on_resume;
 static id immediate_data,immediate_response;
 static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key,image_cache_start_key,image_cache_completion_key,image_cache_data_key;
@@ -157,7 +157,7 @@ static id dispatch(id o,SEL s,...) {
         if(r && strcmp(r->response->url->text,request->url->text))r=nil;
         if(cancel_during_lookup){id p=cancel_during_lookup;cancel_during_lookup=nil;protocol_stop_loading(p,nil);}}
     else if(!strcmp(s,"initWithResponse:data:userInfo:storagePolicy:")) {
-        o->response=va_arg(a,id);o->data=va_arg(a,id);o->info=va_arg(a,id);o->cache_policy=(unsigned)va_arg(a,NSUInteger);r=o;
+        o->response=va_arg(a,id);o->data=va_arg(a,id);o->info=va_arg(a,id);o->cache_policy=(unsigned)va_arg(a,NSUInteger);r=fail_cached_response ? nil:o;
     }
     else if(!strcmp(s,"allHTTPHeaderFields"))r=o->headers;
     else if(!strcmp(s,"HTTPMethod"))r=o->method;
@@ -195,7 +195,7 @@ static id dispatch(id o,SEL s,...) {
             if(o->delegated){o->response=immediate_response;image_cache_received_data(nil,nil,o->session,o,immediate_data);image_cache_completed(nil,nil,o->session,o,nil);}
             else b->invoke(b,immediate_data,immediate_response,nil);free(b);o->completion=NULL;}}
     else if(!strcmp(s,"cancel"))o->cancels++;
-    else if(!strcmp(s,"statusCode"))r=(id)(uintptr_t)200;
+    else if(!strcmp(s,"statusCode"))r=(id)(uintptr_t)(o->status ? o->status:200);
     else if(!strcmp(s,"code"))r=(id)(intptr_t)o->error_code;
     else if(!strcmp(s,"errorWithDomain:code:userInfo:")) {
         assert(!strcmp(va_arg(a,id)->text,"NSURLErrorDomain"));assert(va_arg(a,NSInteger)==-1);assert(!va_arg(a,id));r=fresh("error");

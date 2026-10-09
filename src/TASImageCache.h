@@ -11,6 +11,7 @@ static id image_cache_store;
 static void *image_cache_session;
 static pthread_mutex_t image_cache_metadata_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t image_cache_proposals,image_cache_annotations;
+static uint64_t image_cache_rejections[IMAGE_CACHE_REJECTION_COUNT];
 static bool image_cache_eligible(id request);
 #ifdef __APPLE__
 #define IMAGE_CACHE_AGE_CLOCK CLOCK_MONOTONIC_RAW
@@ -38,13 +39,25 @@ static void image_cache_proposed(id self,SEL cmd,id session,id task,id proposed,
     (void)self;(void)cmd;(void)session;
     id response=msg0(proposed,"response"),request=msg0(task,"originalRequest");
     double lifetime,stamp,age=0,wall=image_cache_clock(CLOCK_REALTIME),tick=image_cache_clock(IMAGE_CACHE_AGE_CLOCK);
-    double start=image_cache_value(objc_getAssociatedObject(task,&image_cache_start_key));
+    id start_value=objc_getAssociatedObject(task,&image_cache_start_key);
+    double start=image_cache_value(start_value);
     const char *age_text=utf8(image_cache_field(response,"Age"));
     id annotated=nil;
-    if(start>=0 && start<=tick && image_public_request(request) && imsg0(request,"cachePolicy")==0 && image_cache_eligible(request) && imsg0(response,"statusCode")==200 &&
-       image_cache_lifetime(utf8(image_cache_field(response,"Cache-Control")),utf8(image_cache_field(response,"Date")),
-                            utf8(image_cache_field(response,"Expires")),&lifetime,&stamp) && stamp<=wall &&
-       (!age_text || image_cache_seconds(age_text,&age))) {
+    unsigned rejection=IMAGE_CACHE_ACCEPTED;
+    /* Preserve the original gate order and decisions. Each failed condition
+     * has its own counter; a failure never evaluates later conditions. */
+    if(!start_value)rejection=IMAGE_CACHE_START_MISSING;
+    else if(!(start>=0))rejection=IMAGE_CACHE_START_INVALID;
+    else if(!(start<=tick))rejection=IMAGE_CACHE_START_FUTURE;
+    else if(!image_public_request(request))rejection=IMAGE_CACHE_REQUEST_PRIVATE;
+    else if(imsg0(request,"cachePolicy")!=0)rejection=IMAGE_CACHE_REQUEST_POLICY;
+    else if(!image_cache_eligible(request))rejection=IMAGE_CACHE_REQUEST_DIRECTIVES;
+    else if(imsg0(response,"statusCode")!=200)rejection=IMAGE_CACHE_RESPONSE_STATUS;
+    else if(!image_cache_lifetime_reason(utf8(image_cache_field(response,"Cache-Control")),utf8(image_cache_field(response,"Date")),
+                                        utf8(image_cache_field(response,"Expires")),&lifetime,&stamp,&rejection)) { /* classified by parser */ }
+    else if(!(stamp<=wall))rejection=IMAGE_CACHE_DATE_FUTURE;
+    else if(age_text && !image_cache_seconds(age_text,&age))rejection=IMAGE_CACHE_AGE_INVALID;
+    if(rejection==IMAGE_CACHE_ACCEPTED) {
         /* Age + entire task duration overestimates response delay and body
          * time. Never underestimate age by counting only lookup latency. */
         double current=fmax(wall-stamp,age+tick-start);
@@ -60,8 +73,10 @@ static void image_cache_proposed(id self,SEL cmd,id session,id task,id proposed,
             msg0((id)objc_getClass("NSCachedURLResponse"),"alloc"),sel_registerName("initWithResponse:data:userInfo:storagePolicy:"),
             response,msg0(proposed,"data"),info,(NSUInteger)imsg0(proposed,"storagePolicy"));
         objc_release(info);
+        if(!annotated)rejection=IMAGE_CACHE_CONSTRUCTION;
     }
     pthread_mutex_lock(&image_cache_metadata_lock);image_cache_proposals++;if(annotated)image_cache_annotations++;
+    else image_cache_rejections[rejection]++;
     pthread_mutex_unlock(&image_cache_metadata_lock);
     ((void (^)(id))completion)(annotated ? annotated:proposed);
     objc_release(annotated);

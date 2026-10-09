@@ -34,11 +34,13 @@ static void wait_finished(CacheClient *client,double seconds) {
     @synchronized(client){fprintf(stderr,"Fixture callbacks response/data/finish/failure: %lu/%lu/%lu/%lu\n",(unsigned long)client->responses,(unsigned long)client->loads,(unsigned long)client->finishes,(unsigned long)client->failures);}
     assert(!"Foundation fixture timed out");
 }
+#include "foundation_annotation_main.m"
 int main(int argc,char **argv) {
     assert(argc==2);
     @autoreleasepool {
         fputs("Fixture stage: warm\n",stderr);
         CacheClient *warm;begin(argv[1],"/hot.gif",&warm);wait_finished(warm,10);
+        annotation_matrix(argv[1]);
         NSURLSessionConfiguration *configuration=[protocol_session(true) configuration];
         assert(configuration.timeoutIntervalForRequest==15 && configuration.timeoutIntervalForResource==30);
         assert(configuration.HTTPMaximumConnectionsPerHost==8 && configuration.URLCache.memoryCapacity==32*1024*1024 && configuration.URLCache.diskCapacity==128*1024*1024);

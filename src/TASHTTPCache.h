@@ -8,6 +8,19 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <stdint.h>
+/* Exactly one first rejection per proposal. No header values are reported. */
+typedef enum {
+    IMAGE_CACHE_ACCEPTED,
+    IMAGE_CACHE_START_MISSING, IMAGE_CACHE_START_INVALID, IMAGE_CACHE_START_FUTURE,
+    IMAGE_CACHE_REQUEST_PRIVATE, IMAGE_CACHE_REQUEST_POLICY, IMAGE_CACHE_REQUEST_DIRECTIVES,
+    IMAGE_CACHE_RESPONSE_STATUS,
+    IMAGE_CACHE_DATE_MISSING, IMAGE_CACHE_DATE_INVALID, IMAGE_CACHE_DATE_FUTURE, IMAGE_CACHE_AGE_INVALID,
+    IMAGE_CACHE_CONTROL_SIZE, IMAGE_CACHE_MAX_AGE_INVALID, IMAGE_CACHE_MAX_AGE_DUPLICATE,
+    IMAGE_CACHE_NO_CACHE, IMAGE_CACHE_NO_STORE, IMAGE_CACHE_EXTENSION_INVALID, IMAGE_CACHE_DIRECTIVE_UNSUPPORTED,
+    IMAGE_CACHE_EXPIRES_MISSING, IMAGE_CACHE_EXPIRES_INVALID, IMAGE_CACHE_LIFETIME_INVALID,
+    IMAGE_CACHE_CONSTRUCTION, IMAGE_CACHE_REJECTION_COUNT
+} ImageCacheRejection;
+static bool image_cache_fail(unsigned *reason,ImageCacheRejection rejection) {*reason=rejection;return false;}
 static bool image_cache_space(unsigned char c) {return c==' ' || c=='\t';}
 
 static bool image_cache_seconds(const char *s, double *out) {
@@ -34,11 +47,13 @@ static bool image_cache_date(const char *s, double *out) {
     if(strncmp(weekday,weekdays+((total+d-1+4)%7)*3,3))return false;
     *out=(double)((total+d-1)*86400+h*3600+m*60+sec);return true;
 }
-static bool image_cache_lifetime(const char *control,const char *date,const char *expires,double *lifetime,double *stamp) {
-    if(!image_cache_date(date,stamp))return false;
+static bool image_cache_lifetime_reason(const char *control,const char *date,const char *expires,double *lifetime,double *stamp,unsigned *reason) {
+    *reason=IMAGE_CACHE_ACCEPTED;
+    if(!date)return image_cache_fail(reason,IMAGE_CACHE_DATE_MISSING);
+    if(!image_cache_date(date,stamp))return image_cache_fail(reason,IMAGE_CACHE_DATE_INVALID);
     bool max_found=false;double max_age=0;
     if(control && *control) {
-        if(strlen(control)>1024)return false;
+        if(strlen(control)>1024)return image_cache_fail(reason,IMAGE_CACHE_CONTROL_SIZE);
         char copy[1025];strcpy(copy,control);char *cursor=copy;
         while(cursor) {
             char *next=strchr(cursor,',');if(next)*next++=0;
@@ -50,18 +65,25 @@ static bool image_cache_lifetime(const char *control,const char *date,const char
                 end=value+strlen(value);if(end>value+1 && *value=='"' && end[-1]=='"'){value++;*--end=0;}
             }
             if(!strcasecmp(cursor,"max-age")) {
-                if(max_found || !image_cache_seconds(value,&max_age))return false;max_found=true;
-            } else if(!strcasecmp(cursor,"no-cache") || !strcasecmp(cursor,"no-store"))return false;
+                if(max_found)return image_cache_fail(reason,IMAGE_CACHE_MAX_AGE_DUPLICATE);
+                if(!image_cache_seconds(value,&max_age))return image_cache_fail(reason,IMAGE_CACHE_MAX_AGE_INVALID);max_found=true;
+            } else if(!strcasecmp(cursor,"no-cache"))return image_cache_fail(reason,IMAGE_CACHE_NO_CACHE);
+            else if(!strcasecmp(cursor,"no-store"))return image_cache_fail(reason,IMAGE_CACHE_NO_STORE);
             else if(!strcasecmp(cursor,"s-maxage") || !strcasecmp(cursor,"stale-while-revalidate") || !strcasecmp(cursor,"stale-if-error")) {
-                double ignored;if(!image_cache_seconds(value,&ignored))return false;
+                double ignored;if(!image_cache_seconds(value,&ignored))return image_cache_fail(reason,IMAGE_CACHE_EXTENSION_INVALID);
             } else if(strcasecmp(cursor,"public") && strcasecmp(cursor,"private") && strcasecmp(cursor,"must-revalidate") &&
-                      strcasecmp(cursor,"proxy-revalidate") && strcasecmp(cursor,"immutable") && strcasecmp(cursor,"no-transform"))return false;
-            else if(value)return false; /* field-qualified private is uncertain */
+                      strcasecmp(cursor,"proxy-revalidate") && strcasecmp(cursor,"immutable") && strcasecmp(cursor,"no-transform"))return image_cache_fail(reason,IMAGE_CACHE_DIRECTIVE_UNSUPPORTED);
+            else if(value)return image_cache_fail(reason,IMAGE_CACHE_DIRECTIVE_UNSUPPORTED); /* field-qualified private is uncertain */
             cursor=next;
         }
     }
     if(max_found)*lifetime=max_age;
-    else {double expiry;if(!image_cache_date(expires,&expiry))return false;*lifetime=expiry-*stamp;}
-    return *lifetime>0 && isfinite(*lifetime);
+    else {double expiry;
+        if(!expires)return image_cache_fail(reason,IMAGE_CACHE_EXPIRES_MISSING);
+        if(!image_cache_date(expires,&expiry))return image_cache_fail(reason,IMAGE_CACHE_EXPIRES_INVALID);*lifetime=expiry-*stamp;}
+    return (*lifetime>0 && isfinite(*lifetime)) || image_cache_fail(reason,IMAGE_CACHE_LIFETIME_INVALID);
+}
+static bool image_cache_lifetime(const char *control,const char *date,const char *expires,double *lifetime,double *stamp) {
+    unsigned reason;return image_cache_lifetime_reason(control,date,expires,lifetime,stamp,&reason);
 }
 #endif

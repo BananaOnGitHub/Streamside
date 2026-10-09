@@ -151,26 +151,53 @@ completion-handler candidates must not be used as the Phase 2 baseline.
 The Apple integration job and on-device cache behavior remain separate evidence,
 never inferred from warm-cache task counters.
 
-## Short device check after host/platform gates
+## Build 79 device result and annotation isolation
 
-No new full scrolling investigation is requested. For build 79:
+Phase 2 remains **unvalidated on device**. Build 79 reports A/B recorded 950
+lookups, zero direct hits, and only two annotations from 793 Foundation cache
+proposals. The A-to-B delta was 384 lookups/tasks: 333 metadata misses matched
+333 Foundation local-cache transactions, and 51 absent misses matched 51 network
+transactions. Cached responses were still entering transfer admission; these
+were not 333 repeat downloads. The preserved library baseline held at 60 images
+on opening/reopening, 130 peak while scrolling, and balanced dismissal mounts.
 
-1. Launch on the same large-set channel. Open stationary, wait for visible images
-   to finish, export A. Cache proposals/annotated should distinguish actual new
-   cache entries from legacy warm responses. Do not clear the HTTP cache just
-   to manufacture a favorable result.
-2. Close and reopen stationary once; export B. Compare cache-first hits and
-   admission-to-delivery buckets with the preserved 12-column/60-instance opening.
-3. One quick forward/back movement and immediate close/reopen, then export C.
-   Check bounded lookup/flight counts, cancellation, errors and successful visible
-   rendering. No long catalog sweep is necessary.
+The annotation callback now counts one **first rejection** per proposal:
 
-These UI reports cannot by themselves prove that all eight slots were saturated
-while a particular hit arrived, or measure decoded/displayed visibility. The
-controlled eight-slot HTTP integration is the platform gate for that condition;
-physical-device performance, Fabric attribution, animation and actual rendering
-still need device observation. Phase 3 retains responsibility for general
-budget-refusal retry/recovery and residual visible/offscreen queue priority.
+- Task-start metadata missing, invalid, or later than the current age clock.
+- Non-public request, non-default cache policy, or explicit validation directives.
+- Non-200 response; missing/invalid/future Date; invalid Age.
+- Oversize Cache-Control; invalid or repeated max-age; no-cache; no-store;
+  invalid extension delta; unsupported/field-qualified directive.
+- Missing/invalid Expires, nonpositive freshness lifetime, or construction failure.
+
+Counters are incremented under the existing metadata lock. Their sum plus
+successful annotations equals proposals. Earlier failures do not evaluate later
+gates, so precedence, freshness acceptance and Foundation fallback remain
+unchanged. Only aggregate counts are reported; no header values, asset identities
+or exception text are added. These counters cannot recover which condition
+rejected historical proposals whose values were not retained.
+
+`tests/test_cache_annotation.py` invokes the actual production callback for
+33 response-policy cases plus every additional gate (42 calls per diagnostic
+configuration). It checks the exact rejection bucket, one callback, proposal
+accounting, preservation of original rejected responses and original userInfo,
+and response/data/storage metadata for annotations. All 22 rejection buckets are
+exercised. The same 33-case matrix also runs with real Foundation objects in the
+mandatory Apple integration gate, alongside the eight-slot admission/304 test.
+
+The matrix includes policy shapes sampled from public provider image GETs on
+2026-10-09: 7TV's public max-age/s-maxage/immutable policy and FFZ's public max-age
+policy annotate successfully. BTTV's repeated Cache-Control fields, combined as
+`max-age=15552000, public,max-age=15552000,immutable`, hit the existing repeated
+max-age rejection. That is a reproduced representative exclusion, **not evidence
+that it caused the majority of the device failures**. Header normalization by a
+particular Foundation version and other device gate failures remain observable
+through the new counters. The parser has not been relaxed to force cache hits.
+
+No further full scrolling test is requested. The compiled snapshot validation
+rule remains mandatory for any diagnostic build. Annotation host/Apple tests
+must pass before a focused device annotation check; Phase 2 cannot be declared
+complete from fast Foundation cache-fetch timing alone.
 
 References: Apple documentation for `cachedResponseForRequest:`,
 `URLSession:dataTask:willCacheResponse:completionHandler:`, `NSCachedURLResponse`

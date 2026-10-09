@@ -306,7 +306,7 @@ function install(original) {
   var trays = __r(4174), NativeLibrary = trays.EmotePickerTray;
   var jsxRuntime = __r(245), nativeJSX = jsxRuntime.jsx, nativeJSXS = jsxRuntime.jsxs;
   var LibraryContext = React.createContext(null);
-  var librarySequence = 0;
+  var librarySequence = 0, calculationSequence = 0;
   function snapshot(channel) {
     try { return bridge.getSnapshot(channel); } catch (error) { return null; }
   }
@@ -400,9 +400,92 @@ function install(original) {
   // sampler distinguishes layout callbacks from the metrics used by RN.
   function LibraryColumnsTrace(p) {
     var native = p.data, trace = p.context, ref = React.useRef(null), timer = React.useRef(null);
+    var calculation = React.useRef(null);
     var previous = React.useRef(null), samples = React.useRef(0), offset = React.useRef(0);
     var latest = React.useRef(native); latest.current = native;
     function mark(stage) { trace.type = stage; observe(22, 0, null, stage, trace.index); }
+    // Only the first two owned list instances, for <=5 seconds, <=128 calls
+    // and <=16 distinct calculation snapshots each. No prototype/global hook.
+    function bindCalculation(value) {
+      if (calculation.current) { calculation.current(); calculation.current = null; }
+      ref.current = value;
+      if (!value) return;
+      var list = value._listRef;
+      if (calculationSequence >= 2) { observe(29, 0, null, 3); return; }
+      if (!list || typeof list._adjustCellsAroundViewport !== "function") { observe(29, 0, null, 3); return; }
+      var slot = ++calculationSequence, original = list._adjustCellsAroundViewport;
+      var owned = Object.prototype.hasOwnProperty.call(list, "_adjustCellsAroundViewport");
+      var calls = 0, records = 0, last = null, running = false, stopped = false, deadline;
+      function stop(reason) {
+        if (stopped) return; stopped = true; clearTimeout(deadline);
+        if (list._adjustCellsAroundViewport === wrapped) {
+          if (owned) list._adjustCellsAroundViewport = original; else delete list._adjustCellsAroundViewport;
+        }
+        observe(28, 0, null, calls, records); observe(29, 0, null, 2);
+        if (reason) observe(29, 0, null, reason);
+      }
+      function number(value) { return typeof value === "number" && Number.isFinite(value) && Math.abs(value) < 10000000 ? value : -1; }
+      function wrapped(props, previousRange, pending) {
+        if (stopped || running) return original.apply(this, arguments);
+        if (calls >= 128 || records >= 16) { stop(calls >= 128 ? 4 : 6); return original.apply(this, arguments); }
+        calls++; running = true;
+        var metric = this._listMetrics, get, metricOwned, metricWrapped, values = null;
+        var frames = [], frameCalls = 0, invalid = 0, mismatches = 0;
+        try {
+          var metrics = this._scrollMetrics, count = props.getItemCount(props.data);
+          var content = metric.getContentLength(), zoom = metrics.zoomScale, velocity = metrics.velocity;
+          var zoomCode = typeof zoom !== "number" ? 4 : !Number.isFinite(zoom) ? 5 : zoom === 0 ? 0 : zoom === 1 ? 1 : zoom < 0 ? 3 : 2;
+          var branch = metrics.visibleLength <= 0 || content <= 0 ? 2 : props.disableVirtualization ? 4 : pending > 0 ? 3 : 1;
+          values = [number(previousRange.first), number(previousRange.last), 0, 0,
+            number(metrics.visibleLength), number(content), zoomCode, number(zoom),
+            metrics.offset === 0 ? 0 : metrics.offset > 0 ? 1 : metrics.offset < 0 ? -1 : 2,
+            typeof velocity !== "number" || !Number.isFinite(velocity) ? 2 : velocity > 1 ? 1 : velocity < -1 ? -1 : 0,
+            number(pending), number(count), number(props.initialNumToRender), number(props.maxToRenderPerBatch), number(props.windowSize), branch,
+            0, 0, 0, this._isNestedWithSameOrientation() ? 1 : 0, typeof props.getItemLayout === "function" ? 1 : 0];
+          get = metric.getCellMetricsApprox;
+          if (typeof get !== "function") throw new Error();
+          metricOwned = Object.prototype.hasOwnProperty.call(metric, "getCellMetricsApprox");
+          metricWrapped = function (index, actualProps) {
+            var frame = get.apply(this, arguments); // Exactly one real query.
+            if (frameCalls++ < 64) try {
+              var expected = typeof actualProps.getItemLayout === "function" ? actualProps.getItemLayout(actualProps.data, index) : null;
+              var length = number(frame.length), offset = number(frame.offset);
+              if (length <= 0 || offset < 0) invalid++;
+              if (expected && (Math.abs(frame.length - expected.length) > 0.5 || Math.abs(frame.offset - expected.offset) > 0.5)) mismatches++;
+              if (frames.length < 4 && !frames.some(function (sample) { return sample[0] === index; }))
+                frames.push([number(index), length, offset, expected ? number(expected.length) : -1, expected ? number(expected.offset) : -1]);
+            } catch (error) { invalid++; }
+            return frame;
+          };
+          metric.getCellMetricsApprox = metricWrapped;
+        } catch (error) { observe(29, 0, null, 3); }
+        var result;
+        try { result = original.apply(this, arguments); }
+        catch (error) { observe(29, 0, null, 7); throw error; }
+        finally {
+          if (metricWrapped && metric.getCellMetricsApprox === metricWrapped) {
+            if (metricOwned) metric.getCellMetricsApprox = get; else delete metric.getCellMetricsApprox;
+          }
+          running = false;
+        }
+        if (values) try {
+          values[2] = number(result.first); values[3] = number(result.last);
+          values[16] = frameCalls; values[17] = invalid; values[18] = mismatches;
+          for (var i = 0; i < 4; i++) {
+            if (frames[i]) values = values.concat(frames[i]);
+            else for (var j = 0; j < 5; j++) values.push(-1);
+          }
+          var signature = JSON.stringify(values);
+          if (signature !== last) { last = signature; mark(trace.type); observe(27, 0, signature, slot); records++; }
+        } catch (error) { observe(29, 0, null, 3); }
+        if (calls >= 128 || records >= 16) stop(calls >= 128 ? 4 : 6);
+        return result;
+      }
+      list._adjustCellsAroundViewport = wrapped; observe(29, 0, null, 1);
+      deadline = setTimeout(function () { stop(5); }, 5000);
+      calculation.current = function () { stop(0); };
+    }
+    var binding = React.useRef(bindCalculation);
     function sample(stabilizing) {
       mark(trace.type);
       try {
@@ -436,10 +519,13 @@ function install(original) {
       if (trace.value !== undefined && trace.value !== native.key) mark(5);
       trace.value = native.key;
       mark(trace.type); timer.current = setTimeout(settle, 250);
-      return function () { if (timer.current !== null) clearTimeout(timer.current); timer.current = null; };
+      return function () {
+        if (timer.current !== null) clearTimeout(timer.current); timer.current = null;
+        if (calculation.current) { calculation.current(); calculation.current = null; }
+      };
     }, []);
     var copy = Object.assign({}, native);
-    copy.ref = function (value) { ref.current = value; };
+    copy.ref = binding.current;
     copy.onLayout = function (event) { if (native.onLayout) native.onLayout(event); sample(); };
     copy.onContentSizeChange = function (w, h) { if (native.onContentSizeChange) native.onContentSizeChange(w, h); sample(); };
     copy.onViewableItemsChanged = React.useRef(function (event) {

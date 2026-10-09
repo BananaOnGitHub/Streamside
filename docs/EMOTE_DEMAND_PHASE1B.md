@@ -7,6 +7,9 @@ been analyzed. A full-catalog startup range is established, but the update and
 cell metrics that produce it are not. No virtualization correction is yet
 justified; Phase 1B remains open. The remaining evidence needed is described
 below, rather than asking for the original ten-report matrix again.
+Build 75 adds the narrowly scoped boundary trace documented in
+[EMOTE_DEMAND_PHASE1B_CALCULATION.md](EMOTE_DEMAND_PHASE1B_CALCULATION.md);
+its two-report test replaces further unchanged-build-74 captures.
 Cache admission, flight identity, cancellation decisions, the 512-flight
 capacity, eight active slots and six background slots remain unchanged.
 

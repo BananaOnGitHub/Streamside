@@ -42,7 +42,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.74"
+#define TAS_REPORT_VERSION "3.0.0-build.75"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -332,7 +332,7 @@ static id diagnostic_report_create(void) {
     vmsg1(report, "appendString:", nsstr("\n"));
     vmsg1(report, "appendString:", nsstr(image_transport));
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
-    char demand[16384];tas_demand_status(demand,sizeof(demand));
+    char demand[32768];tas_demand_status(demand,sizeof(demand));
     vmsg1(report,"appendString:",nsstr("\n"));vmsg1(report,"appendString:",nsstr(demand));
 #endif
     snprintf(menu_status, sizeof(menu_status),

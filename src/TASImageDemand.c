@@ -7,6 +7,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <stdlib.h>
 extern id objc_retain(id);
 extern void objc_release(id);
 extern id objc_getAssociatedObject(id,const void *);
@@ -42,6 +43,26 @@ static Stage stages[7];
 static unsigned stage=4,transport_active,transport_queued,transport_consumers;
 static uint64_t epoch,opens,late_stage,stable_timeouts,window_refused,transport_cancelled;
 static bool stage_current=true;
+/* Fixed numeric calculation snapshots; never retain the input JSON, identifiers,
+ * URLs or a per-image history. First two owned list instances, sixteen rows each. */
+enum { CALC_SLOTS=2, CALC_ROWS=16, CALC_VALUES=41 };
+typedef struct { double value[CALC_VALUES]; unsigned stage; } Calculation;
+static Calculation calculations[CALC_SLOTS][CALC_ROWS];
+static unsigned calculation_count[CALC_SLOTS];
+static uint64_t calculation_status[8],calculation_calls,calculation_records,calculation_refused;
+static bool calculation_values(const char *text,double out[CALC_VALUES]) {
+    if(!text || strnlen(text,4097)>4096 || *text++!='[')return false;
+    for(unsigned i=0;i<CALC_VALUES;i++) {
+        /* Numeric JSON only. No strings, whitespace, NaN/Infinity or suffixes. */
+        if(!((*text>='0' && *text<='9') || *text=='-'))return false;
+        char *end;out[i]=strtod(text,&end);
+        if(end==text || !isfinite(out[i]) || fabs(out[i])>=10000000)return false;
+        for(const char *p=text;p<end;p++)if(!((*p>='0' && *p<='9') || *p=='-' || *p=='+' || *p=='.' || *p=='e' || *p=='E'))return false;
+        if(*end!=(i+1==CALC_VALUES?']':','))return false;
+        text=end+1;
+    }
+    return !*text;
+}
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
 static id m1(id o,const char *s,id a){return ((id (*)(id,SEL,id))objc_msgSend)(o,sel_registerName(s),a);}
 static unsigned long integer(id o,const char *s){return ((unsigned long (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
@@ -65,6 +86,19 @@ static Asset *asset_locked(Key k) {
 }
 void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,double b) {
     if(event>=TAS_DEMAND_EVENTS || scope>=TAS_DEMAND_SCOPES || !isfinite(a) || !isfinite(b))return;
+    if(scope==0 && event>=27) {
+        double values[CALC_VALUES];bool valid=event!=27 || calculation_values(url,values);
+        pthread_mutex_lock(&lock);
+        if(event==27) {
+            if(!valid || !stage_current || a<1 || a>CALC_SLOTS || floor(a)!=a)calculation_refused++;
+            else {unsigned slot=(unsigned)a-1,n=calculation_count[slot];
+                if(n<CALC_ROWS){memcpy(calculations[slot][n].value,values,sizeof(values));calculations[slot][n].stage=stage;calculation_count[slot]++;}
+                else calculation_refused++;
+            }
+        } else if(event==28 && a>=0 && a<=128 && b>=0 && b<=16) {calculation_calls+=(uint64_t)a;calculation_records+=(uint64_t)b;}
+        else if(event==29 && a>=1 && a<8 && floor(a)==a)calculation_status[(unsigned)a]++;
+        pthread_mutex_unlock(&lock);return;
+    }
     Key k=key(url);pthread_mutex_lock(&lock);events[scope][event]++;
     if(event==22 && scope==0 && b>=1 && b<=9007199254740991.0 && a>=0 && a<=5 && floor(a)==a && floor(b)==b) {
         stage_current=(uint64_t)b>=epoch;
@@ -245,6 +279,17 @@ void tas_demand_status(char *buffer,size_t capacity) {
             (unsigned long long)s->recent_mount,(unsigned long long)s->recent_unmount,(unsigned long long)s->recent_peak,(unsigned long long)s->initial,(unsigned long long)s->window,(unsigned long long)s->batch,(unsigned long long)s->pending,(unsigned long long)s->nonzero_offset,(unsigned long long)s->duplicates);
     }
     APPEND("Stages aggregate repeated openings. Transport stages are temporal ALL-provider observations, not library caller attribution. Asset uniqueness/remounts are bounded fingerprint observations; evictions qualify them.\n");
+    APPEND("RN startup calculation boundary (first two owned lists; max 16 snapshots/128 calls/5 seconds each)\nInstalled/restored/unsupported/call limit/time limit/snapshot limit/original throws: %llu/%llu/%llu/%llu/%llu/%llu/%llu; finished calls/snapshots: %llu/%llu; packet refusals: %llu\n",
+        (unsigned long long)calculation_status[1],(unsigned long long)calculation_status[2],(unsigned long long)calculation_status[3],(unsigned long long)calculation_status[4],(unsigned long long)calculation_status[5],(unsigned long long)calculation_status[6],(unsigned long long)calculation_status[7],(unsigned long long)calculation_calls,(unsigned long long)calculation_records,(unsigned long long)calculation_refused);
+    APPEND("Branch: 1=window algorithm 2=missing dimensions 3=pending update 4=virtualization disabled. Zoom: 0=zero 1=unit 2=positive non-unit 3=negative 4=missing 5=non-finite. Offset: sign only, 2=invalid. Velocity: direction above unit threshold, 2=invalid. Cell samples are the first four distinct indices actually queried, not extra RN queries; -1=missing/invalid.\n");
+    for(unsigned s=0;s<CALC_SLOTS;s++)for(unsigned row=0;row<calculation_count[s];row++) {
+        Calculation *c=&calculations[s][row];double *v=c->value;
+        APPEND("calc list=%u transition=%u stage=%s branch=%.0f prev=%.0f..%.0f result=%.0f..%.0f viewport/content=%.2f/%.2f zoom(code/value)=%.0f/%.4f offset/velocity=%.0f/%.0f pending/catalog=%.0f/%.0f initial/batch/window=%.0f/%.0f/%.0f nested/layout=%.0f/%.0f queries/invalid/mismatch=%.0f/%.0f/%.0f\n",
+            s+1,row+1,stage_names[c->stage],v[15],v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],v[10],v[11],v[12],v[13],v[14],v[19],v[20],v[16],v[17],v[18]);
+        APPEND(" cells index:length/offset=>owned length/offset:");
+        for(unsigned i=0;i<4;i++){unsigned k=21+5*i;APPEND(" %.0f:%.2f/%.2f=>%.2f/%.2f",v[k],v[k+1],v[k+2],v[k+3],v[k+4]);}
+        APPEND("\n");
+    }
     const char *names[]={"unknown","library","recents","suggestions","info","chat","URL input"};
     for(unsigned s=1;s<6;s++) APPEND("%s JS mount/unmount/live/peak/commits/source changes/same source/load starts/loads/errors: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
         names[s],(unsigned long long)events[s][1],(unsigned long long)events[s][2],(unsigned long long)live[s],(unsigned long long)peak[s],
@@ -261,7 +306,7 @@ void tas_demand_status(char *buffer,size_t capacity) {
     uint64_t multi=0;for(unsigned i=1;i<128;i++)if(i&(i-1))multi+=source_masks[i];
     APPEND("Protocol asset correlation multiple scopes: %llu (correlation is not caller proof)\nNative samples: %llu; Foundation metrics callbacks/empty/truncated: %llu/%llu/%llu; transactions unknown/network/push/local-cache: %llu/%llu/%llu/%llu\n",
         (unsigned long long)multi,(unsigned long long)native_samples,(unsigned long long)metrics_calls,(unsigned long long)metrics_missing,(unsigned long long)metrics_truncated,(unsigned long long)fetches[0],(unsigned long long)fetches[1],(unsigned long long)fetches[2],(unsigned long long)fetches[3]);
-    APPEND("Foundation local-cache fetch <=250ms/<=1s/<=5s/>5s: %llu/%llu/%llu/%llu\nJS commits are not native mounts; native window membership is not viewport visibility. Fingerprint table: 2048; native observations: 4096. No values or fingerprints reported.\n",
+    APPEND("Foundation local-cache fetch <=250ms/<=1s/<=5s/>5s: %llu/%llu/%llu/%llu\nJS commits are not native mounts; native window membership is not viewport visibility. Fingerprint table: 2048; native observations: 4096. No asset values or fingerprints reported.\n",
         (unsigned long long)fetch_time[3][0],(unsigned long long)fetch_time[3][1],(unsigned long long)fetch_time[3][2],(unsigned long long)fetch_time[3][3]);
 #undef APPEND
     pthread_mutex_unlock(&lock);

@@ -90,7 +90,7 @@ int main(void){
  assert(tas_demand_delegate());
  struct Fake cache={.type=3},network={.type=1},rows={.n=2,.entries={&cache,&network}},report={.rows=&rows};
  metrics(nil,NULL,nil,nil,&report);assert(fetches[3]==1 && fetches[1]==1 && metrics_calls==1);
- char report_text[16384];tas_demand_status(report_text,sizeof(report_text));
+ char report_text[32768];tas_demand_status(report_text,sizeof(report_text));
  assert(!strstr(report_text,"cdn.test") && !strstr(report_text,"private-emote") && !strstr(report_text,"SECRET"));
  assert(strstr(report_text,"local-cache"));
  char tiny[16];tas_demand_status(tiny,sizeof(tiny));assert(tiny[15]==0);
@@ -117,6 +117,20 @@ int main(void){
  tas_demand_event(22,0,NULL,5,2);tas_demand_event(1,1,"https://cdn.test/filter",0,0);assert(stages[6].mount==1);
  tas_demand_status(report_text,sizeof(report_text));assert(strstr(report_text,"scroll-back") && strstr(report_text,"temporal ALL-provider"));
  assert(!strstr(report_text,"cdn.test") && !strstr(report_text,"stage-1"));
+ /* Numeric boundary packets: two fixed slots, sixteen rows each, no raw strings. */
+ char packet[4096];size_t used=0;packet[used++]='[';
+ for(unsigned i=0;i<CALC_VALUES;i++)used+=(size_t)snprintf(packet+used,sizeof(packet)-used,"%s%u",i?",":"",i);
+ packet[used++]=']';packet[used]=0;
+ tas_demand_event(27,0,packet,1,0);assert(calculation_count[0]==1 && calculations[0][0].value[40]==40);
+ tas_demand_event(27,0,"[PRIVATE-HEADER]",1,0);tas_demand_event(27,0,"[NaN]",1,0);
+ tas_demand_event(27,0,packet,3,0);assert(calculation_refused==3);
+ for(unsigned s=1;s<=CALC_SLOTS;s++)for(unsigned i=0;i<20;i++)tas_demand_event(27,0,packet,s,0);
+ assert(calculation_count[0]==16 && calculation_count[1]==16 && calculation_refused==12);
+ tas_demand_event(28,0,NULL,128,16);tas_demand_event(29,0,NULL,1,0);
+ tas_demand_status(report_text,sizeof(report_text));assert(strstr(report_text,"calc list=2 transition=16"));
+ assert(strstr(report_text,"No asset values or fingerprints reported."));
+ assert(!strstr(report_text,"PRIVATE-HEADER") && !strstr(report_text,"cdn.test"));
+ assert(sizeof(calculations)<16*1024);
  for(unsigned i=0;i<ASSETS+50;i++){char u[80];snprintf(u,sizeof(u),"https://cdn.test/%u",i);tas_demand_event(3,1,u,0,0);}
  assert(evictions>=50 && sizeof(assets)+sizeof(requests)+sizeof(views)<512*1024);
  char huge[URL_BUDGET+2];memset(huge,'x',sizeof(huge));huge[sizeof(huge)-1]=0;

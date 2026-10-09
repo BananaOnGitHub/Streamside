@@ -846,8 +846,7 @@ static void image_schedule(void) {
         f->running=true; image_active++; if (!f->foreground) image_background_active++;
         clock_gettime(CLOCK_MONOTONIC,&f->started);
         image_queue_latency[image_bucket(image_elapsed(f->queued,f->started))]++;
-        f->task=objc_retain(((id (*)(id,SEL,id,id))objc_msgSend)(f->session,
-            sel_registerName("dataTaskWithRequest:completionHandler:"),f->request,
+        f->task=objc_retain(image_cache_task(f->session,f->request,
             (id)^(id data,id response,id error) { image_flight_complete(index,generation,data,response,error); }));
         id task=objc_retain(f->task); image_downloads++;
         pthread_mutex_unlock(&image_transport_lock);

@@ -41,6 +41,15 @@ responses **Foundation already proposed to store**, retaining Foundation's
 original storage policy, response/data, and existing userInfo. It forwards the
 passive Foundation transaction metrics to the previous diagnostic observer.
 
+The real Apple gate exposed an important integration distinction: the existing
+completion-handler data tasks stored responses but did not invoke the cache
+proposal hook. Shared (eight-slot bounded) image flights now use Foundation
+delegate data tasks. A task-owned body buffer and copied completion block bridge
+back to the existing one-shot flight completion; chunk assembly is synchronized,
+and the buffer/block are released on completion. Independent restricted image
+tasks and HLS retain their existing completion-handler path. No competing
+downloader or additional active transfer was introduced.
+
 Direct reuse requires a nonempty HTTP 200 response, permitted storage, matching
 URL and exact original request headers, and trustworthy age metadata. Freshness
 supports explicit `max-age` or `Expires` with a valid IMF-fixdate `Date`.
@@ -122,10 +131,21 @@ The compiled snapshot gate must pass before another device scrolling test.
 
 ### Current execution evidence
 
-Local Linux production-path tests and iOS cross-compilation pass. The complete
-suite and exact Hermes regression are rerun before packaging; results are
-recorded with the final handoff. The Apple integration job and on-device cache
-behavior are separate evidence, never inferred from warm-cache task counters.
+Local Linux suite: 102 tests, 101 pass and one explicit Apple-only skip. The
+preserved real donor/Hermes regression passed 7,344 window calculations and 32
+accepted compiled-runtime snapshots. Diagnostic iOS cross-compilation passes.
+
+Apple CI run 37910936725 reached eight active transfers but failed the cached-hit
+deadline: the original completion-handler candidate had zero cache proposals
+and annotations. The delegate-task correction is implemented and passes local
+production-path tests, but its real Foundation rerun is **pending publication
+approval**. Auto-review blocked uploading the existing source file to
+`BananaOnGitHub/Streamside`, despite the earlier general push authorization.
+Phase 2 is **not platform-validated or ready for a device test yet**. The older
+packaged candidate must not be treated as a completed cache-first build.
+
+The Apple integration job and on-device cache behavior remain separate evidence,
+never inferred from warm-cache task counters.
 
 ## Short device check after host/platform gates
 

@@ -4,6 +4,7 @@
  * another downloader/cache. Old, unannotated entries take Foundation's path. */
 #include "TASHTTPCache.h"
 static char image_cache_start_key;
+static char image_cache_completion_key,image_cache_data_key;
 static id image_cache_epoch;
 static id image_cache_store;
 /* Raw pointer permits the same acquire/release publication in C and ObjC. */
@@ -69,13 +70,47 @@ static void image_cache_metrics(id self,SEL cmd,id session,id task,id report) {
     id observer=objc_getAssociatedObject(self,&image_cache_start_key);
     if(observer)((void (*)(id,SEL,id,id,id))objc_msgSend)(observer,cmd,session,task,report);
 }
+/* Completion-handler data tasks bypass Foundation's willCacheResponse hook.
+ * Only bounded shared transfers use delegate data tasks; upstream delivery is
+ * still one complete body/response/error through the existing flight callback.
+ * Foundation keeps responsibility for storage decisions and HTTP validation. */
+static void image_cache_received_data(id self,SEL cmd,id session,id task,id data) {
+    (void)self;(void)cmd;(void)session;
+    objc_sync_enter(task);
+    id body=objc_getAssociatedObject(task,&image_cache_data_key);
+    if(body)vmsg1(body,"appendData:",data);
+    else {
+        body=msg0(data,"mutableCopy");
+        objc_setAssociatedObject(task,&image_cache_data_key,body,1);objc_release(body);
+    }
+    objc_sync_exit(task);
+}
+static void image_cache_completed(id self,SEL cmd,id session,id task,id error) {
+    (void)self;(void)cmd;(void)session;
+    objc_sync_enter(task);
+    id callback=objc_retain(objc_getAssociatedObject(task,&image_cache_completion_key));
+    id body=objc_retain(objc_getAssociatedObject(task,&image_cache_data_key));
+    id response=objc_retain(msg0(task,"response"));
+    objc_setAssociatedObject(task,&image_cache_completion_key,nil,1);
+    objc_setAssociatedObject(task,&image_cache_data_key,nil,1);
+    objc_sync_exit(task);
+    if(callback)((void (^)(id,id,id))callback)(body,response,error);
+    objc_release(response);objc_release(body);objc_release(callback);
+}
+static id image_cache_task(id session,id request,id callback) {
+    id task=msg1(session,"dataTaskWithRequest:",request);
+    if(task)objc_setAssociatedObject(task,&image_cache_completion_key,callback,3); /* copy non-atomic */
+    return task;
+}
 static id image_cache_delegate(void) {
     Class cls=objc_getClass("TASProviderCacheDelegate");
     if(!cls) {
         cls=objc_allocateClassPair(objc_getClass("NSObject"),"TASProviderCacheDelegate",0);
         if(!cls)return nil;
         if(!class_addMethod(cls,sel_registerName("URLSession:dataTask:willCacheResponse:completionHandler:"),(IMP)image_cache_proposed,"v48@0:8@16@24@32@?40") ||
-           !class_addMethod(cls,sel_registerName("URLSession:task:didFinishCollectingMetrics:"),(IMP)image_cache_metrics,"v40@0:8@16@24@32")) {
+           !class_addMethod(cls,sel_registerName("URLSession:task:didFinishCollectingMetrics:"),(IMP)image_cache_metrics,"v40@0:8@16@24@32") ||
+           !class_addMethod(cls,sel_registerName("URLSession:dataTask:didReceiveData:"),(IMP)image_cache_received_data,"v40@0:8@16@24@32") ||
+           !class_addMethod(cls,sel_registerName("URLSession:task:didCompleteWithError:"),(IMP)image_cache_completed,"v40@0:8@16@24@32")) {
             objc_disposeClassPair(cls);return nil;
         }
         objc_registerClassPair(cls);

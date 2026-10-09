@@ -44,7 +44,7 @@ struct Fake {
     id keys[32],values[32];unsigned entries;
     struct Block *completion;
     unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy;
-    bool stop_on_response,foreground;
+    bool stop_on_response,foreground,delegated;
     NSInteger error_code;
     pthread_mutex_t monitor;
 };
@@ -57,7 +57,9 @@ static pthread_cond_t manifest_condition=PTHREAD_COND_INITIALIZER;
 static bool fail_task;
 static bool complete_on_resume;
 static id immediate_data,immediate_response;
-static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key,image_cache_start_key;
+static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key,image_cache_start_key,image_cache_completion_key,image_cache_data_key;
+static void image_cache_received_data(id,SEL,id,id,id);
+static void image_cache_completed(id,SEL,id,id,id);
 static id g_protocol_session;
 void *_NSConcreteStackBlock[32];
 static id fresh(const char *text) {
@@ -103,13 +105,19 @@ static int objc_sync_enter(id o) { return pthread_mutex_lock(&o->monitor); }
 static int objc_sync_exit(id o) { return pthread_mutex_unlock(&o->monitor); }
 static id objc_getAssociatedObject(id o,const void *k) {
     return k==&g_protocol_task_key ? o->task : k==&g_protocol_completed_key ? o->completed :
-        k==&image_consumer_key ? o->consumer : k==&image_cache_start_key ? o->cache_start:o->stopped;
+        k==&image_consumer_key ? o->consumer : k==&image_cache_start_key ? o->cache_start:
+        k==&image_cache_completion_key ? (id)o->completion:k==&image_cache_data_key ? o->data:o->stopped;
 }
 static void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t policy) {
-    assert(policy==1);if(k==&g_protocol_task_key)o->task=value;
+    assert(policy==1 || policy==3);if(k==&g_protocol_task_key)o->task=value;
     else if(k==&g_protocol_completed_key)o->completed=value;
     else if(k==&image_consumer_key)o->consumer=value;
     else if(k==&image_cache_start_key)o->cache_start=value;
+    else if(k==&image_cache_data_key)o->data=value;
+    else if(k==&image_cache_completion_key) {
+        if(value){struct Block *b=(struct Block *)value;assert(policy==3);o->completion=malloc(b->descriptor->size);memcpy(o->completion,b,b->descriptor->size);}
+        else o->completion=NULL;
+    }
     else { assert(k==&g_protocol_stopped_key);o->stopped=value; }
 }
 static void protocol_stop_loading(id,SEL);
@@ -134,6 +142,7 @@ static id dispatch(id o,SEL s,...) {
     else if(!strcmp(s,"UUID"))r=fresh("uuid");
     else if(!strcmp(s,"UUIDString"))r=fresh("test-epoch");
     else if(!strcmp(s,"drain")){}
+    else if(!strcmp(s,"appendData:")){id data=va_arg(a,id);char *text=malloc(strlen(o->text)+strlen(data->text)+1);strcpy(text,o->text);strcat(text,data->text);o->text=text;}
     else if(!strcmp(s,"originalRequest"))r=o->request;
     else if(!strcmp(s,"response"))r=o->response;
     else if(!strcmp(s,"data"))r=o->data;
@@ -172,13 +181,19 @@ static id dispatch(id o,SEL s,...) {
         assert(va_arg(a,id)==&config);assert(va_arg(a,id));assert(va_arg(a,id));r=fresh("image-session");
     }
     else if(!strcmp(s,"sessionWithConfiguration:")) { assert(va_arg(a,id)==&config);r=fresh("session"); }
+    else if(!strcmp(s,"dataTaskWithRequest:")) {
+        id request=va_arg(a,id);assert(request->header && !strcmp(request->header->text,"1"));
+        if(!fail_task){r=fresh("task");r->session=o;r->request=request;r->delegated=true;starts++;}
+    }
     else if(!strcmp(s,"dataTaskWithRequest:completionHandler:")) {
         id request=va_arg(a,id);struct Block *b=va_arg(a,void *);
         assert(request->header && !strcmp(request->header->text,"1"));
         if(!fail_task) { r=fresh("task");r->session=o;r->request=request;r->completion=malloc(b->descriptor->size);
             memcpy(r->completion,b,b->descriptor->size);starts++; }
     } else if(!strcmp(s,"resume")) {o->resumes++;
-        if(complete_on_resume){struct Block *b=o->completion;b->invoke(b,immediate_data,immediate_response,nil);free(b);o->completion=NULL;}}
+        if(complete_on_resume){struct Block *b=o->completion;
+            if(o->delegated){o->response=immediate_response;image_cache_received_data(nil,nil,o->session,o,immediate_data);image_cache_completed(nil,nil,o->session,o,nil);}
+            else b->invoke(b,immediate_data,immediate_response,nil);free(b);o->completion=NULL;}}
     else if(!strcmp(s,"cancel"))o->cancels++;
     else if(!strcmp(s,"statusCode"))r=(id)(uintptr_t)200;
     else if(!strcmp(s,"code"))r=(id)(intptr_t)o->error_code;
@@ -248,7 +263,9 @@ static id task_for(id p) {
 static void complete(id task,id data,id response,id error) {
     /* Foundation serializes a session's completion handlers on its queue. */
     pthread_mutex_lock(&task->session->monitor);
-    struct Block *b=task->completion;b->invoke(b,data,response,error);free(b);task->completion=NULL;
+    struct Block *b=task->completion;
+    if(task->delegated){task->response=response;if(data)image_cache_received_data(nil,nil,task->session,task,data);image_cache_completed(nil,nil,task->session,task,error);}
+    else b->invoke(b,data,response,error);free(b);task->completion=NULL;
     pthread_mutex_unlock(&task->session->monitor);
 }
 struct Completion { id task,data,response; };

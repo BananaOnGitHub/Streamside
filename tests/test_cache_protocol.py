@@ -159,6 +159,12 @@ int main(void) {
     drain_cache();complete_on_resume=false;
     assert(starts==before+1 && hot->client->loads==1 && other->client->loads==1);
     assert(hot->client->finishes==1 && other->client->finishes==1 && !image_active && !image_cache_consumers);
+    /* The actual delegate bridge packs multiple chunks once, releases its
+     * task-owned body/callback, and cannot invoke completion a second time. */
+    cache_defer=false;clear_cache();hot=protocol("https://cdn.7tv.app/emote/chunks/2x.gif");protocol_start_loading(hot,nil);
+    id bridge=task_for(hot);image_cache_received_data(nil,nil,nil,bridge,fresh("GIF"));id packed=bridge->data;
+    complete(bridge,fresh("89a"),cached->response,nil);image_cache_completed(nil,nil,nil,bridge,nil);
+    assert(hot->client->loads==1 && hot->client->finishes==1 && !strcmp(utf8(packed),"GIF89a") && !bridge->completion && !bridge->data);
     char status[4096];tas_image_transport_status(status,sizeof(status));assert(strstr(status,"Cache-hit admission-to-delivery"));
     assert(!strstr(status,"cdn.7tv.app") && !strstr(status,"Accept:") && !strstr(status,"test-epoch"));
     return 0;

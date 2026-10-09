@@ -110,3 +110,57 @@ the existing system numeric parser used only by this diagnostic packet reader.
 No cache-first, queue-overflow, retry or artificial-window-clamp changes are
 included. Phase 1B remains open until the device calculation explains the
 expanded first-open range. Phases 2 and 3 remain separate.
+
+## Build 75 device results: A and B
+
+The two supplied reports reproduce the expanded range but do **not** capture
+the calculation snapshots needed to explain it.
+
+| Observation | A: first stationary opening | B: after scrolling and reopening |
+| --- | --- | --- |
+| Library openings | 1 | 3 (two reopens, aggregated) |
+| Library JS instances live / launch peak | 837 / 837 | 837 / 837 |
+| Open or reopen stage mounts | 837 | 1,674 across two reopens |
+| Open or reopen maximum range / mask / catalog columns | 168 / 168 / 168 | 168 / 168 / 168 |
+| Inner viewport / content width | 370 / 10,360 points | 370 / 10,360 points |
+| Maximum viewable columns | 7 | 7 |
+| Calculation installed / restored | 1 / 1 | 2 / 2 |
+| Finished calculation calls / snapshots | 24 / 0 | 60 / 0 |
+| Unsupported observations / packet refusals | 24 / 0 | 61 / 0 |
+| Foundation transactions: network / local cache | 0 / 851 | 0 / 2,647 |
+
+B's 2,856 cumulative mounts are not simultaneous views: 2,019 have unmounted,
+leaving 837. Its scroll stage unmounted 1,052 and mounted 345; close released
+another 967 library instances and 44 recent instances across the recorded
+closings. Reopen mounted 837 images per opening. The closing counts establish
+cleanup, while reopening again expands to the full catalog. The bounded
+reopening seen in build 74 was not reproduced in this run. Neither the precise
+range-expansion condition nor a reason for that difference is established.
+
+Every recorded Foundation transaction in this run was a local-cache response.
+All task completions and local-cache fetches were within 250 ms after admission.
+B's queue waits were 2,548 within 250 ms and 99 within one second; none exceeded
+one second. Library source-to-onLoad callbacks were 689 within 250 ms, 1,593
+within one second and 574 within five seconds. These callbacks include downstream
+RN/decode work; they are not network download measurements or direct pixel
+display measurements. This run cannot establish cold-network performance or
+the Phase 2 requirement to bypass an occupied network admission queue.
+
+The calculation wrapper did install and observe actual calls, then restore
+at its deadline. It retained zero numeric snapshots. Status 3 currently combines
+diagnostic preparation/serialization failures with unsupported installation;
+the extra unsupported observation in B is consistent with the third list being
+outside the two-instance budget. With no packet refusals and zero JS snapshots,
+the capture failure occurred before successful snapshot emission, not in the
+native numeric packet reader. The reports do not expose the exact failing
+expression. Inspection confirms the donor method's three-argument signature
+matches the wrapper and the state updater passes props, previous range and
+pending count in that order. Those checks do not resolve the runtime failure.
+
+The host fixtures exercised source-level mocks; the graft verification exercised
+bytecode structure and donor preservation. Neither executed this probe against
+the device's RN instances. This is a validation gap in build 75, not evidence
+that the calculation stayed bounded. The probe needs a narrowly validated
+repair before another device pass can yield the requested inputs. More reports
+from unchanged build 75 would not supply them. No speculative rendering fix,
+additional IPA, cache change or queue change is made from these results.

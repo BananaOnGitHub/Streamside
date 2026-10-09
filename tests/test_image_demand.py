@@ -130,7 +130,13 @@ int main(void){
  tas_demand_status(report_text,sizeof(report_text));assert(strstr(report_text,"calc list=2 transition=16"));
  assert(strstr(report_text,"No asset values or fingerprints reported."));
  assert(!strstr(report_text,"PRIVATE-HEADER") && !strstr(report_text,"cdn.test"));
- assert(sizeof(calculations)<16*1024);
+ assert(sizeof(calculations)<16*1024 && sizeof(calculation_steps)<512);
+ for(unsigned step=1;step<=12;step++)for(unsigned outcome=0;outcome<3;outcome++)tas_demand_event(30,0,NULL,step,outcome);
+ tas_demand_event(30,0,NULL,1.5,2);tas_demand_event(30,0,NULL,13,2);tas_demand_event(30,0,NULL,1,3);
+ for(unsigned step=1;step<=12;step++)for(unsigned outcome=0;outcome<3;outcome++)assert(calculation_steps[step][outcome]==1);
+ assert(!tas_demand_snapshot(packet,NAN) && !tas_demand_snapshot(packet,INFINITY));
+ tas_demand_status(report_text,sizeof(report_text));assert(strstr(report_text,"Snapshot step native delivery attempted/passed/failed: 1/1/1"));
+ assert(strstr(report_text,"No asset values or fingerprints reported."));
  for(unsigned i=0;i<ASSETS+50;i++){char u[80];snprintf(u,sizeof(u),"https://cdn.test/%u",i);tas_demand_event(3,1,u,0,0);}
  assert(evictions>=50 && sizeof(assets)+sizeof(requests)+sizeof(views)<512*1024);
  char huge[URL_BUDGET+2];memset(huge,'x',sizeof(huge));huge[sizeof(huge)-1]=0;

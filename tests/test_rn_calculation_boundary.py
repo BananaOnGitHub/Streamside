@@ -17,7 +17,7 @@ class CalculationBoundaryTests(unittest.TestCase):
         script += r'''
 let events=[],scheduled=new Map(),serial=0;
 env.setTimeout=(fn,delay)=>{const id=++serial;scheduled.set(id,{fn,delay});return id;};
-env.clearTimeout=id=>scheduled.delete(id);bridge.observe=(...args)=>events.push(args);
+env.clearTimeout=id=>scheduled.delete(id);bridge.observe=(...args)=>{events.push(args);return args[0]===27?1:undefined;};
 function cleanup(key){(slots.get(key)||[]).forEach(s=>{if(s&&s.cleanup)s.cleanup();});slots.delete(key);}
 function columns(sid){p.channelID='42';p.emotePickerSID=sid;library();g=grid();const e=row();return render(e.type,e.props,sid+'-columns');}
 const result={first:0,last:6},original=function(){return result;};
@@ -52,7 +52,7 @@ let events=[],scheduled=new Map(),serial=0,clock=0;
 env.performance={now:()=>clock};
 env.setTimeout=(fn,delay)=>{const id=++serial;scheduled.set(id,{fn,delay});return id;};
 env.clearTimeout=id=>scheduled.delete(id);
-bridge.observe=(...args)=>events.push(args);
+bridge.observe=(...args)=>{events.push(args);return args[0]===27?1:undefined;};
 function cleanup(key){(slots.get(key)||[]).forEach(s=>{if(s&&s.cleanup)s.cleanup();});slots.delete(key);}
 function makeColumns(sid){p.channelID='42';p.emotePickerSID=sid;library();g=grid();const e=row();return [e,render(e.type,e.props,sid+'-columns')];}
 channel=Array.from({length:837},(_,i)=>({...a,id:1000+i,url:'asset-'+i}));

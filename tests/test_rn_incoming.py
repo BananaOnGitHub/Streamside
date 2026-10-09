@@ -765,6 +765,7 @@ void tas_demand_event(unsigned e,unsigned s,const char *u,double a,double b){(vo
 void tas_demand_mark_url(void *u,unsigned s){(void)u;(void)s;}
 unsigned tas_demand_url_scope(void *u){(void)u;return 0;}
 void tas_demand_install(void){}
+bool tas_demand_snapshot(const char *u,double slot){(void)u;(void)slot;return true;}
 '''
         root = Path(self.folder.name)
         path = root/'demand_registration.c'; path.write_text(source)

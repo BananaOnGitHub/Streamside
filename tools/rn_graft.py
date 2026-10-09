@@ -58,11 +58,29 @@ def assemble(reader, fid, strings, base):
         if any(o.operand_type.name == 'Addr8' for o in inst.operands):
             inst = hbc98._name_to_instruction[inst.name+'Long']
         rows.append((x,inst,args))
-    positions = {}; total = 0
+    # Get/PutById require an already materialized identifier in Hermes. A
+    # spelling present only as a donor literal (e.g. "remember") is not enough:
+    # getSymbolIDMustExist does not intern it. Materialize those owned property
+    # operands with LoadConstString before the function initializes registers.
+    # Register 0 is uninitialized at entry; no frame/outgoing-call layout changes.
+    literal_properties = set()
+    for x,inst,args in rows:
+        if inst.name.startswith(('GetById','TryGetById','PutById','PutNewOwnById')):
+            for i,o in enumerate(x.inst.operands):
+                if o.operand_meaning and o.operand_meaning.name == 'string_id':
+                    # strings carries the exact donor kind alongside IDs below.
+                    if getattr(strings,'kinds',{}).get(args[i]) == 0: literal_properties.add(args[i])
+    prefix = bytearray()
+    if literal_properties and not f.frameSize: raise ValueError('No entry scratch register')
+    for sid in sorted(literal_properties):
+        inst=hbc98._name_to_instruction['LoadConstStringLongIndex' if sid>65535 else 'LoadConstString']
+        encoded=inst.structure();encoded.arg1=0;encoded.arg2=sid
+        prefix.append(inst.opcode);prefix.extend(bytes(encoded))
+    positions = {}; total = len(prefix)
     for x,inst,args in rows:
         positions[x.original_pos] = total; total += inst.binary_size
     positions[f.bytecodeSizeInBytes] = total
-    body = bytearray()
+    body = prefix
     for x,inst,args in rows:
         for i,o in enumerate(inst.operands):
             if o.operand_type.name.startswith('Addr'):
@@ -85,7 +103,10 @@ def generate(donor, compiler, source, output, *, prefix='POPUP', factory_id=3801
     original = Path(donor).read_bytes()
     if hashlib.sha256(original).hexdigest() != '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b':
         raise ValueError('Wrong donor')
-    h = read(original); ids = {s:i for i,s in reversed(list(enumerate(h.strings)))}
+    h = read(original)
+    class DonorStrings(dict): pass
+    ids = DonorStrings({s:i for i,s in reversed(list(enumerate(h.strings)))})
+    ids.kinds = dict(enumerate(h.string_kinds))
     with tempfile.TemporaryDirectory() as tmp:
         file = Path(tmp)/'owned.hbc'
         subprocess.run([str(compiler),'-O','-fno-inline','-g0','-emit-binary','-out',str(file),str(source)],check=True)

@@ -164,3 +164,105 @@ that the calculation stayed bounded. The probe needs a narrowly validated
 repair before another device pass can yield the requested inputs. More reports
 from unchanged build 75 would not supply them. No speculative rendering fix,
 additional IPA, cache change or queue change is made from these results.
+
+## Build 76 — snapshot pipeline validation gate
+
+Build 75's zero snapshots remain a diagnostic failure, not an explanation of
+168-column rendering. This repair separates twelve preparation steps into
+attempted/passed/failed aggregate counters: props/catalog, content and scroll
+metrics, numeric classification, base values, metric getter, observer install,
+frame sampling, observer restoration, result values, frame packing,
+serialization, and native delivery. No exception strings are retained. Sampling
+failure remains distinct from real invalid/mismatched frame values. The native
+five-argument `observe` export acknowledges event 27 only after its actual
+bounded numeric parser and fixed snapshot store accept the packet. JS advances
+the snapshot count only on acknowledgement; duplicate suppression follows
+acceptance, allowing a failed diagnostic delivery to be attempted on the next
+real calculation. No timer retries or image requests are introduced.
+
+Host validation now executes the full production C graft chain in the matching
+Hermes 98 runtime, revision `40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c`
+(tag `hermes-v250829098.0.19`). Only the test bundle's global bootstrap is
+substituted to expose the installer; every owned function body comes from the
+shipped payload. React hooks/list state are fixtures, and platform object boxing
+is a host adapter. JSI calls the same production `rn_demand_observe` handler,
+export metadata, packet parser and report store used by the app. This does not
+execute iOS Fabric, RCTMethod's Objective-C converter, Foundation, or actual
+on-device layout. The host uses Unicode Lite and no Intl; numeric/ASCII packet
+validation does not establish unrelated Unicode runtime behavior.
+
+The compiled test produced 32 accepted 41-number snapshots across two owned
+lists, including `viewport/content=370/10360` and `pending/catalog=0/168`.
+All twelve failure-stage counters were exercised through the real generator.
+Tests cover receiver/argument/result/frame identity, exactly one original
+calculation per call, restoration after original exceptions, malformed packet
+rejection, native delivery acknowledgement/refusal, duplicate suppression,
+16-row caps, dismissal and timer cleanup. Existing Node contract tests retain
+128-call and five-second lifetime coverage. Fixture result ranges are supplied
+by a test calculation: they are **not** device evidence explaining 168 columns.
+
+Executing the graft exposed a separate prerequisite that source mocks and a
+valid disassembly had missed. Donor string ID 85127 (`remember`) has literal
+kind, not identifier kind. Hermes fast property instructions require a
+materialized symbol for their string ID. The assembler now inserts bounded
+`LoadConstString` entry instructions only in owned functions that use a
+literal-kind donor spelling as a fast property operand. Register zero is unused
+at entry; frame sizes, outgoing-call register layout, original donor functions,
+string/kind/hash tables and source property names remain unchanged. The complete
+graft previously failed the host installer guard (and could produce an invalid
+symbol); it now executes and passes native snapshot acceptance. This is not
+proof that the same condition caused build 75's device snapshot failures: that
+library successfully mounted, and its startup execution differed from the
+isolated host bootstrap. The new failure counters address that remaining gap.
+
+**Hard rule:** no diagnostic build or further device test until the compiled
+snapshot pipeline validates for its current inputs. `build.sh` enforces this
+when `IMAGE_DEMAND_DIAGNOSTIC=1`; missing, failed or stale validation records stop
+the build. Even after host validation, the next device check is stationary only.
+Do not request another full scrolling test until a device report includes at
+least one accepted `calc list=... transition=...` row. If no row appears, inspect
+the named failure counters before requesting more activity.
+
+Short device check for build 76: restart Twitch, enter the same large emote
+channel, open the library and leave it stationary for ten seconds, then collect
+one report while still open. Close and reopen stationary for ten seconds and
+collect a second report. No scrolling test is needed for this pipeline check.
+If the first report has no accepted row, stop there and use its failure stages.
+
+The donor's virtualization calculations, provider list props/keys, visible
+window, catalog, transport admission, concurrency, queue limit, cancellation,
+cache policy and HLS paths are unchanged. Full-chain verification compares all
+47,322 preceding function bodies/handlers and confirms only the existing scoped
+installer splice plus owned graft bodies differ.
+
+Build 75's 2,647 Foundation transactions were all local-cache responses and its
+post-admission completions were all under 250 ms. This supports prompt **warm
+cache task completion after admission** in that run only. It does not test cold
+network traffic, cache lookup behind saturated network admission, downstream
+pixel/display latency, or universally solved cache performance. Phase 2 remains
+the cache-first admission correction; Phase 3 remains residual queue overflow.
+
+### Reproducing the compiled test
+
+Use an existing clone of the public `facebook/hermes` repository checked out at
+the revision above. Build the runner with:
+
+```
+python3 tools/build_snapshot_runtime.py --source /path/hermes --build /path/hermes-build --cmake /path/cmake --ninja /path/ninja
+```
+
+Then, with the corrected Hermes-98 parser dependencies on `PYTHONPATH`:
+
+```
+python3 tools/validate_rn_snapshot.py --donor /path/original.hbc --zig /path/zig --hermesc /path/hermesc --runner /path/hermes-build/bin/streamside-snapshot-runner --runtime-source /path/hermes
+```
+
+The validator regenerates and checks the payload before execution, rejects
+mismatched runtime revision or runner build evidence, and records source/payload
+fingerprints, compiler/runner hashes and native acceptance in
+`build/snapshot-validation.json`. It writes a privacy-safe host report alongside
+that record. The record is local build evidence, not a committed substitute for
+rerunning validation. Set `TAS_HERMES_SNAPSHOT_RUNNER`, `TAS_HERMES_SOURCE`,
+`TAS_HERMESC`, `TAS_RN_DONOR` and `ZIG` to include this execution test in the full
+unittest suite. A missing runtime may skip that expensive unittest, but cannot
+bypass the diagnostic build gate.

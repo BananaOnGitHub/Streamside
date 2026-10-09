@@ -50,6 +50,8 @@ typedef struct { double value[CALC_VALUES]; unsigned stage; } Calculation;
 static Calculation calculations[CALC_SLOTS][CALC_ROWS];
 static unsigned calculation_count[CALC_SLOTS];
 static uint64_t calculation_status[8],calculation_calls,calculation_records,calculation_refused;
+/* Per-adjustment attempted/passed/failed stage counters, no error strings. */
+static uint64_t calculation_steps[13][3];
 static bool calculation_values(const char *text,double out[CALC_VALUES]) {
     if(!text || strnlen(text,4097)>4096 || *text++!='[')return false;
     for(unsigned i=0;i<CALC_VALUES;i++) {
@@ -62,6 +64,16 @@ static bool calculation_values(const char *text,double out[CALC_VALUES]) {
         text=end+1;
     }
     return !*text;
+}
+bool tas_demand_snapshot(const char *text,double slot) {
+    double values[CALC_VALUES];bool valid=calculation_values(text,values),accepted=false;
+    pthread_mutex_lock(&lock);
+    if(!valid || !stage_current || !isfinite(slot) || slot<1 || slot>CALC_SLOTS || floor(slot)!=slot)calculation_refused++;
+    else {unsigned s=(unsigned)slot-1,n=calculation_count[s];
+        if(n<CALC_ROWS){memcpy(calculations[s][n].value,values,sizeof(values));calculations[s][n].stage=stage;calculation_count[s]++;accepted=true;}
+        else calculation_refused++;
+    }
+    pthread_mutex_unlock(&lock);return accepted;
 }
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
 static id m1(id o,const char *s,id a){return ((id (*)(id,SEL,id))objc_msgSend)(o,sel_registerName(s),a);}
@@ -87,16 +99,11 @@ static Asset *asset_locked(Key k) {
 void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,double b) {
     if(event>=TAS_DEMAND_EVENTS || scope>=TAS_DEMAND_SCOPES || !isfinite(a) || !isfinite(b))return;
     if(scope==0 && event>=27) {
-        double values[CALC_VALUES];bool valid=event!=27 || calculation_values(url,values);
+        if(event==27){(void)tas_demand_snapshot(url,a);return;}
         pthread_mutex_lock(&lock);
-        if(event==27) {
-            if(!valid || !stage_current || a<1 || a>CALC_SLOTS || floor(a)!=a)calculation_refused++;
-            else {unsigned slot=(unsigned)a-1,n=calculation_count[slot];
-                if(n<CALC_ROWS){memcpy(calculations[slot][n].value,values,sizeof(values));calculations[slot][n].stage=stage;calculation_count[slot]++;}
-                else calculation_refused++;
-            }
-        } else if(event==28 && a>=0 && a<=128 && b>=0 && b<=16) {calculation_calls+=(uint64_t)a;calculation_records+=(uint64_t)b;}
+        if(event==28 && a>=0 && a<=128 && b>=0 && b<=16) {calculation_calls+=(uint64_t)a;calculation_records+=(uint64_t)b;}
         else if(event==29 && a>=1 && a<8 && floor(a)==a)calculation_status[(unsigned)a]++;
+        else if(event==30 && a>=1 && a<=12 && floor(a)==a && b>=0 && b<=2 && floor(b)==b)calculation_steps[(unsigned)a][(unsigned)b]++;
         pthread_mutex_unlock(&lock);return;
     }
     Key k=key(url);pthread_mutex_lock(&lock);events[scope][event]++;
@@ -282,6 +289,9 @@ void tas_demand_status(char *buffer,size_t capacity) {
     APPEND("RN startup calculation boundary (first two owned lists; max 16 snapshots/128 calls/5 seconds each)\nInstalled/restored/unsupported/call limit/time limit/snapshot limit/original throws: %llu/%llu/%llu/%llu/%llu/%llu/%llu; finished calls/snapshots: %llu/%llu; packet refusals: %llu\n",
         (unsigned long long)calculation_status[1],(unsigned long long)calculation_status[2],(unsigned long long)calculation_status[3],(unsigned long long)calculation_status[4],(unsigned long long)calculation_status[5],(unsigned long long)calculation_status[6],(unsigned long long)calculation_status[7],(unsigned long long)calculation_calls,(unsigned long long)calculation_records,(unsigned long long)calculation_refused);
     APPEND("Branch: 1=window algorithm 2=missing dimensions 3=pending update 4=virtualization disabled. Zoom: 0=zero 1=unit 2=positive non-unit 3=negative 4=missing 5=non-finite. Offset: sign only, 2=invalid. Velocity: direction above unit threshold, 2=invalid. Cell samples are the first four distinct indices actually queried, not extra RN queries; -1=missing/invalid.\n");
+    const char *step_names[]={"","props/catalog","content/scroll metrics","numeric classification","base values","metric getter","metric observer install","frame sampling","metric observer restore","result values","frame packing","serialization","native delivery"};
+    for(unsigned i=1;i<=12;i++)APPEND("Snapshot step %s attempted/passed/failed: %llu/%llu/%llu\n",step_names[i],(unsigned long long)calculation_steps[i][0],(unsigned long long)calculation_steps[i][1],(unsigned long long)calculation_steps[i][2]);
+    APPEND("Snapshot delivery counts require native acceptance; failure stages retain no exception text. Full scrolling tests are gated on compiled-runtime snapshot validation.\n");
     for(unsigned s=0;s<CALC_SLOTS;s++)for(unsigned row=0;row<calculation_count[s];row++) {
         Calculation *c=&calculations[s][row];double *v=c->value;
         APPEND("calc list=%u transition=%u stage=%s branch=%.0f prev=%.0f..%.0f result=%.0f..%.0f viewport/content=%.2f/%.2f zoom(code/value)=%.0f/%.4f offset/velocity=%.0f/%.0f pending/catalog=%.0f/%.0f initial/batch/window=%.0f/%.0f/%.0f nested/layout=%.0f/%.0f queries/invalid/mismatch=%.0f/%.0f/%.0f\n",

@@ -395,9 +395,9 @@ function install(original) {
     var ip = properties(image), source = {}; source.uri = item.url; ip.source = source; ip.resizeMode = "contain";
     return React.createElement(RN.Pressable, bp, imageElement(ip, scope || 1, context.trace));
   }
-  // Diagnostic-only adapter. Read the exact donor's VirtualizedList state;
-  // never patch its methods, metrics, props or render mask. One bounded startup
-  // sampler distinguishes layout callbacks from the metrics used by RN.
+  // Diagnostic-only adapter. Bounded owned-instance observers read the exact
+  // donor's VirtualizedList state and real metric queries. Calculation results,
+  // input props, metrics and render masks retain their original values.
   function LibraryColumnsTrace(p) {
     var native = p.data, trace = p.context, ref = React.useRef(null), timer = React.useRef(null);
     var calculation = React.useRef(null);
@@ -425,26 +425,35 @@ function install(original) {
         if (reason) observe(29, 0, null, reason);
       }
       function number(value) { return typeof value === "number" && Number.isFinite(value) && Math.abs(value) < 10000000 ? value : -1; }
+      var preparation = 0;
+      function begin(step) { preparation = step; observe(30, 0, null, step, 0); }
+      function pass(step) { observe(30, 0, null, step, 1); }
+      function fail(step) { observe(30, 0, null, step, 2); }
       function wrapped(props, previousRange, pending) {
         if (stopped || running) return original.apply(this, arguments);
         if (calls >= 128 || records >= 16) { stop(calls >= 128 ? 4 : 6); return original.apply(this, arguments); }
         calls++; running = true;
-        var metric = this._listMetrics, get, metricOwned, metricWrapped, values = null;
-        var frames = [], frameCalls = 0, invalid = 0, mismatches = 0;
+        var metric, get, metricOwned, metricWrapped, values = null;
+        var frames = [], frameCalls = 0, invalid = 0, mismatches = 0, frameFailures = 0;
         try {
+          begin(1); metric = this._listMetrics;
           var metrics = this._scrollMetrics, count = props.getItemCount(props.data);
+          pass(1); begin(2);
           var content = metric.getContentLength(), zoom = metrics.zoomScale, velocity = metrics.velocity;
+          pass(2); begin(3);
           var zoomCode = typeof zoom !== "number" ? 4 : !Number.isFinite(zoom) ? 5 : zoom === 0 ? 0 : zoom === 1 ? 1 : zoom < 0 ? 3 : 2;
           var branch = metrics.visibleLength <= 0 || content <= 0 ? 2 : props.disableVirtualization ? 4 : pending > 0 ? 3 : 1;
+          pass(3); begin(4);
           values = [number(previousRange.first), number(previousRange.last), 0, 0,
             number(metrics.visibleLength), number(content), zoomCode, number(zoom),
             metrics.offset === 0 ? 0 : metrics.offset > 0 ? 1 : metrics.offset < 0 ? -1 : 2,
             typeof velocity !== "number" || !Number.isFinite(velocity) ? 2 : velocity > 1 ? 1 : velocity < -1 ? -1 : 0,
             number(pending), number(count), number(props.initialNumToRender), number(props.maxToRenderPerBatch), number(props.windowSize), branch,
             0, 0, 0, this._isNestedWithSameOrientation() ? 1 : 0, typeof props.getItemLayout === "function" ? 1 : 0];
-          get = metric.getCellMetricsApprox;
+          pass(4); begin(5); get = metric.getCellMetricsApprox;
           if (typeof get !== "function") throw new Error();
           metricOwned = Object.prototype.hasOwnProperty.call(metric, "getCellMetricsApprox");
+          pass(5); begin(6);
           metricWrapped = function (index, actualProps) {
             var frame = get.apply(this, arguments); // Exactly one real query.
             if (frameCalls++ < 64) try {
@@ -454,30 +463,47 @@ function install(original) {
               if (expected && (Math.abs(frame.length - expected.length) > 0.5 || Math.abs(frame.offset - expected.offset) > 0.5)) mismatches++;
               if (frames.length < 4 && !frames.some(function (sample) { return sample[0] === index; }))
                 frames.push([number(index), length, offset, expected ? number(expected.length) : -1, expected ? number(expected.offset) : -1]);
-            } catch (error) { invalid++; }
+            } catch (error) { invalid++; frameFailures++; }
             return frame;
           };
           metric.getCellMetricsApprox = metricWrapped;
-        } catch (error) { observe(29, 0, null, 3); }
+          if (metric.getCellMetricsApprox !== metricWrapped) throw new Error();
+          pass(6);
+        } catch (error) { fail(preparation); values = null; observe(29, 0, null, 3); }
         var result;
         try { result = original.apply(this, arguments); }
         catch (error) { observe(29, 0, null, 7); throw error; }
         finally {
-          if (metricWrapped && metric.getCellMetricsApprox === metricWrapped) {
-            if (metricOwned) metric.getCellMetricsApprox = get; else delete metric.getCellMetricsApprox;
-          }
+          if (metricWrapped) try {
+            begin(8);
+            if (metric.getCellMetricsApprox === metricWrapped) {
+              if (metricOwned) metric.getCellMetricsApprox = get; else delete metric.getCellMetricsApprox;
+            }
+            pass(8);
+          } catch (error) { fail(8); observe(29, 0, null, 3); }
           running = false;
         }
+        if (frameCalls) { begin(7); if (frameFailures) fail(7); else pass(7); }
         if (values) try {
+          begin(9);
           values[2] = number(result.first); values[3] = number(result.last);
+          pass(9); begin(10);
           values[16] = frameCalls; values[17] = invalid; values[18] = mismatches;
           for (var i = 0; i < 4; i++) {
             if (frames[i]) values = values.concat(frames[i]);
             else for (var j = 0; j < 5; j++) values.push(-1);
           }
+          if (values.length !== 41) throw new Error();
+          pass(10); begin(11);
           var signature = JSON.stringify(values);
-          if (signature !== last) { last = signature; mark(trace.type); observe(27, 0, signature, slot); records++; }
-        } catch (error) { observe(29, 0, null, 3); }
+          pass(11);
+          if (signature !== last) {
+            begin(12); mark(trace.type);
+            var accepted = bridge.observe(27, 0, signature, slot, 0);
+            if (accepted !== 1 && accepted !== true) throw new Error();
+            last = signature; records++; pass(12);
+          }
+        } catch (error) { fail(preparation); observe(29, 0, null, 3); }
         if (calls >= 128 || records >= 16) stop(calls >= 128 ? 4 : 6);
         return result;
       }

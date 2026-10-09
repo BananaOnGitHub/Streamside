@@ -1441,24 +1441,7 @@ static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
  * persistent setting is the same one used by Streamside's segmented control.
  * JS polls this tiny revision/config snapshot only while the input is focused;
  * catalog entries are searched on token/revision changes, never on each tick. */
-#include "TASImageDemand.h"
-#if TAS_IMAGE_DEMAND_DIAGNOSTIC
-static id rn_demand_observe(id self,SEL command,id event,id scope,id asset,id a,id b) {
-    (void)self;(void)command;
-    if(!kind(event,"NSNumber") || !kind(scope,"NSNumber") || !kind(a,"NSNumber") || !kind(b,"NSNumber"))return nil;
-    unsigned e=(unsigned)((unsigned (*)(id,SEL))objc_msgSend)(event,sel_registerName("unsignedIntValue"));
-    unsigned s=(unsigned)((unsigned (*)(id,SEL))objc_msgSend)(scope,sel_registerName("unsignedIntValue"));
-    const char *url=kind(asset,"NSString") ? text(asset):NULL;
-    /* URLs are transient function arguments only. Never stored or reported. */
-    tas_demand_event(e,s,url,((double (*)(id,SEL))objc_msgSend)(a,sel_registerName("doubleValue")),
-        ((double (*)(id,SEL))objc_msgSend)(b,sel_registerName("doubleValue")));
-    return nil;
-}
-static const TASRNMethodInfo *rn_demand_export(id self,SEL command) {
-    (void)self;(void)command;
-    static const TASRNMethodInfo info={"observe","observe:(NSNumber *)event scope:(NSNumber *)scope asset:(NSString *)asset a:(NSNumber *)a b:(NSNumber *)b",YES};return &info;
-}
-#endif
+#include "TASDemandRNBridge.h"
 static id rn_strip_state(id self,SEL command) {
     (void)self;(void)command;
     id result=call0((id)objc_getClass("NSMutableDictionary"),"new");

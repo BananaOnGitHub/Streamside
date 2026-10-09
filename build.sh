@@ -19,6 +19,12 @@ IMAGE_DEMAND_DIAGNOSTIC="${IMAGE_DEMAND_DIAGNOSTIC:-0}"
 case "$IMAGE_DEMAND_DIAGNOSTIC" in 0|1) ;; *) echo 'IMAGE_DEMAND_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
 case "$EMOTE_DIAGNOSTIC" in 0|1) ;; *) echo 'EMOTE_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
 
+# A diagnostic build cannot precede its own compiled snapshot validation.
+# This gate is independent of any request for device reports or scrolling tests.
+if [ "$IMAGE_DEMAND_DIAGNOSTIC" = 1 ]; then
+    python3 tools/validate_rn_snapshot.py --check "${RN_SNAPSHOT_VALIDATION:-$PWD/build/snapshot-validation.json}"
+fi
+
 mkdir -p build "$LOCAL_CACHE" "$GLOBAL_CACHE"
 
 build_binary() {

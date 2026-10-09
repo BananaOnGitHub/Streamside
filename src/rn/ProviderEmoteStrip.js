@@ -16,6 +16,39 @@ function install(original) {
       !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
       !bridge || !bridge.getState || !bridge.search) return original;
   var Context = React.createContext(null);
+  // Demand-only wrapper: original Image type/source/style and handlers remain
+  // intact. Effects count committed JS instances, never attempted renders.
+  function observe(event, scope, asset, a, b) {
+    if (bridge.observe) try { bridge.observe(event, scope, asset || "", a || 0, b || 0); } catch (error) {}
+  }
+  function DemandImage(p) {
+    var ip = p.data, scope = p.index, uri = ip.source && ip.source.uri || ip.src;
+    var current = React.useRef(null);
+    React.useEffect(function () { observe(1, scope); return function () { observe(2, scope); }; }, [scope]);
+    React.useEffect(function () {
+      observe(0, scope);
+      if (!current.current || current.current.uri !== uri) {
+        current.current = {}; current.current.uri = uri; current.current.start = performance.now(); current.current.loaded = false;
+        observe(3, scope, uri);
+      } else observe(4, scope);
+    });
+    var copy = Object.assign({}, ip);
+    if(scope !== 5) copy.testID = scope === 1 ? "provider" : scope === 2 ? "recents" : scope === 3 ? "emote" : "EmoteCard";
+    copy.onLoadStart = function (event) { observe(5, scope); if (ip.onLoadStart) ip.onLoadStart(event); };
+    copy.onLoad = function (event) {
+      var latest = current.current;
+      if (latest && latest.uri === uri && !latest.loaded) {
+        latest.loaded = true; observe(6, scope, null, Math.max(0, performance.now() - latest.start));
+      } else if (!latest || latest.uri !== uri) observe(14, scope);
+      if (ip.onLoad) ip.onLoad(event);
+    };
+    copy.onError = function (event) { observe(7, scope); if (ip.onError) ip.onError(event); };
+    return React.createElement(p.type || RN.Image, copy);
+  }
+  function imageElement(ip, scope) {
+    if (!bridge.observe) return React.createElement(RN.Image, ip);
+    var p = {}; p.data = ip; p.index = scope; return React.createElement(DemandImage, p);
+  }
   function properties(style) { var p = {}; p.style = style; return p; }
   function space(c) {
     return c === 32 || c === 9 || c === 10 || c === 13 || c === 160 ||
@@ -249,7 +282,7 @@ function install(original) {
         var image = {}; image.height = 32; image.width = Math.min(96, 32 * Math.max(0.1, item.aspect));
         var ip = properties(image), source = {}; source.uri = item.url; ip.source = source; ip.resizeMode = "contain";
         var text = properties(label); text.numberOfLines = 1;
-        children.push(React.createElement(RN.Pressable, button, React.createElement(RN.Image, ip), React.createElement(RN.Text, text, item.name)));
+        children.push(React.createElement(RN.Pressable, button, imageElement(ip, 3), React.createElement(RN.Text, text, item.name)));
       }
       if (children.length) {
         var style = {}; style.height = 60; style.flexGrow = 0; style.backgroundColor = theme.colors.backgroundBase;
@@ -332,7 +365,7 @@ function install(original) {
       bp.onPress = function () { pending.current = action; handoff.onClose(); };
       return React.createElement(RN.Pressable, bp, React.createElement(RN.Text, properties(sub), label));
     }
-    var content = React.createElement(RN.View, properties(surface), React.createElement(RN.Image, ip),
+    var content = React.createElement(RN.View, properties(surface), imageElement(ip, 4),
       React.createElement(RN.Text, properties(title), m.name), React.createElement(RN.Text, properties(sub), m.subtitle),
       button(m.title, 0), button(m.label, 1), button(m.openURL, 2), button(m.closeLabel, -1));
     var sp = {}; sp.visible = handoff.visible; sp.onClose = handoff.onClose;
@@ -340,14 +373,14 @@ function install(original) {
     sp.initialDetent = false; sp.disableBodyInlinePadding = true; sp.accessibilityLabel = m.name;
     return React.createElement(ui.BottomSheet, sp, content);
   }
-  function tile(item, context, width) {
+  function tile(item, context, width, scope) {
     var style = {}; style.width = width; style.height = 52; style.alignItems = "center"; style.justifyContent = "center";
     var bp = properties(style); bp.key = item.id; bp.accessibilityRole = "button"; bp.accessibilityLabel = item.name;
     bp.onPress = function () { context.onSelectEmote(item); }; bp.onLongPress = function () { context.info(item); };
     var image = {}; image.height = Math.min(40, (width - 8) / Math.max(0.1, item.aspect));
     image.width = Math.min(width - 8, 40 * Math.max(0.1, item.aspect));
     var ip = properties(image), source = {}; source.uri = item.url; ip.source = source; ip.resizeMode = "contain";
-    return React.createElement(RN.Pressable, bp, React.createElement(RN.Image, ip));
+    return React.createElement(RN.Pressable, bp, imageElement(ip, scope || 1));
   }
   function title(text, context, height) {
     var style = {}; style.height = height; style.paddingHorizontal = 12; style.fontSize = 14;
@@ -380,6 +413,7 @@ function install(original) {
     var native = p.data, context = p.context;
     var size = React.useState(360), width = size[0], setWidth = size[1];
     var current = React.useRef(null), ref = React.useRef(null);
+    var viewable = React.useRef(function (event) { observe(11, 0, null, (event.viewableItems || []).length, 0); });
     var columns = Math.max(3, Math.min(12, Math.floor(width / 60)));
     var items = context.data.sections[context.scope].filter(function (item) { return !context.provider || item.provider === context.provider - 1; });
     // One bounded outer row; virtualize horizontal columns of five inside it.
@@ -421,7 +455,9 @@ function install(original) {
     }, [context.provider, context.scope]);
     var copy = Object.assign({}, native); copy.sections = sections; copy.ref = bind.current;
     copy.onViewableItemsChanged = onView.current;
-    copy.onLayout = function (event) { var w = event.nativeEvent.layout.width; if (w > 0) setWidth(w); if (native.onLayout) native.onLayout(event); };
+    copy.onLayout = function (event) { var w = event.nativeEvent.layout.width;
+      observe(8, 0, null, w, event.nativeEvent.layout.height);
+      if (w > 0) setWidth(w); if (native.onLayout) native.onLayout(event); };
     copy.getItemLayout = function (data, index) {
       var cursor = 0, offset = headerHeight;
       for (var s = 0; s < sections.length; s++) {
@@ -447,6 +483,12 @@ function install(original) {
       var fp = properties(style); fp.key = context.provider + "/" + context.scope; fp.horizontal = true; fp.data = groups;
       fp.showsHorizontalScrollIndicator = false; fp.keyboardShouldPersistTaps = "always";
       fp.initialNumToRender = columns + 1; fp.maxToRenderPerBatch = columns + 1; fp.windowSize = 3;
+      if (bridge.observe) {
+        fp.onLayout = function (event) { observe(9, 0, null, event.nativeEvent.layout.width, event.nativeEvent.layout.height); };
+        fp.onContentSizeChange = function (w, h) { observe(10, 0, null, w, h); };
+        // Stable callback, no viewability config change or React state update.
+        fp.onViewableItemsChanged = viewable.current;
+      }
       fp.keyExtractor = function (item) { return item.key; };
       fp.getItemLayout = function (data, index) { var layout = {}; layout.length = cellWidth; layout.offset = cellWidth * index; layout.index = index; return layout; };
       fp.renderItem = function (info) {
@@ -464,7 +506,7 @@ function install(original) {
     if (headerHeight) {
       var style = {}; style.height = 84;
       var scroll = {}; scroll.horizontal = true; scroll.showsHorizontalScrollIndicator = false; scroll.keyboardShouldPersistTaps = "always";
-      var recent = context.recents.map(function (item) { return tile(item, context, Math.min(112, Math.max(52, 40 * item.aspect + 8))); });
+      var recent = context.recents.map(function (item) { return tile(item, context, Math.min(112, Math.max(52, 40 * item.aspect + 8)), 2); });
       copy.ListHeaderComponent = React.createElement(RN.View, properties(style), title(context.data.label, context, 28), React.createElement(RN.ScrollView, scroll, recent));
     }
     return React.createElement(RN.SectionList, copy);
@@ -493,6 +535,10 @@ function install(original) {
     return React.createElement(RN.ScrollView, copy);
   }
   function route(runtime, type, p, key) {
+    if (bridge.observe && p && typeof p.src === "string" && typeof p.testID === "string" && p.testID.indexOf("chat-emote-") === 0) {
+      var image = {}; image.type = type; image.data = p; image.index = 5; image.key = key;
+      return React.createElement(DemandImage, image);
+    }
     if (p && ((type === RN.SectionList && p.testID === "emote-grid-list") || (type === RN.ScrollView && p.testID === "emote-nav-tablist"))) {
       var cp = {}; cp.data = p; cp.type = type; cp.key = key;
       return React.createElement(type === RN.SectionList ? GridAdapter : NavAdapter, cp);

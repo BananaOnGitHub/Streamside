@@ -1,4 +1,5 @@
 #include "TASDiagnostics.h"
+#include "TASImageDemand.h"
 #include "TASPrivacy.h"
 #include "TASEmotes.h"
 #include "TASImageTransport.h"
@@ -41,7 +42,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.72"
+#define TAS_REPORT_VERSION "3.0.0-build.73"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -330,6 +331,10 @@ static id diagnostic_report_create(void) {
     tas_image_transport_status(image_transport, sizeof(image_transport));
     vmsg1(report, "appendString:", nsstr("\n"));
     vmsg1(report, "appendString:", nsstr(image_transport));
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    char demand[8192];tas_demand_status(demand,sizeof(demand));
+    vmsg1(report,"appendString:",nsstr("\n"));vmsg1(report,"appendString:",nsstr(demand));
+#endif
     snprintf(menu_status, sizeof(menu_status),
              "Chat menu (this launch)\n"
              "Chat Settings controller seen/presented: %llu/%llu\n"

@@ -1441,6 +1441,24 @@ static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
  * persistent setting is the same one used by Streamside's segmented control.
  * JS polls this tiny revision/config snapshot only while the input is focused;
  * catalog entries are searched on token/revision changes, never on each tick. */
+#include "TASImageDemand.h"
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+static id rn_demand_observe(id self,SEL command,id event,id scope,id asset,id a,id b) {
+    (void)self;(void)command;
+    if(!kind(event,"NSNumber") || !kind(scope,"NSNumber") || !kind(a,"NSNumber") || !kind(b,"NSNumber"))return nil;
+    unsigned e=(unsigned)((unsigned (*)(id,SEL))objc_msgSend)(event,sel_registerName("unsignedIntValue"));
+    unsigned s=(unsigned)((unsigned (*)(id,SEL))objc_msgSend)(scope,sel_registerName("unsignedIntValue"));
+    const char *url=kind(asset,"NSString") ? text(asset):NULL;
+    /* URLs are transient function arguments only. Never stored or reported. */
+    tas_demand_event(e,s,url,((double (*)(id,SEL))objc_msgSend)(a,sel_registerName("doubleValue")),
+        ((double (*)(id,SEL))objc_msgSend)(b,sel_registerName("doubleValue")));
+    return nil;
+}
+static const TASRNMethodInfo *rn_demand_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"observe","observe:(NSNumber *)event scope:(NSNumber *)scope asset:(NSString *)asset a:(NSNumber *)a b:(NSNumber *)b",YES};return &info;
+}
+#endif
 static id rn_strip_state(id self,SEL command) {
     (void)self;(void)command;
     id result=call0((id)objc_getClass("NSMutableDictionary"),"new");
@@ -1608,6 +1626,10 @@ static void install_rn_local(void) {
                     class_addMethod(cls,sel_registerName("librarySnapshot:"),(IMP)rn_library_snapshot,"@24@0:8@16") &&
                     class_addMethod(cls,sel_registerName("libraryLookup:name:"),(IMP)rn_library_lookup,"@32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("libraryRemember:name:identifier:"),(IMP)rn_library_remember,"@40@0:8@16@24@32") &&
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+                    class_addMethod(cls,sel_registerName("observe:scope:asset:a:b:"),(IMP)rn_demand_observe,"@56@0:8@16@24@32@40@48") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideDemand"),(IMP)rn_demand_export,"^v16@0:8") &&
+#endif
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLocalEcho"),(IMP)rn_local_export,"^v16@0:8") &&
@@ -2011,6 +2033,7 @@ static id image_url_copy(id url) {
     free(image);
     if (!destination) return nil;
     objc_setAssociatedObject(destination, &g_image_redirect_key, str("1"), 1);
+    tas_demand_mark_url(destination,5);
     return objc_retain(destination);
 }
 
@@ -2159,6 +2182,7 @@ static id private_task_completion(id self, SEL command, id request, id completio
 static id image_url_task(id self, SEL command, id url, id completion, IMP original) {
     PROBE_INC(g_url_completion_calls);
     id replacement=image_url_copy(url);
+    if(replacement)tas_demand_mark_url(replacement,6);
     id handler=completion;
     const char *path=replacement ? text(call0(url,"path")) : NULL;
     uint64_t number=path ? strtoull(path+strlen("/emoticons/v2/"),NULL,10) : 0;
@@ -2415,6 +2439,7 @@ void tas_emotes_retry_hooks(void) {
     install_rn_width();
     install_rn_receive();
     install_image_url();
+    tas_demand_install();
     tas_rn_composer_ui_retry_hooks();
     if (!g_public_receive)
         hook_method_including_inherited(objc_getClass("NSURLSessionWebSocketTask"),

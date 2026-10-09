@@ -751,6 +751,32 @@ class RNIncomingTests(unittest.TestCase):
     def test_local_module_registration_availability_exports_disabled_and_idempotence(self):
         self.run_harness("registration")
 
+    def test_demand_only_bridge_registration_export_and_exact_abi(self):
+        # Production module registration with the independent diagnostic flag;
+        # the normal harness above checks the path without the extra export.
+        source = HARNESS.replace('    else {\n        assert(cls==local_meta);',
+            '    else if(!strcmp(selector,"observe:scope:asset:a:b:"))assert(cls==local_allocated_class && imp==(IMP)rn_demand_observe && !strcmp(encoding,"@56@0:8@16@24@32@40@48"));\n    else {\n        assert(cls==local_meta);')
+        source = source.replace('        else if(!strcmp(selector,"__rct_export__streamsideComposer"))',
+            '        else if(!strcmp(selector,"__rct_export__streamsideDemand"))assert(imp==(IMP)rn_demand_export && !strcmp(encoding,"^v16@0:8"));\n        else if(!strcmp(selector,"__rct_export__streamsideComposer"))')
+        source = source.replace('    const TASRNMethodInfo *info=rn_popup_metadata_export(nil,NULL);',
+            '    const TASRNMethodInfo *probe=rn_demand_export(nil,NULL);assert(probe->synchronous && !strcmp(probe->js_name,"observe") && !strcmp(probe->objc_name,"observe:(NSNumber *)event scope:(NSNumber *)scope asset:(NSString *)asset a:(NSNumber *)a b:(NSNumber *)b"));\n    const TASRNMethodInfo *info=rn_popup_metadata_export(nil,NULL);')
+        source += '''
+void tas_demand_event(unsigned e,unsigned s,const char *u,double a,double b){(void)e;(void)s;(void)u;(void)a;(void)b;}
+void tas_demand_mark_url(void *u,unsigned s){(void)u;(void)s;}
+unsigned tas_demand_url_scope(void *u){(void)u;return 0;}
+void tas_demand_install(void){}
+'''
+        root = Path(self.folder.name)
+        path = root/'demand_registration.c'; path.write_text(source)
+        binary = root/'demand_registration'
+        zig = os.environ.get('ZIG') or shutil.which('zig')
+        built = subprocess.run([zig,'cc','-DTAS_IMAGE_DEMAND_DIAGNOSTIC=1','-fblocks','-Wall','-Wextra','-Werror',
+            '-Wno-cast-function-type-mismatch','-ffunction-sections','-fdata-sections','-I',str(root),'-I',str(ROOT/'src'),
+            str(path),'-Wl,--gc-sections','-pthread','-o',str(binary)],capture_output=True,text=True)
+        self.assertEqual(built.returncode,0,built.stderr)
+        ran = subprocess.run([binary,'registration'],capture_output=True,text=True)
+        self.assertEqual(ran.returncode,0,ran.stderr)
+
     def test_provider_info_admission_exact_identity_alias_history_and_snapshot(self):
         self.run_harness("popup")
 

@@ -573,6 +573,7 @@ static id http_response(const char *url, NSInteger status, const char *mime, siz
     return response;
 }
 
+#include "TASImageDemand.h"
 /* Callback delivery and stopLoading serialize on the protocol instance. The
  * ObjC monitor is recursive: a client may synchronously stop from a callback. */
 static void protocol_deliver(id self, id data, id response, id error) {
@@ -663,9 +664,11 @@ static id protocol_session(bool provider_image) {
             id queue = msg0((id)objc_getClass("NSOperationQueue"), "new");
             ((void (*)(id,SEL,NSInteger))objc_msgSend)(queue,
                 sel_registerName("setMaxConcurrentOperationCount:"), 4);
+            id demand_delegate=tas_demand_delegate();
             *slot = objc_retain(((id (*)(id,SEL,id,id,id))objc_msgSend)(
                 (id)objc_getClass("NSURLSession"),
-                sel_registerName("sessionWithConfiguration:delegate:delegateQueue:"), config, nil, queue));
+                sel_registerName("sessionWithConfiguration:delegate:delegateQueue:"), config, demand_delegate, queue));
+            objc_release(demand_delegate);
             objc_release(queue);
         } else {
             *slot = objc_retain(msg1((id)objc_getClass("NSURLSession"), "sessionWithConfiguration:", config));
@@ -690,6 +693,9 @@ typedef struct {
     uint64_t generation;
     bool running, foreground;
     struct timespec queued, started;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    struct timespec detached;
+#endif
 } ImageFlight;
 static ImageFlight image_flights[IMAGE_FLIGHTS];
 static char image_consumer_key;
@@ -700,6 +706,18 @@ static uint64_t image_queued_cancelled, image_orphans, image_rejoined, image_orp
 static uint64_t image_error_cancelled, image_error_timeout, image_error_other;
 static unsigned image_active, image_background_active;
 static bool image_pumping;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+static unsigned demand_flight_peak,demand_queue_peak,demand_consumer_peak;
+static uint64_t demand_header_mismatch,demand_consumer_full,demand_url_matches;
+static uint64_t demand_detached_time[4],demand_rejoin_time[4];
+static void image_demand_occupancy(void) {
+    unsigned occupied=0,queued=0,consumers=0;
+    for(unsigned i=0;i<IMAGE_FLIGHTS;i++)if(image_flights[i].url){occupied++;queued+=!image_flights[i].running;consumers+=image_flights[i].count;}
+    if(occupied>demand_flight_peak)demand_flight_peak=occupied;
+    if(queued>demand_queue_peak)demand_queue_peak=queued;
+    if(consumers>demand_consumer_peak)demand_consumer_peak=consumers;
+}
+#endif
 
 static unsigned image_bucket(double seconds) { return seconds<=.25 ? 0 : seconds<=1 ? 1 : seconds<=5 ? 2 : 3; }
 static double image_elapsed(struct timespec from, struct timespec to) {
@@ -730,6 +748,24 @@ void tas_image_transport_status(char *buffer, size_t capacity) {
         (unsigned long long)image_error_cancelled, (unsigned long long)image_error_timeout, (unsigned long long)image_error_other,
         (unsigned long long)image_body_sizes[0], (unsigned long long)image_body_sizes[1],
         (unsigned long long)image_body_sizes[2], (unsigned long long)image_body_sizes[3], image_active, image_background_active);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    unsigned queued=0,occupied=0,detached=0,consumers=0;double oldest=0,oldest_detached=0;
+    struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
+    for(unsigned i=0;i<IMAGE_FLIGHTS;i++)if(image_flights[i].url){
+        ImageFlight *f=&image_flights[i];occupied++;consumers+=f->count;
+        if(!f->running){queued++;double age=image_elapsed(f->queued,now);if(age>oldest)oldest=age;}
+        else if(!f->count){detached++;double age=image_elapsed(f->detached,now);if(age>oldest_detached)oldest_detached=age;}
+    }
+    size_t used=strlen(buffer);
+    if(used<capacity)snprintf(buffer+used,capacity-used,
+        "Passive flight registry current/peak queued current/peak consumers current/peak detached active: %u/%u %u/%u %u/%u %u\n"
+        "Oldest queued/detached age (seconds): %.1f/%.1f; same URL comparisons/header mismatches/full consumer groups: %llu/%llu/%llu\n"
+        "Detached duration to completion <=250ms/<=1s/<=5s/>5s: %llu/%llu/%llu/%llu; rejoin delay: %llu/%llu/%llu/%llu\n",
+        occupied,demand_flight_peak,queued,demand_queue_peak,consumers,demand_consumer_peak,detached,oldest,oldest_detached,
+        (unsigned long long)demand_url_matches,(unsigned long long)demand_header_mismatch,(unsigned long long)demand_consumer_full,
+        (unsigned long long)demand_detached_time[0],(unsigned long long)demand_detached_time[1],(unsigned long long)demand_detached_time[2],(unsigned long long)demand_detached_time[3],
+        (unsigned long long)demand_rejoin_time[0],(unsigned long long)demand_rejoin_time[1],(unsigned long long)demand_rejoin_time[2],(unsigned long long)demand_rejoin_time[3]);
+#endif
     pthread_mutex_unlock(&image_transport_lock);
 }
 
@@ -763,6 +799,9 @@ static void image_flight_complete(unsigned index, uint64_t generation, id data, 
         image_latency[image_bucket(seconds)]++;
         if (data) { size_t bytes=data_length(data); image_body_sizes[bytes<=65536 ? 0 : bytes<=262144 ? 1 : bytes<=1048576 ? 2 : 3]++; }
         if (!count) image_orphan_finished++;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        if(!count)demand_detached_time[image_bucket(image_elapsed(flight->detached,now))]++;
+#endif
         free(flight->url); memset(flight, 0, sizeof(*flight));
     }
     pthread_mutex_unlock(&image_transport_lock);
@@ -813,11 +852,24 @@ static bool image_flight_start(id self, id session, id request, const char *url,
     for (unsigned i = 0; i < IMAGE_FLIGHTS; i++) {
         ImageFlight *flight = &image_flights[i];
         if (!flight->url) { if (available == IMAGE_FLIGHTS) available = i; continue; }
-        if (strcmp(flight->url, url) || flight->count == IMAGE_CONSUMERS) continue;
+        if (strcmp(flight->url, url)) continue;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        demand_url_matches++;
+        if(flight->count==IMAGE_CONSUMERS)demand_consumer_full++;
+#endif
+        if(flight->count==IMAGE_CONSUMERS)continue;
         /* Respect request variants; never conflate differing Accept/other
          * headers. Cache policy is normalized before this comparison. */
         id a = msg0(flight->request, "allHTTPHeaderFields"), b = msg0(request, "allHTTPHeaderFields");
-        if (a != b && !bmsg1(a, "isEqual:", b)) continue;
+        if (a != b && !bmsg1(a, "isEqual:", b)) {
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+            demand_header_mismatch++;
+#endif
+            continue;
+        }
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        if(!flight->count){struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);demand_rejoin_time[image_bucket(image_elapsed(flight->detached,now))]++;}
+#endif
         if (!flight->count) image_rejoined++;
         if (foreground && !flight->foreground) {
             if (flight->running) image_background_active--;
@@ -827,6 +879,9 @@ static bool image_flight_start(id self, id session, id request, const char *url,
         objc_setAssociatedObject(self, &image_consumer_key, nsstr("1"), 1);
         objc_setAssociatedObject(self, &g_protocol_task_key, flight->task, 1);
         image_joined++;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        image_demand_occupancy();
+#endif
         pthread_mutex_unlock(&image_transport_lock);
         image_schedule();
         return true;
@@ -841,6 +896,9 @@ static bool image_flight_start(id self, id session, id request, const char *url,
     flight->session=session; flight->foreground=foreground;
     flight->consumers[flight->count++] = objc_retain(self);
     clock_gettime(CLOCK_MONOTONIC, &flight->queued);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    image_demand_occupancy();
+#endif
     objc_setAssociatedObject(self, &image_consumer_key, nsstr("1"), 1);
     pthread_mutex_unlock(&image_transport_lock);
     image_schedule();
@@ -866,7 +924,12 @@ static bool image_flight_stop(id self) {
             shared = true; consumer = flight->consumers[j];
             memmove(&flight->consumers[j], &flight->consumers[j+1], (--flight->count-j)*sizeof(id));
             if (!flight->count) {
-                if (flight->running) image_orphans++;
+                if (flight->running) {
+                    image_orphans++;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+                    clock_gettime(CLOCK_MONOTONIC,&flight->detached);
+#endif
+                }
                 else {
                     image_queued_cancelled++; request=flight->request;
                     free(flight->url); memset(flight,0,sizeof(*flight));
@@ -914,6 +977,7 @@ static void protocol_start_loading(id self, SEL command) {
 
     bool provider_image = original_url && tas_emotes_is_provider_image_url(original_url);
     bool share_image = provider_image && image_public_request(request);
+    if(provider_image)tas_demand_request(request,tas_demand_url_scope(msg0(original,"URL")));
     if (share_image) ((void (*)(id,SEL,NSUInteger))objc_msgSend)(request,
         sel_registerName("setCachePolicy:"), 0); /* NSURLRequestUseProtocolCachePolicy */
     /* Mark the inner request before it enters our swizzled session factory,

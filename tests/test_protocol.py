@@ -369,6 +369,12 @@ int main(void) {
 
 class ProtocolTests(unittest.TestCase):
     def test_async_delivery_cancellation_recursion_errors_and_hls_rewrite(self):
+        self.run_transport(False)
+
+    def test_demand_probes_preserve_production_lifecycle_and_bounds(self):
+        self.run_transport(True)
+
+    def run_transport(self, diagnostic):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)
         source = (ROOT / "src/Streamside.c").read_text()
@@ -377,8 +383,24 @@ class ProtocolTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             harness, binary = root / "protocol.c", root / "protocol"
-            harness.write_text(PRELUDE + functions + MAIN)
+            stubs = '''
+void tas_demand_request(void *r,unsigned s){(void)r;(void)s;}
+unsigned tas_demand_url_scope(void *u){(void)u;return 0;}
+void *tas_demand_delegate(void){return NULL;}
+''' if diagnostic else ''
+            main = MAIN
+            if diagnostic:
+                main = main.replace('    return 0;\n}', '''
+    assert(demand_flight_peak==512 && demand_queue_peak>=506 && demand_consumer_peak>=512);
+    assert(demand_consumer_full && demand_header_mismatch && demand_url_matches);
+    assert(demand_detached_time[0]+demand_detached_time[1]+demand_detached_time[2]+demand_detached_time[3]);
+    assert(demand_rejoin_time[0]+demand_rejoin_time[1]+demand_rejoin_time[2]+demand_rejoin_time[3]);
+    assert(strstr(stats,"Passive flight registry") && !strstr(stats,"cdn.7tv.app"));
+    return 0;
+}''')
+            harness.write_text(PRELUDE + '\n#include "TASImageDemand.h"\n' + stubs + functions + main)
             built = subprocess.run([zig, "cc", "-fblocks", "-Wall", "-Wextra", "-Werror",
+                                    '-DTAS_IMAGE_DEMAND_DIAGNOSTIC='+str(int(diagnostic)), '-I', str(ROOT/'src'),
                                     str(harness), "-pthread", "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(built.returncode, 0, built.stderr)
             ran = subprocess.run([binary], capture_output=True, text=True)

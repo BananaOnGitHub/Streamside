@@ -198,7 +198,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"numberOfSections"))result=(id)(uintptr_t)o->sections;
     else if(!strcmp(sel,"collectionViewLayout"))result=o->flow;
     else if(!strcmp(sel,"collectionView"))result=o->collection;
-    else if(!strcmp(sel,"delegate"))result=o;
+    else if(!strcmp(sel,"delegate") || !strcmp(sel,"dataSource"))result=o;
     /* Reproduce cached delegate metrics and already-applied native frames.
      * Ordinary invalidation must NOT magically query fresh section insets. */
     else if(!strcmp(sel,"invalidateLayout")) { }
@@ -548,14 +548,15 @@ int main(void) {
     native.sections=0;flow.content_size.height=0;place_library_panel(&s,&native);
     assert(native.inset.bottom==12 && flow_size(&flow,"size").height==178);
     detach_recents(&s);assert(!s.panel->parent && !native.hidden && !s.library_height && native.inset.bottom==12);
-    /* Cold headerless and empty collections still get an inline library. */
+    /* Prepared headerless collections still get an inline library; a cold
+     * zero-section collection has not published its native model yet. */
     assert(!s.recent_heading_observed);native.heading=nil;native.sections=2;
     native.header_heights[0]=0;native.item_counts[0]=3;flow.content_size.height=472;
     bind_recents(&delegate,&container);place_library_panel(&s,&native);
     assert(s.recent_heading_observed && s.library_section==0 && s.library_start==0 && s.library_height==178 && !s.panel->hidden);
     detach_recents(&s);native.sections=0;flow.content_size.height=0;
     bind_recents(&delegate,&container);place_library_panel(&s,&native);
-    assert(s.library_height==178 && !s.panel->hidden && s.library_start==0);
+    assert(!s.library_height && s.panel->hidden && !s.recent_heading_observed);
     return 0;
 }
 '''
@@ -572,6 +573,40 @@ def replace_body(source, name, body):
 
 
 class LibraryTests(unittest.TestCase):
+    def test_zero_section_startup_does_not_cull_later_native_recents(self):
+        case=r'''
+    detach_recents(&s);s.palette_layout_scheduled=NO;palette_layout_callbacks=0;
+    struct Fake saved={.count=6},clip={.cls="UIView"},row={.cls="UIScrollView",.parent=&clip};
+    s.recent_entries=&saved;s.recent_strip=&row;s.recent_clip=&clip;
+    native.heading=nil;native.deferred_heading=nil;native.sections=0;
+    flow.content_size=(Size){386,0};native.bounds=(Rect){{0,0},{386,177.3}};
+    ss_test_offset(&native,(Point){0,0});
+    datasets[3][0].count=10;catalog_revision++;refresh_library(&s);
+    bind_recents(&delegate,&container);place_library_panel(&s,&native);
+    assert(!s.library_height && s.panel->hidden && !s.recent_heading_observed);
+    assert(native.bounds.origin.y==-48 && native.adjusted.top==48);
+    Point offset=native.offset;U reloads=native.reloads,reads=queries,scrolls=native_scroll_calls;
+    /* Twitch publishes sections after the first positive-height layout.
+     * Its first prefetch rectangle must still reach native section zero. */
+    native.sections=2;native.item_counts[0]=3;native.item_counts[1]=3;
+    native.header_heights[0]=44;native.header_heights[1]=44;flow.content_size.height=472;
+    Rect prefetch={{0,-177.3},{386,354.6}};
+    id attrs=flow_elements(&flow,"elements",prefetch);BOOL found=NO;
+    for(U i=0;i<attrs->count;i++)if(attrs->children[i]->path->section==0 && !attrs->children[i]->element_kind)found=YES;
+    assert(found && last_query.origin.y==prefetch.origin.y && last_query.size.height==prefetch.size.height);
+    /* A native header can now be realized without a scroll. Existing
+     * placement keeps Recent above the provider library. */
+    title.text="Frequently Used";heading.bounds.size.height=44;native.deferred_heading=&heading;
+    palette_layout_ready(&delegate,"ssPaletteLayout:",nil);
+    assert(native.heading==&heading && s.recent_heading_observed && s.recent_header_height==44);
+    assert(s.library_section==1 && s.library_start==236 && s.library_height==410 && !s.panel->hidden);
+    attrs=flow_elements(&flow,"elements",native.bounds);found=NO;
+    for(U i=0;i<attrs->count;i++)if(attrs->children[i]->path->section==0 && !attrs->children[i]->element_kind)found=YES;
+    assert(found && native.reloads==reloads && queries==reads);
+    assert(!memcmp(&offset,&native.offset,sizeof(offset)) && native_scroll_calls==scrolls);
+'''
+        self.run_library(HARNESS.replace('    return 0;\n}',case+'    return 0;\n}'))
+
     def test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset(self):
         self.run_library(HARNESS)
 

@@ -56,6 +56,7 @@ int main(void) {''')
     assert(palette_probe_count==1);
     PaletteProbeSnapshot v=palette_probe_records[0];
     assert(v.visible==2 && v.visible_zero==1 && v.visible_hidden==1 && v.intersecting==1 && v.zero_items==3);
+    assert(v.palette && v.delegate_self && v.source_self);
     assert(v.original==2 && v.original_zero==1 && v.returned==1 && !v.returned_zero);
     assert(v.created_zero==2 && v.created_other==1 && v.created_nil==1);
     char report[4096];ss_legacy_palette_status(report,sizeof(report));

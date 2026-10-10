@@ -43,3 +43,30 @@ unchanged callback arguments/results, untouched arrays/reloads/scroll offsets,
 immutable observations, privacy, scan/storage bounds and safe short buffers.
 The existing native library geometry suite also runs with probes enabled.
 These checks validate instrumentation behavior, not the device bug's cause.
+
+## Build 85 device evidence and build 86 correction
+
+The first device report recorded zero sections at bind and first layout, but
+an owned 410-point gap at section zero. At settlement Twitch had published 18
+sections and 14 section-zero items, while the query `[-177.3, 177.4]` was
+compressed to end at zero. The single returned native attribute was filtered
+out after translation; no heading or cells were observed. The second report
+recorded a second opening and more queries, but no scroll-stage observations
+or native cell callbacks. It does not establish what scrolling recovered.
+
+The zero-section startup had been treated as an empty, prepared palette, so
+placement inserted the library before the future first header. Later placement
+required that header's realized title to distinguish Recent from Channel, but
+the owned gap prevented its realization. Build 86 leaves a newly bound,
+zero-section palette's coordinates intact and hides the library panel until
+sections arrive. Prepared headerless palettes remain supported; an already
+observed palette can still keep its library during a temporary empty model.
+
+The regression now exercises zero sections followed by model publication,
+using the device-sized viewport and prefetch rectangle. It verifies native
+section-zero attributes remain reachable, the realized Recent header places
+the library after Recent, and neither native reloads nor scroll offsets change.
+The diagnostic adds only booleans for native palette class membership and
+whether the collection itself owns its delegate/data source, to detect fallback
+binding without recording object identities. Device confirmation is still
+required; build 86 addresses the demonstrated startup ordering error.

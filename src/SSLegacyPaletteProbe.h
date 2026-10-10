@@ -5,7 +5,7 @@
 #define PALETTE_PROBE_SCAN_LIMIT 128
 typedef struct {
     unsigned stage;
-    BOOL window,hidden,menu,heading;
+    BOOL window,hidden,menu,heading,palette,delegate_self,source_self;
     Rect bounds,requested,query;
     double inset,recent,header,gap_start,gap_height;
     I gap_section;
@@ -28,6 +28,9 @@ static void palette_probe_snapshot(State *s,id content,unsigned stage) {
     PaletteProbeSnapshot value={0};value.stage=stage;
     value.window=m0(content,"window")!=nil;value.hidden=yes(content,"isHidden");
     value.menu=s->recent_menu_open;value.heading=s->recent_heading_observed;
+    value.palette=kind(content,PALETTE);
+    value.delegate_self=m0(content,"delegate")==content;
+    value.source_self=m0(content,"dataSource")==content;
     value.bounds=rect(content,"bounds");
     Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("adjustedContentInset"));
     value.inset=inset.top;value.recent=s->recent_height;value.header=s->recent_header_height;
@@ -99,8 +102,8 @@ void ss_legacy_palette_status(char *buffer,size_t capacity) {
         PaletteProbeSnapshot v=palette_probe_records[i];size_t used=strlen(buffer);
         if (used>=capacity-1) break;
         snprintf(buffer+used,capacity-used,
-            "palette stage=%u window/hidden/menu/heading=%d/%d/%d/%d bounds(y/w/h)=%.1f/%.1f/%.1f inset/recent/header=%.1f/%.1f/%.1f gap(section/y/h)=%ld/%.1f/%.1f sections/items0=%lu/%lu visible/section0/hidden/intersect=%lu/%lu/%lu/%lu created0/other/nil=%llu/%llu/%llu attrs(total/section0)=%lu/%lu=>%lu/%lu rect(y/h)=%.1f/%.1f=>%.1f/%.1f\n",
-            v.stage,v.window,v.hidden,v.menu,v.heading,v.bounds.origin.y,v.bounds.size.width,v.bounds.size.height,
+            "palette stage=%u window/hidden/menu/heading=%d/%d/%d/%d native-kind/delegate-self/source-self=%d/%d/%d bounds(y/w/h)=%.1f/%.1f/%.1f inset/recent/header=%.1f/%.1f/%.1f gap(section/y/h)=%ld/%.1f/%.1f sections/items0=%lu/%lu visible/section0/hidden/intersect=%lu/%lu/%lu/%lu created0/other/nil=%llu/%llu/%llu attrs(total/section0)=%lu/%lu=>%lu/%lu rect(y/h)=%.1f/%.1f=>%.1f/%.1f\n",
+            v.stage,v.window,v.hidden,v.menu,v.heading,v.palette,v.delegate_self,v.source_self,v.bounds.origin.y,v.bounds.size.width,v.bounds.size.height,
             v.inset,v.recent,v.header,v.gap_section,v.gap_start,v.gap_height,v.sections,v.zero_items,
             v.visible,v.visible_zero,v.visible_hidden,v.intersecting,(unsigned long long)v.created_zero,
             (unsigned long long)v.created_other,(unsigned long long)v.created_nil,v.original,v.original_zero,v.returned,v.returned_zero,

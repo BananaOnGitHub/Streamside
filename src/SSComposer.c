@@ -1151,6 +1151,14 @@ static void place_library_panel(State *s,id content) {
         !original_flow_item || !original_flow_size || !original_flow_header || !original_flow_elements) return;
     s->placing_library=YES;
     I sections=(I)number(content,"numberOfSections");
+    /* A newly bound palette publishes its native sections asynchronously.
+     * Reserving a section-zero gap against the empty startup model shifts the
+     * later first header offscreen, preventing its title from establishing
+     * Recent. Leave native coordinates intact until that model is available.
+     * A previously prepared palette may temporarily publish an empty model. */
+    if (sections<=0 && !s->recent_heading_observed) {
+        vb(s->panel,"setHidden:",YES);s->placing_library=NO;return;
+    }
     observe_recent_heading(s,content);
     if (!s->recent_heading_observed && sections>0) {
         /* The native supplementary view can be absent until UIKit's first

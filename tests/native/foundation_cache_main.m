@@ -96,7 +96,7 @@ int main(int argc,char **argv) {
         CacheClient *hot;double start=image_cache_clock(CLOCK_MONOTONIC);begin(argv[1],"/hot.gif",&hot);wait_finished(hot,1.5);
         assert(image_cache_clock(CLOCK_MONOTONIC)-start<1.5 && image_cache_hits>=1);
         CacheClient *overflow=overflow_integration(argv[1]);
-        assert([[NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%s/release-blocked",argv[1]]]] length]==6);
+        assert(([[NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%s/release-blocked",argv[1]]]] length]==6));
         for(unsigned i=0;i<8;i++){wait_finished(blocked[i],10);protocol_stop_loading(protocols[i],NULL);}
         wait_finished(overflow,10);
         assert(!image_overflow_groups && !image_overflow_consumers && image_active<=8);

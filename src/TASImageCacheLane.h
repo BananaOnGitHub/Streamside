@@ -173,5 +173,8 @@ static void image_cache_status(char *buffer,size_t capacity) {
         (unsigned long long)image_cache_rejections[IMAGE_CACHE_DATE_MISSING],(unsigned long long)image_cache_rejections[IMAGE_CACHE_DATE_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_DATE_FUTURE],(unsigned long long)image_cache_rejections[IMAGE_CACHE_AGE_INVALID],
         (unsigned long long)image_cache_rejections[IMAGE_CACHE_CONTROL_SIZE],(unsigned long long)image_cache_rejections[IMAGE_CACHE_MAX_AGE_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_MAX_AGE_DUPLICATE],(unsigned long long)image_cache_rejections[IMAGE_CACHE_NO_CACHE],(unsigned long long)image_cache_rejections[IMAGE_CACHE_NO_STORE],
         (unsigned long long)image_cache_rejections[IMAGE_CACHE_EXTENSION_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_DIRECTIVE_UNSUPPORTED],(unsigned long long)image_cache_rejections[IMAGE_CACHE_EXPIRES_MISSING],(unsigned long long)image_cache_rejections[IMAGE_CACHE_EXPIRES_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_LIFETIME_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_CONSTRUCTION]);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    image_header_status(buffer,capacity);
+#endif
     pthread_mutex_unlock(&image_cache_metadata_lock);
 }

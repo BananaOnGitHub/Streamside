@@ -32,12 +32,16 @@ static id image_cache_field(id response,const char *name) {
     /* NSHTTPURLResponse's accessor is case-insensitive (iOS 13+). */
     return msg1(response,"valueForHTTPHeaderField:",nsstr(name));
 }
+#include "TASCacheHeaderProbe.h"
 static void image_cache_mark_task(id task) {
     objc_setAssociatedObject(task,&image_cache_start_key,image_cache_number(image_cache_clock(IMAGE_CACHE_AGE_CLOCK)),1);
 }
 static void image_cache_proposed(id self,SEL cmd,id session,id task,id proposed,id completion) {
     (void)self;(void)cmd;(void)session;
     id response=msg0(proposed,"response"),request=msg0(task,"originalRequest");
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    image_header_observe(response,task);
+#endif
     double lifetime,stamp,age=0,wall=image_cache_clock(CLOCK_REALTIME),tick=image_cache_clock(IMAGE_CACHE_AGE_CLOCK);
     id start_value=objc_getAssociatedObject(task,&image_cache_start_key);
     double start=image_cache_value(start_value);

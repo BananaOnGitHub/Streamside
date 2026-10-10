@@ -35,12 +35,16 @@ static void wait_finished(CacheClient *client,double seconds) {
     assert(!"Foundation fixture timed out");
 }
 #include "foundation_annotation_main.m"
+#include "foundation_header_probe.m"
 int main(int argc,char **argv) {
     assert(argc==2);
     @autoreleasepool {
         fputs("Fixture stage: warm\n",stderr);
         CacheClient *warm;begin(argv[1],"/hot.gif",&warm);wait_finished(warm,10);
         annotation_matrix(argv[1]);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        header_probe_matrix(argv[1]);
+#endif
         NSURLSessionConfiguration *configuration=[protocol_session(true) configuration];
         assert(configuration.timeoutIntervalForRequest==15 && configuration.timeoutIntervalForResource==30);
         assert(configuration.HTTPMaximumConnectionsPerHost==8 && configuration.URLCache.memoryCapacity==32*1024*1024 && configuration.URLCache.diskCapacity==128*1024*1024);
@@ -58,7 +62,7 @@ int main(int argc,char **argv) {
         CacheClient *stale,*revalidated;begin(argv[1],"/revalidate.gif",&stale);wait_finished(stale,10);
         begin(argv[1],"/revalidate.gif",&revalidated);wait_finished(revalidated,10);
         CacheClient *a,*b;begin(argv[1],"/hot.gif",&a);begin(argv[1],"/hot.gif",&b);wait_finished(a,2);wait_finished(b,2);
-        char report[4096];tas_image_transport_status(report,sizeof(report));puts(report);
+        char report[8192];tas_image_transport_status(report,sizeof(report));puts(report);
     }
     return 0;
 }

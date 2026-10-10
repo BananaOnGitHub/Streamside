@@ -88,6 +88,11 @@ int main(void) {
     assert(strstr(report,"Annotation rejection extension value/unsupported directive/Expires missing/invalid/nonpositive lifetime/construction: 1/3/1/1/2/1"));
     assert(strstr(report,"annotated + rejections = proposals"));
     assert(!strstr(report,"fixture credential") && !strstr(report,"fixture validator") && !strstr(report,"cdn.7tv.app") && !strstr(report,"Cache-Control"));
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    assert(image_header_observations==image_cache_proposals);
+#else
+    assert(!strstr(report,"Header probe"));
+#endif
     return 0;
 }
 '''

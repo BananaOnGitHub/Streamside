@@ -36,12 +36,14 @@ class FoundationCacheTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as folder:
                 harness=Path(folder)/'foundation.m';binary=Path(folder)/'foundation'
                 harness.write_text((ROOT/'tests/native/foundation_cache_prefix.m').read_text()+lifecycle+(ROOT/'tests/native/foundation_cache_main.m').read_text())
-                built=subprocess.run(['xcrun','clang','-fblocks','-Wall','-Wextra','-Werror','-DTAS_IMAGE_DEMAND_DIAGNOSTIC=0','-I',str(ROOT/'src'),'-I',str(ROOT/'tests/native'),str(harness),'-framework','Foundation','-o',str(binary)],capture_output=True,text=True)
+                built=subprocess.run(['xcrun','clang','-fblocks','-Wall','-Wextra','-Werror','-DTAS_IMAGE_DEMAND_DIAGNOSTIC=1','-I',str(ROOT/'src'),'-I',str(ROOT/'tests/native'),str(harness),'-framework','Foundation','-o',str(binary)],capture_output=True,text=True)
                 self.assertEqual(built.returncode,0,built.stderr)
                 ran=subprocess.run([binary,f'http://127.0.0.1:{server.server_port}'],capture_output=True,text=True,timeout=45)
                 self.assertEqual(ran.returncode,0,ran.stderr)
                 self.assertIn('Cache-hit admission-to-delivery',ran.stdout)
                 self.assertIn('Production annotation policy matrix passed',ran.stdout)
+                self.assertIn('Production header probe passed with real Foundation objects',ran.stdout)
+                self.assertIn('Header probe task Expires:',ran.stdout)
             self.assertEqual(requests['/hot.gif'],1)
             self.assertEqual(requests['conditional-304'],1)
         finally:

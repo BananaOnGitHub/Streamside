@@ -203,3 +203,49 @@ References: Apple documentation for `cachedResponseForRequest:`,
 `URLSession:dataTask:willCacheResponse:completionHandler:`, `NSCachedURLResponse`
 and cache policies; RFC 9111 sections 4.1, 4.2 and 5.2; Apple's continuous-clock
 documentation. No stale-cache override is used.
+
+## Build 80 result and build 81 passive header comparison
+
+Build 80 A/B isolates the first annotation rejection: all 168 proposals were
+rejected as `Date missing`, with zero annotations and zero direct-cache hits.
+On reopening, 85 additional lookups/tasks matched 85 additional Foundation
+local-cache transactions and zero additional network transactions. The library
+stayed at 60 JS images, range 0..11, with 60 library and 27 recent-image unmounts
+at dismissal, successful loads on reopening and zero image errors. These reports
+do not establish that the server omitted Date: they establish that the existing
+header accessor returned no Date to the annotation parser. The accessor is
+already case-insensitive; a capitalization defect has not been demonstrated.
+
+Build 81 observes the proposed response and `task.response` independently for
+Date, Cache-Control, Age and Expires. Each fixed field has exactly one outcome:
+neither API, accessor only, dictionary only, both equal, both different,
+ambiguous case variants, or uninspectable. A separate aggregate records whether
+the task response is the same object, a different object, or missing. There are
+60 fixed uint64 counters (480 bytes), no retained response/header objects, and a
+maximum of 128 dictionary keys examined per response. Missing or incompatible
+objects/keys/values and scans over the limit are uninspectable, not proof of
+header absence. The scan uses case-insensitive NSString keys and checks value
+types. Empty strings count as present; the existing freshness parser still
+decides whether their values are valid. Observation precedes annotation, so
+probe and proposal totals agree once callbacks settle.
+
+The probe is compiled only with IMAGE_DEMAND_DIAGNOSTIC=1. It does not replace
+the existing header accessor, synthesize dates, use dictionary values as a
+fallback, relax freshness, alter Foundation cache storage, or change transport,
+virtualization or retry behavior. Reports contain fixed labels and aggregate
+counts only. The transport report buffer is 8192 bytes to retain the complete
+comparison section; capacity-limited formatting remains bounded.
+
+Host tests exercise every comparison outcome, all four fields, response identity,
+missing responses, case variants, non-string keys/values, exact/over-limit scans,
+complete/truncated reporting and privacy. The production callback still rejects
+a dictionary-only Date and preserves the original cache proposal. Apple CI runs
+the live HTTP saturation/304 gate with diagnostic probes enabled, plus real
+Foundation response/dictionary checks and a deliberately disagreeing accessor
+subclass. That subclass is a controlled test, not evidence of CFNetwork behavior
+on the phone. Device results remain necessary to identify the actual mismatch.
+
+Next device check after the host/Apple/compiled gates: restart Twitch, open the
+library stationary and export A; close/reopen stationary and export B. Leave
+the HTTP cache intact. No full scrolling sweep is requested. Phase 2 remains
+unvalidated on device, and Phase 3 overflow/retry work remains outside this change.

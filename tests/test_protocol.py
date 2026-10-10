@@ -41,6 +41,7 @@ struct Fake {
     const char *text;
     id request,client,task,stopped,completed,consumer,url,header,session,headers,method,authorization,range,cache_start;
     id data,response,info,cache,epoch;
+    id probe_headers,probe_dictionary;unsigned probe_kind,probe_index,probe_repeat;
     id keys[32],values[32];unsigned entries;
     struct Block *completion;
     unsigned resumes,cancels,responses,loads,finishes,failures,cache_policy,status;
@@ -49,6 +50,7 @@ struct Fake {
     pthread_mutex_t monitor;
 };
 static struct Fake objects[200000],session_class,config_class,error_class,config,cache_class,queue_class,other_class;
+static struct Fake probe_http_class,probe_dictionary_class,probe_string_class;
 static size_t used;
 static unsigned starts,results,rewrites,cancellations;
 static bool block_manifest,manifest_entered,release_manifest;
@@ -73,6 +75,9 @@ static const char *utf8(id o) { return o ? o->text : NULL; }
 static id nsurl(const char *s) { return fresh(s); }
 static SEL sel_registerName(const char *s) { return s; }
 static Class objc_getClass(const char *s) {
+    if(!strcmp(s,"NSHTTPURLResponse"))return &probe_http_class;
+    if(!strcmp(s,"NSDictionary"))return &probe_dictionary_class;
+    if(!strcmp(s,"NSString"))return &probe_string_class;
     if(!strcmp(s,"NSURLSession"))return &session_class;
     if(!strcmp(s,"NSURLSessionConfiguration"))return &config_class;
     if(!strcmp(s,"NSURLCache"))return &cache_class;
@@ -124,6 +129,17 @@ static void protocol_stop_loading(id,SEL);
 static id dispatch(id o,SEL s,...) {
     if(!o)return nil;va_list a;va_start(a,s);id r=nil;
     if(!strcmp(s,"request"))r=o->request;
+    else if(!strcmp(s,"isKindOfClass:")) {
+        id cls=va_arg(a,id);r=(id)(uintptr_t)((cls==&probe_http_class && o->probe_kind==1) ||
+            (cls==&probe_dictionary_class && o->probe_kind==2) || (cls==&probe_string_class && !o->probe_kind));
+    }
+    else if(!strcmp(s,"allHeaderFields"))r=o->probe_headers;
+    else if(!strcmp(s,"keyEnumerator")){r=fresh("enumerator");r->probe_dictionary=o;}
+    else if(!strcmp(s,"nextObject")) {
+        id dict=o->probe_dictionary;
+        if(dict->probe_repeat){if(o->probe_index++<dict->probe_repeat)r=dict->keys[0];}
+        else if(o->probe_index<dict->entries)r=dict->keys[o->probe_index++];
+    }
     else if(!strcmp(s,"client"))r=o->client;
     else if(!strcmp(s,"URL"))r=o->url;
     else if(!strcmp(s,"absoluteString"))r=o;

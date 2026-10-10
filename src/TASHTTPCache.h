@@ -47,10 +47,10 @@ static bool image_cache_date(const char *s, double *out) {
     if(strncmp(weekday,weekdays+((total+d-1+4)%7)*3,3))return false;
     *out=(double)((total+d-1)*86400+h*3600+m*60+sec);return true;
 }
-static bool image_cache_lifetime_reason(const char *control,const char *date,const char *expires,double *lifetime,double *stamp,unsigned *reason) {
+static bool image_cache_lifetime_at_reason(const char *control,const char *date,const char *expires,double receipt,double *lifetime,double *stamp,unsigned *reason) {
     *reason=IMAGE_CACHE_ACCEPTED;
-    if(!date)return image_cache_fail(reason,IMAGE_CACHE_DATE_MISSING);
-    if(!image_cache_date(date,stamp))return image_cache_fail(reason,IMAGE_CACHE_DATE_INVALID);
+    if(date) {if(!image_cache_date(date,stamp))return image_cache_fail(reason,IMAGE_CACHE_DATE_INVALID);}
+    else {if(!(receipt>0 && isfinite(receipt)))return image_cache_fail(reason,IMAGE_CACHE_DATE_MISSING);*stamp=receipt;}
     bool max_found=false;double max_age=0;
     if(control && *control) {
         if(strlen(control)>1024)return image_cache_fail(reason,IMAGE_CACHE_CONTROL_SIZE);
@@ -82,6 +82,9 @@ static bool image_cache_lifetime_reason(const char *control,const char *date,con
         if(!expires)return image_cache_fail(reason,IMAGE_CACHE_EXPIRES_MISSING);
         if(!image_cache_date(expires,&expiry))return image_cache_fail(reason,IMAGE_CACHE_EXPIRES_INVALID);*lifetime=expiry-*stamp;}
     return (*lifetime>0 && isfinite(*lifetime)) || image_cache_fail(reason,IMAGE_CACHE_LIFETIME_INVALID);
+}
+static bool image_cache_lifetime_reason(const char *control,const char *date,const char *expires,double *lifetime,double *stamp,unsigned *reason) {
+    return image_cache_lifetime_at_reason(control,date,expires,-1,lifetime,stamp,reason);
 }
 static bool image_cache_lifetime(const char *control,const char *date,const char *expires,double *lifetime,double *stamp) {
     unsigned reason;return image_cache_lifetime_reason(control,date,expires,lifetime,stamp,&reason);

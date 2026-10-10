@@ -249,3 +249,57 @@ Next device check after the host/Apple/compiled gates: restart Twitch, open the
 library stationary and export A; close/reopen stationary and export B. Leave
 the HTTP cache intact. No full scrolling sweep is requested. Phase 2 remains
 unvalidated on device, and Phase 3 overflow/retry work remains outside this change.
+
+## Build 81 result and build 82 network receipt path
+
+Build 81 A/B confirmed absent Date and Expires through both Foundation APIs on
+all 181 proposals. Cache-Control and Age agreed through both APIs; proposed and
+task responses were the same object. Reopening added 90 local-cache responses,
+zero network transactions, and zero direct hits. Phase 1 remained healthy at
+60 library images/range 0..11 with complete dismissal cleanup and no errors.
+
+Build 82 supports a missing Date only with cache-internal original network
+receipt metadata. The response delegate captures wall and continuous ticks,
+but that callback alone is not provenance. The original Foundation cache
+proposal is delivered unchanged. After task metrics and successful completion,
+metadata can be committed only for one complete network-load transaction,
+without redirects, with matching response URL/status/headers and request URL,
+ordered request/response dates, and consistent start/receipt/current clocks.
+Missing metrics, cached/pushed/unknown loads, incomplete/mismatched timestamps,
+clock jumps, errors and unproven 304 merges keep Foundation's path. A late
+metrics callback cannot resurrect a completed proposal.
+
+The existing URLCache entry must still match the Foundation-approved proposal's
+response, data, userInfo and storage policy; an absent/evicted/replaced entry
+is not forced into cache. The metadata-only replacement preserves the body,
+response and policy. At most one proposal/receipt/proof is retained per bounded
+active task and all are cleared at completion. No unbounded side registry or
+second cache is introduced.
+
+Persisted userInfo records the versioned network-receipt proof, original wall
+and continuous ticks, corrected initial age, remaining lifetime, boot epoch and
+request headers. Initial age includes upstream Age plus the larger wall or
+continuous task-start-to-receipt delay; resident/body time is counted from that
+original receipt. Lookup requires consistent receipt fields and a matching
+epoch/variant, validates the explicit max-age/Expires policy, checks initial
+age against Age, and subtracts the larger elapsed clock. No-cache/no-store,
+invalid Date, invalid Age and uncertain metadata remain misses. Reopening is
+read-only; an existing receipt is never restamped by a local-cache proposal.
+Expired entries return to Foundation for validation, including conditional 304.
+Existing unannotated entries gain no invented clock: they become eligible only
+after a proven new network response. No forced cache clear/reload is added.
+
+The production host lifecycle tests control only clocks/Foundation objects and
+exercise direct reopen, exact expiration, unchanged clocks after local-cache
+completion, same-boot epoch reconstruction, invalid/missing/future metadata,
+26 provenance/completion refusal cases, Age, no-cache/no-store and counters.
+Apple integration uses real Date-less HTTP, real transaction metrics and
+URLCache userInfo, serialization of the metadata, direct reopen, an unannotated
+local-cache response, expiration and a server-asserted conditional 304. Those
+tests must pass before delivering build 82; device acceptance remains pending.
+
+The aggregate staged/stored/fallback counters expose receipt progress without
+reporting timestamps, identities, request/header values or URLs. A successful
+late receipt commit replaces its provisional Date-missing rejection; annotation
+and rejection totals partition all proposals once callbacks settle. Phase 3
+overflow/retry work and RN virtualization remain outside this change.

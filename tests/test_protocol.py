@@ -41,6 +41,8 @@ struct Fake {
     const char *text;
     id request,client,task,stopped,completed,consumer,url,header,session,headers,method,authorization,range,cache_start;
     id data,response,info,cache,epoch;
+    id cache_start_wall,receipt,proposal,network,transactions,metric_start,metric_received,metric_ended;
+    unsigned fetch_type,redirects,stores;
     id probe_headers,probe_dictionary;unsigned probe_kind,probe_index,probe_repeat;
     id keys[32],values[32];unsigned entries;
     struct Block *completion;
@@ -50,7 +52,7 @@ struct Fake {
     pthread_mutex_t monitor;
 };
 static struct Fake objects[200000],session_class,config_class,error_class,config,cache_class,queue_class,other_class;
-static struct Fake probe_http_class,probe_dictionary_class,probe_string_class;
+static struct Fake probe_http_class,probe_dictionary_class,probe_string_class,probe_date_class,probe_array_class;
 static size_t used;
 static unsigned starts,results,rewrites,cancellations;
 static bool block_manifest,manifest_entered,release_manifest;
@@ -60,6 +62,7 @@ static bool fail_task,fail_cached_response;
 static bool complete_on_resume;
 static id immediate_data,immediate_response;
 static char g_protocol_task_key,g_protocol_stopped_key,g_protocol_completed_key,image_consumer_key,image_cache_start_key,image_cache_completion_key,image_cache_data_key;
+static char image_cache_start_wall_key,image_cache_receipt_key,image_cache_proposal_key,image_cache_network_key;
 static void image_cache_received_data(id,SEL,id,id,id);
 static void image_cache_completed(id,SEL,id,id,id);
 static id g_protocol_session;
@@ -78,6 +81,8 @@ static Class objc_getClass(const char *s) {
     if(!strcmp(s,"NSHTTPURLResponse"))return &probe_http_class;
     if(!strcmp(s,"NSDictionary"))return &probe_dictionary_class;
     if(!strcmp(s,"NSString"))return &probe_string_class;
+    if(!strcmp(s,"NSDate"))return &probe_date_class;
+    if(!strcmp(s,"NSArray"))return &probe_array_class;
     if(!strcmp(s,"NSURLSession"))return &session_class;
     if(!strcmp(s,"NSURLSessionConfiguration"))return &config_class;
     if(!strcmp(s,"NSURLCache"))return &cache_class;
@@ -109,8 +114,11 @@ static void objc_release(id o) { (void)o; }
 static int objc_sync_enter(id o) { return pthread_mutex_lock(&o->monitor); }
 static int objc_sync_exit(id o) { return pthread_mutex_unlock(&o->monitor); }
 static id objc_getAssociatedObject(id o,const void *k) {
+    if(!o)return nil;
     return k==&g_protocol_task_key ? o->task : k==&g_protocol_completed_key ? o->completed :
         k==&image_consumer_key ? o->consumer : k==&image_cache_start_key ? o->cache_start:
+        k==&image_cache_start_wall_key ? o->cache_start_wall:k==&image_cache_receipt_key ? o->receipt:
+        k==&image_cache_proposal_key ? o->proposal:k==&image_cache_network_key ? o->network:
         k==&image_cache_completion_key ? (id)o->completion:k==&image_cache_data_key ? o->data:o->stopped;
 }
 static void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t policy) {
@@ -118,6 +126,10 @@ static void objc_setAssociatedObject(id o,const void *k,id value,uintptr_t polic
     else if(k==&g_protocol_completed_key)o->completed=value;
     else if(k==&image_consumer_key)o->consumer=value;
     else if(k==&image_cache_start_key)o->cache_start=value;
+    else if(k==&image_cache_start_wall_key)o->cache_start_wall=value;
+    else if(k==&image_cache_receipt_key)o->receipt=value;
+    else if(k==&image_cache_proposal_key)o->proposal=value;
+    else if(k==&image_cache_network_key)o->network=value;
     else if(k==&image_cache_data_key)o->data=value;
     else if(k==&image_cache_completion_key) {
         if(value){struct Block *b=(struct Block *)value;assert(policy==3);o->completion=malloc(b->descriptor->size);memcpy(o->completion,b,b->descriptor->size);}
@@ -131,8 +143,19 @@ static id dispatch(id o,SEL s,...) {
     if(!strcmp(s,"request"))r=o->request;
     else if(!strcmp(s,"isKindOfClass:")) {
         id cls=va_arg(a,id);r=(id)(uintptr_t)((cls==&probe_http_class && o->probe_kind==1) ||
-            (cls==&probe_dictionary_class && o->probe_kind==2) || (cls==&probe_string_class && !o->probe_kind));
+            (cls==&probe_dictionary_class && o->probe_kind==2) || (cls==&probe_string_class && !o->probe_kind) ||
+            (cls==&probe_date_class && o->probe_kind==4) || (cls==&probe_array_class && o->probe_kind==5));
     }
+    else if(!strcmp(s,"transactionMetrics"))r=o->transactions;
+    else if(!strcmp(s,"redirectCount"))r=(id)(uintptr_t)o->redirects;
+    else if(!strcmp(s,"count"))r=(id)(uintptr_t)o->entries;
+    else if(!strcmp(s,"lastObject"))r=o->entries ? o->values[o->entries-1]:nil;
+    else if(!strcmp(s,"requestStartDate"))r=o->metric_start;
+    else if(!strcmp(s,"responseStartDate"))r=o->metric_received;
+    else if(!strcmp(s,"responseEndDate"))r=o->metric_ended;
+    else if(!strcmp(s,"resourceFetchType"))r=(id)(uintptr_t)o->fetch_type;
+    else if(!strcmp(s,"valueForKey:")){assert(!strcmp(va_arg(a,id)->text,"timeIntervalSince1970"));r=nsstr(o->text);}
+    else if(!strcmp(s,"stringValue"))r=o;
     else if(!strcmp(s,"allHeaderFields"))r=o->probe_headers;
     else if(!strcmp(s,"keyEnumerator")){r=fresh("enumerator");r->probe_dictionary=o;}
     else if(!strcmp(s,"nextObject")) {
@@ -164,6 +187,7 @@ static id dispatch(id o,SEL s,...) {
     else if(!strcmp(s,"data"))r=o->data;
     else if(!strcmp(s,"userInfo"))r=o->info;
     else if(!strcmp(s,"storagePolicy"))r=(id)(uintptr_t)o->cache_policy;
+    else if(!strcmp(s,"storeCachedResponse:forRequest:")){o->cache=va_arg(a,id);assert(va_arg(a,id));o->stores++;}
     else if(!strcmp(s,"cachedResponseForRequest:")) {id request=va_arg(a,id);r=o->cache;
         pthread_mutex_lock(&lookup_lock);lookups_entered++;lookups_live++;
         if(lookups_live>lookups_live_peak)lookups_live_peak=lookups_live;
@@ -465,7 +489,7 @@ class ProtocolTests(unittest.TestCase):
     def test_demand_probes_preserve_production_lifecycle_and_bounds(self):
         self.run_transport(True)
 
-    def run_transport(self, diagnostic, main_override=None):
+    def run_transport(self, diagnostic, main_override=None, prelude_override=None, extra_cflags=()):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)
         source = (ROOT / "src/Streamside.c").read_text()
@@ -490,8 +514,8 @@ void tas_demand_transport(unsigned a,unsigned q,unsigned c,uint64_t n){(void)a;(
     assert(strstr(stats,"Passive flight registry") && !strstr(stats,"cdn.7tv.app"));
     return 0;
 }''')
-            harness.write_text(PRELUDE + '\n#include "TASImageDemand.h"\n' + stubs + functions + main)
-            built = subprocess.run([zig, "cc", "-fblocks", "-Wall", "-Wextra", "-Werror",
+            harness.write_text((prelude_override or PRELUDE) + '\n#include "TASImageDemand.h"\n' + stubs + functions + main)
+            built = subprocess.run([zig, "cc", "-fblocks", "-Wall", "-Wextra", "-Werror", *extra_cflags,
                                     '-DTAS_IMAGE_DEMAND_DIAGNOSTIC='+str(int(diagnostic)), '-I', str(ROOT/'src'),
                                     str(harness), "-pthread", "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(built.returncode, 0, built.stderr)

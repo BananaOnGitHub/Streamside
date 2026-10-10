@@ -32,6 +32,12 @@ int main(void) {
         "max-age=3600, private=\"Content-Type\"","max-age=3600, MAX-AGE=3600","max-age=3600, x-unknown=1","max-age=3600,",NULL};
     for(unsigned i=0;i<sizeof(invalid)/sizeof(*invalid);i++)assert(!image_cache_lifetime(invalid[i],stamp,NULL,&lifetime,&date));
     assert(!image_cache_lifetime("max-age=3600",NULL,NULL,&lifetime,&date));
+    unsigned reason;
+    assert(image_cache_lifetime_at_reason("max-age=3600",NULL,NULL,784111777,&lifetime,&date,&reason) && lifetime==3600 && date==784111777);
+    assert(image_cache_lifetime_at_reason(NULL,NULL,expiry,784111777,&lifetime,&date,&reason) && lifetime==3600);
+    assert(!image_cache_lifetime_at_reason("max-age=3600","bad",NULL,784111777,&lifetime,&date,&reason) && reason==IMAGE_CACHE_DATE_INVALID);
+    assert(!image_cache_lifetime_at_reason("max-age=3600",NULL,NULL,NAN,&lifetime,&date,&reason) && reason==IMAGE_CACHE_DATE_MISSING);
+    assert(!image_cache_lifetime_at_reason("max-age=3600, no-cache",NULL,NULL,784111777,&lifetime,&date,&reason));
     assert(!image_cache_lifetime(NULL,expiry,stamp,&lifetime,&date));
     assert(image_cache_seconds("2147483647",&value) && value==2147483647);
     assert(!image_cache_seconds("2147483648",&value));assert(!image_cache_seconds("1 2",&value));

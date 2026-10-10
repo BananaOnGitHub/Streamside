@@ -161,13 +161,16 @@ static void image_cache_status(char *buffer,size_t capacity) {
     if(used<capacity)snprintf(buffer+used,capacity-used,"Foundation cache proposals/annotated: %llu/%llu (old or unverifiable entries use Foundation validation).\n",
         (unsigned long long)image_cache_proposals,(unsigned long long)image_cache_annotations);
     used=strlen(buffer);
+    if(used<capacity)snprintf(buffer+used,capacity-used,"Missing-Date receipt proposals staged/stored/fallback: %llu/%llu/%llu (stored only after verified network completion; timestamps stay cache-internal).\n",
+        (unsigned long long)image_receipt_staged,(unsigned long long)image_receipt_stored,(unsigned long long)image_receipt_fallback);
+    used=strlen(buffer);
     if(used<capacity)snprintf(buffer+used,capacity-used,
         "Annotation rejection task start missing/invalid/future: %llu/%llu/%llu\n"
         "Annotation rejection request private/policy/directives; response status: %llu/%llu/%llu; %llu\n"
         "Annotation rejection Date missing/invalid/future; Age invalid: %llu/%llu/%llu; %llu\n"
         "Annotation rejection control size/max-age invalid/duplicate/no-cache/no-store: %llu/%llu/%llu/%llu/%llu\n"
         "Annotation rejection extension value/unsupported directive/Expires missing/invalid/nonpositive lifetime/construction: %llu/%llu/%llu/%llu/%llu/%llu\n"
-        "Annotation counters count the first rejection per proposal; annotated + rejections = proposals. No header values reported.\n",
+        "Annotation counters count the first rejection per proposal; verified receipt storage replaces Date-missing rejection; annotated + rejections = proposals after callbacks settle. No header values reported.\n",
         (unsigned long long)image_cache_rejections[IMAGE_CACHE_START_MISSING],(unsigned long long)image_cache_rejections[IMAGE_CACHE_START_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_START_FUTURE],
         (unsigned long long)image_cache_rejections[IMAGE_CACHE_REQUEST_PRIVATE],(unsigned long long)image_cache_rejections[IMAGE_CACHE_REQUEST_POLICY],(unsigned long long)image_cache_rejections[IMAGE_CACHE_REQUEST_DIRECTIVES],(unsigned long long)image_cache_rejections[IMAGE_CACHE_RESPONSE_STATUS],
         (unsigned long long)image_cache_rejections[IMAGE_CACHE_DATE_MISSING],(unsigned long long)image_cache_rejections[IMAGE_CACHE_DATE_INVALID],(unsigned long long)image_cache_rejections[IMAGE_CACHE_DATE_FUTURE],(unsigned long long)image_cache_rejections[IMAGE_CACHE_AGE_INVALID],

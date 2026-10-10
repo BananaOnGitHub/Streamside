@@ -4,6 +4,7 @@
  * another downloader/cache. Old, unannotated entries take Foundation's path. */
 #include "TASHTTPCache.h"
 static char image_cache_start_key;
+static char image_cache_start_wall_key,image_cache_receipt_key,image_cache_proposal_key,image_cache_network_key;
 static char image_cache_completion_key,image_cache_data_key;
 static id image_cache_epoch;
 static id image_cache_store;
@@ -12,6 +13,7 @@ static void *image_cache_session;
 static pthread_mutex_t image_cache_metadata_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t image_cache_proposals,image_cache_annotations;
 static uint64_t image_cache_rejections[IMAGE_CACHE_REJECTION_COUNT];
+static uint64_t image_receipt_staged,image_receipt_stored,image_receipt_fallback;
 static bool image_cache_eligible(id request);
 #ifdef __APPLE__
 #define IMAGE_CACHE_AGE_CLOCK CLOCK_MONOTONIC_RAW
@@ -25,6 +27,7 @@ static id image_cache_number(double value) {
     char text[64];snprintf(text,sizeof(text),"%.17g",value);return nsstr(text);
 }
 static double image_cache_value(id value) {
+    if(!value || !bmsg1(value,"isKindOfClass:",(id)objc_getClass("NSString")))return -1;
     const char *s=utf8(value);char *end=NULL;if(!s || !*s)return -1;
     double number=strtod(s,&end);return end && !*end && isfinite(number) ? number:-1;
 }
@@ -35,7 +38,9 @@ static id image_cache_field(id response,const char *name) {
 #include "TASCacheHeaderProbe.h"
 static void image_cache_mark_task(id task) {
     objc_setAssociatedObject(task,&image_cache_start_key,image_cache_number(image_cache_clock(IMAGE_CACHE_AGE_CLOCK)),1);
+    objc_setAssociatedObject(task,&image_cache_start_wall_key,image_cache_number(image_cache_clock(CLOCK_REALTIME)),1);
 }
+#include "TASCacheReceipt.h"
 static void image_cache_proposed(id self,SEL cmd,id session,id task,id proposed,id completion) {
     (void)self;(void)cmd;(void)session;
     id response=msg0(proposed,"response"),request=msg0(task,"originalRequest");
@@ -61,6 +66,9 @@ static void image_cache_proposed(id self,SEL cmd,id session,id task,id proposed,
                                         utf8(image_cache_field(response,"Expires")),&lifetime,&stamp,&rejection)) { /* classified by parser */ }
     else if(!(stamp<=wall))rejection=IMAGE_CACHE_DATE_FUTURE;
     else if(age_text && !image_cache_seconds(age_text,&age))rejection=IMAGE_CACHE_AGE_INVALID;
+    /* Metrics arrive later. Missing Date remains rejected until a successful
+     * network transaction proves the original receipt and stored proposal. */
+    if(rejection==IMAGE_CACHE_DATE_MISSING)image_cache_stage_receipt(task,proposed);
     if(rejection==IMAGE_CACHE_ACCEPTED) {
         /* Age + entire task duration overestimates response delay and body
          * time. Never underestimate age by counting only lookup latency. */
@@ -86,6 +94,7 @@ static void image_cache_proposed(id self,SEL cmd,id session,id task,id proposed,
     objc_release(annotated);
 }
 static void image_cache_metrics(id self,SEL cmd,id session,id task,id report) {
+    image_cache_receipt_metrics(task,report);
     id observer=objc_getAssociatedObject(self,&image_cache_start_key);
     if(observer)((void (*)(id,SEL,id,id,id))objc_msgSend)(observer,cmd,session,task,report);
 }
@@ -106,6 +115,7 @@ static void image_cache_received_data(id self,SEL cmd,id session,id task,id data
 }
 static void image_cache_completed(id self,SEL cmd,id session,id task,id error) {
     (void)self;(void)cmd;(void)session;
+    image_cache_finish_receipt(task,error);
     objc_sync_enter(task);
     id callback=objc_retain(objc_getAssociatedObject(task,&image_cache_completion_key));
     id body=objc_retain(objc_getAssociatedObject(task,&image_cache_data_key));
@@ -127,6 +137,7 @@ static id image_cache_delegate(void) {
         cls=objc_allocateClassPair(objc_getClass("NSObject"),"TASProviderCacheDelegate",0);
         if(!cls)return nil;
         if(!class_addMethod(cls,sel_registerName("URLSession:dataTask:willCacheResponse:completionHandler:"),(IMP)image_cache_proposed,"v48@0:8@16@24@32@?40") ||
+           !class_addMethod(cls,sel_registerName("URLSession:dataTask:didReceiveResponse:completionHandler:"),(IMP)image_cache_received_response,"v48@0:8@16@24@32@?40") ||
            !class_addMethod(cls,sel_registerName("URLSession:task:didFinishCollectingMetrics:"),(IMP)image_cache_metrics,"v40@0:8@16@24@32") ||
            !class_addMethod(cls,sel_registerName("URLSession:dataTask:didReceiveData:"),(IMP)image_cache_received_data,"v40@0:8@16@24@32") ||
            !class_addMethod(cls,sel_registerName("URLSession:task:didCompleteWithError:"),(IMP)image_cache_completed,"v40@0:8@16@24@32")) {
@@ -175,12 +186,25 @@ static bool image_cache_usable(id cached,id request,unsigned *reason) {
     if(vary && (strcasestr(vary,"cookie") || strcasestr(vary,"authorization")))return false;
     if(vary && strcasestr(vary,"user-agent") && !msg1(request,"valueForHTTPHeaderField:",nsstr("User-Agent")))return false;
     if(image_cache_field(response,"Content-Range") || image_cache_field(response,"Pragma"))return false;
-    double lifetime,stamp;
-    if(!image_cache_lifetime(utf8(image_cache_field(response,"Cache-Control")),utf8(image_cache_field(response,"Date")),
-                             utf8(image_cache_field(response,"Expires")),&lifetime,&stamp))return false;
+    double lifetime,stamp,receipt=-1,initial_age=-1;
+    bool missing_date=!image_cache_field(response,"Date");
+    if(missing_date) {
+        *reason=2;
+        if(!image_cache_receipt_info(info,&receipt,&initial_age))return false;
+    }
+    unsigned policy_reason;
+    *reason=4;
+    const char *control=utf8(image_cache_field(response,"Cache-Control")),*date=utf8(image_cache_field(response,"Date")),*expires=utf8(image_cache_field(response,"Expires"));
+    if(!(missing_date ? image_cache_lifetime_at_reason(control,date,expires,receipt,&lifetime,&stamp,&policy_reason):
+                       image_cache_lifetime(control,date,expires,&lifetime,&stamp)))return false;
     double tick=image_cache_value(msg1(info,"objectForKey:",nsstr("TASCacheTick")));
     double wall=image_cache_value(msg1(info,"objectForKey:",nsstr("TASCacheWall")));
     double remaining=image_cache_value(msg1(info,"objectForKey:",nsstr("TASCacheRemaining")));
+    if(missing_date) {
+        *reason=2;double age=0;const char *s=utf8(image_cache_field(response,"Age"));
+        if((s && !image_cache_seconds(s,&age)) || initial_age<age ||
+           fabs(lifetime-initial_age-remaining)>0.000001)return false;
+    }
     double elapsed=image_cache_clock(IMAGE_CACHE_AGE_CLOCK)-tick,wall_elapsed=image_cache_clock(CLOCK_REALTIME)-wall;
     *reason=3;
     if(!(tick>=0 && wall>=0 && elapsed>=0 && wall_elapsed>=0 && isfinite(remaining) && remaining>fmax(elapsed,wall_elapsed)))return false;

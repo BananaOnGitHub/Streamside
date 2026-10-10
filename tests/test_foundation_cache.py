@@ -21,10 +21,14 @@ class FoundationCacheTests(unittest.TestCase):
             def do_GET(self):
                 with guard: requests[self.path]+=1
                 if self.path.startswith('/blocked'): time.sleep(4)
-                conditional=self.path=='/revalidate.gif' and self.headers.get('If-None-Match')=='"fixture-v1"'
+                receipt=self.path=='/receipt.gif'
+                conditional=self.path in ('/revalidate.gif','/receipt.gif') and self.headers.get('If-None-Match')=='"fixture-v1"'
                 with guard: requests['conditional-304']+=bool(conditional)
-                self.send_response(304 if conditional else 200)
-                self.send_header('Cache-Control','max-age=0, must-revalidate' if self.path=='/revalidate.gif' else 'public, max-age=3600')
+                # send_response adds Date; this fixture must genuinely omit it.
+                if receipt:self.send_response_only(304 if conditional else 200)
+                else:self.send_response(304 if conditional else 200)
+                self.send_header('Cache-Control','public, max-age=5, must-revalidate' if receipt else 'max-age=0, must-revalidate' if self.path=='/revalidate.gif' else 'public, max-age=3600')
+                if receipt:self.send_header('Age','2')
                 self.send_header('ETag','"fixture-v1"');self.send_header('Content-Type','image/gif')
                 self.send_header('Content-Length','0' if conditional else '6');self.end_headers()
                 if not conditional:self.wfile.write(b'GIF89a')
@@ -43,8 +47,11 @@ class FoundationCacheTests(unittest.TestCase):
                 self.assertIn('Cache-hit admission-to-delivery',ran.stdout)
                 self.assertIn('Production annotation policy matrix passed',ran.stdout)
                 self.assertIn('Production header probe passed with real Foundation objects',ran.stdout)
+                self.assertIn('Production missing-Date receipt passed',ran.stdout)
                 self.assertIn('Header probe task Expires:',ran.stdout)
             self.assertEqual(requests['/hot.gif'],1)
-            self.assertEqual(requests['conditional-304'],1)
+            self.assertEqual(requests['/receipt.gif'],2)
+            self.assertEqual(requests['/old-receipt.gif'],0)
+            self.assertEqual(requests['conditional-304'],2)
         finally:
             server.shutdown();server.server_close();thread.join(timeout=2)

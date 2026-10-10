@@ -36,6 +36,7 @@ static void wait_finished(CacheClient *client,double seconds) {
 }
 #include "foundation_annotation_main.m"
 #include "foundation_header_probe.m"
+#include "foundation_receipt_main.m"
 int main(int argc,char **argv) {
     assert(argc==2);
     @autoreleasepool {
@@ -45,6 +46,7 @@ int main(int argc,char **argv) {
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
         header_probe_matrix(argv[1]);
 #endif
+        receipt_integration(argv[1]);
         NSURLSessionConfiguration *configuration=[protocol_session(true) configuration];
         assert(configuration.timeoutIntervalForRequest==15 && configuration.timeoutIntervalForResource==30);
         assert(configuration.HTTPMaximumConnectionsPerHost==8 && configuration.URLCache.memoryCapacity==32*1024*1024 && configuration.URLCache.diskCapacity==128*1024*1024);

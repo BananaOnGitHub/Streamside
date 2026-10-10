@@ -1,5 +1,10 @@
 # Streamside
 
+> Archived investigation: `archive/rn-image-demand`, completed through build 87.
+> Its implementation and shared closure docs were fast-forwarded into
+> `compat/twitch-31.5`, which is the active development branch. See
+> [this branch's purpose, work and outcome](docs/BRANCH_ARCHIVE.md).
+
 A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.

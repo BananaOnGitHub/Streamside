@@ -105,6 +105,13 @@ static unsigned lookups_entered,lookups_live,lookups_live_peak;
 static pthread_mutex_t lookup_lock=PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t lookup_condition=PTHREAD_COND_INITIALIZER;
 #define DISPATCH_QUEUE_PRIORITY_DEFAULT 0
+#define DISPATCH_TIME_NOW 0
+typedef int64_t dispatch_time_t;
+static void (*overflow_timer_work)(void *);static unsigned overflow_timer_arms;
+static dispatch_time_t dispatch_time(dispatch_time_t when,int64_t delta){assert(!when && delta>0);return delta;}
+static void dispatch_after_f(dispatch_time_t when,void *q,void *context,void (*work)(void *)) {
+    assert(when>0 && !q && !context && !overflow_timer_work);overflow_timer_work=work;overflow_timer_arms++;
+}
 static void *dispatch_get_global_queue(long priority,unsigned long flags){assert(!priority && !flags);return NULL;}
 static void dispatch_async_f(void *q,void *context,void (*work)(void *)) {
     assert(!q && !context);if(cache_defer){assert(work_count<2);cache_work[work_count++]=work;}else work(context);
@@ -238,7 +245,8 @@ static id dispatch(id o,SEL s,...) {
     else if(!strcmp(s,"statusCode"))r=(id)(uintptr_t)(o->status ? o->status:200);
     else if(!strcmp(s,"code"))r=(id)(intptr_t)o->error_code;
     else if(!strcmp(s,"errorWithDomain:code:userInfo:")) {
-        assert(!strcmp(va_arg(a,id)->text,"NSURLErrorDomain"));assert(va_arg(a,NSInteger)==-1);assert(!va_arg(a,id));r=fresh("error");
+        assert(!strcmp(va_arg(a,id)->text,"NSURLErrorDomain"));NSInteger code=va_arg(a,NSInteger);
+        assert(code==-1 || code==-1001);assert(!va_arg(a,id));r=fresh("error");r->error_code=code;
     } else if(!strcmp(s,"URLProtocol:didReceiveResponse:cacheStoragePolicy:")) {
         id protocol=va_arg(a,id);assert(va_arg(a,id));assert(!va_arg(a,NSInteger));o->responses++;
         if(o->stop_on_response)protocol_stop_loading(protocol,"stopLoading");
@@ -435,11 +443,13 @@ int main(void) {
         snprintf(urls[i],sizeof(urls[i]),"https://cdn.7tv.app/emote/budget%u/2x.gif",i);
         crowded[i]=protocol(urls[i]);protocol_start_loading(crowded[i],nil);
     }
-    assert(image_active==6 && crowded[IMAGE_FLIGHTS]->client->failures==1 && image_refused==1);
+    assert(image_active==6 && !crowded[IMAGE_FLIGHTS]->client->failures && image_refused==1 && image_overflow_groups==1);
     for(unsigned i=0;i<IMAGE_FLIGHTS;i++) {
         assert(task_for(crowded[i]));complete(task_for(crowded[i]),data,response,nil);
         assert(crowded[i]->client->finishes==1 && image_active<=6);
     }
+    assert(task_for(crowded[IMAGE_FLIGHTS]));complete(task_for(crowded[IMAGE_FLIGHTS]),data,response,nil);
+    assert(crowded[IMAGE_FLIGHTS]->client->finishes==1 && !image_overflow_groups && image_overflow_recovered==1);
     /* Consumer cap makes another bounded flight without starving requests. */
     id viewers[IMAGE_CONSUMERS+1];before=starts;
     for(unsigned i=0;i<IMAGE_CONSUMERS+1;i++) {

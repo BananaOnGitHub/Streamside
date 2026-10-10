@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import tempfile
 import threading
-import time
 import unittest
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -15,12 +14,13 @@ ROOT=Path(__file__).resolve().parent.parent
 @unittest.skipUnless(platform.system()=='Darwin' and shutil.which('xcrun'), 'requires Apple Foundation and Xcode command-line tools')
 class FoundationCacheTests(unittest.TestCase):
     def test_actual_http_cache_hit_under_eight_stalled_transfers_and_304(self):
-        requests=Counter();guard=threading.Lock()
+        requests=Counter();guard=threading.Lock();release_blocked=threading.Event()
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args): pass  # no URL/header logs
             def do_GET(self):
                 with guard: requests[self.path]+=1
-                if self.path.startswith('/blocked'): time.sleep(4)
+                if self.path=='/release-blocked':release_blocked.set()
+                if self.path.startswith('/blocked') and not release_blocked.wait(20):return
                 receipt=self.path=='/receipt.gif'
                 conditional=self.path in ('/revalidate.gif','/receipt.gif') and self.headers.get('If-None-Match')=='"fixture-v1"'
                 with guard: requests['conditional-304']+=bool(conditional)
@@ -48,10 +48,14 @@ class FoundationCacheTests(unittest.TestCase):
                 self.assertIn('Production annotation policy matrix passed',ran.stdout)
                 self.assertIn('Production header probe passed with real Foundation objects',ran.stdout)
                 self.assertIn('Production missing-Date receipt passed',ran.stdout)
+                self.assertIn('Production overflow recovery passed',ran.stdout)
                 self.assertIn('Header probe task Expires:',ran.stdout)
             self.assertEqual(requests['/hot.gif'],1)
             self.assertEqual(requests['/receipt.gif'],2)
             self.assertEqual(requests['/old-receipt.gif'],0)
             self.assertEqual(requests['conditional-304'],2)
+            self.assertEqual(requests['/overflow.gif'],1)
+            self.assertFalse(any(path.startswith('/queued') for path in requests))
         finally:
+            release_blocked.set()
             server.shutdown();server.server_close();thread.join(timeout=2)

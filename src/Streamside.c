@@ -732,6 +732,8 @@ static double image_elapsed(struct timespec from, struct timespec to) {
 }
 static void image_schedule(void);
 static void image_cache_status(char *,size_t);
+static void image_overflow_drain_locked(void);
+static void image_overflow_status_locked(char *,size_t);
 
 void tas_image_transport_status(char *buffer, size_t capacity) {
     pthread_mutex_lock(&image_transport_lock);
@@ -756,6 +758,7 @@ void tas_image_transport_status(char *buffer, size_t capacity) {
         (unsigned long long)image_error_cancelled, (unsigned long long)image_error_timeout, (unsigned long long)image_error_other,
         (unsigned long long)image_body_sizes[0], (unsigned long long)image_body_sizes[1],
         (unsigned long long)image_body_sizes[2], (unsigned long long)image_body_sizes[3], image_active, image_background_active);
+    image_overflow_status_locked(buffer,capacity);
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
     unsigned queued=0,occupied=0,detached=0,consumers=0;double oldest=0,oldest_detached=0;
     struct timespec now;clock_gettime(CLOCK_MONOTONIC,&now);
@@ -813,6 +816,7 @@ static void image_flight_complete(unsigned index, uint64_t generation, id data, 
         if(!count)demand_detached_time[image_bucket(image_elapsed(flight->detached,now))]++;
 #endif
         free(flight->url); memset(flight, 0, sizeof(*flight));
+        image_overflow_drain_locked();
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
         image_demand_occupancy();
 #endif
@@ -833,6 +837,7 @@ static void image_schedule(void) {
     pthread_mutex_lock(&image_transport_lock);
     if (image_pumping) { pthread_mutex_unlock(&image_transport_lock); return; }
     image_pumping=true;
+    image_overflow_drain_locked();
     for (;;) {
         unsigned index=IMAGE_FLIGHTS;
         for (unsigned i=0;image_active<IMAGE_ACTIVE && i<IMAGE_FLIGHTS;i++) {
@@ -917,14 +922,17 @@ static unsigned image_flight_add_locked(id self,id session,id request,const char
     objc_setAssociatedObject(self, &image_consumer_key, nsstr("1"), 1);
     return available;
 }
+#include "TASImageOverflow.h"
 static bool image_flight_admit(id self,id session,id request,const char *url,bool foreground,bool allocate) {
     pthread_mutex_lock(&image_transport_lock);
     unsigned index=image_flight_add_locked(self,session,request,url,foreground,allocate,true);
+    bool deferred=index==IMAGE_FLIGHTS && allocate && image_overflow_admit_locked(self,session,request,url,foreground);
     uint64_t generation=index<IMAGE_FLIGHTS ? image_flights[index].generation:0;
     pthread_mutex_unlock(&image_transport_lock);
     if(index==IMAGE_FLIGHTS) {
         if(!allocate)return false;
-        protocol_deliver(self,nil,nil,nil);return true;
+        if(!deferred)protocol_complete(self,nil,nil,nil);
+        return true;
     }
     image_schedule();
     /* The initiating consumer's monitor is held by startLoading. Queued
@@ -944,8 +952,9 @@ static bool image_flight_start(id self,id session,id request,const char *url,boo
  * Completion may already have removed it; its stopped flag still blocks delivery. */
 static bool image_flight_stop(id self) {
     bool shared = false;
-    id request = nil, consumer = nil;
+    id request = nil, consumer = nil;char *overflow_url=NULL;
     pthread_mutex_lock(&image_transport_lock);
+    shared=image_overflow_stop_locked(self,&request,&consumer,&overflow_url);
     for (unsigned i = 0; i < IMAGE_FLIGHTS && !shared; i++) {
         ImageFlight *flight = &image_flights[i];
         if (!flight->url) continue;
@@ -967,11 +976,12 @@ static bool image_flight_stop(id self) {
             break;
         }
     }
+    image_overflow_drain_locked();
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
     image_demand_occupancy();
 #endif
     pthread_mutex_unlock(&image_transport_lock);
-    objc_release(request); objc_release(consumer);
+    free(overflow_url);objc_release(request); objc_release(consumer);
     image_schedule();
     return shared;
 }

@@ -18,6 +18,7 @@ static void image_cache_worker(void *unused) {
      * constructing a cache/session on the initiating (possibly main) thread. */
     pthread_mutex_lock(&image_transport_lock);
     for(unsigned i=0;i<IMAGE_FLIGHTS;i++)if(image_flights[i].url && !image_flights[i].session)image_flights[i].session=session;
+    for(unsigned i=0;i<IMAGE_OVERFLOW_GROUPS;i++)if(image_overflow[i].url && !image_overflow[i].session)image_overflow[i].session=session;
     pthread_mutex_unlock(&image_transport_lock);image_schedule();msg0(initial_pool,"drain");
     for(;;) {
         pthread_mutex_lock(&image_cache_lock);
@@ -48,8 +49,10 @@ static void image_cache_worker(void *unused) {
              * completion cannot outrun the rest of this group's consumers.
              * Lock order: cache -> transport; neither takes consumer monitors. */
             pthread_mutex_lock(&image_transport_lock);
-            for(unsigned i=0;i<count;i++)if(!objc_getAssociatedObject(consumers[i],&g_protocol_stopped_key))
-                refused[i]=image_flight_add_locked(consumers[i],session,request,url,foreground,true,false)==IMAGE_FLIGHTS;
+            for(unsigned i=0;i<count;i++)if(!objc_getAssociatedObject(consumers[i],&g_protocol_stopped_key)) {
+                bool full=image_flight_add_locked(consumers[i],session,request,url,foreground,true,false)==IMAGE_FLIGHTS;
+                refused[i]=full && !image_overflow_admit_locked(consumers[i],session,request,url,foreground);
+            }
             pthread_mutex_unlock(&image_transport_lock);
         }
         memset(f,0,sizeof(*f));image_cache_groups--;
@@ -63,7 +66,7 @@ static void image_cache_worker(void *unused) {
             objc_sync_enter(consumers[i]);
             if(!objc_getAssociatedObject(consumers[i],&g_protocol_stopped_key)) {
                 if(hit){protocol_complete(consumers[i],msg0(cached,"data"),msg0(cached,"response"),nil);delivered++;}
-                else if(refused[i])protocol_deliver(consumers[i],nil,nil,nil);
+                else if(refused[i])protocol_complete(consumers[i],nil,nil,nil);
                 else if(!objc_getAssociatedObject(consumers[i],&g_protocol_completed_key)) {
                     pthread_mutex_lock(&image_transport_lock);
                     for(unsigned j=0;j<IMAGE_FLIGHTS;j++)for(unsigned k=0;k<image_flights[j].count;k++)
@@ -96,7 +99,7 @@ static bool image_cache_start(id self,id session,id request,const char *url,bool
         image_cache_spill++;bool spawn=image_cache_workers<IMAGE_CACHE_WORKERS;
         if(spawn){image_cache_workers++;if(image_cache_workers>image_cache_worker_peak)image_cache_worker_peak=image_cache_workers;}
         pthread_mutex_unlock(&image_cache_lock);
-        /* Existing bounded admission/refusal; Phase 3 owns overflow recovery. */
+        /* A saturated lookup lane uses ordinary admission/overflow recovery. */
         bool result=image_flight_start(self,session,request,url,foreground);
         if(spawn)dispatch_async_f(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0),NULL,image_cache_worker);
         return result;

@@ -117,9 +117,9 @@ int main(void) {
 
 class CacheReceiptTests(unittest.TestCase):
     def test_network_provenance_original_clock_and_expiration(self):
-        # Clang 19 crashes emitting debug info for this clock/block fixture.
-        # Disable debug info only; all normal assertions remain enabled.
-        protocol_tests.ProtocolTests().run_transport(False,MAIN,PRELUDE,('-g0',))
+        # Clang 19 crashes on debug/builtin handling in this clock/block adapter.
+        # Disable those transforms, never assertions or production build flags.
+        protocol_tests.ProtocolTests().run_transport(False,MAIN,PRELUDE,('-g0','-fno-builtin'))
 
     def test_receipt_diagnostics_preserve_the_same_lifecycle(self):
-        protocol_tests.ProtocolTests().run_transport(True,MAIN,PRELUDE,('-g0',))
+        protocol_tests.ProtocolTests().run_transport(True,MAIN,PRELUDE,('-g0','-fno-builtin'))

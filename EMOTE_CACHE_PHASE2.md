@@ -1,7 +1,8 @@
 # Phase 2: bounded cache-first provider transport
 
 Baseline: build 78, commit `8e32a286f1bce635e1900fbb596b8c863c5b6a24`.
-Candidate diagnostic build: 79. Phase 3 overflow/retry work is **not included**.
+Initial candidate diagnostic build: 79; network-receipt fix: 82. Build 83 adds
+isolated [overflow recovery](EMOTE_OVERFLOW_RECOVERY.md). Throughput changes remain deferred.
 
 ## Production path
 
@@ -30,8 +31,8 @@ independent Foundation path. HLS uses its separate session unchanged.
 The underlying transfer registry remains 512 flights, eight active transfers,
 six background transfers, and 64 consumers per flight. No second downloader,
 prefetcher, retry loop, stale-image fallback, or UI window clamp was introduced.
-Lookup-registry saturation falls through to existing bounded flight admission;
-this does not repair the existing budget-refusal recovery contract (Phase 3).
+Lookup-registry saturation falls through to bounded flight admission. Build 83
+adds bounded recovery when ordinary admission is full; it does not change throughput.
 
 ## Cache correctness and deliberately conservative misses
 

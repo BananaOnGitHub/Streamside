@@ -34,6 +34,42 @@ static void wait_finished(CacheClient *client,double seconds) {
     @synchronized(client){fprintf(stderr,"Fixture callbacks response/data/finish/failure: %lu/%lu/%lu/%lu\n",(unsigned long)client->responses,(unsigned long)client->loads,(unsigned long)client->finishes,(unsigned long)client->failures);}
     assert(!"Foundation fixture timed out");
 }
+static CacheClient *overflow_integration(const char *base) {
+    id queued[IMAGE_FLIGHTS-8];CacheClient *clients[IMAGE_FLIGHTS-8];
+    id session=protocol_session(true);
+    pthread_mutex_lock(&image_transport_lock);assert(image_active==8);
+    for(unsigned i=0;i<IMAGE_FLIGHTS-8;i++) {
+        NSString *url=[NSString stringWithFormat:@"%s/queued%u.gif",base,i];
+        NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+        [request setValue:@"1" forHTTPHeaderField:@TAS_INTERNAL_HEADER];
+        clients[i]=[CacheClient new];
+        queued[i]=[[NSURLProtocol alloc] initWithRequest:request cachedResponse:nil client:clients[i]];
+        assert(image_flight_add_locked(queued[i],session,request,[url UTF8String],false,true,false)<IMAGE_FLIGHTS);
+    }
+    pthread_mutex_unlock(&image_transport_lock);
+    CacheClient *cancelled,*survivor;
+    id a=begin(base,"/overflow.gif",&cancelled);begin(base,"/overflow.gif",&survivor);
+    double end=image_cache_clock(CLOCK_MONOTONIC)+2;unsigned consumers=0;
+    while(image_cache_clock(CLOCK_MONOTONIC)<end) {
+        pthread_mutex_lock(&image_transport_lock);consumers=image_overflow_consumers;pthread_mutex_unlock(&image_transport_lock);
+        if(consumers==2)break;
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.001]];
+    }
+    assert(consumers==2);
+    protocol_stop_loading(a,NULL);
+    protocol_stop_loading(queued[IMAGE_FLIGHTS-9],NULL);
+    pthread_mutex_lock(&image_transport_lock);
+    assert(image_active==8 && !image_overflow_groups && image_overflow_recovered==1);
+    pthread_mutex_unlock(&image_transport_lock);
+    for(unsigned i=0;i<IMAGE_FLIGHTS-8;i++)protocol_stop_loading(queued[i],NULL);
+    @synchronized(cancelled){assert(!cancelled->responses && !cancelled->failures);}
+    @synchronized(survivor){assert(!survivor->responses && !survivor->failures);}
+    for(unsigned i=0;i<IMAGE_FLIGHTS-8;i++) {
+        @synchronized(clients[i]){assert(!clients[i]->responses && !clients[i]->failures);}
+        [queued[i] release];[clients[i] release];
+    }
+    return survivor;
+}
 #include "foundation_annotation_main.m"
 #include "foundation_header_probe.m"
 #include "foundation_receipt_main.m"
@@ -59,7 +95,12 @@ int main(int argc,char **argv) {
         fputs("Fixture stage: saturated cache hit\n",stderr);
         CacheClient *hot;double start=image_cache_clock(CLOCK_MONOTONIC);begin(argv[1],"/hot.gif",&hot);wait_finished(hot,1.5);
         assert(image_cache_clock(CLOCK_MONOTONIC)-start<1.5 && image_cache_hits>=1);
+        CacheClient *overflow=overflow_integration(argv[1]);
+        assert([[NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%s/release-blocked",argv[1]]]] length]==6);
         for(unsigned i=0;i<8;i++){wait_finished(blocked[i],10);protocol_stop_loading(protocols[i],NULL);}
+        wait_finished(overflow,10);
+        assert(!image_overflow_groups && !image_overflow_consumers && image_active<=8);
+        puts("Production overflow recovery passed with real Foundation objects and HTTP");
         fputs("Fixture stage: revalidation\n",stderr);
         CacheClient *stale,*revalidated;begin(argv[1],"/revalidate.gif",&stale);wait_finished(stale,10);
         begin(argv[1],"/revalidate.gif",&revalidated);wait_finished(revalidated,10);

@@ -16,7 +16,7 @@ struct Fake {
     id flow,collection,heading,deferred_heading,title,native_header,first,last,path,element_kind,marker;
     const char *encoding;
     State *context;
-    Rect frame,bounds,applied_first;
+    Rect frame,bounds,applied_first,applied_recent;
     Insets inset,adjusted;
     Insets cached_sections[4];
     Point offset;
@@ -36,6 +36,8 @@ struct Fake {
 static struct Fake objects[2048],classes[32],empty={0},datasets[4][2];
 static U allocated,class_count,queries,native_actions,metric_invalidations;
 static unsigned initial_header_layouts;
+static unsigned palette_layout_callbacks;
+static BOOL native_layout_active;
 static unsigned native_scroll_calls,native_scroll_paints;
 static BOOL observe_native_paints;
 static int last_provider,last_scope;
@@ -129,6 +131,10 @@ static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
     if(!strcmp(sel,"respondsToSelector:")) { (void)va_arg(args,SEL);result=(id)1; }
     else if(!strcmp(sel,"isKindOfClass:")) { Class c=va_arg(args,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls)); }
+    else if(!strcmp(sel,"performSelector:withObject:afterDelay:")) {
+        assert(!strcmp(va_arg(args,SEL),"ssPaletteLayout:"));assert(!va_arg(args,id));assert(va_arg(args,double)==0);
+        palette_layout_callbacks++;
+    }
     else if(!strcmp(sel,"new") || !strcmp(sel,"alloc"))result=create(o->cls);
     else if(!strcmp(sel,"stringWithUTF8String:")) { result=create("NSString");result->text=va_arg(args,const char *); }
     else if(!strcmp(sel,"isEqual:")) { id other=va_arg(args,id);result=(id)(uintptr_t)(o==other || (o->text && other->text && !strcmp(o->text,other->text))); }
@@ -202,6 +208,8 @@ static id dispatch(id o,SEL sel,...) {
         o->needs_metrics=YES;metric_invalidations++;
     } else if(!strcmp(sel,"setNeedsLayout")) { }
     else if(!strcmp(sel,"layoutIfNeeded")) {
+        /* UIKit ignores a nested layoutIfNeeded during its current pass. */
+        if(native_layout_active) { va_end(args);return nil; }
         if(!o->heading && o->deferred_heading) {
             /* The supplementary view exists only after the first native
              * layout. A provider gap must not already have shifted Recent. */
@@ -218,6 +226,10 @@ static id dispatch(id o,SEL sel,...) {
                 flow->applied_first=rect(flow_item(flow,"item",path),"frame");
             }
             flow->applied_size=flow_size(flow,"collectionViewContentSize");
+            id path=create("NSIndexPath");path->section=0;
+            if(o->sections && o->item_counts[0])flow->applied_recent=rect(flow_item(flow,"item",path),"frame");
+            if(o->sections && o->heading && o->header_heights[0])
+                o->heading->frame=rect(flow_header(flow,"header",str("UICollectionElementKindSectionHeader"),path),"frame");
         }
     }
     else if(!strcmp(sel,"sectionHeadersPinToVisibleBounds"))result=(id)1;
@@ -561,6 +573,53 @@ def replace_body(source, name, body):
 
 class LibraryTests(unittest.TestCase):
     def test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset(self):
+        self.run_library(HARNESS)
+
+    def test_first_open_settles_native_recents_without_scrolling_or_reloading(self):
+        case=r'''
+    /* Reopening during native layout: nested layoutIfNeeded does nothing,
+     * the supplementary header has not been realized, and metrics are pending. */
+    detach_recents(&s);s.palette_layout_scheduled=NO;palette_layout_callbacks=0;
+    struct Fake saved={.count=6},clip={.cls="UIView"},row={.cls="UIScrollView",.parent=&clip};
+    s.recent_entries=&saved;s.recent_strip=&row;s.recent_clip=&clip;
+    native.heading=nil;native.deferred_heading=&heading;title.text="Frequently Used";
+    native.sections=2;native.header_heights[0]=44;native.header_heights[1]=44;
+    native.item_counts[0]=3;native.item_counts[1]=3;flow.content_size.height=472;
+    datasets[3][0].count=10;catalog_revision++;refresh_library(&s);
+    ss_test_offset(&native,(Point){0,0});flow.applied_size=(Size){0,0};
+    native_layout_active=YES;
+    bind_recents(&delegate,&container);place_library_panel(&s,&native);
+    assert(s.palette_layout_scheduled && palette_layout_callbacks==1);
+    assert(!s.library_height && !native.heading && !flow.applied_size.height);
+    for(unsigned i=0;i<4;i++)place_library_panel(&s,&native);
+    assert(palette_layout_callbacks==1); /* one pending callback, no retries */
+    Point offset=native.offset;row.offset.x=128;
+    U native_reloads=native.reloads,grid_reloads=s.grid->reloads,reads=queries;
+    native_layout_active=NO;
+    palette_layout_ready(&delegate,"ssPaletteLayout:",nil);
+    assert(!s.palette_layout_scheduled && !s.palette_layout_settling && palette_layout_callbacks==1);
+    assert(native.heading==&heading && s.recent_header_height==44 && s.library_section==1);
+    assert(flow.applied_recent.origin.y==52 && flow.applied_size.height==882);
+    assert(flow.applied_first.origin.y==698 && !s.panel->hidden && s.library_start==236);
+    id recent_path=create("NSIndexPath");recent_path->section=0;
+    id cells=flow_elements(&flow,"elements",native.bounds);BOOL found=NO;
+    for(U i=0;i<cells->count;i++)if(cells->children[i]->path->section==0 && !cells->children[i]->element_kind)found=YES;
+    assert(found); /* first viewport contains native Recent cells */
+    assert(native.offset.y==offset.y && native.offset.x==offset.x && row.offset.x==128);
+    assert(native.reloads==native_reloads && s.grid->reloads==grid_reloads && queries==reads);
+    place_recent_strip(&s,&native);place_library_panel(&s,&native);
+    assert(palette_layout_callbacks==1 && !s.palette_layout_scheduled);
+    /* A close or replaced palette cannot be touched by the queued callback. */
+    s.palette_layout_scheduled=YES;s.recent_menu_open=NO;
+    U invalidated=metric_invalidations;palette_layout_ready(&delegate,"ssPaletteLayout:",nil);
+    assert(!s.palette_layout_scheduled && metric_invalidations==invalidated);
+    s.recent_menu_open=YES;s.palette_layout_scheduled=YES;detach_recents(&s);
+    invalidated=metric_invalidations;palette_layout_ready(&delegate,"ssPaletteLayout:",nil);
+    assert(!s.palette_layout_scheduled && metric_invalidations==invalidated);
+'''
+        self.run_library(HARNESS.replace('    return 0;\n}',case+'    return 0;\n}'))
+
+    def run_library(self,harness):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         self.assertTrue(zig)
         source = composer.recent_geometry_source()
@@ -579,4 +638,4 @@ class LibraryTests(unittest.TestCase):
         source = source.replace('((Rect (*)(id,SEL,Rect,id))objc_msgSend)(footer,sel_registerName("convertRect:toView:"),rect(footer,"bounds"),container)', 'ss_test_convert(footer)')
         source = source.replace('((id (*)(id,SEL,double))objc_msgSend)(m0(item,"widthAnchor"),sel_registerName("constraintEqualToConstant:"),width)', 'ss_test_constraint(m0(item,"widthAnchor"),width)')
         source = source.replace('((id (*)(id,SEL,double))objc_msgSend)(m0(highlight,"heightAnchor"),sel_registerName("constraintEqualToConstant:"),3.0)', 'ss_test_constraint(m0(highlight,"heightAnchor"),3.0)')
-        composer.ComposerTests().compile_run(HARNESS.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)
+        composer.ComposerTests().compile_run(harness.replace('#include "SSComposer.c"', source), [zig, "cc", "-fblocks"], runtime=True)

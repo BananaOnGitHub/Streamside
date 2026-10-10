@@ -143,6 +143,7 @@ typedef struct {
     id library_generation; /* Marks copied attributes; never modify native caches. */
     I library_section;
     BOOL placing_library;
+    BOOL palette_layout_scheduled,palette_layout_settling;
     Range completion;
     int library,library_scope,tab;
     id library_room; /* retained snapshot key, separate from the active room */
@@ -177,6 +178,7 @@ static void layout(id delegate);
 static void restore_native(State *s);
 static void update_inline_selection(State *s,id content);
 static id observe_recent_heading(State *s,id content);
+static void schedule_palette_layout(id content);
 static void schedule_preview(id delegate);
 static BOOL visible_in_window(id view);
 static void sync_preview_clock(id delegate,id editor);
@@ -1128,6 +1130,15 @@ static void invalidate_picker_metrics(id content) {
     m0(content,"setNeedsLayout");
     m0(content,"layoutIfNeeded");
 }
+/* UIKit can defer invalidation while its native layoutSubviews is active.
+ * Coalesce a geometry change onto the next main run-loop turn; never reload
+ * the native history, synthesize a scroll, or retry on image/timer refreshes. */
+static void schedule_palette_layout(id content) {
+    id delegate=objc_getAssociatedObject(content,&recent_host_key);State *s=state(delegate);
+    if (!s || s->palette_layout_scheduled || s->palette_layout_settling) return;
+    s->palette_layout_scheduled=YES;
+    ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(delegate,sel_registerName("performSelector:withObject:afterDelay:"),sel_registerName("ssPaletteLayout:"),nil,0.0);
+}
 static void place_library_panel(State *s,id content) {
     if (!s || !s->panel || !content || s->placing_library ||
         !original_flow_item || !original_flow_size || !original_flow_header || !original_flow_elements) return;
@@ -1203,6 +1214,7 @@ static void place_library_panel(State *s,id content) {
     frame(s->grid,(Rect){{4,106},{width>0 ? width : 0,grid_height}});
     vb(s->grid,"setHidden:",number(s->entries,"count")==0);
     s->placing_library=NO; update_inline_selection(s,content);
+    if (changed) schedule_palette_layout(content);
 }
 static void restore_recent_highlight(State *s);
 static void restore_library_highlight(State *s);
@@ -1350,6 +1362,7 @@ static id observe_recent_heading(State *s,id content) {
         s->recent_header_height=height;
         s->recent_header_start=0;
         m0(m0(content,"collectionViewLayout"),"invalidateLayout");
+        schedule_palette_layout(content);
     }
     return height ? heading : nil;
 }
@@ -1367,6 +1380,7 @@ static void place_recent_strip(State *s,id content) {
         inset.top+=height-s->recent_height;
         s->recent_height=height; /* Set before UIKit's synchronous callbacks. */
         ((void (*)(id,SEL,Insets))objc_msgSend)(content,sel_registerName("setContentInset:"),inset);
+        schedule_palette_layout(content);
         /* Initial opening includes recents. Changes while browsing preserve
          * the existing offset; repeated layouts never stop a user swipe. */
         if (at_top) {
@@ -1436,7 +1450,7 @@ static void bind_recents(id delegate,id container) {
     if (previous!=content) {
         detach_recents(s);
         objc_destroyWeak(&s->recent_content); objc_initWeak(&s->recent_content,content);
-        if (content) associate(content,&recent_host_key,delegate);
+        if (content) { associate(content,&recent_host_key,delegate);schedule_palette_layout(content); }
     }
     objc_release(previous); place_recent_strip(s,content);
 }
@@ -1465,6 +1479,9 @@ static void refresh_recents(id delegate,BOOL menu_open) {
             fill_strip(s->recent_strip,delegate,items,"ssRecent:");
         }
     } else { objc_release(items); refresh_strip_images(s->recent_strip); }
+    id content=objc_loadWeakRetained(&s->recent_content);
+    if (content) schedule_palette_layout(content);
+    objc_release(content);
 }
 static void place_suggestion_strip(State *s,id owner,id editor,Rect position,Rect bounds) {
     if (!s->strip) return;
@@ -1634,6 +1651,27 @@ static BOOL visible_in_window(id view) {
     if (!m0(view,"window")) return NO;
     for (unsigned i=0;view && i<24;i++,view=m0(view,"superview")) if (yes(view,"isHidden")) return NO;
     return YES;
+}
+static void palette_layout_ready(id self,SEL sel,id object) {
+    (void)sel;(void)object;State *s=state(self);if (!s) return;
+    s->palette_layout_scheduled=NO;
+    id content=objc_loadWeakRetained(&s->recent_content);
+    if (content && s->recent_menu_open && visible_in_window(content) && !s->palette_layout_settling) {
+        s->palette_layout_settling=YES;
+        /* Realizing the first supplementary view can establish Recent and
+         * move the inline gap. Apply that newly established geometry once more
+         * after the native pass returns; no self-scheduling loop. */
+        for (unsigned pass=0;pass<2;pass++) {
+            double recent=s->recent_height,header=s->recent_header_height;
+            double height=s->library_height,start=s->library_start;I section=s->library_section;
+            invalidate_picker_metrics(content);
+            place_recent_strip(s,content);place_library_panel(s,content);
+            if (recent==s->recent_height && header==s->recent_header_height &&
+                height==s->library_height && start==s->library_start && section==s->library_section) break;
+        }
+        s->palette_layout_settling=NO;
+    }
+    objc_release(content);
 }
 static void tick(id self,SEL sel,id notification) {
     (void)sel;(void)notification; State *s=state(self); if (!s) return;
@@ -2153,6 +2191,7 @@ void ss_composer_retry_hooks(void) {
             {"gestureRecognizer:shouldReceiveTouch:",(IMP)composer_hold_receive_touch,"B@:@@"},
             {"gestureRecognizer:shouldBeRequiredToFailByGestureRecognizer:",(IMP)composer_hold_priority,"B@:@@"},
             {"ssTick:",(IMP)tick,"v@:@"}, {"ssImages:",(IMP)image_changed,"v@:@"}, {"ssPreview:",(IMP)preview_ready,"v@:@"},
+            {"ssPaletteLayout:",(IMP)palette_layout_ready,"v@:@"},
             {"ssAnimate:",(IMP)animate_preview,"v@:@"},
             {"collectionView:numberOfItemsInSection:",(IMP)item_count,"q@:@q"},
             {"collectionView:cellForItemAtIndexPath:",(IMP)cell,"@@:@@"},

@@ -507,6 +507,9 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"mainBundle"))result=o;
     else if(!strcmp(sel,"localizedStringForKey:value:table:")) { result=va_arg(args,id);(void)va_arg(args,id);(void)va_arg(args,id); }
     else if(!strcmp(sel,"text"))result=o->tint;
+    else if(!strcmp(sel,"performSelector:withObject:afterDelay:")) {
+        assert(!strcmp(va_arg(args,SEL),"ssPaletteLayout:"));assert(!va_arg(args,id));assert(va_arg(args,double)==0);
+    }
     else if(!strcmp(sel,"collectionViewLayout"))result=o;
     else if(!strcmp(sel,"invalidateLayout")) { }
     else if(!strcmp(sel,"count"))result=(id)(uintptr_t)o->count;
@@ -891,7 +894,7 @@ class ComposerTests(unittest.TestCase):
                 # variadic vector-register count and make va_arg read garbage.
                 # Adapt only dispatch ABI, keeping production logic unchanged.
                 for result_type in ("id", "void"):
-                    for argument_types in ("id,SEL,double", "id,SEL,SEL,id,double"):
+                    for argument_types in ("id,SEL,double", "id,SEL,SEL,id,double", "id,SEL,Size"):
                         content = content.replace(
                             f'(({result_type} (*)({argument_types}))objc_msgSend)',
                             f'(({result_type} (*)(id,SEL,...))objc_msgSend)')

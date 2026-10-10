@@ -239,6 +239,16 @@ scroll-driven highlights remain intact. Scoped flow-layout hooks exclude the
 owned inset from sticky-header pinning, retaining the native section start and
 push-off boundary. Both element-array and direct header queries return copied
 attributes; cached attributes and other collection views remain untouched.
+Opening/binding the legacy palette and changing owned geometry coalesce a
+next-run-loop layout settlement. This applies invalidation after the current
+native layout returns, when a nested layoutIfNeeded can otherwise be deferred.
+At most two passes accommodate a newly realized first header and its inline gap;
+the callback does not schedule itself, reload native history, or move either
+scroll offset. A closed/detached palette is skipped. This UIKit path remains
+needed on Twitch 31.5: device observation shows dual horizontal/vertical
+broadcasts using the legacy player/chat, while horizontal-only broadcasts use RN.
+Build 84 covers the deferred-layout ordering in host tests; initial native
+Recent visibility still needs device confirmation on the legacy picker.
 The rendered first header's UILabel is checked against Twitch's localized
 Frequently Used title. Only that header moves into the owned inset; the row
 follows it and uses a transparent background. If no matching native heading is

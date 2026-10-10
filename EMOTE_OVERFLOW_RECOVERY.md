@@ -1,5 +1,11 @@
 # Build 83: isolated overflow recovery
 
+> Included in active `compat/twitch-31.5` build 87; the investigation is preserved
+> at `archive/rn-image-demand`. Production host and real Apple Foundation
+> recovery gates passed. The user accepted the overflow change; the later
+> supplied low-pressure device report did not exercise saturation. The freeze
+> and evidence limits below remain current. See [branch closure](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
+
 Performance architecture is frozen: 512 ordinary flights, 64 consumers per
 flight, eight active transfers (six background), foreground-first/FIFO ordering,
 existing shared session, cache freshness rules, lookup budgets and RN windows.

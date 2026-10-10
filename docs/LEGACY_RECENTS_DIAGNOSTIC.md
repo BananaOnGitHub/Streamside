@@ -1,5 +1,11 @@
 # Legacy picker: initially blank native recents
 
+> Completed on `archive/rn-image-demand` and incorporated into active
+> `compat/twitch-31.5` build 87. The user confirmed build 86 fixes native Recent
+> at first opening and build 87 fixes footer tint and delayed icon insertion
+> while dragging. The initial unresolved diagnosis below is historical; the
+> corrections and regression evidence follow it.
+
 On Twitch 31.5, the user observed legacy UIKit player/chat on broadcasts with
 both horizontal and vertical formats. Native Twitch recents below Streamside's
 provider recent row are blank on initial opening, then appear after scrolling
@@ -88,3 +94,5 @@ Regression coverage verifies the tint at the exact library end boundary,
 first insertion after container reparenting, repeated native stack rebuilds,
 theme application, independent footer reparenting and an expired weak owner.
 The image scheduler, cache and RN performance architecture are unchanged.
+
+The user subsequently confirmed that both build-87 footer corrections work.

@@ -15,7 +15,9 @@ preserved; the next incoming-only width experiment is
 
 First functional experiment on `compat/twitch-31.5`, based on build 50's clean
 source at `3fbfa44`. Builds 51–54 and final findings remain on
-`diagnostic/rn-chat-boundary` (`040a0d1`). The legacy baseline remains archived.
+`archive/rn-chat-boundary` (original build-54 findings at `040a0d1`; archive
+includes later build-65 traces). See the [branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md).
+The legacy baseline remains archived.
 No forensic probe implementation is imported or enabled in this build.
 
 The first acceptance case is **an incoming square static provider emote**.

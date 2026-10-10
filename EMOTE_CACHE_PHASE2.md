@@ -1,5 +1,13 @@
 # Phase 2: bounded cache-first provider transport
 
+> Completed investigation, preserved at `archive/rn-image-demand` and included
+> in active `compat/twitch-31.5` build 87. The Apple Foundation and host gates
+> passed; build-82 E→F recorded 197 direct hits and 18 additional local-cache
+> tasks, with no new network fetches or receipt stamps. The user reported very
+> fast loading. Earlier device-pending statements below are historical.
+> Throughput remains frozen; overflow recovery is an independent correctness
+> change. See [the branch closure](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md#rn-image-demand-builds-73-87).
+
 Baseline: build 78, commit `8e32a286f1bce635e1900fbb596b8c863c5b6a24`.
 Initial candidate diagnostic build: 79; network-receipt fix: 82. Build 83 adds
 isolated [overflow recovery](EMOTE_OVERFLOW_RECOVERY.md). Throughput changes remain deferred.

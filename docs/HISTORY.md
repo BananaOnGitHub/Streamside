@@ -1,5 +1,23 @@
 # Version history and reconstruction notes
 
+## Twitch 31.5 diagnostic closure — build 87
+
+`compat/twitch-31.5` advances from build 72 to build 87 by fast-forward. Builds
+73–78 investigate and correct RN fractional-column startup demand; builds 79–82
+add bounded cache-first delivery, real Foundation validation and conservative
+network receipt metadata; build 83 adds bounded overflow recovery. Builds 84–87
+investigate and correct native Recent startup and footer tint/insertion in the
+legacy picker. The user confirmed the build-86 and build-87 legacy fixes.
+
+All four diagnostic branch histories are preserved under `archive/`, with
+documentation-only closure commits. Only the image-demand implementation line
+is brought into compat; the older independent probe histories remain separate.
+The source stays build 87, main is unchanged, and no release is published.
+See [the archive index](DIAGNOSTIC_BRANCH_ARCHIVE.md) for precise heads,
+validation limits and the decision to freeze performance architecture.
+
+## Historical reconstruction
+
 This project began as a practical patch for a decrypted Twitch 30.4.2 arm64
 app and gained dedicated packaging and patching tooling in 2.0.3.
 

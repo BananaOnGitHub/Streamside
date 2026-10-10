@@ -1,5 +1,27 @@
 # Twitch 31.5 compatibility experiment — build 48
 
+## Current branch status — build 87
+
+`compat/twitch-31.5` is the active implementation branch. It advances directly
+from build 72 (`645d34f2a3617f73072fa7d7d635af5ffa28b2f9`) through build 87
+(`7f48f67ea9ee3273f6c312587fafac6e077b10ec`), followed by documentation-only
+archive closure. The report version is `3.0.0-build.87` and framework bundle
+version is `3.0.0.87`; documentation does not add another build number.
+
+This includes the RN fractional-column correction, cache-first transport,
+conservative network-proven receipts, bounded overflow recovery, and the
+user-confirmed native Recent and footer fixes. Both RN and legacy UIKit paths
+remain supported. The user observed the legacy path on vertical-enabled
+broadcasts; its continued presence is intentional.
+
+The four diagnostic branches are retained as documented `archive/` branches.
+Their independent forensic probes are not merged into compat. See
+[Diagnostic branch archive](DIAGNOSTIC_BRANCH_ARCHIVE.md) for each branch's
+purpose, outcome, preserved source head and outstanding evidence limits.
+
+The remaining sections are the original build-48 packaging record, not current
+version restrictions or instructions to repeat the historical device trial.
+
 This is the historical build-48 packaging report. Subsequent device results,
 build-49 constraint cleanup and the sent-emote investigation are documented in
 [Twitch 31.5 sent emotes](TWITCH_31_5_SENT_EMOTES.md). Version restrictions below

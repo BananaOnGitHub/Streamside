@@ -1,5 +1,13 @@
 # Build 75: targeted RN startup calculation trace
 
+> Archived calculation investigation on `archive/rn-image-demand`; its build-78
+> correction and regression baseline are included in active `compat/twitch-31.5`
+> build 87. The stationary range stabilized at 0..11 with 60 live library JS
+> instances; scrolling reached a 26-column mask and 130-instance peak in the
+> observed device reports. Later cache-first and overflow work is summarized in
+> [the transport notes](EMOTE_IMAGE_TRANSPORT.md#builds-79-83-cache-first-delivery-and-overflow-recovery).
+> Historical phase-status statements below apply to their stated builds.
+
 Parent: diagnostic build 74 plus its device findings, commit
 `66d8b8b46b3eeebc6faabb4fcccd8ede83b2d9b8` on
 `diagnostic/rn-image-demand`. This is one diagnostic build, not a rendering fix.

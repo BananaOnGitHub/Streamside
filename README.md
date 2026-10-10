@@ -13,7 +13,10 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.72`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.87`)
+- Active Twitch 31.5 development: `compat/twitch-31.5`, fast-forwarded from
+  build 72 through the tested build 87. Diagnostic branches are preserved under
+  `archive/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the
@@ -57,13 +60,24 @@ Publication is on hold for device testing and the forthcoming logo.
     bounded active transfers through view recycling, drops abandoned queued
     requests, and reserves transport capacity for redirected chat/input images.
     Queue wait, response-size and error-category counters separate remaining
-    transport bottlenecks; device performance remains to be verified.
+    transport bottlenecks. Builds 73–78 traced excessive startup demand to
+    fractional column interval endpoints; build 78's geometry correction is
+    device-confirmed. Builds 79–82 add cache-first delivery and verified network
+    receipts for eligible Date-less cache entries. Build 83 adds bounded overflow
+    recovery. Later device reports confirm fast reuse, without establishing a
+    reason to change scheduler throughput. The performance architecture is
+    frozen unless device behavior demonstrates a remaining bottleneck.
+    Builds 84–87 address the legacy picker used on vertical-enabled streams:
+    native Recent startup is fixed in build 86, and footer tint/insertion during
+    dragging is fixed in build 87. Both fixes are user-confirmed.
     See [the transport notes](docs/EMOTE_IMAGE_TRANSPORT.md). The
     RN third-party library includes:
     a frozen-on-open recent scroller, provider and Channel/Global controls,
     and a footer section shortcut. See [the library port notes](docs/RN_LIBRARY_PORT.md).
-  - Build 50's adapter targets legacy chat present in the donor binary, not the
-    active RN interface. That baseline is preserved in
+  - Build 50's adapter targets legacy chat present in the donor binary. The user
+    observed that streams offering horizontal and vertical formats use that
+    legacy interface; traditional horizontal streams use RN. Legacy support
+    remains in the active source. The historical build-50 baseline is preserved in
     `archive/twitch-31.5-build50-legacy-chat`.
 - Previously tested installation paths: ESign and LiveContainer/ZSign
 

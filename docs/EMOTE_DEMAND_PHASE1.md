@@ -1,5 +1,12 @@
 # Provider image demand — phase 1
 
+> Archived investigation: `archive/rn-image-demand`, completed through build 87
+> and fast-forwarded into `compat/twitch-31.5`. The baseline and procedures below
+> describe build 73. Subsequent work fixed fractional-column demand and added
+> cache-first delivery and bounded overflow recovery. See the
+> [branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md#rn-image-demand-builds-73-87)
+> and [current transport notes](EMOTE_IMAGE_TRANSPORT.md#builds-79-83-cache-first-delivery-and-overflow-recovery).
+
 Baseline: `compat/twitch-31.5`, build 72, commit
 `645d34f2a3617f73072fa7d7d635af5ffa28b2f9`.
 Diagnostic build: 73, `IMAGE_DEMAND_DIAGNOSTIC=1`, `EMOTE_DIAGNOSTIC=0`.

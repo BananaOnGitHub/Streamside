@@ -1,5 +1,14 @@
 # RN library demand — phase 1B investigation
 
+> Archived build-74 investigation on `archive/rn-image-demand`. Phase 1B's
+> cause and smallest correction were established later: inconsistent fractional
+> column endpoints expanded the original RN window toward the catalog end.
+> Build 78 is device-confirmed and retains the regression baseline. The older
+> open questions and device procedures below record the investigation at that
+> stage; they are not a request for more build-74 reports. See
+> [the calculation result](EMOTE_DEMAND_PHASE1B_CALCULATION.md#build-78-device-confirmation-and-regression-baseline)
+> and [branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md#rn-image-demand-builds-73-87).
+
 Baseline: diagnostic build 73, commit
 `58b82e3124b1361cff369cc952ef66cf297a1638` (build-72 rendering and transport).
 The implementation is diagnostic build 74. Its four-report device pass has now

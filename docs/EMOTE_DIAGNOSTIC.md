@@ -1,5 +1,10 @@
 # Temporary missing-emote diagnostics (builds 39–45)
 
+> Historical forensic baseline. The later independent image-result and
+> request-decision probes are preserved at `archive/build46-image-result` and
+> `archive/build47-request-decision`; their extra instrumentation was not
+> incorporated into compat. See [each branch's purpose and outcome](DIAGNOSTIC_BRANCH_ARCHIVE.md).
+
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
 retained state and the Inspect Emote settings row are absent from normal builds.

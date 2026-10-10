@@ -1,5 +1,10 @@
 # Shared provider image transport — builds 71–72
 
+> The builds 71–72 sections are historical. Active `compat/twitch-31.5` is
+> build 87 and includes the cache-first and overflow corrections below. The
+> image-demand investigation is closed and preserved at `archive/rn-image-demand`;
+> see [the branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md).
+
 The device report describes slow emote images in chat, composer previews and
 the library, not only in the library browser. All three provider presentation
 routes converge on Streamside's URL protocol after synthetic-URL redirection.
@@ -110,3 +115,48 @@ animated emote in chat and the composer without deleting/retyping it. Compare
 queue-wait and transport buckets, cancelled/timeout errors and large bodies.
 If both queue and transport are fast while images still appear late, the next
 target is native RN decoding/display rather than another transport adjustment.
+
+## Builds 79-83: cache-first delivery and overflow recovery
+
+Build 79 introduces an independently bounded cache-lookup lane before transfer
+admission. Eligible fresh responses can be delivered without occupying or
+waiting for an active download slot. Misses continue through the existing
+shared-flight transport. Header variants, policy, privacy, freshness and body
+validation remain conservative; unverifiable entries stay with Foundation's
+normal cache validation. Cache hits are not new downloads.
+
+The real Apple Foundation fixture exercises cache-first delivery while transfer
+slots are occupied, HTTP freshness/revalidation and cancellation behavior.
+The initial Objective-C fixture/delegate integration issues were corrected;
+the native gate subsequently passed on macOS. Ordinary Linux host fixtures do
+not substitute for that Apple test. Build 80 separates first-rejection reasons,
+and build 81 compares case-insensitive header dictionary/accessor observations.
+The reported Date/Expires absence was not an accessor-only mismatch.
+
+Build 82 stores conservative cache-internal receipt metadata only after a
+verified network completion for otherwise eligible Date-less responses. It
+does not turn a local-cache re-observation into a newly fresh network receipt,
+extend CDN lifetime or record header values. Old/unverifiable entries retain
+Foundation validation. Annotation rejection and receipt counters expose the
+fallback without logging private values.
+
+Build-82 E→F added 197 direct hits, all delivered within 250 ms, alongside 18
+additional Foundation local-cache tasks and no additional network transactions
+or stored receipts. Every additional transfer queue wait was within 250 ms.
+The previous 313 waits in the 1–5 second bucket remain cumulative evidence of
+earlier pressure; they are not disproved by fast warm reuse. The device reports
+do not establish a residual bottleneck that warrants changing the scheduler.
+
+Build 83 adds overflow recovery independently: at most 64 waiting groups and
+4096 consumers, a 30-second deadline, coalesced joins, cancellation cleanup and
+bounded expiry/rejection. Capacity becoming available can admit waiting work
+without requiring another UI remount. It does not raise the 512-flight limit,
+eight active slots or six background slots, alter priority, or introduce a
+second downloader. Production-path fixtures exercise recovery and its limits;
+the later supplied low-pressure device report had all-zero overflow counters,
+so it does not independently exercise overflow under device saturation.
+
+The user reported very fast loading and accepted the overflow change. The
+performance architecture is frozen; revisit throughput only if device behavior
+demonstrates an actual remaining bottleneck. Builds 84–87 change legacy picker
+startup/footer behavior, not image transport or RN virtualization.

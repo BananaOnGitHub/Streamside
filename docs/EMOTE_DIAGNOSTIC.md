@@ -1,5 +1,7 @@
 # Temporary missing-emote diagnostics (builds 39–47)
 
+> Archived at `archive/build47-request-decision`. Request/cache decision instrumentation is preserved without claiming native cache acceptance or a playback fix. See [branch purpose, work and outcome](BRANCH_ARCHIVE.md). Procedures below are historical.
+
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
 retained state and the Inspect Emote settings row are absent from normal builds.

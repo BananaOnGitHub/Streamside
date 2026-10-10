@@ -42,7 +42,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.0.0-build.84"
+#define TAS_REPORT_VERSION "3.0.0-build.85"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -376,6 +376,9 @@ static id diagnostic_report_create(void) {
     char composer_status[1024];
     ss_composer_status(composer_status, sizeof(composer_status));
     vmsg1(report, "appendString:", nsstr(composer_status));
+    char palette_status[8192];
+    ss_legacy_palette_status(palette_status,sizeof(palette_status));
+    vmsg1(report,"appendString:",nsstr(palette_status));
     char rn_composer_status[1024];
     tas_rn_composer_ui_status(rn_composer_status,sizeof(rn_composer_status));
     vmsg1(report,"appendString:",nsstr(rn_composer_status));

@@ -798,6 +798,7 @@ int main(void) {
 
 def recent_geometry_source():
     source = (ROOT / "src" / "SSComposer.c").read_text()
+    source = source.replace('#include "SSLegacyPaletteProbe.h"', (ROOT / "src" / "SSLegacyPaletteProbe.h").read_text())
     source = source.replace('static Rect rect(id o,const char *s) { return ((Rect (*)(id,SEL))objc_msgSend)(o,sel_registerName(s)); }',
         'extern void *ss_test_field(id,const char *);\nextern Insets ss_test_section(id);\n'
         'extern void ss_test_frame(id,Rect);\nextern void ss_test_inset(id,Insets);\n'

@@ -21,7 +21,7 @@
         <string>iPhoneOS</string>
     </array>
     <key>CFBundleVersion</key>
-    <string>3.0.0.84</string>
+    <string>3.0.0.85</string>
     <key>MinimumOSVersion</key>
     <string>15.0</string>
 </dict>

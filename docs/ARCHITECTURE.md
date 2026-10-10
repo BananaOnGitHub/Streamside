@@ -247,8 +247,10 @@ the callback does not schedule itself, reload native history, or move either
 scroll offset. A closed/detached palette is skipped. This UIKit path remains
 needed on Twitch 31.5: device observation shows dual horizontal/vertical
 broadcasts using the legacy player/chat, while horizontal-only broadcasts use RN.
-Build 84 covers the deferred-layout ordering in host tests; initial native
-Recent visibility still needs device confirmation on the legacy picker.
+Build 84 covers the deferred-layout ordering in host tests, but device testing
+still reproduced the blank native Recent section. It is not a validated fix.
+Build 85 adds diagnostic-only, bounded cell creation, layout-query and visible
+cell observations; see [LEGACY_RECENTS_DIAGNOSTIC.md](LEGACY_RECENTS_DIAGNOSTIC.md).
 The rendered first header's UILabel is checked against Twitch's localized
 Frequently Used title. Only that header moves into the owned inset; the row
 follows it and uses a transparent background. If no matching native heading is

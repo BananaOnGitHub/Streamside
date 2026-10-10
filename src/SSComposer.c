@@ -144,6 +144,11 @@ typedef struct {
     I library_section;
     BOOL placing_library;
     BOOL palette_layout_scheduled,palette_layout_settling;
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    unsigned palette_probe_stages;
+    Rect palette_probe_bounds,palette_probe_query;
+    U palette_probe_original,palette_probe_original_zero,palette_probe_returned,palette_probe_returned_zero;
+#endif
     Range completion;
     int library,library_scope,tab;
     id library_room; /* retained snapshot key, separate from the active room */
@@ -181,8 +186,10 @@ static id observe_recent_heading(State *s,id content);
 static void schedule_palette_layout(id content);
 static void schedule_preview(id delegate);
 static BOOL visible_in_window(id view);
+static BOOL intersects(Rect a,Rect b);
 static void sync_preview_clock(id delegate,id editor);
 static void install_editor_hold(id delegate,id editor);
+#include "SSLegacyPaletteProbe.h"
 
 /* Twitch's autocomplete publication bypasses its ObjC wrappers.
  * Read its catalog on its serial backgroundQueue, using the runtime's own
@@ -1453,6 +1460,7 @@ static void bind_recents(id delegate,id container) {
         if (content) { associate(content,&recent_host_key,delegate);schedule_palette_layout(content); }
     }
     objc_release(previous); place_recent_strip(s,content);
+    palette_probe_snapshot(s,content,0);
 }
 static void refresh_recents(id delegate,BOOL menu_open) {
     State *s=state(delegate); if (!s) return;
@@ -1462,6 +1470,7 @@ static void refresh_recents(id delegate,BOOL menu_open) {
      * through selections, editing, tab switches and periodic/image refreshes. */
     if (s->recent_menu_open) { refresh_strip_images(s->recent_strip); return; }
     s->recent_menu_open=YES; /* Set before UIKit callbacks from filling it. */
+    palette_probe_open(s);
     id items=recents(s);
     if (!equal(items,s->recent_entries)) {
         objc_release(s->recent_entries); s->recent_entries=items;
@@ -1670,6 +1679,7 @@ static void palette_layout_ready(id self,SEL sel,id object) {
                 height==s->library_height && start==s->library_start && section==s->library_section) break;
         }
         s->palette_layout_settling=NO;
+        palette_probe_snapshot(s,content,2);
     }
     objc_release(content);
 }
@@ -1911,6 +1921,7 @@ static id flow_elements(id flow,SEL sel,Rect bounds) {
             id corrected=recent_header_attributes(flow,inline_attributes(flow,at(original,i)));
             if (intersects(rect(corrected,"frame"),bounds)) v1(result,"addObject:",corrected);
         }
+        palette_probe_query(s,bounds,query,original,result);
         return m0(result,"autorelease");
     }
     id result=nil;
@@ -1920,6 +1931,7 @@ static id flow_elements(id flow,SEL sel,Rect bounds) {
         if (!result) result=m0(original,"mutableCopy");
         ((void (*)(id,SEL,U,id))objc_msgSend)(result,sel_registerName("replaceObjectAtIndex:withObject:"),i,corrected);
     }
+    palette_probe_query(s,bounds,query,original,result ? result : original);
     return result ? m0(result,"autorelease") : original;
 }
 static id flow_header(id flow,SEL sel,id kind_name,id path) {
@@ -1941,10 +1953,14 @@ static void collection_layout(id content,SEL sel) {
     id delegate=objc_getAssociatedObject(content,&recent_host_key);
     if (delegate) {
         State *s=state(delegate); place_recent_strip(s,content); place_library_panel(s,content);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+        if (rect(content,"bounds").size.height>0 && s->recent_menu_open) palette_probe_snapshot(s,content,1);
+#endif
     }
 }
 static void palette_scrolled(id self,SEL sel,id content) {
     State *s=state(objc_getAssociatedObject(content,&recent_host_key));
+    palette_probe_scroll(s,content,NO);
     if (s) {
         place_library_panel(s,content); update_inline_selection(s,content);
         /* Twitch's callback publishes only a native section selection.
@@ -1952,10 +1968,11 @@ static void palette_scrolled(id self,SEL sel,id content) {
          * here races our own highlight through Twitch's reactive footer updates.
          * Decide ownership before that publication, including the entry frame.
          * Native scrolling/navigation resumes at either end of the gap. */
-        if (s->tab==1 && s->library_highlight_active) return;
+        if (s->tab==1 && s->library_highlight_active) { palette_probe_scroll(s,content,YES); return; }
     }
     ((void (*)(id,SEL,id))original_palette_scroll)(self,sel,content);
     if (s) { place_library_panel(s,content); update_inline_selection(s,content); }
+    palette_probe_scroll(s,content,YES);
 }
 static void container_layout(id container,SEL sel) {
     ((void (*)(id,SEL))original_container_layout)(container,sel);
@@ -2235,6 +2252,9 @@ void ss_composer_retry_hooks(void) {
     hook("UIView","setTintColor:","v24@0:8@16",(IMP)footer_tint,&original_footer_tint);
     hook("UIView","setBackgroundColor:","v24@0:8@16",(IMP)footer_background,&original_footer_background);
     hook(PALETTE,"scrollViewDidScroll:","v24@0:8@16",(IMP)palette_scrolled,&original_palette_scroll);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+    hook(PALETTE,"collectionView:cellForItemAtIndexPath:","@32@0:8@16@24",(IMP)palette_probe_cell,&original_palette_probe_cell);
+#endif
     hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
     hook("UICollectionViewFlowLayout","layoutAttributesForElementsInRect:","@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",(IMP)flow_elements,&original_flow_elements);
     hook("UICollectionViewFlowLayout","layoutAttributesForSupplementaryViewOfKind:atIndexPath:","@32@0:8@16@24",(IMP)flow_header,&original_flow_header);

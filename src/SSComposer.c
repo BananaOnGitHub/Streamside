@@ -48,7 +48,7 @@ extern void objc_destroyWeak(id *);
 #define NATIVE_SELECTOR "_TtC6Twitch29ChatSuggestionsListController"
 static char state_key,footer_key,button_key,library_highlight_key,cell_key,grid_button_key,undo_key,attachment_metadata_key,recent_host_key,inline_attributes_key;
 static char selector_key;
-static char footer_paint_key;
+static char footer_paint_key,palette_owner_key;
 static char thumbnail_url_key,thumbnail_record_key,attachment_record_key,attachment_animation_key;
 static Class delegate_class,attachment_class,strip_class,grid_class;
 static IMP original_dealloc,original_change,original_selection,original_should_change;
@@ -1068,10 +1068,13 @@ static id find_class(id root,const char *name,unsigned depth) {
 }
 static id container_for(State *s,id owner) {
     id result=object_field(owner,"emoticonPaletteContainerView",CONTAINER);
-    if (result) return result;
-    id footer=objc_loadWeakRetained(&s->footer),parent=m0(footer,"superview");
-    for (unsigned i=0;parent && i<8;i++,parent=m0(parent,"superview")) if (kind(parent,CONTAINER)) { result=parent; break; }
-    objc_release(footer); return result;
+    if (!result) {
+        id footer=objc_loadWeakRetained(&s->footer),parent=m0(footer,"superview");
+        for (unsigned i=0;parent && i<8;i++,parent=m0(parent,"superview")) if (kind(parent,CONTAINER)) { result=parent; break; }
+        objc_release(footer);
+    }
+    if (result) associate(result,&palette_owner_key,objc_getAssociatedObject(owner,&state_key));
+    return result;
 }
 static void make_panel(id delegate) {
     State *s=state(delegate); if (s->panel) return;
@@ -1260,6 +1263,7 @@ static void restore_library_highlight(State *s) {
     id footer=objc_loadWeakRetained(&s->footer);
     if (s->library_highlight_active) {
         s->library_highlight_active=NO; /* Disable setter guards before restoring native colors. */
+        v1(objc_getAssociatedObject(footer,&button_key),"setTintColor:",s->library_inactive_color ?: color("secondaryLabelColor"));
         for (U i=0;i<6;i++) {
             v1(recent_footer_view(footer,i),i<3 ? "setTintColor:":"setBackgroundColor:",s->library_colors[i]);
             objc_release(s->library_colors[i]); s->library_colors[i]=nil;
@@ -1628,6 +1632,9 @@ static void install_footer(id footer,id owner) {
 }
 static void find_footer(id owner) {
     id container=object_field(owner,"emoticonPaletteContainerView",CONTAINER);
+    /* Bind before the lazy footer exists. UIKit can subsequently reparent
+     * this container outside the chat input's ancestor chain. */
+    if (container) associate(container,&palette_owner_key,objc_getAssociatedObject(owner,&state_key));
     id footer=find_class(container,FOOTER,0); if (footer) install_footer(footer,owner);
 }
 static void refresh(id delegate) {
@@ -1815,6 +1822,17 @@ static id owner_above(id child) {
     for (unsigned i=0;child && i<20;i++,child=m0(child,"superview")) if (kind(child,INPUT)) return child;
     return nil;
 }
+static id palette_owner_retained(id child) {
+    id owner=owner_above(child); if (owner) return objc_retain(owner);
+    State *s=state(objc_getAssociatedObject(child,&footer_key));
+    if (s) { owner=objc_loadWeakRetained(&s->owner); if (owner) return owner; }
+    for (unsigned i=0;child && i<20;i++,child=m0(child,"superview")) {
+        if (!kind(child,CONTAINER)) continue;
+        s=state(objc_getAssociatedObject(child,&palette_owner_key));
+        if (s) return objc_loadWeakRetained(&s->owner);
+    }
+    return nil;
+}
 static void footer_apply(id footer,SEL sel,id model) {
     State *s=state(objc_getAssociatedObject(footer,&footer_key));
     if (s) {
@@ -1822,12 +1840,12 @@ static void footer_apply(id footer,SEL sel,id model) {
         if (s->tab!=1) restore_library_highlight(s);
     }
     ((void (*)(id,SEL,id))original_footer_apply)(footer,sel,model);
-    install_footer(footer,owner_above(footer));
+    id owner=palette_owner_retained(footer); install_footer(footer,owner); objc_release(owner);
     if (s) { id content=objc_loadWeakRetained(&s->recent_content); update_recent_highlight(s,content); objc_release(content); }
 }
 static void footer_layout(id footer,SEL sel) {
     ((void (*)(id,SEL))original_footer_layout)(footer,sel);
-    install_footer(footer,owner_above(footer));
+    id owner=palette_owner_retained(footer); install_footer(footer,owner); objc_release(owner);
 }
 static void footer_moved(id footer,SEL sel) {
     ((void (*)(id,SEL))original_footer_move)(footer,sel);
@@ -1835,7 +1853,7 @@ static void footer_moved(id footer,SEL sel) {
     /* Catch a close/reopen between timer ticks, even when UIKit reuses the
      * same palette/footer. Reopening snapshots on the first visible layout. */
     if (s && !m0(footer,"window")) s->recent_menu_open=NO;
-    install_footer(footer,owner_above(footer));
+    id owner=palette_owner_retained(footer); install_footer(footer,owner); objc_release(owner);
 }
 /* Reserve the inline gap by copying attributes, preserving native caches.
  * Headers then pin using the same translated cells and the Recent row's
@@ -1984,8 +2002,9 @@ static void palette_scrolled(id self,SEL sel,id content) {
 }
 static void container_layout(id container,SEL sel) {
     ((void (*)(id,SEL))original_container_layout)(container,sel);
-    id footer=find_class(container,FOOTER,0),owner=owner_above(container);
+    id footer=find_class(container,FOOTER,0),owner=palette_owner_retained(container);
     if (owner) install_footer(footer,owner);
+    objc_release(owner);
     id delegate=objc_getAssociatedObject(footer,&footer_key); if (delegate) layout(delegate);
 }
 static void scroll_to_recents(State *s) {

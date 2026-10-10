@@ -12,7 +12,7 @@ HARNESS = r'''
 #include "SSComposer.c"
 struct Fake {
     const char *cls,*text,*action;
-    id parent,host,paint_host,button,highlight,stack,highlights,container,palette,views[6],children[16],front;
+    id parent,host,paint_host,palette_owner,button,highlight,stack,highlights,container,palette,views[6],children[16],front;
     id flow,collection,heading,deferred_heading,title,native_header,first,last,path,element_kind,marker;
     const char *encoding;
     State *context;
@@ -86,6 +86,7 @@ id objc_getAssociatedObject(id o,const void *key) {
     if(key==&library_highlight_key)return o->highlight;
     if(key==&inline_attributes_key)return o->marker;
     if(key==&footer_paint_key)return o->paint_host;
+    if(key==&palette_owner_key)return o->palette_owner;
     return nil;
 }
 void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
@@ -95,6 +96,7 @@ void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy) {
     else if(key==&library_highlight_key)o->highlight=value;
     else if(key==&inline_attributes_key)o->marker=value;
     else if(key==&footer_paint_key)o->paint_host=value;
+    else if(key==&palette_owner_key)o->palette_owner=value;
     else assert(!"unexpected association");
 }
 void *ss_test_field(id o,const char *name) {
@@ -301,6 +303,7 @@ static void native_footer_layout(id footer,SEL sel) {
     rebuilt_stack(footer->stack,footer->button,footer->views[0],footer->views[1],footer->views[2]);
     rebuilt_stack(footer->highlights,footer->highlight,footer->views[3],footer->views[4],footer->views[5]);
 }
+static void native_footer_move(id footer,SEL sel) { (void)footer;(void)sel; }
 static void native_footer_apply(id footer,SEL sel,id theme) {
     native_footer_layout(footer,sel);
     v1(footer->views[0],"setTintColor:",footer->views[2]->tint);
@@ -375,6 +378,7 @@ int main(void) {
     /* The native Swift worker removes all arranged views, then adds ONLY its
      * current native buttons. The same retained button must be reinserted. */
     original_footer_layout=(IMP)native_footer_layout;
+    original_footer_move=(IMP)native_footer_move;
     footer_layout(&footer,"layoutSubviews");
     assert(footer.button==button && buttons.children[1]==button && highlights.children[1]==highlight && GET(library_tab_repairs)==1);
     assert(button->targets==1);
@@ -459,6 +463,7 @@ int main(void) {
      * an unavailable footer retain native callbacks. Re-entry takes ownership. */
     ss_test_offset(&native,(Point){0,s.library_start+s.library_height});palette_scrolled(&native,"scrollViewDidScroll:",&native);
     assert(native_scroll_calls==1 && native_scroll_paints==1 && !s.tab && !button->selected && views[4].background==&active);
+    assert(button->tint==&normal && !highlight->background); /* same drag callback, no tick */
     ss_test_offset(&native,(Point){0,s.library_start-1});palette_scrolled(&native,"scrollViewDidScroll:",&native);
     assert(native_scroll_calls==2 && !s.tab && views[3].background==&active);
     palette_scrolled(&native,"scrollViewDidScroll:",&decoy);assert(native_scroll_calls==3 && native_scroll_paints==2);
@@ -609,6 +614,42 @@ class LibraryTests(unittest.TestCase):
 
     def test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset(self):
         self.run_library(HARNESS)
+
+    def test_reparented_lazy_footer_installs_and_repairs_without_timer_tick(self):
+        case=r'''
+    detach_recents(&s);
+    /* The input knows the container before Twitch lazily creates its footer.
+     * UIKit then hosts it outside the input hierarchy while tracking a drag. */
+    container.count=0;container.parent=nil;container.palette_owner=nil;
+    find_footer(&owner);assert(container.palette_owner==&delegate);
+    struct Fake lazy={.cls=FOOTER,.parent=&container},lazy_buttons={.cls="UIStackView"},lazy_highlights={.cls="UIStackView"},lazy_views[6]={0};
+    lazy.stack=&lazy_buttons;lazy.highlights=&lazy_highlights;
+    for(U i=0;i<6;i++){lazy_views[i].cls=i<3 ? "UIButton":"UIView";lazy_views[i].tint=&normal;lazy.views[i]=&lazy_views[i];}
+    rebuilt_stack(&lazy_buttons,&empty,&lazy_views[0],&lazy_views[1],&lazy_views[2]);
+    rebuilt_stack(&lazy_highlights,&empty,&lazy_views[3],&lazy_views[4],&lazy_views[5]);
+    container.children[container.count++]=&lazy;
+    assert(!owner_above(&lazy));original_footer_move=(IMP)native_footer_move;
+    U reads=queries,reloads=native.reloads,scrolls=native_scroll_calls;
+    footer_moved(&lazy,"didMoveToWindow");
+    assert(lazy.button && lazy.highlight && lazy.host==&delegate && s.footer==&lazy);
+    assert(lazy_buttons.children[1]==lazy.button && lazy_highlights.children[1]==lazy.highlight);
+    id lazy_button=lazy.button;U created=allocated;
+    for(U i=0;i<8;i++)footer_layout(&lazy,"layoutSubviews");
+    assert(allocated==created && lazy.button==lazy_button && lazy_button->targets==1);
+    assert(lazy_buttons.count==4 && lazy_highlights.count==4 && lazy_buttons.children[1]==lazy_button);
+    original_footer_apply=(IMP)native_footer_apply;
+    footer_apply(&lazy,"apply:",&active);assert(lazy_buttons.children[1]==lazy_button && lazy_button->tint==&normal);
+    /* An already-bound footer still resolves its weak owner if moved alone. */
+    lazy.parent=nil;footer_layout(&lazy,"layoutSubviews");
+    assert(lazy_buttons.children[1]==lazy_button && lazy_button->targets==1);
+    assert(queries==reads && native.reloads==reloads && native_scroll_calls==scrolls);
+    struct Fake unrelated_footer={.cls=FOOTER};
+    footer_moved(&unrelated_footer,"didMoveToWindow");assert(!unrelated_footer.button);
+    s.owner=nil;lazy.parent=&container;
+    assert(!palette_owner_retained(&lazy) && !palette_owner_retained(&container));
+    footer_moved(&lazy,"didMoveToWindow");assert(allocated==created);
+'''
+        self.run_library(HARNESS.replace('    return 0;\n}',case+'    return 0;\n}'))
 
     def test_first_open_settles_native_recents_without_scrolling_or_reloading(self):
         case=r'''

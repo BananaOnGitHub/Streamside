@@ -68,5 +68,23 @@ section-zero attributes remain reachable, the realized Recent header places
 the library after Recent, and neither native reloads nor scroll offsets change.
 The diagnostic adds only booleans for native palette class membership and
 whether the collection itself owns its delegate/data source, to detect fallback
-binding without recording object identities. Device confirmation is still
-required; build 86 addresses the demonstrated startup ordering error.
+binding without recording object identities. The user confirmed that build 86
+fixes native Recent on first opening.
+
+## Build 87 legacy footer correction
+
+Leaving the owned library restored native footer colors, selection and the
+underline, but left the owned emoji button's tint purple until a later footer
+refresh. Build 87 restores its inactive tint in the same section handoff. It
+does not depend on the periodic refresh, which can wait during a drag.
+
+The input now binds its known palette container before the lazy footer exists.
+Footer and container lifecycle callbacks can resolve the delegate's weak input
+owner after UIKit reparents the keyboard outside the input's ancestor chain.
+They insert or repair the existing icon synchronously, without another timer,
+native reload, data-source replacement or synthetic scroll.
+
+Regression coverage verifies the tint at the exact library end boundary,
+first insertion after container reparenting, repeated native stack rebuilds,
+theme application, independent footer reparenting and an expired weak owner.
+The image scheduler, cache and RN performance architecture are unchanged.

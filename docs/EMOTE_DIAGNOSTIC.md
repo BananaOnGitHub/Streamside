@@ -1,5 +1,7 @@
 # Temporary missing-emote diagnostics (builds 39–45)
 
+> Historical legacy forensic baseline retained in `archive/rn-chat-boundary`; its older recorder is separate from the RN boundary probes. Later image-result and request-decision stages are preserved in their own archive branches. See [branch closure](BRANCH_ARCHIVE.md).
+
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the
 normal IPA patching/verification tools. The switch defaults to `0`. Probe code,
 retained state and the Inspect Emote settings row are absent from normal builds.

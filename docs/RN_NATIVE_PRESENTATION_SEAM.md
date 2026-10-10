@@ -1,5 +1,7 @@
 # Twitch 31.5: passive native presentation/layout seam
 
+> Archived native-seam analysis on `archive/rn-chat-boundary`. Paragraph attachments were identified as reconstructed inline-child placeholders; no live per-emote mount/image identity join was collected. The original Zig blocker remains recorded. Later width implementation is maintained separately on compat. See [branch closure](BRANCH_ARCHIVE.md).
+
 ## Finding and stopping point
 
 The paragraph's observed `NSTextAttachment` objects are **reconstructed inline

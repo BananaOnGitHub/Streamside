@@ -1,5 +1,7 @@
 # Twitch 31.5 active chat boundary probe — builds 51–53
 
+> Archived at `archive/rn-chat-boundary`, whose final probe is build 65. Builds 51–54 established the active RN ingress, source, composer and representation boundaries; build 65 later traced emote info. See [branch closure](BRANCH_ARCHIVE.md). The branch model and test requests below record their original stages, not current work.
+
 This branch adds passive observation, not RN emote support. Build 50's earlier
 device validation applies only to the legacy chat implementation still present
 in the 31.5 binary. It is not evidence of compatibility with active RN chat.

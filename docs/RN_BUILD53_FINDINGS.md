@@ -1,5 +1,7 @@
 # Build 53 device findings and next diagnostic
 
+> Historical build-53 findings, preserved at `archive/rn-chat-boundary`. Build 54 subsequently investigated the native attachment/paragraph path; the separate production implementation began on compat in build 55. The next-test request below is retired. See [branch closure](BRANCH_ARCHIVE.md).
+
 Reports A–C are cumulative from one launch on Twitch 31.5
 (`262752111271985979`). The consumed embedded Hermes-98 source remains
 27,786,480 bytes, FNV64 `3c748f1f3e33577c`. The fingerprint identifies the

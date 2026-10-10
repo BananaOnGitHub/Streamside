@@ -1,5 +1,7 @@
 # Twitch 31.5 RN emote info investigation — build 65
 
+> Archived at `archive/rn-chat-boundary`. Later compat build-66 evidence confirmed provider tap/host/sheet execution without query-backed native card content; compat supplied the provider card at that boundary. This build-65 probe and its historical trial remain preserved. See [branch closure](BRANCH_ARCHIVE.md).
+
 ## Result
 
 Static tracing identifies an RN info path. Runtime activation and the provider

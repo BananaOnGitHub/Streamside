@@ -1,5 +1,7 @@
 # Twitch 31.5 RN emote representation
 
+> Archived representation analysis on `archive/rn-chat-boundary`. Its code-to-ID map, Unicode range and ID-to-image URL findings informed compat's later incoming rendering and local-echo adapters. Static feasibility statements below retain their original evidence limits. See [branch closure](BRANCH_ARCHIVE.md).
+
 ## Scope and evidence level
 
 Investigate the 951-entry composer catalog and incoming synthetic metadata

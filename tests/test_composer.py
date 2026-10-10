@@ -894,7 +894,7 @@ class ComposerTests(unittest.TestCase):
                 # variadic vector-register count and make va_arg read garbage.
                 # Adapt only dispatch ABI, keeping production logic unchanged.
                 for result_type in ("id", "void"):
-                    for argument_types in ("id,SEL,double", "id,SEL,SEL,id,double", "id,SEL,Size"):
+                    for argument_types in ("id,SEL,double", "id,SEL,SEL,id,double", "id,SEL,Size", "id,SEL,Point", "id,SEL,Point,BOOL"):
                         content = content.replace(
                             f'(({result_type} (*)({argument_types}))objc_msgSend)',
                             f'(({result_type} (*)(id,SEL,...))objc_msgSend)')

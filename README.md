@@ -1,5 +1,10 @@
 # Streamside
 
+> Archived diagnostic branch: `archive/build46-image-result`, preserved through build 46.
+> See [its purpose, work and outcome](docs/BRANCH_ARCHIVE.md). Active development
+> continues on `compat/twitch-31.5` at build 87. The README below is the retained
+> historical source/build record, not the current compatibility status.
+
 A native iOS port of the **VAFT** strategy from
 [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
 It supports both sideloaded decrypted copies of Twitch and jailbroken devices.

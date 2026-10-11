@@ -59,6 +59,7 @@ class SnapshotGateTests(unittest.TestCase):
                 '--hermesc',os.environ['TAS_HERMESC'],'--runner',os.environ['TAS_HERMES_SNAPSHOT_RUNNER'],
                 '--runtime-source',os.environ['TAS_HERMES_SOURCE']],capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertIn('Unchanged donor settings factory/component + compiled reload adapter passed',result.stdout)
             data=json.loads(path.read_text());self.assertEqual(data['accepted_snapshots'],32);self.assertTrue(data['window_algorithm_validated']);self.assertEqual(data['window_baseline'],WINDOW_BASELINE['id']);self.assertEqual(data['window_scenarios'],WINDOW_BASELINE['expected_window_calculations']);check_gate(path)
             report=(path.parent/'snapshot-runtime-report.txt').read_text()
             self.assertIn('viewport/content=370.00/10360.00',report)

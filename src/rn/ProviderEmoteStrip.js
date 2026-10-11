@@ -783,9 +783,10 @@ function install(original) {
   function SettingsScroll(p) {
     var context = React.useContext(SettingsContext), theme = ui.useTheme(), config = state();
     var native = p.data, children = React.Children.toArray(native.children);
-    // Only the sheet's main settings page has this verified child signature.
+    // The main page owns this prop even when no extra container sections exist.
     var main = children.some(function (child) { return child && child.props &&
-      child.props.settings && child.props.containerSections && child.props.onRequestClose; });
+      child.props.settings && "containerSections" in child.props &&
+      typeof child.props.onRequestClose === "function"; });
     if (!context || !config || !config.enabled || !main) return React.createElement(RN.ScrollView, native);
     var style = {}; style.minHeight = 48; style.paddingHorizontal = 16;
     style.paddingVertical = 12; style.justifyContent = "center";
@@ -798,7 +799,7 @@ function install(original) {
       if (data.onClose) data.onClose();
     };
     var text = {}; text.fontSize = 16; text.color = theme.colors.textBase;
-    children.push(React.createElement(RN.Pressable, button, React.createElement(RN.Text, properties(text), config.reload)));
+    children.unshift(React.createElement(RN.Pressable, button, React.createElement(RN.Text, properties(text), config.reload)));
     var copy = Object.assign({}, native); copy.children = children;
     return React.createElement(RN.ScrollView, copy);
   }

@@ -1,5 +1,23 @@
 # Version history and reconstruction notes
 
+## Twitch 31.5 RN Reload Emotes main-page admission — build 91
+
+Build 90 still omitted the row on the user's Chat Settings sheet. Its main-page
+guard required a truthy containerSections value, but this optional prop may be
+undefined or null. The donor always creates the prop on the main page; build 91
+checks its presence and the settings/onRequestClose signature instead. Reload
+Emotes is now the first scroll row, below the sheet title and before Identity,
+so it is visible without scrolling through the preferences.
+
+The required Hermes validation now executes the unchanged donor settings factory
+4884 and component 22114 together with the compiled production adapter, rather
+than checking only a hand-built page. The old guard reproduced the missing row
+with omitted sections. The corrected adapter passes omitted, null and empty
+sections, preserves donor scroll behavior, reloads the explicit channel, closes
+the sheet, and leaves the donor's own identity subpage unchanged. Shared fixtures
+also retain hidden/disabled and channel-change checks. The device-confirmed
+unconfirmed-input guard and native reload implementation are unchanged.
+
 ## Twitch 31.5 RN Reload Emotes module binding — build 90
 
 The user confirms build 89's unconfirmed-input guard works, but its RN reload

@@ -8,17 +8,16 @@ The sideload and jailbreak builds come from the same checked-in source.
 Version **3.0.0** is in preparation. The installed sideload app is named
 **Twitch Streamside**. This update adds a third-party emote composer and keyboard
 library while retaining the enforced 16 KiB Mach-O build-to-package contract.
-Publication is on hold for device testing and the forthcoming logo.
+The completed Twitch 31.5 work is consolidated on `main` for release preparation.
 
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
 - Prepared source: **3.0.0** (compatibility bundle build `3.0.0.92`)
-- Active Twitch 31.5 development: `compat/twitch-31.5`, fast-forwarded from
-  build 72 through the tested build 87. Build 88's RN library labels are device-confirmed;
-  Build 89's unconfirmed keyboard guard and build 91's RN Reload Emotes row are
-  device-confirmed. Build 92 adds the native menu's themed pressed highlight to
-  the reload row below the sheet title.
+- Release preparation: `main` contains the completed `compat/twitch-31.5`
+  history through build 92, including the RN implementation and legacy fixes.
+  The RN library labels, unconfirmed keyboard guard, Reload Emotes row and
+  themed pressed highlight are device-confirmed.
   Diagnostic branches are preserved under
   `archive/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
 - Upstream strategy: **VAFT solution 24**
@@ -111,7 +110,7 @@ and relaunching skips the emote hooks and provider requests altogether.
 **Clear Emote Cache** is on the Streamside page. It discards this module's
 in-memory emote definitions and image-ID mappings; the next incoming chat
 message refetches the current channel. It does not clear Twitch's unrelated
-image cache. **Reload Emotes** is intended to appear in the stream's Chat
+image cache. **Reload Emotes** appears in the stream's Chat
 Settings sheet and refresh global and current channel definitions.
 
 The module retains at most six recently active channel registries, up to 4,000
@@ -134,7 +133,8 @@ range objects, body and identity. Builds 57/58 recorded zero local callbacks;
 their TmiClient preview seam belongs to a separate client. Build 59 uses the
 LibraryTmiClient own event and the existing NativeModules loader. Local device
 rendering is device-confirmed after build 60's call-frame correction. It reuses
-the image/width route. Catalog, picker and tap-detail remain deferred. Build 63
+the image/width route. Builds 66–70 complete provider tap details, unified
+suggestions and the RN library. Build 63
 adds animation only to native text-box provider attachments. See the
 [incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and
 [width experiment and device test](docs/RN_INCOMING_WIDTH_TRIAL.md) and
@@ -166,9 +166,11 @@ packages use `Streamside.dylib`; the existing package ID is retained for upgrade
   Twitch receives the original names when editing or sending. Native Twitch
   attachments remain intact. Composer previews use a still image; GIF thumbnails
   animate when Twitch's `FLAnimatedImageView` is available.
-- Open Twitch's smiley keyboard and select the additional **Third-party emotes**
-  footer button. Its provider selector has **All / 7TV / BTTV / FFZ**, followed
-  by **Channel / Global**. Changing the provider resets the scope to Channel.
+- Open Twitch's smiley keyboard to browse the **Third-party emotes** section
+  and its footer shortcut. Its provider selector has **All / 7TV / BTTV / FFZ**,
+  followed by **Channel / Global**, with five rows of horizontal browsing and
+  names below the thumbnails. The legacy picker remains available on streams
+  using Twitch's horizontal/vertical interface.
 - The native **Recent** tab includes a provider-emote row above Twitch's own
   entries. Up to 40 recent names persist locally and are resolved against the
   current channel; unavailable names are omitted. Twitch's native history is
@@ -176,6 +178,9 @@ packages use `Streamside.dylib`; the existing package ID is retained for upgrade
 - The integration resolves the channel from the input view, not the last
   background-chat frame. It checks native method encodings and the inspected
   identity layout; unsupported bridges report missing hooks in diagnostics.
+- Unconfirmed iOS keyboard predictions wait for committed text before emote
+  conversion. The RN Chat Settings sheet includes **Reload Emotes** directly
+  below its title, with Twitch's themed touch highlight.
 
 The logo is pending. The current icon and `Assets.car` are preserved. The future
 logo must support UIKit's dynamic appearance/background and tint behavior; that

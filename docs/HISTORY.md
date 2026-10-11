@@ -1,5 +1,17 @@
 # Version history and reconstruction notes
 
+## 3.0.0 main consolidation — build 92 retained
+
+The user confirms build 92's touch highlight works and authorizes moving the
+completed work to main for 3.0.0 release preparation. Main is a direct ancestor
+of compat/twitch-31.5, so the complete 51-commit compatibility history moves
+across without conflicts or a runtime source change. The diagnostic archives
+remain preserved; their independent forensic probes are historical work, not
+additional release implementations. Release documentation now describes the
+completed RN and legacy behavior. VERSION remains 3.0.0 and the tested internal
+bundle version remains 3.0.0.92. No release tag or publication is part of this
+consolidation.
+
 ## Twitch 31.5 RN Reload Emotes pressed highlight — build 92
 
 The user confirms build 91's row works. Build 92 adds the same Pressable style

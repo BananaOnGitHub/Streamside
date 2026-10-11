@@ -2,6 +2,29 @@
 
 ## 3.0.0 (Streamside; prepared, not published)
 
+### Release summary
+
+- Consolidate the completed Twitch 31.5 compatibility work through build 92
+  onto `main`, retaining the existing diagnostic archives and legacy chat path.
+- Render 7TV, BTTV and FFZ emotes in React Native incoming and sent messages,
+  with proportional widths, animated images and provider detail sheets.
+- Add unified Twitch/provider suggestions, proportional editor previews,
+  whole-emote backspace and a five-row horizontal third-party library with
+  provider/scope controls, recent emotes and thumbnail name labels.
+- Wait for committed iOS keyboard input before converting provisional emote
+  predictions. Add Reload Emotes with native touch feedback to RN Chat Settings.
+- Share provider image caching and coalesced transport, deliver eligible cache
+  hits without transfer admission, and recover bounded queue overflow.
+- Correct legacy Recent startup, footer tint and insertion on streams using
+  Twitch's horizontal/vertical interface.
+
+### Development history
+
+The notes below preserve the state and validation limits at each earlier build.
+Later corrections and device confirmations are recorded in `docs/HISTORY.md`
+and the current README. Consolidation retains build `3.0.0.92`; publication is
+a separate step.
+
 - Build 60 fixes the own-message disappearance reported on build 59. Its
   injected Call4 staged channel/native ranges over the method/module registers
   before native entry. Expand the local callback's frame from 18 to 21 and add

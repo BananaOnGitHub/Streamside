@@ -1,5 +1,9 @@
 # Diagnostic branch closure — Twitch 31.5, build 87
 
+Release-preparation update: the completed compatibility implementation through
+build 92 is now consolidated on `main`. The closure notes below describe the
+earlier build-87 branch cleanup; all listed archive histories remain preserved.
+
 The diagnostic investigations are closed at the user's request. Active work
 continues on `compat/twitch-31.5`. It fast-forwards from build 72 to the complete
 build-87 implementation and this documentation-only closure. No merge commit,

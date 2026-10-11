@@ -1,5 +1,14 @@
 # Version history and reconstruction notes
 
+## Twitch 31.5 RN Reload Emotes pressed highlight — build 92
+
+The user confirms build 91's row works. Build 92 adds the same Pressable style
+callback used by Twitch's menu row (donor functions 22113/37952): the active
+background is theme.colors.backgroundElevation1, returning to transparent on
+release or cancellation. React Native owns the pressed state, including holds
+and scroll cancellation. The row's placement, geometry and reload action remain
+unchanged; existing source/compiled fixtures also exercise both style states.
+
 ## Twitch 31.5 RN Reload Emotes main-page admission — build 91
 
 Build 90 still omitted the row on the user's Chat Settings sheet. Its main-page

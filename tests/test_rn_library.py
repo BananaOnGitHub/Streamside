@@ -46,7 +46,7 @@ const React={createElement:(type,props,...children)=>({type,props:props||{},chil
  useEffect:(fn,deps)=>{const i=cursor++,old=active[i];if(!old||deps.some((x,j)=>x!==old.deps[j])){if(old&&old.cleanup)old.cleanup();const scope=active;scope[i]={deps};effects.push(()=>scope[i].cleanup=fn());}}};
 function render(fn,p,key=fn){active=slots.get(key)||[];slots.set(key,active);cursor=0;effects=[];const out=fn(p);effects.forEach(e=>e());return out;}
 const RN={View:'view',Text:'text',Image:'image',Pressable:'button',ScrollView:'scroll',SectionList:'grid',FlatList:'flat'};
-const theme={colors:{backgroundBase:'black',backgroundAlt:'#222',backgroundAlt2:'#555',textBase:'white',textAlt:'#ccc',textLink:'purple'}};
+const theme={colors:{backgroundBase:'black',backgroundAlt:'#222',backgroundAlt2:'#555',backgroundElevation1:'#18181b',textBase:'white',textAlt:'#ccc',textLink:'purple'}};
 const a={id:101,name:'First',url:'a.gif',aspect:1,provider:0},b={id:102,name:'Wide',url:'b.gif',aspect:3,provider:1},c={id:103,name:'FF',url:'c.gif',aspect:1,provider:2};
 let saved=[a],channel=[a,b,c],global=[b],config={enabled:1,mode:0,revision:1,reload:"Reload Emotes"},reads=0,insertions=[],nativeJumps=0,viewEvents=[];
 var reloaded=[];

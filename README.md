@@ -13,12 +13,12 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.91`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.92`)
 - Active Twitch 31.5 development: `compat/twitch-31.5`, fast-forwarded from
   build 72 through the tested build 87. Build 88's RN library labels are device-confirmed;
-  Build 89's unconfirmed keyboard guard is device-confirmed; build 91 corrects
-  the RN Reload Emotes main-page guard and places the row directly below the
-  sheet title, validated against the actual donor settings component.
+  Build 89's unconfirmed keyboard guard and build 91's RN Reload Emotes row are
+  device-confirmed. Build 92 adds the native menu's themed pressed highlight to
+  the reload row below the sheet title.
   Diagnostic branches are preserved under
   `archive/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
 - Upstream strategy: **VAFT solution 24**

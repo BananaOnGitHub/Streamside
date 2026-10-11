@@ -11,6 +11,8 @@ var menu=render(routedSettings.type,routedSettings.props);
 settingsCheck(menu.props!==nativeScroll&&menu.props.children[1]===mainChild&&nativeScroll.children.length===1,'prepend without mutating native menu');
 settingsCheck(menu.props.style===nativeScroll.style&&menu.props.keyboardShouldPersistTaps==='always'&&routedSettings.props.key==='settings-key','scroll props and key retained');
 var reloadButton=menu.props.children[0];
+settingsCheck(reloadButton.props.style({pressed:true}).backgroundColor===theme.colors.backgroundElevation1,'native themed touch highlight');
+settingsCheck(reloadButton.props.style({pressed:false}).backgroundColor==='transparent','release or cancellation clears highlight');
 [null,[]].forEach(function(sections){mainChild.props.containerSections=sections;settingsCheck(render(routedSettings.type,routedSettings.props).props.children[0].props.accessibilityRole==='button','optional container sections accepted');});
 settingsCheck(reloadButton.props.accessibilityRole==='button'&&reloadButton.children[0].children[0]==='Reload Emotes','reload label and role');
 reloadButton.props.onPress();settingsCheck(reloaded.length===1&&reloaded[0]==='42'&&closed===1,'explicit channel reload and dismissal');

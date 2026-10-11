@@ -791,6 +791,11 @@ function install(original) {
     var style = {}; style.minHeight = 48; style.paddingHorizontal = 16;
     style.paddingVertical = 12; style.justifyContent = "center";
     var button = properties(style); button.key = "reload"; button.testID = "reload";
+    button.style = function (p) {
+      var copy = Object.assign({}, style);
+      copy.backgroundColor = p.pressed ? theme.colors.backgroundElevation1 : "transparent";
+      return copy;
+    };
     button.accessibilityRole = "button"; button.accessibilityLabel = config.reload;
     button.onPress = function () {
       var fresh = state(), data = context.data;

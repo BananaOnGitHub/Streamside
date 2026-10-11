@@ -16,7 +16,8 @@ function install(original) {
       !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
       !bridge || !bridge.getState || !bridge.search) return original;
   var Context = React.createContext(null);
-  var settings = __r(4884) || {}, NativeSettings = settings.ChatSettingsSheet;
+  // Metro module 4880 registers donor factory function 4884; these IDs differ.
+  var settings = __r(4880) || {}, NativeSettings = settings.ChatSettingsSheet;
   var SettingsContext = React.createContext(null);
   // Demand-only wrapper: original Image type/source/style and handlers remain
   // intact. Effects count committed JS instances, never attempted renders.

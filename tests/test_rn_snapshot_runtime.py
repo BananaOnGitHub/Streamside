@@ -8,9 +8,18 @@ import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT/'tools'))
-from validate_rn_snapshot import check_gate, fingerprints, RUNTIME_COMMIT, DONOR_SHA, WINDOW_BASELINE
+from validate_rn_snapshot import check_gate, fingerprints, validate_settings_binding, RUNTIME_COMMIT, DONOR_SHA, WINDOW_BASELINE
 
 class SnapshotGateTests(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get('TAS_RN_DONOR'),'Exact Twitch donor required')
+    def test_settings_module_matches_real_donor_registration_not_factory_number(self):
+        donor=Path(os.environ['TAS_RN_DONOR']).read_bytes()
+        source=(ROOT/'src/rn/ProviderEmoteStrip.js').read_text()
+        self.assertEqual(validate_settings_binding(donor,source),4880)
+        wrong=source.replace('var settings = __r(4880)','var settings = __r(4884)')
+        with self.assertRaisesRegex(ValueError,'module differs'):
+            validate_settings_binding(donor,wrong)
+
     def test_missing_failed_and_stale_records_block_build_gate(self):
         with tempfile.TemporaryDirectory() as t:
             path=Path(t)/'record.json'

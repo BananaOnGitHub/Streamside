@@ -13,10 +13,11 @@ Publication is on hold for device testing and the forthcoming logo.
 ## Status
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.89`)
+- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.90`)
 - Active Twitch 31.5 development: `compat/twitch-31.5`, fast-forwarded from
   build 72 through the tested build 87. Build 88's RN library labels are device-confirmed;
-  build 89 adds RN Reload Emotes and protects unconfirmed keyboard composition.
+  Build 89's unconfirmed keyboard guard is device-confirmed; build 90 corrects
+  the RN Reload Emotes menu binding.
   Diagnostic branches are preserved under
   `archive/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
 - Upstream strategy: **VAFT solution 24**

@@ -1,8 +1,25 @@
 # Version history and reconstruction notes
 
+## Twitch 31.5 RN Reload Emotes module binding — build 90
+
+The user confirms build 89's unconfirmed-input guard works, but its RN reload
+button does not appear. The adapter used Hermes factory function ID 4884 as a
+Metro module ID. The exact donor's global __d call registers that factory as
+module 4880; the incorrectly imported module has no ChatSettingsSheet export.
+Build 90 corrects only this binding, leaving the confirmed native guard intact.
+
+The prior host mock placed the settings export at the same incorrect ID, so its
+source/compiled button tests could pass without attaching to Twitch's real UI.
+The mock now maps settings to 4880 and gives 4884 no sheet export. The required
+Hermes validation also parses the admitted donor's actual __d registration and
+the factory's writable ChatSettingsSheet export (component function 22114), then
+compares that module ID with the owned adapter. A regression explicitly refuses
+the erroneous 4884 binding before compiled validation/build admission.
+
 ## Twitch 31.5 RN settings reload and provisional input — build 89
 
-The RN ChatSettingsSheet now has a Reload Emotes button on its main page.
+Build 89 prepared a Reload Emotes row for the RN ChatSettingsSheet main page;
+the failed module binding is corrected in build 90 above.
 The owned wrapper preserves the native sheet and scroll props, appends a themed
 accessible row, requests a refresh for that sheet's explicit channel, and closes
 the sheet. The native bridge rejects disabled, unknown and ambiguous channels.

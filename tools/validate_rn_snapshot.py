@@ -10,6 +10,7 @@ import ast
 import ctypes
 import hashlib
 import json
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -41,6 +42,39 @@ def constant_script(path,name):
     return next(n.value.value for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id==name for t in n.targets))
 def compile_js(compiler,source,out):
     subprocess.run([str(compiler),'-O','-fno-inline','-g0','-emit-binary','-out',str(out),str(source)],check=True)
+def validate_settings_binding(donor,source):
+    """Admit the adapter using the donor's __d registration, not mock module IDs."""
+    from rn_graft import read
+    from hermes_dec.parsers.hbc_bytecode_parser import parse_hbc_bytecode
+    if hashlib.sha256(donor).hexdigest()!=DONOR_SHA:
+        raise ValueError('Wrong settings donor')
+    h=read(donor)
+    instructions=list(parse_hbc_bytecode(h.function_headers[0],h))
+    registrations=[]
+    for i,x in enumerate(instructions):
+        if x.inst.name!='CreateClosure' or x.arg3!=4884:continue
+        symbol,module,deps=instructions[i-3:i]
+        call=instructions[i+1]
+        if (symbol.inst.name!='TryGetById' or h.strings[symbol.arg4]!='__d' or
+            module.inst.name!='LoadConstInt' or deps.inst.name!='NewArrayWithBufferLong' or
+            call.inst.name!='Call4' or call.arg2!=symbol.arg1 or
+            call.arg4!=x.arg1 or call.arg5!=module.arg1 or call.arg6!=deps.arg1):
+            raise ValueError('Changed ChatSettingsSheet registration ABI')
+        registrations.append(module.arg2)
+    binding=re.search(r'var settings = __r\((\d+)\)',source)
+    if len(registrations)!=1 or not binding or int(binding.group(1))!=registrations[0]:
+        raise ValueError('Settings adapter module differs from donor factory registration')
+    # Also confirm this factory owns the writable sheet export we wrap.
+    instructions=list(parse_hbc_bytecode(h.function_headers[4884],h))
+    exports=[(i,x) for i,x in enumerate(instructions) if x.inst.name=='PutByIdLoose' and
+             h.strings[x.arg4]=='ChatSettingsSheet']
+    if len(exports)!=1:
+        raise ValueError('Missing donor ChatSettingsSheet export')
+    i,export=exports[0];component=instructions[i-1]
+    if component.inst.name!='CreateClosure' or component.arg1!=export.arg2 or component.arg3!=22114:
+        raise ValueError('Changed donor ChatSettingsSheet component')
+    print('Donor ChatSettingsSheet module/factory/component binding validated:',registrations[0],4884,22114)
+    return registrations[0]
 def patch_chain(zig,donor,tmp):
     (tmp/'patch.c').write_text('''#include "TASRNStripPatch.h"
 void *patch(const void *p,size_t n,TASRNSHA1 s,size_t *out,unsigned step){
@@ -112,6 +146,7 @@ const char *ss_report(void){static char out[32768];tas_demand_status(out,sizeof(
 def validate(a):
     assert subprocess.check_output(['git','-C',str(a.runtime_source),'rev-parse','HEAD'],text=True).strip()==RUNTIME_COMMIT,'Wrong Hermes runtime revision'
     assert hashlib.sha256(a.donor.read_bytes()).hexdigest()==DONOR_SHA,'Wrong donor'
+    validate_settings_binding(a.donor.read_bytes(),(ROOT/'src/rn/ProviderEmoteStrip.js').read_text())
     stamp=json.loads(a.runner.with_suffix('.build.json').read_text())
     assert stamp['runtime_commit']==RUNTIME_COMMIT and stamp['runner_source_sha256']==hashlib.sha256((ROOT/'tests/native/hermes_snapshot_runner.cpp').read_bytes()).hexdigest() and stamp['runner_sha256']==hashlib.sha256(a.runner.read_bytes()).hexdigest(),'Runner missing/stale build evidence'
     a.record.parent.mkdir(parents=True,exist_ok=True)

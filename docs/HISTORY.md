@@ -1,5 +1,31 @@
 # Version history and reconstruction notes
 
+## Twitch 31.5 RN settings reload and provisional input — build 89
+
+The RN ChatSettingsSheet now has a Reload Emotes button on its main page.
+The owned wrapper preserves the native sheet and scroll props, appends a themed
+accessible row, requests a refresh for that sheet's explicit channel, and closes
+the sheet. The native bridge rejects disabled, unknown and ambiguous channels.
+The existing refresh retires old identities, clears provider generations, and
+refetches global and selected-channel catalogs; background last-room state cannot
+redirect the RN action. Subpages and other scroll views retain their original UI.
+
+The donor change delegate tests markedTextRange, but its value and emote-map
+prop setters can rebuild attachments during unconfirmed keyboard composition.
+Build 89 holds provisional delegate events and guards both setters before their
+original implementations. Provisional draft values are discarded; only the latest
+recognition map is retained per input and applied after native committed-text
+reconstruction. Cancelling a prediction cannot replay its full suggested value.
+UIKit retains its composition, and confirmed input uses Twitch's tokenizer.
+The diagnostic report adds map-hook availability and an aggregate hold counter.
+
+ASAN/UBSAN native regressions cover commit/cancellation, deferred-map replacement
+and clearing, explicit reload scope, refusal, catalog retirement and fetches.
+Shared source and compiled Hermes fixtures cover the RN button, native props,
+subpages, hidden/disabled presses and channel changes. Full host/build/package
+checks are required; actual iOS inline-prediction and IME behavior remain a
+focused device trial.
+
 ## Twitch 31.5 third-party library labels — build 88
 
 The RN library now shows each third-party emote's name below its thumbnail,

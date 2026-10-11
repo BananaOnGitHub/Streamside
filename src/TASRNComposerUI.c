@@ -1,5 +1,5 @@
-/* Twitch 31.5 RN input presentation only. Never replace text storage, delegate,
- * send callbacks, selection, tokenization, marked text or the native image cache. */
+/* Twitch 31.5 RN input presentation and composition admission. UIKit owns
+ * marked text; Twitch keeps text storage, selection, tokenization and sending. */
 #include "TASRNComposerUI.h"
 #include "TASRNComposerModel.h"
 #include "TASEmotes.h"
@@ -27,13 +27,13 @@ extern id objc_getAssociatedObject(id,const void *);
 extern void objc_setAssociatedObject(id,const void *,id,uintptr_t);
 typedef id (__attribute__((swiftcall)) *StringBridge)(uint64_t,uint64_t);
 static StringBridge bridge_string;
-static IMP bounds_original,layout_original,change_original,selection_original,move_original,value_original,dealloc_original,target_dealloc;
+static IMP bounds_original,layout_original,change_original,selection_original,move_original,value_original,map_original,dealloc_original,target_dealloc;
 static Class clock_class;
 static ptrdiff_t clock_offset;
 static id image_bytes,owners;
-static char identity_key,state_key;
+static char identity_key,state_key,pending_map_key;
 static pthread_mutex_t install_lock=PTHREAD_MUTEX_INITIALIZER;
-static uint64_t bounds_calls,sized,syncs,decoders,advances,ticks,refused,images;
+static uint64_t bounds_calls,sized,syncs,decoders,advances,ticks,refused,images,provisional;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
@@ -240,10 +240,29 @@ static void sync_owners(void) {
     }
 }
 static void layout(id self,SEL command){((void (*)(id,SEL))layout_original)(self,command);sync(self);}
-static void changed(id self,SEL command,id editor){((void (*)(id,SEL,id))change_original)(self,command,editor);sync(self);}
-static void selection(id self,SEL command,id editor){((void (*)(id,SEL,id))selection_original)(self,command,editor);sync(self);}
+static BOOL composing(id owner) {
+    id editor=editor_for(owner);
+    return tas_emotes_enabled_this_launch() && editor && m0(editor,"markedTextRange");
+}
+static void flush_map(id owner) {
+    if(composing(owner) || !map_original)return;
+    id pending=objc_retain(objc_getAssociatedObject(owner,&pending_map_key));
+    if(!pending)return;
+    associate(owner,&pending_map_key,nil);
+    ((void (*)(id,SEL,id))map_original)(owner,sel_registerName("setEmoteMap:"),kind(pending,"NSNull") ? nil : pending);
+    objc_release(pending);
+}
+/* The donor's change delegate checks markedTextRange, but its React prop
+ * setters rebuild attachments without that check. A provisional full code
+ * must never round-trip through JS and those setters while UIKit owns it.
+ * Discard provisional values rather than replaying a cancelled prediction.
+ * Keep only the latest recognition map; apply it after the native delegate
+ * has reconstructed committed text, including when composition is cancelled. */
+static void changed(id self,SEL command,id editor){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))change_original)(self,command,editor);flush_map(self);sync(self);}
+static void selection(id self,SEL command,id editor){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))selection_original)(self,command,editor);flush_map(self);sync(self);}
 static void moved(id self,SEL command){((void (*)(id,SEL))move_original)(self,command);sync(self);}
-static void value(id self,SEL command,id text){((void (*)(id,SEL,id))value_original)(self,command,text);sync(self);}
+static void value(id self,SEL command,id text){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))value_original)(self,command,text);flush_map(self);sync(self);}
+static void emote_map(id self,SEL command,id map){if(composing(self)){associate(self,&pending_map_key,map ? map : m0((id)objc_getClass("NSNull"),"null"));INC(provisional);return;}associate(self,&pending_map_key,nil);((void (*)(id,SEL,id))map_original)(self,command,map);sync(self);}
 static void owner_dealloc(id self,SEL command){id target=objc_getAssociatedObject(self,&state_key);if(target){State *s=state(target);if(s){stop(s);clear_frames(s);}}((void (*)(id,SEL))dealloc_original)(self,command);}
 static void install(Class cls,const char *selector,const char *encoding,IMP replacement,IMP *original) {
     if(!cls || *original)return;Method method=class_getInstanceMethod(cls,sel_registerName(selector));
@@ -271,6 +290,7 @@ void tas_rn_composer_ui_retry_hooks(void) {
     install(input,"textViewDidChangeSelection:","v24@0:8@16",(IMP)selection,&selection_original);
     install(input,"didMoveToWindow","v16@0:8",(IMP)moved,&move_original);
     install(input,"setValue:","v24@0:8@16",(IMP)value,&value_original);
+    install(input,"setEmoteMap:","v24@0:8@16",(IMP)emote_map,&map_original);
     install(input,"dealloc","v16@0:8",(IMP)owner_dealloc,&dealloc_original);
     pthread_mutex_unlock(&install_lock);
     /* The existing launch/foreground observer retries these hooks. */
@@ -279,11 +299,12 @@ void tas_rn_composer_ui_retry_hooks(void) {
 void tas_rn_composer_ui_status(char *buffer,size_t capacity) {
     if(!buffer || !capacity)return;
     snprintf(buffer,capacity,"\nRN native input previews (this launch)\n"
-        "Hooks (bounds/layout/change/selection/window/value/dealloc)/String bridge: %s/%s/%s/%s/%s/%s/%s/%s\n"
+        "Hooks (bounds/layout/change/selection/window/value/map/dealloc)/String bridge: %s/%s/%s/%s/%s/%s/%s/%s/%s\n"
+        "Provisional callbacks/props held: %llu\n"
         "Bounds/sizes/syncs/GIF bodies/decoders/ticks/advances/refused: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
         bounds_original ? "installed":"missing",layout_original ? "installed":"missing",change_original ? "installed":"missing",
         selection_original ? "installed":"missing",move_original ? "installed":"missing",value_original ? "installed":"missing",
-        dealloc_original ? "installed":"missing",bridge_string ? "available":"missing",
+        map_original ? "installed":"missing",dealloc_original ? "installed":"missing",bridge_string ? "available":"missing",(unsigned long long)GET(provisional),
         (unsigned long long)GET(bounds_calls),(unsigned long long)GET(sized),(unsigned long long)GET(syncs),(unsigned long long)GET(images),
         (unsigned long long)GET(decoders),(unsigned long long)GET(ticks),(unsigned long long)GET(advances),(unsigned long long)GET(refused));
 }

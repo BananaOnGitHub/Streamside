@@ -26,6 +26,7 @@ EXTRA = r'''
     else if(!strcmp(sel,"string"))result=o->children[0];
     else if(!strcmp(sel,"type"))result=(id)(uintptr_t)o->number;
     else if(!strcmp(sel,"length"))result=(id)(uintptr_t)o->byte_count;
+    else if(!strcmp(sel,"sharedSession"))result=nil;
     else if(!strcmp(sel,"standardUserDefaults")) { static id preferences; if(!preferences)preferences=fresh("NSUserDefaults");result=preferences; }
     else if(!strcmp(sel,"arrayForKey:")) {
         id key=va_arg(args,id);for(size_t i=0;i<o->count;i++)if(!strcmp(o->keys[i]->value,key->value))result=o->values[i];
@@ -528,6 +529,7 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
     else if(!strcmp(selector,"previewMap:channel:nativeMap:"))assert(cls==local_allocated_class && imp==(IMP)rn_composer_map && !strcmp(encoding,"@40@0:8@16@24@32"));
     else if(!strcmp(selector,"providerMetadata:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_metadata && !strcmp(encoding,"@24@0:8@16"));
     else if(!strcmp(selector,"providerAction:action:"))assert(cls==local_allocated_class && imp==(IMP)rn_popup_action && !strcmp(encoding,"v32@0:8@16@24"));
+    else if(!strcmp(selector,"reloadScoped:"))assert(cls==local_allocated_class && imp==(IMP)rn_reload_emotes && !strcmp(encoding,"v24@0:8@16"));
     else if(!strcmp(selector,"pickerState"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_state && !strcmp(encoding,"@16@0:8"));
     else if(!strcmp(selector,"pickerSearch:query:"))assert(cls==local_allocated_class && imp==(IMP)rn_strip_search && !strcmp(encoding,"@32@0:8@16@24"));
     else if(!strcmp(selector,"librarySnapshot:"))assert(cls==local_allocated_class && imp==(IMP)rn_library_snapshot && !strcmp(encoding,"@24@0:8@16"));
@@ -540,6 +542,7 @@ BOOL class_addMethod(Class cls,SEL selector,IMP imp,const char *encoding) {
         else if(!strcmp(selector,"__rct_export__streamsideComposer"))assert(imp==(IMP)rn_composer_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideInfo"))assert(imp==(IMP)rn_popup_metadata_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideInfoAction"))assert(imp==(IMP)rn_popup_action_export && !strcmp(encoding,"^v16@0:8"));
+        else if(!strcmp(selector,"__rct_export__streamsideReload"))assert(imp==(IMP)rn_reload_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsidePickerState"))assert(imp==(IMP)rn_strip_state_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsidePickerSearch"))assert(imp==(IMP)rn_strip_search_export && !strcmp(encoding,"^v16@0:8"));
         else if(!strcmp(selector,"__rct_export__streamsideLibrarySnapshot"))assert(imp==(IMP)rn_library_snapshot_export && !strcmp(encoding,"^v16@0:8"));
@@ -598,8 +601,9 @@ static void strip_search(void) {
     g_rn_strip_ready=true;
     for(int mode=0;mode<3;mode++) {
         picker_mode=mode;id config=rn_strip_state(nil,NULL);
-        assert(count(config)==3 && dict(config,"enabled")->number==1 && dict(config,"mode")->number==(uint64_t)mode);
+        assert(count(config)==4 && dict(config,"enabled")->number==1 && dict(config,"mode")->number==(uint64_t)mode);
         assert(dict(config,"revision")->number==tas_emotes_catalog_revision());
+        assert(!strcmp(text(dict(config,"reload")),"Reload Emotes"));
         id items=rn_strip_search(nil,NULL,string("42"),string("Wi"));
         if(mode==2)assert(!items);else assert(items && count(items)==1 && !strcmp(text(dict(at(items,0),"name")),"Wide"));
     }
@@ -656,13 +660,29 @@ static void library_flow(void) {
     assert(!rn_library_lookup(nil,NULL,channel,string("Global")));
     assert(!rn_library_remember(nil,NULL,channel,string("Global"),dict(global,"id")));
 }
+
+static void reload_settings(void) {
+    g_enabled=true;g_rn_strip_ready=true;
+    Room *room=ready("42"),*other=ready("43");snprintf(other->login,sizeof(other->login),"other");
+    snprintf(g_last_room,sizeof(g_last_room),"43");
+    add_emote_locked(room,MAX_ROOM,"Wide","https://cdn.7tv.app/emote/wide/2x.gif",0,false,NULL,3);
+    unsigned generation=g_generation;
+    rn_reload_emotes(nil,NULL,string("unknown"));rn_reload_emotes(nil,NULL,fresh("NSNumber"));assert(g_generation==generation && room->size==1);
+    g_enabled=false;rn_reload_emotes(nil,NULL,string("42"));assert(g_generation==generation);g_enabled=true;
+    g_rn_strip_ready=false;rn_reload_emotes(nil,NULL,string("42"));assert(g_generation==generation);g_rn_strip_ready=true;
+    rn_reload_emotes(nil,NULL,string("fixture"));assert(g_generation>generation);
+    Room *current=NULL;for(unsigned i=0;i<MAX_ROOMS;i++)if(g_rooms[i].occupied)current=&g_rooms[i];
+    assert(current && !strcmp(current->id,"42") && !current->size && !strcmp(g_last_room,"43"));
+    for(unsigned i=0;i<3;i++)assert(PROBE_GET(g_fetch_started[i][0])==1 && PROBE_GET(g_fetch_started[i][1])==1);
+    const TASRNMethodInfo *info=rn_reload_export(nil,NULL);assert(!info->synchronous && !strcmp(info->js_name,"reload"));
+}
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
     else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
     else if(!strcmp(argv[1],"url"))image_url_flow();else if(!strcmp(argv[1],"url-install"))image_url_installation();
     else if(!strcmp(argv[1],"registration"))local_registration();else if(!strcmp(argv[1],"popup"))popup_metadata();
-    else if(!strcmp(argv[1],"strip"))strip_search();else if(!strcmp(argv[1],"library"))library_flow();else installation();return 0;
+    else if(!strcmp(argv[1],"strip"))strip_search();else if(!strcmp(argv[1],"library"))library_flow();else if(!strcmp(argv[1],"reload"))reload_settings();else installation();return 0;
 }
 '''
 HARNESS = ROUTE[:ROUTE.index('int main(void)')].replace(ROUTE_ASSOCIATED, '')
@@ -738,6 +758,8 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_hook_abi_ownership_and_retry_idempotence(self):
         self.run_harness("install")
+
+    def test_rn_reload_uses_explicit_channel_and_retires_catalog(self):self.run_harness('reload')
 
     def test_width_aliases_redirect_freeze_fallback_collisions_and_history(self):
         self.run_harness("widths")

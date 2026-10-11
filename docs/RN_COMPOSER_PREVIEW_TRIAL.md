@@ -162,3 +162,20 @@ PYTHONPATH=/path/to/hermes-dec ZIG=/path/to/zig \
   python3 tools/verify_rn_width.py /path/to/twitch-31.5.ipa \
   --local --composer --hermesc /path/to/hermes-98/hermesc
 ```
+
+## Build 89 composition admission
+
+The donor's change delegate at 0xc178 queries markedTextRange through the
+0x15360 Objective-C selector stub. Its React setValue: thunk at 0x6464 and
+setEmoteMap: path at 0x64ec/0x6500 can still reach attachment reconstruction
+without that guard. Protect both paths before invoking their originals.
+
+While the verified donor editor has markedTextRange, suppress change/selection
+feedback and discard value-prop updates. Retain only the newest emote map on the
+owning input, including a pending nil. After a committed change/selection or
+value update, let native reconstruction run before applying the pending map.
+Clear the pending map before its original setter to prevent reentrant replay.
+No text-storage edit, unmark operation, prediction disabling, synthetic space,
+or draft/selection rewrite is performed. A cancelled provisional value is never
+replayed. Host fixtures validate admission and replay order; live keyboard and
+IME confirmation still require testing on the device.

@@ -20,7 +20,7 @@ DONOR_SHA='422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
 WINDOW_BASELINE=json.loads((ROOT/'tests/fixtures/window_baseline.json').read_text())
 INPUTS=['src/rn/ProviderEmoteStrip.js','src/TASRNStripPayload.h','src/TASDemandRNBridge.h',
         'src/TASImageDemand.c','src/TASImageDemand.h','src/TASEmotes.c',
-        'tests/native/hermes_snapshot_runner.cpp','tests/fixtures/snapshot_exercise.js',
+        'tests/native/hermes_snapshot_runner.cpp','tests/fixtures/snapshot_exercise.js','tests/fixtures/rn_settings_exercise.js',
         'tests/fixtures/window_algorithm.js','tests/fixtures/window_exercise.js','tests/fixtures/window_baseline.json',
         'tests/fixtures/window_geometry.js',
         'tests/test_image_demand.py','tests/test_rn_library.py','tools/validate_rn_snapshot.py',
@@ -128,7 +128,7 @@ def validate(a):
         script=constant_script(ROOT/'tests/test_rn_library.py','script')
         prefix=script.split("vm.createContext(env);")[0].replace("const fs=require('fs'),vm=require('vm'),assert=require('assert');",'')
         prefix+='\n_runtimeGlobal.__r=env.__r;_runtimeGlobal.setInterval=env.setInterval;_runtimeGlobal.clearInterval=env.clearInterval;\n'
-        (tmp/'exercise.js').write_text(prefix+(ROOT/'tests/fixtures/snapshot_exercise.js').read_text())
+        (tmp/'exercise.js').write_text(prefix+(ROOT/'tests/fixtures/snapshot_exercise.js').read_text()+(ROOT/'tests/fixtures/rn_settings_exercise.js').read_text())
         compile_js(a.hermesc,tmp/'exercise.js',tmp/'exercise.hbc')
         # Execute Twitch's unchanged RN factory 350/7242/7244, then the shipped
         # graft's layout callback. No replica of the window/search algorithm.

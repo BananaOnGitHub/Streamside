@@ -1452,6 +1452,7 @@ static id rn_strip_state(id self,SEL command) {
             g_enabled && __atomic_load_n(&g_rn_strip_ready,__ATOMIC_ACQUIRE))};
     const char *keys[]={"mode","revision","enabled"};
     for(unsigned i=0;i<3;i++)((void (*)(id,SEL,id,id))objc_msgSend)(result,sel_registerName("setObject:forKey:"),values[i],str(keys[i]));
+    ((void (*)(id,SEL,id,id))objc_msgSend)(result,sel_registerName("setObject:forKey:"),str("Reload Emotes"),str("reload"));
     return call0(result,"autorelease");
 }
 static id rn_strip_search(id self,SEL command,id channel,id query) {
@@ -1494,6 +1495,23 @@ static bool rn_library_room(id channel) {
         (!strcmp(identity,g_rooms[i].id) || !strcmp(identity,g_rooms[i].login))) matches++;
     pthread_mutex_unlock(&g_emote_lock);
     return matches==1;
+}
+static void reload_emotes_for_room(const char *room_id);
+static void rn_reload_emotes(id self,SEL command,id channel) {
+    (void)self;(void)command;
+    if(!rn_library_room(channel))return;
+    char room_id[32]={0};const char *identity=text(channel);
+    pthread_mutex_lock(&g_emote_lock);
+    for(unsigned i=0;i<MAX_ROOMS;i++)if(g_rooms[i].occupied &&
+        (!strcmp(identity,g_rooms[i].id) || !strcmp(identity,g_rooms[i].login))) {
+        snprintf(room_id,sizeof(room_id),"%s",g_rooms[i].id);break;
+    }
+    pthread_mutex_unlock(&g_emote_lock);
+    if(valid_room(room_id))reload_emotes_for_room(room_id);
+}
+static const TASRNMethodInfo *rn_reload_export(id self,SEL command) {
+    (void)self;(void)command;
+    static const TASRNMethodInfo info={"reload","reloadScoped:(NSString *)channel",NO};return &info;
 }
 static void rn_library_put(id target,const char *key,id value) {
     if(value)((void (*)(id,SEL,id,id))objc_msgSend)(target,sel_registerName("setObject:forKey:"),value,str(key));
@@ -1605,6 +1623,7 @@ static void install_rn_local(void) {
                     class_addMethod(cls,sel_registerName("providerMetadata:"),(IMP)rn_popup_metadata,"@24@0:8@16") &&
                     class_addMethod(cls,sel_registerName("providerAction:action:"),(IMP)rn_popup_action,"v32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("pickerState"),(IMP)rn_strip_state,"@16@0:8") &&
+                    class_addMethod(cls,sel_registerName("reloadScoped:"),(IMP)rn_reload_emotes,"v24@0:8@16") &&
                     class_addMethod(cls,sel_registerName("pickerSearch:query:"),(IMP)rn_strip_search,"@32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("librarySnapshot:"),(IMP)rn_library_snapshot,"@24@0:8@16") &&
                     class_addMethod(cls,sel_registerName("libraryLookup:name:"),(IMP)rn_library_lookup,"@32@0:8@16@24") &&
@@ -1620,6 +1639,7 @@ static void install_rn_local(void) {
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideInfo"),(IMP)rn_popup_metadata_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideInfoAction"),(IMP)rn_popup_action_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerState"),(IMP)rn_strip_state_export,"^v16@0:8") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideReload"),(IMP)rn_reload_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsidePickerSearch"),(IMP)rn_strip_search_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLibrarySnapshot"),(IMP)rn_library_snapshot_export,"^v16@0:8") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideLibraryLookup"),(IMP)rn_library_lookup_export,"^v16@0:8") &&
@@ -2376,18 +2396,23 @@ static void hook_method_including_inherited(Class cls, const char *selector,
     }
 }
 
-void tas_emotes_reload(void) {
+static void reload_emotes_for_room(const char *current) {
     if (!g_enabled) return;
-    char current[32];
     pthread_mutex_lock(&g_emote_lock);
     time_t now = time(NULL);
     reset_room_locked(&g_global, true, now);
     g_global.generation = ++g_generation;
     for (size_t i = 0; i < MAX_ROOMS; i++) reset_room_locked(&g_rooms[i], true, now);
-    snprintf(current, sizeof(current), "%s", g_last_room);
     pthread_mutex_unlock(&g_emote_lock);
     ensure_loaded(NULL, false);
     if (valid_room(current)) ensure_loaded(current, false);
+}
+void tas_emotes_reload(void) {
+    char current[32];
+    pthread_mutex_lock(&g_emote_lock);
+    snprintf(current,sizeof(current),"%s",g_last_room);
+    pthread_mutex_unlock(&g_emote_lock);
+    reload_emotes_for_room(current);
 }
 
 void tas_emotes_clear_cache(void) {

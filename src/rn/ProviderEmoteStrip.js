@@ -16,6 +16,8 @@ function install(original) {
       !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
       !bridge || !bridge.getState || !bridge.search) return original;
   var Context = React.createContext(null);
+  var settings = __r(4884) || {}, NativeSettings = settings.ChatSettingsSheet;
+  var SettingsContext = React.createContext(null);
   // Demand-only wrapper: original Image type/source/style and handlers remain
   // intact. Effects count committed JS instances, never attempted renders.
   function observe(event, scope, asset, a, b) {
@@ -755,6 +757,11 @@ function install(original) {
     return React.createElement(RN.ScrollView, copy);
   }
   function route(runtime, type, p, key) {
+    if (NativeSettings && bridge.reload && p && type === RN.ScrollView &&
+        p.testID === "chat-settings".concat("-scroll")) {
+      var cp = {}; cp.data = p; cp.key = key;
+      return React.createElement(SettingsScroll, cp);
+    }
     if (bridge.observe && p && typeof p.src === "string" && typeof p.testID === "string" && p.testID.indexOf("chat-emote-") === 0) {
       var image = {}; image.type = type; image.data = p; image.index = 5; image.key = key;
       return React.createElement(DemandImage, image);
@@ -767,6 +774,33 @@ function install(original) {
   }
   function jsx(type, p, key) { return route(nativeJSX, type, p, key); }
   function jsxs(type, p, key) { return route(nativeJSXS, type, p, key); }
+  function SettingsSheet(p) {
+    var context = {}; context.data = p;
+    var provider = {}; provider.value = context;
+    return React.createElement(SettingsContext.Provider, provider, React.createElement(NativeSettings, p));
+  }
+  function SettingsScroll(p) {
+    var context = React.useContext(SettingsContext), theme = ui.useTheme(), config = state();
+    var native = p.data, children = React.Children.toArray(native.children);
+    // Only the sheet's main settings page has this verified child signature.
+    var main = children.some(function (child) { return child && child.props &&
+      child.props.settings && child.props.containerSections && child.props.onRequestClose; });
+    if (!context || !config || !config.enabled || !main) return React.createElement(RN.ScrollView, native);
+    var style = {}; style.minHeight = 48; style.paddingHorizontal = 16;
+    style.paddingVertical = 12; style.justifyContent = "center";
+    var button = properties(style); button.key = "reload"; button.testID = "reload";
+    button.accessibilityRole = "button"; button.accessibilityLabel = config.reload;
+    button.onPress = function () {
+      var fresh = state(), data = context.data;
+      if (!fresh || !fresh.enabled || !data.visible) return;
+      try { bridge.reload(data.channelID || data.channelLogin); } catch (error) { return; }
+      if (data.onClose) data.onClose();
+    };
+    var text = {}; text.fontSize = 16; text.color = theme.colors.textBase;
+    children.push(React.createElement(RN.Pressable, button, React.createElement(RN.Text, properties(text), config.reload)));
+    var copy = Object.assign({}, native); copy.children = children;
+    return React.createElement(RN.ScrollView, copy);
+  }
   // Assign only verified, writable leaf exports. Public barrels use live
   // getters. Roll back every adapter if any export cannot be installed.
   try {
@@ -775,12 +809,14 @@ function install(original) {
     if (nativeComposer && smartBackspace && aliases && bridge.lookup) composerHooks.useChatComposer = useChatComposer;
     if (NativeLibrary && nativeJSX && nativeJSXS && RN.SectionList && RN.FlatList && bridge.getSnapshot && bridge.remember && React.Children && React.cloneElement) {
       trays.EmotePickerTray = Library; jsxRuntime.jsx = jsx; jsxRuntime.jsxs = jsxs;
+      if (NativeSettings && bridge.reload) settings.ChatSettingsSheet = SettingsSheet;
     }
   } catch (error) {
     inputs.EmoteTextInput = NativeInput; autocomplete.useAutocomplete = nativeAutocomplete;
     suggestions.ChatAutocompleteTray = NativeSuggestions;
     composerHooks.useChatComposer = nativeComposer;
     trays.EmotePickerTray = NativeLibrary; jsxRuntime.jsx = nativeJSX; jsxRuntime.jsxs = nativeJSXS;
+    if (NativeSettings) settings.ChatSettingsSheet = NativeSettings;
     return original;
   }
   return Composer;

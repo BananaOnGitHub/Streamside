@@ -17,7 +17,7 @@ static double test_double(id,const char *);
 void *_NSConcreteStackBlock[32];
 struct Fake {
     const char *cls;uint64_t url[2];unsigned char loaded;
-    id editor,next,identity,target,value,window,parent,marked,image,items[8];
+    id editor,next,identity,target,pending,value,window,parent,marked,image,items[8];
     unsigned char bytes[2048];uint16_t units[8];U length,count,index;
     double seconds,alpha;BOOL hidden,invalidated;int releases;
     void *context;
@@ -43,8 +43,8 @@ void objc_release(id o){if(o)o->releases++;}
 id objc_initWeak(id *p,id o){*p=o;return o;}
 id objc_loadWeakRetained(id *p){return *p;}
 void objc_destroyWeak(id *p){*p=nil;}
-id objc_getAssociatedObject(id o,const void *key){return !o ? nil : key==&identity_key ? o->identity : o->target;}
-void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy){assert(policy==1);if(key==&identity_key)o->identity=value;else {assert(key==&state_key);o->target=value;}}
+id objc_getAssociatedObject(id o,const void *key){return !o ? nil : key==&identity_key ? o->identity : key==&pending_map_key ? o->pending : o->target;}
+void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy){assert(policy==1);if(key==&identity_key)o->identity=value;else if(key==&pending_map_key)o->pending=value;else {assert(key==&state_key);o->target=value;}}
 bool tas_emotes_enabled_this_launch(void){return enabled;}
 id tas_emotes_metadata_copy(uint64_t n){return known && n==900000000000001ULL ? &metadata : nil;}
 double tas_emotes_aspect(uint64_t n){return n==900000000000001ULL ? aspect : 0;}
@@ -57,6 +57,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"isMainThread"))result=(id)(uintptr_t)is_main;
     else if(!strcmp(sel,"isKindOfClass:")){Class c=va_arg(ap,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls) || (!strcmp(o->cls,"TwitchEmoteInputView") && !strcmp(c->cls,"UITextView")));}
     else if(!strcmp(sel,"stringWithUTF8String:"))result=text(va_arg(ap,const char *));
+    else if(!strcmp(sel,"null"))result=fresh("NSNull");
     else if(!strcmp(sel,"UTF8String"))result=o->value;
     else if(!strcmp(sel,"numberWithUnsignedLongLong:")){result=fresh("NSNumber");result->index=va_arg(ap,uint64_t);}
     else if(!strcmp(sel,"unsignedLongLongValue") || !strcmp(sel,"posterImageFrameIndex") || !strcmp(sel,"applicationState"))result=(id)(uintptr_t)o->index;
@@ -183,10 +184,10 @@ static void playback(void) {
 }
 static void installation(void) {
     enabled=NO;tas_rn_composer_ui_retry_hooks();assert(!installed && !bridge_string);
-    enabled=YES;bounds_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(!bounds_original && installed==6);
+    enabled=YES;bounds_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(!bounds_original && installed==7);
     bounds_method.encoding="{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72";
-    tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==7 && clock_class);
-    tas_rn_composer_ui_retry_hooks();assert(installed==7);
+    tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==8 && clock_class);
+    tas_rn_composer_ui_retry_hooks();assert(installed==8);
 }
 static void cold_start(void) {
     tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
@@ -220,9 +221,36 @@ static void cold_start(void) {
     assert(source->length==1 && source->units[0]==0xfffc); /* no edit/retype required */
     owner_dealloc(owner,"dealloc");clock_dealloc(owner->target,"dealloc");
 }
+
+static id map_applied,value_applied;
+static void original_map(id self,SEL command,id map){(void)self;assert(!strcmp(command,"setEmoteMap:"));originals++;map_applied=map;}
+static void original_value(id self,SEL command,id text){(void)self;(void)command;originals++;value_applied=text;}
+static void composition(void) {
+    tas_rn_composer_ui_retry_hooks();map_original=(IMP)original_map;value_original=(IMP)original_value;
+    id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),source=fresh("NSAttributedString");owner->editor=editor;editor->value=source;
+    source->length=4;source->units[0]='W';source->units[1]='i';source->units[2]='d';source->units[3]='e';
+    id prediction=text("Wide"),first=fresh("NSDictionary"),latest=fresh("NSDictionary");
+    editor->marked=fresh("UITextRange");
+    changed(owner,"textViewDidChange:",editor);selection(owner,"textViewDidChangeSelection:",editor);
+    value(owner,"setValue:",prediction);emote_map(owner,"setEmoteMap:",first);emote_map(owner,"setEmoteMap:",latest);
+    assert(!originals && !map_applied && !value_applied && owner->pending==latest && GET(provisional)==5);
+    assert(source->length==4 && source->units[3]=='e'); /* UIKit's provisional text untouched */
+    editor->marked=nil;changed(owner,"textViewDidChange:",editor);
+    assert(originals==2 && map_applied==latest && !owner->pending && !value_applied);
+    /* Cancelling a prediction never replays its discarded full value. */
+    editor->marked=fresh("UITextRange");value(owner,"setValue:",prediction);emote_map(owner,"setEmoteMap:",first);
+    source->length=2;editor->marked=nil;selection(owner,"textViewDidChangeSelection:",editor);
+    assert(originals==4 && source->length==2 && !value_applied && !owner->pending && map_applied==first);
+    value(owner,"setValue:",text("Wide"));assert(originals==5 && value_applied);
+    editor->marked=fresh("UITextRange");emote_map(owner,"setEmoteMap:",nil);editor->marked=nil;changed(owner,"textViewDidChange:",editor);
+    assert(originals==7 && !map_applied && !owner->pending);
+    /* Missing donor editor and disabled emotes retain original behavior. */
+    owner->editor=nil;value(owner,"setValue:",prediction);assert(originals==8);
+    owner->editor=editor;editor->marked=fresh("UITextRange");enabled=NO;changed(owner,"textViewDidChange:",editor);assert(originals==9);
+}
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -248,3 +276,4 @@ class RNComposerUITests(unittest.TestCase):
     def test_independent_clocks_reconciliation_ime_deletion_visibility_and_teardown(self):self.run_mode('playback')
     def test_exact_abi_preference_retry_and_idempotent_hooks(self):self.run_mode('install')
     def test_first_download_starts_original_attachment_without_retyping(self):self.run_mode('cold')
+    def test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft(self):self.run_mode('composition')

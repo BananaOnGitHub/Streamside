@@ -1,0 +1,27 @@
+/* Shared source/compiled exercise of the production RN menu adapters. */
+function settingsCheck(ok,message){if(!ok)throw new Error(message);}
+var closed=0,settingsProps={visible:true,channelID:'42',channelLogin:'fixture',onClose:function(){closed++;}};
+var sheet=render(settings.ChatSettingsSheet,settingsProps);
+settingsCheck(sheet.children[0].type==='native-settings'&&sheet.children[0].props===settingsProps,'native sheet props retained');
+context=sheet.props.value;
+var mainChild={type:'main-settings',props:{settings:{},containerSections:[],onRequestClose:function(){}}};
+var nativeScroll={testID:'chat-settings-scroll',children:[mainChild],keyboardShouldPersistTaps:'always',style:{height:400}};
+var routedSettings=jsx.jsxs(RN.ScrollView,nativeScroll,'settings-key');
+var menu=render(routedSettings.type,routedSettings.props);
+settingsCheck(menu.props!==nativeScroll&&menu.props.children[0]===mainChild&&nativeScroll.children.length===1,'append without mutating native menu');
+settingsCheck(menu.props.style===nativeScroll.style&&menu.props.keyboardShouldPersistTaps==='always'&&routedSettings.props.key==='settings-key','scroll props and key retained');
+var reloadButton=menu.props.children[1];
+settingsCheck(reloadButton.props.accessibilityRole==='button'&&reloadButton.children[0].children[0]==='Reload Emotes','reload label and role');
+reloadButton.props.onPress();settingsCheck(reloaded.length===1&&reloaded[0]==='42'&&closed===1,'explicit channel reload and dismissal');
+config=Object.assign({},config,{enabled:0});reloadButton.props.onPress();settingsCheck(reloaded.length===1,'stale disabled press refused');
+menu=render(routedSettings.type,routedSettings.props);settingsCheck(menu.props===nativeScroll,'disabled menu unchanged');
+config=Object.assign({},config,{enabled:1});
+var subpage=Object.assign({},nativeScroll,{children:[{type:'identity',props:{}}]});
+var subRoute=jsx.jsx(RN.ScrollView,subpage);settingsCheck(render(subRoute.type,subRoute.props).props===subpage,'subpages unchanged');
+context=null;settingsCheck(render(routedSettings.type,routedSettings.props).props===nativeScroll,'unscoped menu unchanged');
+var unrelated={testID:'another-scroll',children:[]};settingsCheck(jsx.jsx(RN.ScrollView,unrelated).props===unrelated,'other scroll views untouched');
+settingsProps=Object.assign({},settingsProps,{channelID:'43',visible:false});sheet=render(settings.ChatSettingsSheet,settingsProps);context=sheet.props.value;
+menu=render(routedSettings.type,routedSettings.props);menu.props.children[1].props.onPress();settingsCheck(reloaded.length===1,'hidden sheet cannot reload');
+settingsProps=Object.assign({},settingsProps,{visible:true});sheet=render(settings.ChatSettingsSheet,settingsProps);context=sheet.props.value;
+menu=render(routedSettings.type,routedSettings.props);menu.props.children[1].props.onPress();settingsCheck(reloaded[1]==='43','new sheet resolves its own channel');
+context=null;

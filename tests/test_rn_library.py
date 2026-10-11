@@ -22,13 +22,23 @@ class RNLibraryTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr)
 
     @unittest.skipUnless(shutil.which('node'), 'Node required for RN mocks')
+    def test_reload_settings_scope_subpages_disabled_and_native_props(self):
+        tree=ast.parse(Path(__file__).read_text())
+        existing=next(n.value.value for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='script' for t in n.targets))
+        prefix=existing.split('vm.createContext(env);')[0]
+        exercise=prefix+"vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);env.install('composer');\n"
+        exercise+=(ROOT/'tests/fixtures/rn_settings_exercise.js').read_text()
+        result=subprocess.run(['node','-e',exercise,str(ROOT/'src/rn/ProviderEmoteStrip.js')],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+
+    @unittest.skipUnless(shutil.which('node'), 'Node required for RN mocks')
     def test_open_snapshot_filters_geometry_navigation_and_fallback(self):
         script = r'''
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 let context=null,slots=new Map(),active=[],cursor=0,effects=[],timers=[];
 const React={createElement:(type,props,...children)=>({type,props:props||{},children}),
  createContext:()=>({Provider:'provider'}),useContext:()=>context,
- cloneElement:(child,p)=>({...child,props:{...child.props,...p}}),Children:{toArray:x=>x||[]},
+ cloneElement:(child,p)=>({...child,props:{...child.props,...p}}),Children:{toArray:x=>(x||[]).slice()},
  useRef:value=>{const i=cursor++;return active[i]||(active[i]={current:value});},
  useState:value=>{const i=cursor++;if(!(i in active))active[i]=typeof value==='function'?value():value;
    const scope=active;return [active[i],x=>scope[i]=typeof x==='function'?x(scope[i]):x];},
@@ -38,13 +48,15 @@ function render(fn,p,key=fn){active=slots.get(key)||[];slots.set(key,active);cur
 const RN={View:'view',Text:'text',Image:'image',Pressable:'button',ScrollView:'scroll',SectionList:'grid',FlatList:'flat'};
 const theme={colors:{backgroundBase:'black',backgroundAlt:'#222',backgroundAlt2:'#555',textBase:'white',textAlt:'#ccc',textLink:'purple'}};
 const a={id:101,name:'First',url:'a.gif',aspect:1,provider:0},b={id:102,name:'Wide',url:'b.gif',aspect:3,provider:1},c={id:103,name:'FF',url:'c.gif',aspect:1,provider:2};
-let saved=[a],channel=[a,b,c],global=[b],config={enabled:1,mode:0,revision:1},reads=0,insertions=[],nativeJumps=0,viewEvents=[];
-const bridge={getState:()=>config,search:()=>[],getSnapshot:room=>{reads++;if(room!=='42')return null;return {sections:[channel,global],recents:saved.slice(),title:'Third-party emotes',label:'Recent third-party emotes',labels:['All','7TV','BTTV','FFZ','Channel','Global'],icon:'✦',message:'No emotes in this section'};},
+let saved=[a],channel=[a,b,c],global=[b],config={enabled:1,mode:0,revision:1,reload:"Reload Emotes"},reads=0,insertions=[],nativeJumps=0,viewEvents=[];
+var reloaded=[];
+const bridge={reload:room=>reloaded.push(room),getState:()=>config,search:()=>[],getSnapshot:room=>{reads++;if(room!=='42')return null;return {sections:[channel,global],recents:saved.slice(),title:'Third-party emotes',label:'Recent third-party emotes',labels:['All','7TV','BTTV','FFZ','Channel','Global'],icon:'✦',message:'No emotes in this section'};},
  remember:(room,name,id)=>{if(room!=='42'||!config.enabled)return null;const value=channel.concat(global).find(x=>x.name===name);if(!value||value.id!==id)return null;saved=[value,...saved.filter(x=>x.name!==name)].slice(0,40);return value;},getMetadata:()=>null};
 const nativeJSX=(type,props,key)=>({type,props,key});const jsx={jsx:nativeJSX,jsxs:nativeJSX};
+const settings={ChatSettingsSheet:'native-settings'};
 const trays={EmotePickerTray:'native-library'},buttons={IconButton:'native-button'},inputs={EmoteTextInput:'native-input'},suggestions={ChatAutocompleteTray:'native-suggestions'};
 const autocomplete={useAutocomplete:()=>({}),caretFromEdit:()=>0,EMOTE_URL_TEMPLATE:'animated',EMOTE_URL_TEMPLATE_STATIC:'static'};
-const env={__r:id=>({72:React,5:RN,2118:{useTheme:()=>theme},245:jsx,16:{default:{buildLocalEcho:bridge}},4174:trays,3759:inputs,4619:autocomplete,4713:suggestions})[id],setInterval:fn=>{timers.push(fn);return fn;},clearInterval:fn=>timers=timers.filter(x=>x!==fn),WeakMap};
+const env={__r:id=>({72:React,5:RN,2118:{useTheme:()=>theme},245:jsx,4884:settings,16:{default:{buildLocalEcho:bridge}},4174:trays,3759:inputs,4619:autocomplete,4713:suggestions})[id],setInterval:fn=>{timers.push(fn);return fn;},clearInterval:fn=>timers=timers.filter(x=>x!==fn),WeakMap};
 vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);env.install('composer');
 const p={channelID:'42',emotePickerSID:'open1',sections:[{id:'channel'}],onSelectEmote:(...x)=>insertions.push(x)};
 let session;

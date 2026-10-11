@@ -61,6 +61,15 @@ for(const [i,offset,length] of [[0,84,28],[1,112,52],[2,164,0],[3,164,88],[4,252
 const row=()=>g.props.renderItem({section:g.props.sections[1],item:g.props.sections[1].data[0]});
 const cells=()=>row().props.data.flatMap(item=>row().props.renderItem({item}).children[0]);
 let tiles=cells();assert.equal(tiles.length,3);assert(tiles[1].children[0].props.style.width>tiles[1].children[0].props.style.height);
+for(const tile of tiles.concat(g.props.ListHeaderComponent.children[1].children[0])) {
+ const image=tile.children[0],label=tile.children[1];
+ assert.equal(label.type,'text');assert.equal(label.children[0],tile.props.accessibilityLabel);
+ assert.equal(label.props.numberOfLines,1);assert.equal(label.props.ellipsizeMode,'tail');assert.equal(label.props.allowFontScaling,false);
+ assert.equal(label.props.style.fontSize,11);assert.equal(label.props.style.color,theme.colors.textAlt);
+ assert.equal(label.props.style.textAlign,'center');assert.equal(label.props.style.maxWidth,tile.props.style.width-4);
+ assert.equal(image.props.style.height,32);assert.equal(image.props.resizeMode,'contain');
+ assert(image.props.style.height+label.props.style.marginTop+label.props.style.height<=tile.props.style.height);
+}
 assert.equal(row().type,'flat');assert.equal(row().props.horizontal,true);assert.equal(row().props.style.height,260);
 assert.equal(row().props.keyboardShouldPersistTaps,'always');assert.equal(row().props.windowSize,3);
 let header=g.props.renderSectionHeader({section:g.props.sections[1]});
@@ -100,6 +109,12 @@ assert.equal(g.props.sections[1].data.length,1);assert.equal(row().props.data.le
 assert(row().props.data.every(x=>x.emotes.length<=5));assert.equal(row().props.renderItem({item:row().props.data[0]}).children[0].length,5);
 assert.equal(row().props.getItemLayout(null,200).offset,12000);
 assert.equal(g.props.getItemLayout(null,4).length,260); // Catalog size never grows the outer vertical section.
+// Long/Unicode names are only ellipsized by Text; identity and insertion remain exact.
+const named={...b,name:'広いEmote_'+'x'.repeat(80),url:'named.gif',aspect:12};
+channel=[named];config={...config,revision:4};timers.slice().forEach(fn=>fn());library();g=grid();
+const namedTile=cells()[0];assert.equal(namedTile.children[1].children[0],named.name);
+assert.equal(namedTile.children[0].props.style.width,namedTile.props.style.width-8);
+namedTile.props.onPress();assert.deepEqual(Array.from(insertions.at(-1)),[named.name,'']);
 p.channelID='unknown';out=library();assert.equal(out.type,'native-library');
 '''
         ran = subprocess.run(['node', '-e', script, str(ROOT / 'src/rn/ProviderEmoteStrip.js')], capture_output=True, text=True)

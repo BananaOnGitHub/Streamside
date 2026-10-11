@@ -1,5 +1,20 @@
 # Version history and reconstruction notes
 
+## Twitch 31.5 third-party library labels — build 88
+
+The RN library now shows each third-party emote's name below its thumbnail,
+including its provider Recent row. Labels use the suggestions picker's
+11-point secondary text styling and a single-line, trailing ellipsis. Full
+names remain available to accessibility and are inserted unchanged. A fixed
+32-point thumbnail band keeps labels aligned across emote aspect ratios.
+
+The existing 52-point tiles, five-row/260-point library, horizontal column
+metrics, virtualization settings, image identities and transport scheduler are
+unchanged. The legacy library already displays names and is left unchanged.
+Host library regressions and the compiled Hermes fixture cover label content,
+geometry and styling; the host test also covers long/Unicode names and exact
+insertion. These fixtures do not claim on-device visual confirmation.
+
 ## Twitch 31.5 diagnostic closure — build 87
 
 `compat/twitch-31.5` advances from build 72 to build 87 by fast-forward. Builds

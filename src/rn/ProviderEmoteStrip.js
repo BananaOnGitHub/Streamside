@@ -390,10 +390,17 @@ function install(original) {
     var style = {}; style.width = width; style.height = 52; style.alignItems = "center"; style.justifyContent = "center";
     var bp = properties(style); bp.key = item.id; bp.accessibilityRole = "button"; bp.accessibilityLabel = item.name;
     bp.onPress = function () { context.onSelectEmote(item); }; bp.onLongPress = function () { context.info(item); };
-    var image = {}; image.height = Math.min(40, (width - 8) / Math.max(0.1, item.aspect));
-    image.width = Math.min(width - 8, 40 * Math.max(0.1, item.aspect));
+    // Match the suggestion strip's 32-point thumbnails and secondary labels.
+    // Reserve the same label band for every aspect ratio without changing the
+    // 52-point row stride or the five-row virtualized library's geometry.
+    var image = {}; image.height = 32;
+    image.width = Math.min(width - 8, 32 * Math.max(0.1, item.aspect));
     var ip = properties(image), source = {}; source.uri = item.url; ip.source = source; ip.resizeMode = "contain";
-    return React.createElement(RN.Pressable, bp, imageElement(ip, scope || 1, context.trace));
+    var label = {}; label.fontSize = 11; label.lineHeight = 14; label.height = 14;
+    label.color = context.theme.colors.textAlt; label.marginTop = 2;
+    label.maxWidth = width - 4; label.textAlign = "center";
+    var text = properties(label); text.numberOfLines = 1; text.ellipsizeMode = "tail"; text.allowFontScaling = false;
+    return React.createElement(RN.Pressable, bp, imageElement(ip, scope || 1, context.trace), React.createElement(RN.Text, text, item.name));
   }
   // Diagnostic-only adapter. Bounded owned-instance observers read the exact
   // donor's VirtualizedList state and real metric queries. Calculation results,

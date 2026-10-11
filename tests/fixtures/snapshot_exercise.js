@@ -28,6 +28,11 @@ function columns(sid){
  return render(row.type,row.props,sid+'-columns');
 }
 var flat=columns('pipeline');check(flat.props.data.length===168,'real catalog to five-row column geometry');
+var tile=flat.props.renderItem({item:flat.props.data[0]}).children[0][0];
+check(tile.children[1].type==='text'&&tile.children[1].children[0]===a.name,'compiled library name label');
+check(tile.children[1].props.numberOfLines===1&&tile.children[1].props.ellipsizeMode==='tail','compiled single-line truncation');
+check(tile.children[1].props.style.color===theme.colors.textAlt,'compiled theme-aware label');
+check(tile.children[0].props.data.style.height===32&&tile.props.style.height===52&&flat.props.style.height===260,'compiled fixed label/image geometry');
 var previous={first:0,last:6},result={first:0,last:167},originalCalls=0,frameCalls=0,thrown=new Error('PRIVATE-SENTINEL');
 var frame={length:flat.props.getItemLayout(null,1).length,offset:flat.props.getItemLayout(null,1).offset};
 var queried=true,shouldThrow=false;

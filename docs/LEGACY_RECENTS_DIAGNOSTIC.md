@@ -1,7 +1,7 @@
 # Legacy picker: initially blank native recents
 
-> Completed on `archive/rn-image-demand` and incorporated into active
-> `compat/twitch-31.5` build 87. The user confirmed build 86 fixes native Recent
+> Completed on `archive/diagnostic/rn-image-demand` and incorporated into compatibility
+> build 87, now included on `main`. The user confirmed build 86 fixes native Recent
 > at first opening and build 87 fixes footer tint and delayed icon insertion
 > while dragging. The initial unresolved diagnosis below is historical; the
 > corrections and regression evidence follow it.

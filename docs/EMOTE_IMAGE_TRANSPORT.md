@@ -1,8 +1,8 @@
 # Shared provider image transport — builds 71–72
 
-> The builds 71–72 sections are historical. Active `compat/twitch-31.5` is
-> build 87 and includes the cache-first and overflow corrections below. The
-> image-demand investigation is closed and preserved at `archive/rn-image-demand`;
+> The builds 71–72 sections are historical. `main` includes the build-87
+> cache-first and overflow corrections below. The
+> image-demand investigation is closed and preserved at `archive/diagnostic/rn-image-demand`;
 > see [the branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md).
 
 The device report describes slow emote images in chat, composer previews and

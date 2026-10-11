@@ -1,7 +1,7 @@
 # Phase 2: bounded cache-first provider transport
 
-> Completed investigation, preserved at `archive/rn-image-demand` and included
-> in active `compat/twitch-31.5` build 87. The Apple Foundation and host gates
+> Completed investigation, preserved at `archive/diagnostic/rn-image-demand` and included
+> in compatibility build 87, now on `main`. The Apple Foundation and host gates
 > passed; build-82 E→F recorded 197 direct hits and 18 additional local-cache
 > tasks, with no new network fetches or receipt stamps. The user reported very
 > fast loading. Earlier device-pending statements below are historical.

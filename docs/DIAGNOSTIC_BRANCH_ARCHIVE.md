@@ -1,14 +1,20 @@
 # Diagnostic branch closure — Twitch 31.5, build 87
 
-Release-preparation update: the completed compatibility implementation through
-build 92 is now consolidated on `main`. The closure notes below describe the
-earlier build-87 branch cleanup; all listed archive histories remain preserved.
+Current status: `main` contains the completed implementation through build 92
+for 3.0.0 release preparation. The former compatibility branch is preserved at
+[`archive/compat/twitch-31.5`](https://github.com/BananaOnGitHub/Streamside/tree/archive/compat/twitch-31.5),
+with its final head `30b9a1445cb2ec04613547713787e809ae1be2cc` unchanged.
+The four diagnostic archives are grouped under `archive/diagnostic/`; their
+heads and histories are unchanged by the renames. The closure notes below
+record the earlier build-87 cleanup.
 
-The diagnostic investigations are closed at the user's request. Active work
-continues on `compat/twitch-31.5`. It fast-forwards from build 72 to the complete
+## Historical build-87 closure
+
+The diagnostic investigations were closed at the user's request. Work then
+continued on `compat/twitch-31.5`. It fast-forwarded from build 72 to the complete
 build-87 implementation and this documentation-only closure. No merge commit,
 source rewrite, artificial build bump or release publication is needed.
-`main` and the pre-existing archive branches are unchanged.
+At that time, `main` and the pre-existing archive branches were unchanged.
 
 The archive branches retain the original histories plus documentation-only
 closure commits. Their report/bundle versions remain 46, 47, 65 and 87
@@ -17,10 +23,10 @@ exist and compat contains all of the image-demand implementation work.
 
 | Former diagnostic branch | Preserved branch | Last implementation/probe head | Disposition |
 | --- | --- | --- | --- |
-| `diagnostic/build46-image-result` | [`archive/build46-image-result`](https://github.com/BananaOnGitHub/Streamside/tree/archive/build46-image-result) | `b074e6f0c6e17771a64783deb70eb8baebe38c27` / build 46 | Separate legacy image-construction forensic history; not merged into compat. |
-| `diagnostic/build47-request-decision` | [`archive/build47-request-decision`](https://github.com/BananaOnGitHub/Streamside/tree/archive/build47-request-decision) | `1f58c73fd36a28e72e71994e184eb495d8a05c67` / build 47 | Extends build 46 with guarded native request/cache-decision observations; not merged into compat. |
-| `diagnostic/rn-chat-boundary` | [`archive/rn-chat-boundary`](https://github.com/BananaOnGitHub/Streamside/tree/archive/rn-chat-boundary) | `82c3251ffc895ecb3d4f769b61ac13d322895afc` / build 65 | Passive RN ingress, representation, presentation and info-sheet investigation; independent probes retained only here. |
-| `diagnostic/rn-image-demand` | [`archive/rn-image-demand`](https://github.com/BananaOnGitHub/Streamside/tree/archive/rn-image-demand) | `7f48f67ea9ee3273f6c312587fafac6e077b10ec` / build 87 | All implementation and regression work incorporated by compat fast-forward. |
+| `diagnostic/build46-image-result` | [`archive/diagnostic/build46-image-result`](https://github.com/BananaOnGitHub/Streamside/tree/archive/diagnostic/build46-image-result) | `b074e6f0c6e17771a64783deb70eb8baebe38c27` / build 46 | Separate legacy image-construction forensic history; not merged into compat. |
+| `diagnostic/build47-request-decision` | [`archive/diagnostic/build47-request-decision`](https://github.com/BananaOnGitHub/Streamside/tree/archive/diagnostic/build47-request-decision) | `1f58c73fd36a28e72e71994e184eb495d8a05c67` / build 47 | Extends build 46 with guarded native request/cache-decision observations; not merged into compat. |
+| `diagnostic/rn-chat-boundary` | [`archive/diagnostic/rn-chat-boundary`](https://github.com/BananaOnGitHub/Streamside/tree/archive/diagnostic/rn-chat-boundary) | `82c3251ffc895ecb3d4f769b61ac13d322895afc` / build 65 | Passive RN ingress, representation, presentation and info-sheet investigation; independent probes retained only here. |
+| `diagnostic/rn-image-demand` | [`archive/diagnostic/rn-image-demand`](https://github.com/BananaOnGitHub/Streamside/tree/archive/diagnostic/rn-image-demand) | `7f48f67ea9ee3273f6c312587fafac6e077b10ec` / build 87 | All implementation and regression work incorporated by compat fast-forward. |
 
 ## Build 46 image-result investigation
 
@@ -38,8 +44,8 @@ The subsequent build-47 record reports repeated assignment of the same observed
 static UIImage; a later WebP response was not linked to that older object.
 This establishes observed reuse, not a proven cache hit or a completed animation
 fix. Direct Swift cache paths and unobserved/expired constructors remain gaps.
-See the archived [branch closure](https://github.com/BananaOnGitHub/Streamside/blob/archive/build46-image-result/docs/BRANCH_ARCHIVE.md)
-and [original diagnostic notes](https://github.com/BananaOnGitHub/Streamside/blob/archive/build46-image-result/docs/EMOTE_DIAGNOSTIC.md).
+See the archived [branch closure](https://github.com/BananaOnGitHub/Streamside/blob/archive/diagnostic/build46-image-result/docs/BRANCH_ARCHIVE.md)
+and [original diagnostic notes](https://github.com/BananaOnGitHub/Streamside/blob/archive/diagnostic/build46-image-result/docs/EMOTE_DIAGNOSTIC.md).
 
 ## Build 47 request-decision investigation
 
@@ -54,8 +60,8 @@ Swift enum decoding, cache replacement or playback mutation was introduced.
 
 The archive preserves this investigation and its coverage limits. It does not
 claim that the instrumentation itself resolved the frozen-animation symptom.
-See the archived [branch closure](https://github.com/BananaOnGitHub/Streamside/blob/archive/build47-request-decision/docs/BRANCH_ARCHIVE.md)
-and [request/cache notes](https://github.com/BananaOnGitHub/Streamside/blob/archive/build47-request-decision/docs/EMOTE_DIAGNOSTIC.md#build-47-request-and-cache-decisions).
+See the archived [branch closure](https://github.com/BananaOnGitHub/Streamside/blob/archive/diagnostic/build47-request-decision/docs/BRANCH_ARCHIVE.md)
+and [request/cache notes](https://github.com/BananaOnGitHub/Streamside/blob/archive/diagnostic/build47-request-decision/docs/EMOTE_DIAGNOSTIC.md#build-47-request-and-cache-decisions).
 
 ## RN chat-boundary investigation — builds 51–54 and 65
 
@@ -84,7 +90,7 @@ and native-seam analysis, build-65 info traces, bounded/privacy-preserving probe
 and host/donor validation records. Historical limitations remain explicit,
 including the toolchain blocker on the standalone native-seam investigation
 and the absence of a live per-emote mount/image identity join. See its
-[branch closure and evidence links](https://github.com/BananaOnGitHub/Streamside/blob/archive/rn-chat-boundary/docs/BRANCH_ARCHIVE.md).
+[branch closure and evidence links](https://github.com/BananaOnGitHub/Streamside/blob/archive/diagnostic/rn-chat-boundary/docs/BRANCH_ARCHIVE.md).
 
 ## RN image-demand (builds 73-87)
 

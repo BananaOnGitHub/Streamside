@@ -1,8 +1,8 @@
 # Temporary missing-emote diagnostics (builds 39–45)
 
 > Historical forensic baseline. The later independent image-result and
-> request-decision probes are preserved at `archive/build46-image-result` and
-> `archive/build47-request-decision`; their extra instrumentation was not
+> request-decision probes are preserved at `archive/diagnostic/build46-image-result` and
+> `archive/diagnostic/build47-request-decision`; their extra instrumentation was not
 > incorporated into compat. See [each branch's purpose and outcome](DIAGNOSTIC_BRANCH_ARCHIVE.md).
 
 Build with `EMOTE_DIAGNOSTIC=1 ZIG=/path/to/zig make verify test` and use the

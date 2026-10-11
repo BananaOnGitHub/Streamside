@@ -1,6 +1,6 @@
 # RN library demand — phase 1B investigation
 
-> Archived build-74 investigation on `archive/rn-image-demand`. Phase 1B's
+> Archived build-74 investigation on `archive/diagnostic/rn-image-demand`. Phase 1B's
 > cause and smallest correction were established later: inconsistent fractional
 > column endpoints expanded the original RN window toward the catalog end.
 > Build 78 is device-confirmed and retains the regression baseline. The older

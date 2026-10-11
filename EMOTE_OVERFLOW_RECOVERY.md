@@ -1,7 +1,7 @@
 # Build 83: isolated overflow recovery
 
-> Included in active `compat/twitch-31.5` build 87; the investigation is preserved
-> at `archive/rn-image-demand`. Production host and real Apple Foundation
+> Included in compatibility build 87, now on `main`; the investigation is preserved
+> at `archive/diagnostic/rn-image-demand`. Production host and real Apple Foundation
 > recovery gates passed. The user accepted the overflow change; the later
 > supplied low-pressure device report did not exercise saturation. The freeze
 > and evidence limits below remain current. See [branch closure](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).

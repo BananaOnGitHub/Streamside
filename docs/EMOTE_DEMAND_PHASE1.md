@@ -1,6 +1,6 @@
 # Provider image demand — phase 1
 
-> Archived investigation: `archive/rn-image-demand`, completed through build 87
+> Archived investigation: `archive/diagnostic/rn-image-demand`, completed through build 87
 > and fast-forwarded into `compat/twitch-31.5`. The baseline and procedures below
 > describe build 73. Subsequent work fixed fractional-column demand and added
 > cache-first delivery and bounded overflow recovery. See the

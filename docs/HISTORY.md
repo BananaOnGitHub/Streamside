@@ -1,5 +1,13 @@
 # Version history and reconstruction notes
 
+## Compatibility and diagnostic archive naming
+
+The completed build-92 compatibility branch is renamed to
+`archive/compat/twitch-31.5`. The four diagnostic archives move under
+`archive/diagnostic/` with their existing names, heads and histories preserved.
+Main documentation links follow the new names; `main` remains the active
+3.0.0 release-preparation branch. This changes no runtime source or build number.
+
 ## 3.0.0 main consolidation — build 92 retained
 
 The user confirms build 92's touch highlight works and authorizes moving the

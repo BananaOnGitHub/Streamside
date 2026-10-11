@@ -90,5 +90,5 @@ The report adds `RN provider info patch` and aggregate lookup/resolved/missing/
 actions/refused counts. No emote code, sender/channel identity, URLs, chat text,
 headers or image bodies are logged. Build 66 returns to the compat branch;
 build 65 and the extra passive boundary probes are now preserved on
-`archive/rn-chat-boundary`; see the [diagnostic branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md).
+`archive/diagnostic/rn-chat-boundary`; see the [diagnostic branch closure](DIAGNOSTIC_BRANCH_ARCHIVE.md).
 No main update, release, tag or workflow dispatch is involved.

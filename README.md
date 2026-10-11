@@ -14,12 +14,14 @@ The completed Twitch 31.5 work is consolidated on `main` for release preparation
 
 - Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
 - Prepared source: **3.0.0** (compatibility bundle build `3.0.0.92`)
-- Release preparation: `main` contains the completed `compat/twitch-31.5`
-  history through build 92, including the RN implementation and legacy fixes.
+- Release preparation: `main` contains the completed compatibility
+  history through build 92, preserved at
+  [`archive/compat/twitch-31.5`](https://github.com/BananaOnGitHub/Streamside/tree/archive/compat/twitch-31.5)
+  and including the RN implementation and legacy fixes.
   The RN library labels, unconfirmed keyboard guard, Reload Emotes row and
   themed pressed highlight are device-confirmed.
   Diagnostic branches are preserved under
-  `archive/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
+  `archive/diagnostic/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
 - Upstream strategy: **VAFT solution 24**
 - Target app: **Twitch 31.5, arm64**, with the active React Native chat.
   - Builds 51–54 established the receive and presentation boundaries on the

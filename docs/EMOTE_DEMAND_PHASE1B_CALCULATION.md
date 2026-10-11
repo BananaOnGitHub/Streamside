@@ -1,8 +1,8 @@
 # Build 75: targeted RN startup calculation trace
 
-> Archived calculation investigation on `archive/rn-image-demand`; its build-78
-> correction and regression baseline are included in active `compat/twitch-31.5`
-> build 87. The stationary range stabilized at 0..11 with 60 live library JS
+> Archived calculation investigation on `archive/diagnostic/rn-image-demand`; its build-78
+> correction and regression baseline are included in compatibility
+> build 87, now on `main`. The stationary range stabilized at 0..11 with 60 live library JS
 > instances; scrolling reached a 26-column mask and 130-instance peak in the
 > observed device reports. Later cache-first and overflow work is summarized in
 > [the transport notes](EMOTE_IMAGE_TRANSPORT.md#builds-79-83-cache-first-delivery-and-overflow-recovery).

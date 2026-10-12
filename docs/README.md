@@ -21,6 +21,7 @@ Start at the level that answers your question. Each guide links to the deeper im
 
 - [Building](BUILDING.md): ordinary builds, donor tooling, and diagnostic variants.
 - [Contributing](../CONTRIBUTING.md): workflow and issue-reporting requirements.
+- [Documentation maintenance](development/DOCUMENTATION.md): ownership, update timing, historical preservation, and mechanical validation.
 - [Testing](development/TESTING.md): host, Foundation, Hermes, packaging, and device checks.
 - [Twitch internals](development/TWITCH_INTERNALS.md): runtime/ABI admission and donor-porting methodology.
 - [Packaging](development/PACKAGING.md): binary fingerprints, IPA/DEB contracts, and developer bundles.

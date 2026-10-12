@@ -46,6 +46,12 @@ Compatibility and validation claims must have supporting evidence. Distinguish h
 
 Use exact version and build identities when the distinction matters. Do not infer a Twitch package's supported iOS floor from Streamside's framework metadata, or extend one tested configuration to other devices, signers, or jailbreak installations without evidence.
 
+## Mechanical validation
+
+Run `make docs-check` when changing documentation, moving linked files, or updating current version metadata. The separate Documentation CI check validates local links, anchors, assets, and the relationship between current release/build labels. It includes archived Markdown records and does not generate or rewrite documentation. [Testing](TESTING.md#documentation-integrity) defines its rules and exclusions.
+
+Passing this check does not establish implementation accuracy, compatibility, device acceptance, feature readiness, or changelog completeness. Public documentation is still reconciled with completed work at feature freeze.
+
 ## Review at feature freeze
 
 Compare affected documents with the final source, tests, candidate artifacts, and supported Twitch versions. Check that:

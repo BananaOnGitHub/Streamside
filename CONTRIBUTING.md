@@ -19,7 +19,7 @@ Crop screenshots and redact private chat. Do not include tokens, signing certifi
 3. Read current callers/state owners, not only a historical trial.
 4. Add a regression for the actual production helper/adapter boundary.
 5. Run the relevant gates and record pass/fail/skip status accurately.
-6. Update the authoritative guide and public changelog when the user-facing behavior changes.
+6. Record development findings during active work; reconcile affected guides and the changelog with completed work at feature freeze. Correct inaccurate security or compatibility information immediately. See [Documentation maintenance](docs/development/DOCUMENTATION.md).
 
 Archived branches preserve research; they are not active implementation branches. `archive/compat/twitch-31.5` records the completed compatibility line, and `archive/diagnostic/` contains independent probe histories.
 
@@ -54,6 +54,8 @@ Preserve Twitch's native message/draft/catalog authority. Unknown layouts should
 ## Diagnostics and documentation
 
 Keep probes bounded, scoped, privacy-safe, and compiled out of ordinary builds. Record what they observe and what remains unknown. Avoid using a render attempt, cache object, or load callback as proof of physical display.
+
+Run `make docs-check` for documentation edits, linked-file moves, and current version metadata changes. The separate Documentation CI gate checks local references and metadata, including archived Markdown, without generating or rewriting docs. [Testing](docs/development/TESTING.md#documentation-integrity) defines its scope.
 
 The README owns installation. Architecture owns subsystem relationships. Feature guides own algorithms/lifecycle. History/archive own failed trials and superseding corrections. Do not copy the same implementation explanation into every layer.
 

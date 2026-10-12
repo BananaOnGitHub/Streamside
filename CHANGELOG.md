@@ -2,7 +2,7 @@
 
 Meaningful changes by public release. Development trials, failed approaches, and build-by-build evidence are in [History](docs/HISTORY.md).
 
-## 3.0.0 - Unreleased
+## 3.0.0
 
 ### Added
 
@@ -26,6 +26,8 @@ Meaningful changes by public release. Development trials, failed approaches, and
 - Made binary fingerprints, Mach-O layout checks, and packaged-byte verification mandatory throughout package preparation.
 
 Third-party emotes remain opt-in. Jailbreak packages and broader compatibility retain the validation limits documented in [Compatibility](docs/COMPATIBILITY.md).
+
+Published the Twitch 31.5 IPA and separate `3.0.0-jb` rootful/rootless prerelease packages. The IPA promotes the tested release candidate without changing its bytes; internal bundle version remains 3.0.0.92.
 
 ## 2.3.0
 

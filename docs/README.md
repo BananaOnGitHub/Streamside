@@ -30,4 +30,4 @@ Start at the level that answers your question. Each guide links to the deeper im
 - [History](HISTORY.md): release/build chronology, failures, corrections, and validation.
 - [Research archive](archive/README.md): an indexed record of investigations and experiments.
 
-The current-system guides describe the implementation at `7754dd9`, prepared version 3.0.0 / internal bundle 3.0.0.92. Archive records retain their original build scope; a historical “pending” statement does not describe the current feature.
+The current-system guides describe the implementation at `7754dd9`, released version 3.0.0 / internal bundle 3.0.0.92. Archive records retain their original build scope; a historical “pending” statement does not describe the current feature.

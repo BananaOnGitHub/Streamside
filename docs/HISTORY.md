@@ -223,6 +223,16 @@ The preserved compatibility head is `30b9a1445cb2ec04613547713787e809ae1be2cc` a
 
 Public version remains 3.0.0; internal bundle remains 3.0.0.92. Consolidation and documentation do not publish a release.
 
+## 3.0.0 publication
+
+The [3.0.0 IPA](https://github.com/BananaOnGitHub/Streamside/releases/tag/3.0.0) and separate [3.0.0-jb prerelease](https://github.com/BananaOnGitHub/Streamside/releases/tag/3.0.0-jb) use source commit [747766b](https://github.com/BananaOnGitHub/Streamside/commit/747766b33da7067b2e3df3e3d7935e6ccc8585d9). Public version remains 3.0.0, internal bundle remains 3.0.0.92, and diagnostic probes are disabled.
+
+The IPA promotes the on-device-tested RC.1 artifact without a rebuild or byte change. Only its public filename changed to `Twitch_31.5_Streamside_3.0.0.ipa`. Its SHA-256 is `fb8dada2a79520f83b5f4302253b1e1a6d1c7afea581acf88ef68a12ffe6e436`.
+
+The candidate passed native/package verification, 120 host tests with three local skips, the separately required Hermes gate with 7,344 window calculations and 32 accepted snapshots, and macOS/Linux CI. Rootful/rootless DEBs retain their candidate bytes; their package checks do not establish on-jailbreak runtime success.
+
+The acceptance does not establish a complete iOS/device/signer matrix or an ad-bearing Twitch 31.5 playback result. Those limits remain explicit in [Compatibility](COMPATIBILITY.md).
+
 ## Remaining provenance limits
 
 Early numbered 3.0.0 builds 2–16 are not individually established by the inspected report/bundle labels. Build-80 investigation numbering differs from its committed label. Original and replacement 2.2.1 assets are distinct. Build-45 reconstructed source and build-73 byte-identical reproduction remain separate claims.

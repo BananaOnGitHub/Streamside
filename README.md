@@ -21,14 +21,14 @@ Find your favorite emotes, preview them while you type, and see animated and wid
 - **Emote details** — Open a preview, see creator credit when available, copy an emote's name or link, and visit its provider page.
 - **Built into Twitch** — Use Twitch's familiar chat and keyboard. Refresh the emote list from Chat Settings when you need to.
 
-**3.0.0 is being prepared for release.** These features describe the upcoming version for Twitch 31.5. The latest published IPA is 2.3.0 for Twitch 30.4.2; it does not include the new React Native composer and library. Check the release notes before downloading.
+**Streamside 3.0.0 is available for Twitch 31.5.** Download the [latest IPA release](https://github.com/BananaOnGitHub/Streamside/releases/tag/3.0.0), or choose the separate [jailbreak packages](https://github.com/BananaOnGitHub/Streamside/releases/tag/3.0.0-jb). Older 2.3.0 releases target Twitch 30.4.2.
 
 ## Compatibility
 
 | Distribution | Twitch target | Installation | Status |
 | --- | --- | --- | --- |
-| Published 2.3.0 IPA | 30.4.2, arm64 | Sign the released IPA | Published; see its release notes and compatibility details |
-| Upcoming 3.0.0 | 31.5, arm64 | Sideloaded patched IPA | In preparation; not yet published |
+| Published 3.0.0 IPA | 31.5, arm64 | Sign the released IPA | Promoted from the device-tested candidate |
+| Older 2.3.0 IPA | 30.4.2, arm64 | Sign the released IPA | See its release notes and compatibility details |
 | Separate `-jb` prereleases | Version listed in the release | Rootful or rootless DEB | Build/package checks; not confirmed on a jailbroken device |
 
 Twitch 31.5 requires iOS 16.4 or later. Streamside supports both of its chat interfaces: React Native and legacy UIKit. Device and signing compatibility also matter; meeting the minimum iOS version is only part of the picture. Earlier ESign and LiveContainer/ZSign results apply to the 30.4.2 builds they were tested with.
@@ -44,10 +44,10 @@ Start with a [compatible release](https://github.com/BananaOnGitHub/Streamside/r
 1. Open [Releases](https://github.com/BananaOnGitHub/Streamside/releases) and choose the standard IPA release matching the Twitch version you intend to use.
 2. Download the attached IPA. GitHub's automatically generated source archives are not installable apps.
 3. Sign and install it with your sideloading tool. Released IPAs are unsigned; certificate, provisioning, and container requirements belong to the chosen installation tool.
-4. Open **Twitch Streamside** for the prepared 3.0.0 build. Older releases may use the previous **Twitch VAFT** display name.
+4. Open **Twitch Streamside**. Older releases may use the previous **Twitch VAFT** display name.
 5. Open **Profile → Settings → Streamside**. Enable third-party emotes, then fully quit and reopen Twitch. Emotes are off by default.
 
-To build the upcoming 3.0.0 version yourself, follow [Building](docs/BUILDING.md). You'll need a compatible decrypted Twitch IPA for a source build; installing a published release does not require one.
+To build Streamside yourself, follow [Building](docs/BUILDING.md). You'll need a compatible decrypted Twitch IPA for a source build; installing a published release does not require one.
 
 ### Install a jailbreak package
 

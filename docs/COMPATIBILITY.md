@@ -4,13 +4,13 @@ Compatibility is a combination of app binary, runtime ABI, installation method, 
 
 ## Current target
 
-| Item | Prepared 3.0.0 target |
+| Item | Released 3.0.0 target |
 | --- | --- |
 | Twitch app | 31.5 |
 | Twitch build | 262752111271985979 |
 | Architecture | arm64 |
 | Inspected donor iOS minimum | 16.4 |
-| Streamside public version | 3.0.0, unreleased |
+| Streamside public version | 3.0.0 |
 | Framework internal bundle | 3.0.0.92 |
 | Framework metadata minimum | 15.0; not the effective Twitch 31.5 minimum |
 | RN source | Hermes 98, 27,786,480-byte original body |
@@ -51,7 +51,9 @@ Detailed evidence and corrections live in [History](HISTORY.md) and the [archive
 
 The public 2.2.0/2.3.0 descriptions name Twitch 30.4.2, iPhone 16 Pro, iOS 18.2, and earlier ESign/LiveContainer/ZSign testing. Preserve those as historical configurations rather than extending them to every 3.0.0 device/signer combination.
 
-The prepared source builds a verified framework for unsigned IPA patching and standalone rootful/rootless DEBs. Those are supported packaging routes. A complete 3.0.0 iOS/device/signer matrix has not yet been established.
+The 3.0.0 IPA promotes the tested RC.1 artifact unchanged after on-device acceptance. The exact iOS/device/signer configuration was not recorded with that acceptance, so it does not establish a complete 3.0.0 compatibility matrix or extend the historical signer results above.
+
+The source builds a verified framework for unsigned IPA patching and standalone rootful/rootless DEBs. Those are supported packaging routes.
 
 Jailbreak releases are separate `-jb` prereleases. Their package build/layout tests do not establish on-jailbreak runtime success. Earlier jailbreak release warnings remain applicable.
 
@@ -59,7 +61,7 @@ Jailbreak releases are separate `-jb` prereleases. Their package build/layout te
 
 VAFT uses Foundation/AVFoundation boundaries, so its compatibility is not identical to the RN emote donor gate. Twitch can change token operations, manifests, markers, or player routing independently.
 
-Clean playback and zero ad-marked counters in a 31.5 session do not prove preroll/midroll suppression. Before a release claim, record an actual ad-bearing case, the attempted strategy, and the visible result. Existing emote confirmation cannot substitute for playback evidence.
+Clean playback and zero ad-marked counters in a 31.5 session do not prove preroll/midroll suppression. An ad-blocking acceptance claim requires an actual ad-bearing case, the attempted strategy, and the visible result. General on-device acceptance and existing emote confirmation do not establish that specific playback evidence.
 
 ## Unsupported donors and fallback
 

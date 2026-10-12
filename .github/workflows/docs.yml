@@ -1,0 +1,25 @@
+name: Documentation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Documentation check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test documentation validator
+        run: python3 -m unittest discover -s tests -p test_docs.py -v
+      - name: Validate documentation and current version metadata
+        run: python3 tools/check_docs.py --github-actions

@@ -6,6 +6,7 @@ Tests are organized around production boundaries. Record what ran, what failed, 
 
 | Gate | Command | Requirement and evidence |
 | --- | --- | --- |
+| Documentation integrity | `make docs-check` | Offline Markdown links/anchors/assets and current version metadata; includes the archive |
 | Native artifact contract | `make verify` | Build both arm64 identities and check fingerprints/layout/signatures |
 | Host suite | `make test` | Production helpers/adapters, Python tooling, JS fixtures; platform/private-input checks can skip |
 | DEB packaging | `make deb` | Rootful/rootless data archives match verified build bytes |
@@ -15,6 +16,36 @@ Tests are organized around production boundaries. Record what ran, what failed, 
 | Device acceptance | Focused manual matrix | Actual rendering, interaction, keyboard, playback, and lifecycle on the target configuration |
 
 CI's Linux job runs `make verify test deb`; macOS runs the Foundation gate. The workflow uploads artifacts and verifies version tags but does not publish releases. Private-donor Hermes validation and iOS device checks are separate.
+
+## Documentation integrity
+
+The separate **Documentation** workflow runs on pull requests, pushes to `main`, and manual dispatch. Its **Documentation check** job uses Ubuntu and Python 3.12's standard library, with `contents: read`. It runs the validator's focused tests and then the complete documentation corpus. Failures identify the originating file, line, and reason through Actions annotations.
+
+Run it locally from a Git checkout:
+
+```sh
+make docs-check
+python3 -m unittest discover -s tests -p test_docs.py -v
+```
+
+[check_docs.py](../../tools/check_docs.py) checks every tracked Markdown file, plus untracked Markdown files not excluded by Git ignore rules. Generated, ignored build output is outside the corpus; there is no archive exemption or link allowlist. Tracked files remain checked even if an ignore rule matches them.
+
+The check validates:
+
+- Inline links/images, full/collapsed/shortcut reference links, and HTML `href`/`src` references, including linked images.
+- Relative and repository-root paths to documents, images, assets, source files, tests, scripts, and directories. Percent-encoded paths are decoded once; query strings do not change the target. Missing targets, checkout escapes, invalid escapes, and malformed explicit link destinations fail.
+- Same-document and cross-document Markdown fragments, with percent decoding, ATX/Setext headings, visible heading text, GitHub-style punctuation/case/spacing rules, and duplicate-heading suffixes. Explicit HTML `id`/`a name` anchors and GitHub's `user-content-` prefix are also recognized.
+- `VERSION` as `X.Y.Z`, the framework plist's `CFBundleShortVersionString` as that public identity, `CFBundleVersion` as `X.Y.Z.build`, and `TAS_REPORT_VERSION` as `X.Y.Z-build.build` with the same positive internal build number.
+
+Absolute URI schemes (including HTTP(S), `mailto`, `tel`, and `data`) and protocol-relative URLs are excluded from target checking; the validator makes no network requests. Source/asset fragments are renderer-specific and only their file existence is checked. Fenced/indented code, inline code, HTML comments, footnotes, arbitrary identifiers, and historical filenames in prose are not repository references. An undefined standalone `[label]` is Markdown text, while an explicit undefined `[label][reference]` is reported.
+
+Historical source that no longer exists can be linked through an immutable commit URL, with its revision and scope stated in the record. That is an external historical reference, not an exemption from checking other links in the same file. No obsolete source tree is required solely to preserve an investigation.
+
+Version checks are limited to those three current metadata locations. They do not scan version numbers in prose, changelog/history/archive records, Twitch donors, unrelated plists, or generated artifacts. DEB metadata derives from `VERSION`; artifact verification remains in the build/package gates. The existing Build workflow retains responsibility for release-tag validation.
+
+The reader supports the Markdown forms used in this repository; it is not a full CommonMark renderer. Multiline reference definitions, complex HTML layout, and headings nested inside lists need additional fixture coverage before being adopted. External URLs and non-Markdown fragments still need human review.
+
+This gate validates structure and declared current metadata. It does not require unfinished features to appear in public guides, assess implementation accuracy or readiness, prove compatibility or device testing, or judge changelog completeness. Those remain the feature-freeze review responsibilities in [Documentation maintenance](DOCUMENTATION.md).
 
 ## Feature-to-test map
 
@@ -33,6 +64,7 @@ CI's Linux job runs `make verify test deb`; macOS runs the Foundation gate. The 
 | HTTP cache/receipts/overflow | `test_cache_protocol.py`, `test_http_cache.py`, `test_cache_annotation.py`, `test_cache_receipt.py`, `test_image_overflow.py` |
 | Foundation integration | `test_foundation_cache.py`, native Foundation fixtures |
 | Demand/runtime probes | `test_image_demand.py`, `test_rn_calculation_boundary.py`, `test_rn_snapshot_runtime.py`, `test_legacy_palette_probe.py` |
+| Documentation validator | `test_docs.py` |
 | Artifact tooling | `test_tools.py`, `test_artifact_guard.py` |
 
 Files are under [tests](../../tests). Sanitizer-backed native harnesses compile actual production sections/helpers with controlled ABI adapters. Read a test's setup before claiming it exercises a real iOS class.

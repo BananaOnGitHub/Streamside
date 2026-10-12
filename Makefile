@@ -1,9 +1,12 @@
-.PHONY: all build test test-rn-virtualization test-foundation-cache verify clean deb release ipa
+.PHONY: all build test test-rn-virtualization test-foundation-cache verify clean deb release ipa docs-check
 
 all: build
 
 build:
 	./build.sh
+
+docs-check:
+	python3 tools/check_docs.py
 
 test:
 	python3 -m unittest discover -s tests -v

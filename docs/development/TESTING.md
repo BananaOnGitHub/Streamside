@@ -43,6 +43,8 @@ Historical source that no longer exists can be linked through an immutable commi
 
 Version checks are limited to those three current metadata locations. They do not scan version numbers in prose, changelog/history/archive records, Twitch donors, unrelated plists, or generated artifacts. DEB metadata derives from `VERSION`; artifact verification remains in the build/package gates. The existing Build workflow retains responsibility for release-tag validation.
 
+Heading slugs are a maintained approximation of GitHub's rendered anchors, not a claim of complete rendering parity. Unusual inline constructs and new heading forms need fixtures checked against their rendered GitHub anchors before relying on them.
+
 The reader supports the Markdown forms used in this repository; it is not a full CommonMark renderer. Multiline reference definitions, complex HTML layout, and headings nested inside lists need additional fixture coverage before being adopted. External URLs and non-Markdown fragments still need human review.
 
 This gate validates structure and declared current metadata. It does not require unfinished features to appear in public guides, assess implementation accuracy or readiness, prove compatibility or device testing, or judge changelog completeness. Those remain the feature-freeze review responsibilities in [Documentation maintenance](DOCUMENTATION.md).

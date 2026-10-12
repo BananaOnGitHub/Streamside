@@ -1,366 +1,99 @@
+<p align="center">
+  <img src="docs/assets/streamsidelogo.png" alt="Streamside logo" width="160">
+</p>
+
 # Streamside
 
-A native iOS port of the **VAFT** strategy from
-[pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions).
-It supports both sideloaded decrypted copies of Twitch and jailbroken devices.
+**More emotes and VAFT-based ad blocking for Twitch on iOS.**
 
-The sideload and jailbreak builds come from the same checked-in source.
-Version **3.0.0** is in preparation. The installed sideload app is named
-**Twitch Streamside**. This update adds a third-party emote composer and keyboard
-library while retaining the enforced 16 KiB Mach-O build-to-package contract.
-The completed Twitch 31.5 work is consolidated on `main` for release preparation.
+Streamside brings 7TV, BetterTTV, and FrankerFaceZ into the Twitch app you already use, with VAFT-based ad blocking and a few extra comforts for chatting.
 
-## Status
+Find your favorite emotes, preview them while you type, and see animated and wide emotes in chat. Everything fits into Twitch's own chat and emote keyboard, so you can keep watching and chatting where you're used to.
 
-- Published sideload IPA: **2.3.0**; jailbreak packages: **2.3.0**
-- Prepared source: **3.0.0** (compatibility bundle build `3.0.0.92`)
-- Release preparation: `main` contains the completed compatibility
-  history through build 92, preserved at
-  [`archive/compat/twitch-31.5`](https://github.com/BananaOnGitHub/Streamside/tree/archive/compat/twitch-31.5)
-  and including the RN implementation and legacy fixes.
-  The RN library labels, unconfirmed keyboard guard, Reload Emotes row and
-  themed pressed highlight are device-confirmed.
-  Diagnostic branches are preserved under
-  `archive/diagnostic/`; see [their purposes, outcomes and original heads](docs/DIAGNOSTIC_BRANCH_ARCHIVE.md).
-- Upstream strategy: **VAFT solution 24**
-- Target app: **Twitch 31.5, arm64**, with the active React Native chat.
-  - Builds 51–54 established the receive and presentation boundaries on the
-    separate diagnostic branch. Build 55 is the first incoming-only synthetic-ID
-    rendering experiment. Device reports B/C confirm observed correct static and
-    animated images, with animation continuing after scrolling. Build 56's
-    proportional incoming width is device-confirmed for the user's tested cases.
-    Build 59 reached local-preview export discovery but hid sent messages before
-    any native preview call. Build 60 corrects its outgoing call-frame overlap
-    and adds exception fallback to original emission. The user confirms sent
-    messages and emotes now render correctly. Build 61 adds channel-scoped
-    provider preview maps to the active native text input. Its device trial
-    produces a placeholder without an image. Build 62 covers the native input's
-    URL-based completion transport, which bypassed the request redirects;
-    images are device-confirmed but appear square and static. Build 63 adds
-    provider-only native attachment widths and independent GIF preview clocks.
-    Width is device-confirmed; GIFs play after deleting and retyping, but miss
-    first-download startup. Build 64 tracks pending inputs before decoder
-    creation so the existing download completion can start the original
-    attachment. The user confirms that correction works. Diagnostic build 65
-    confirms provider taps reach the RN emote sheet but never its query-backed
-    content. Build 66 adds a provider RN card within the existing bottom sheet,
-    preserving Twitch's card for native IDs. The user confirms the popup works
-    and looks correct; see [the trial notes](docs/RN_PROVIDER_INFO_TRIAL.md).
-    Build 67 adds a compact provider-only RN suggestion strip above the
-    composer, using the existing Automatic / colon / Off setting. Twitch's
-    manual picker is unchanged. The user confirms the horizontal strip works.
-    Build 68 adds Twitch/subscriber entries to the compact strip. Stock inline
-    emote suggestions are suppressed while the feature and picker are enabled;
-    Off or disabling the feature restores them. The emote button continues to
-    open Twitch's library; its provider section is a later milestone.
-    Build 69's RN library was confirmed on device. Build 70 refines its controls,
-    fixes provider browsing at five rows with virtualized horizontal columns,
-    and adds provider recognition to Twitch's library backspace helper. The
-    user confirms the library layout works, but reports slow image loading in
-    chat, the input and the library. Build 71 addresses their shared provider
-    transport with a dedicated HTTP cache, bounded in-flight request coalescing,
-    and concurrent completions. Aggregate transport timings help distinguish
-    download latency from decoding. The build 71 device report shows substantial
-    cancellation churn and many slow transport completions. Build 72 retains
-    bounded active transfers through view recycling, drops abandoned queued
-    requests, and reserves transport capacity for redirected chat/input images.
-    Queue wait, response-size and error-category counters separate remaining
-    transport bottlenecks. Builds 73–78 traced excessive startup demand to
-    fractional column interval endpoints; build 78's geometry correction is
-    device-confirmed. Builds 79–82 add cache-first delivery and verified network
-    receipts for eligible Date-less cache entries. Build 83 adds bounded overflow
-    recovery. Later device reports confirm fast reuse, without establishing a
-    reason to change scheduler throughput. The performance architecture is
-    frozen unless device behavior demonstrates a remaining bottleneck.
-    Builds 84–87 address the legacy picker used on vertical-enabled streams:
-    native Recent startup is fixed in build 86, and footer tint/insertion during
-    dragging is fixed in build 87. Both fixes are user-confirmed.
-    See [the transport notes](docs/EMOTE_IMAGE_TRANSPORT.md). The
-    RN third-party library includes:
-    a frozen-on-open recent scroller, provider and Channel/Global controls,
-    and a footer section shortcut. See [the library port notes](docs/RN_LIBRARY_PORT.md).
-  - Build 50's adapter targets legacy chat present in the donor binary. The user
-    observed that streams offering horizontal and vertical formats use that
-    legacy interface; traditional horizontal streams use RN. Legacy support
-    remains in the active source. The historical build-50 baseline is preserved in
-    `archive/twitch-31.5-build50-legacy-chat`.
-- Previously tested installation paths: ESign and LiveContainer/ZSign
+## Features
 
-Other Twitch versions may work, but Twitch can change its GraphQL, HLS, or
-Amazon IVS behavior without notice.
+- **Ad blocking** — VAFT-based filtering for Twitch streams, with support for the main player, Picture in Picture, and channel previews.
+- **7TV, BTTV, and FFZ** — See third-party emotes in chat and in ordinary messages you send.
+- **Animated and wide emotes** — Keep their animation and proper proportions.
+- **Emote suggestions** — Find Twitch and third-party emotes together as you type, with Automatic, Colon, and Off modes.
+- **An expanded emote picker** — Browse by provider, switch between channel and global emotes, and revisit recently used ones. Names appear below each thumbnail.
+- **Composer previews** — See emotes before sending, including supported animated GIFs. Backspace removes a whole emote at once.
+- **Emote details** — Open a preview, see creator credit when available, copy an emote's name or link, and visit its provider page.
+- **Built into Twitch** — Use Twitch's familiar chat and keyboard. Refresh the emote list from Chat Settings when you need to.
 
-## What it does
+**3.0.0 is being prepared for release.** These features describe the upcoming version for Twitch 31.5. The latest published IPA is 2.3.0 for Twitch 30.4.2; it does not include the new React Native composer and library. Check the release notes before downloading.
 
-- Intercepts Twitch playback-token and HLS requests without private Twitch
-  symbols.
-- Tries VAFT's `embed`, `popout`, and `autoplay` player types when an ad-bearing
-  playlist is detected.
-- Matches alternate renditions by resolution and frame rate.
-- Falls back to suppressing stitched ad segments when clean alternates are not
-  available.
-- Maintains isolated state for simultaneous streams, including Twitch mobile's
-  PiP player and muted profile previews.
-- Adds a Streamside settings page with opt-in, sanitized diagnostics.
+## Compatibility
 
-### Third-party emotes
+| Distribution | Twitch target | Installation | Status |
+| --- | --- | --- | --- |
+| Published 2.3.0 IPA | 30.4.2, arm64 | Sign the released IPA | Published; see its release notes and compatibility details |
+| Upcoming 3.0.0 | 31.5, arm64 | Sideloaded patched IPA | In preparation; not yet published |
+| Separate `-jb` prereleases | Version listed in the release | Rootful or rootless DEB | Build/package checks; not confirmed on a jailbroken device |
 
-The shared source now includes optional 7TV, BTTV, and FFZ global and channel
-emotes for chat messages. Open **Profile → Settings → Streamside** to
-enable them, then relaunch Twitch. They are off by default. Turning them off
-and relaunching skips the emote hooks and provider requests altogether.
+Twitch 31.5 requires iOS 16.4 or later. Streamside supports both of its chat interfaces: React Native and legacy UIKit. Device and signing compatibility also matter; meeting the minimum iOS version is only part of the picture. Earlier ESign and LiveContainer/ZSign results apply to the 30.4.2 builds they were tested with.
 
-**Clear Emote Cache** is on the Streamside page. It discards this module's
-in-memory emote definitions and image-ID mappings; the next incoming chat
-message refetches the current channel. It does not clear Twitch's unrelated
-image cache. **Reload Emotes** appears in the stream's Chat
-Settings sheet and refresh global and current channel definitions.
+See [Compatibility](docs/COMPATIBILITY.md) for the complete evidence and limitations.
 
-The module retains at most six recently active channel registries, up to 4,000
-names each, and 2,500 global names. Inactive rooms expire after 20 minutes.
-Provider JSON responses are accepted up to 8 MiB, including large 7TV sets.
-Evicted image IDs have a bounded 45-minute grace period to allow existing chat
-cells to redraw. It maintains no separate image files. The composer keeps a bounded, in-memory
-thumbnail cache (96 entries, 16 MiB cost limit), with at most eight concurrent
-image requests. It does not clear Twitch’s own image cache.
+## Installation
 
-The confirmed RN IRC delegate reuses the matcher to append synthetic IDs to
-incoming `emotes=` metadata. The image redirect resolves synthetic Twitch CDN
-requests to provider assets. Build 55 device observations confirmed rendering
-and continued animation after scrolling. Build 56 adds an exact-bundle-gated,
-in-memory EmotePart style patch: the image and inline wrapper get the same
-proportional width before Fabric measures them. The donor bundle on disk and
-native emote styles stay unchanged. Build 59 adds provider-only ranges to
-LibraryTmiClient's completed own-message display line, preserving its native
-range objects, body and identity. Builds 57/58 recorded zero local callbacks;
-their TmiClient preview seam belongs to a separate client. Build 59 uses the
-LibraryTmiClient own event and the existing NativeModules loader. Local device
-rendering is device-confirmed after build 60's call-frame correction. It reuses
-the image/width route. Builds 66–70 complete provider tap details, unified
-suggestions and the RN library. Build 63
-adds animation only to native text-box provider attachments. See the
-[incoming rendering trial](docs/RN_INCOMING_SYNTHETIC_TRIAL.md) and
-[width experiment and device test](docs/RN_INCOMING_WIDTH_TRIAL.md) and
-[local sent-message trial](docs/RN_LOCAL_ECHO_TRIAL.md).
-The [native text-box trial](docs/RN_COMPOSER_PREVIEW_TRIAL.md) covers build 63's
-proportional sizing and bounded GIF playback; non-GIF images retain native
-decoding and still-image fallback.
-The [build-50 report](docs/TWITCH_31_5_PRESENTATION_TRIAL.md) describes legacy chat
-only; its TextKit/layer sizing does not establish RN/Fabric proportional widths.
-Historical validation of the
-Reload Emotes row, provider tap details, proportional image widths and sent
-emotes is recorded separately. The detail sheet has a preview,
-provider/scope, available creator credit, Copy name, Copy image URL, and Open in
-browser. Diagnostics record delivery, sizing, image-layer, and tap activity
-without retaining chat text or image URLs.
+Start with a [compatible release](https://github.com/BananaOnGitHub/Streamside/releases), then choose the installation method below.
 
-The sideload build uses `Streamside.framework/Streamside` with the required
-`@rpath/Streamside.framework/Streamside` dependency. Its binary is this project's
-native C dylib; initialization does not depend on a donor runtime. Jailbreak
-packages use `Streamside.dylib`; the existing package ID is retained for upgrades.
+### Sideload a release
 
-### Composer and picker (3.0.0 candidate)
+1. Open [Releases](https://github.com/BananaOnGitHub/Streamside/releases) and choose the standard IPA release matching the Twitch version you intend to use.
+2. Download the attached IPA. GitHub's automatically generated source archives are not installable apps.
+3. Sign and install it with your sideloading tool. Released IPAs are unsigned; certificate, provisioning, and container requirements belong to the chosen installation tool.
+4. Open **Twitch Streamside** for the prepared 3.0.0 build. Older releases may use the previous **Twitch VAFT** display name.
+5. Open **Profile → Settings → Streamside**. Enable third-party emotes, then fully quit and reopen Twitch. Emotes are off by default.
 
-- A compact horizontal suggestion strip appears above the chat box. Choose
-  **Automatic**, **Colon (:name)**, or **Off** in Streamside settings. Automatic
-  completion starts after two characters; colon completion opens on `:`.
-- Tap a suggestion to replace the current prefix with the emote name and a space.
-  Recognized third-party names become proportional image previews in the editor;
-  Twitch receives the original names when editing or sending. Native Twitch
-  attachments remain intact. Composer previews use a still image; GIF thumbnails
-  animate when Twitch's `FLAnimatedImageView` is available.
-- Open Twitch's smiley keyboard to browse the **Third-party emotes** section
-  and its footer shortcut. Its provider selector has **All / 7TV / BTTV / FFZ**,
-  followed by **Channel / Global**, with five rows of horizontal browsing and
-  names below the thumbnails. The legacy picker remains available on streams
-  using Twitch's horizontal/vertical interface.
-- The native **Recent** tab includes a provider-emote row above Twitch's own
-  entries. Up to 40 recent names persist locally and are resolved against the
-  current channel; unavailable names are omitted. Twitch's native history is
-  preserved.
-- The integration resolves the channel from the input view, not the last
-  background-chat frame. It checks native method encodings and the inspected
-  identity layout; unsupported bridges report missing hooks in diagnostics.
-- Unconfirmed iOS keyboard predictions wait for committed text before emote
-  conversion. The RN Chat Settings sheet includes **Reload Emotes** directly
-  below its title, with Twitch's themed touch highlight.
+To build the upcoming 3.0.0 version yourself, follow [Building](docs/BUILDING.md). You'll need a compatible decrypted Twitch IPA for a source build; installing a published release does not require one.
 
-The logo is pending. The current icon and `Assets.car` are preserved. The future
-logo must support UIKit's dynamic appearance/background and tint behavior; that
-requirement is for the logo.
+### Install a jailbreak package
 
-## Diagnostics
+Use the separate `-jb` release and choose the package matching your jailbreak:
 
-Open **Profile → Settings (cog) → Streamside**. The diagnostics page provides:
+- `iphoneos-arm`: traditional rootful layout.
+- `iphoneos-arm64`: rootless layout under `/var/jb`.
 
-- A persistent logging toggle.
-- A live session summary and sanitized event log.
-- One-tap report copying.
-- Log clearing.
+Install the DEB with your package manager and restart Twitch. Injection is limited to the `tv.twitch` app. The package conflicts with level3tjg's TwitchAdBlock because both modify the playback stack.
 
-Diagnostics distinguish intercepted and missed HLS requests, master and variant
-playlists, unmapped variants, known ad markers, access-token failures, VAFT
-candidate results, clean swaps, and segment suppression. Channel names and
-URLs are replaced by temporary process-local labels in the log. Route history
-records active and retired matches, generations, and ages for unmapped variants.
-The report also lists emote hook installation, WebSocket frame stages, provider
-fetch outcomes, image response categories, and chat-menu presentation counts. These
-aggregate counters appear even when event logging is off. They do not contain
-chat text or room IDs.
-Logging starts off; URL paths, request headers, access tokens, and manifest
-contents are not written to the diagnostic log. On first load, this version
-deletes the older path-bearing `diagnostics.log`. The new log is capped at
-512 KiB and rotates automatically. Labels reset after Twitch restarts, or
-sooner if the bounded label table fills.
+Jailbreak packages have passed build and packaging checks, but have not been tested on a jailbroken device. Do not install both playback tweaks together.
 
-For a playback regression, enable logging, reproduce the failure, then copy the
-diagnostic report from the same page.
+### Update or remove
 
-## Install from a release
+For a sideloaded app, use the same installation tool to install a compatible newer IPA. Check that tool's backup and update guidance first: deleting the app can remove its settings and recent emotes. If an update changes Twitch versions, check [Compatibility](docs/COMPATIBILITY.md) again.
 
-Published standard releases contain the IPA only; sign it with your sideloading
-tool. Version 3.0.0 has not been published. To prepare the current source locally,
-build the framework as described below and patch a decrypted IPA.
+For a jailbreak installation, upgrade or uninstall `dev.tas.twitchadblock` through the package manager, then restart Twitch. The package identifier is retained even though the project is now called Streamside.
 
-Requirements:
+## Using emotes
 
-- A decrypted Twitch IPA
-- Python 3.10 or newer
-- A sideloading/signing tool
+In **Automatic** mode, start typing an emote name to see suggestions. In **Colon** mode, begin with `:`. Tap a suggestion to insert the emote. Choose **Off** if you prefer browsing the picker; emotes still work in chat and the library.
 
-After `make verify`, run:
+Open Twitch's emote keyboard and choose **Third-party emotes** to browse the library. Use the provider tabs and **Channel / Global** switch to narrow it down, then scroll sideways through the five-row grid. Recently used emotes stay in place while the menu is open and update when you reopen it.
 
-```bash
-python3 tools/patch_ipa.py Twitch.ipa \
-  --framework build/Streamside.framework \
-  --output Twitch-Streamside.ipa
-```
+Missing a newly added emote? Try **Reload Emotes** in the stream's Chat Settings. **Clear Emote Cache** on the Streamside settings page resets Streamside's saved definitions and image mappings; it does not clear all downloaded images.
 
-The resulting IPA is unsigned. Sign `Twitch-Streamside.ipa` with your normal
-sideloading tool before installing it.
+iOS keyboard predictions stay as text until you accept them. If an emote keeps showing as its name, its catalog may still be loading, or the installed Twitch version may be incompatible. [Troubleshooting](docs/TROUBLESHOOTING.md) has a few things to check.
 
-The patcher:
+## Troubleshooting and support
 
-- Refuses encrypted executables.
-- Refuses a missing build fingerprint or a framework changed since validation.
-- Validates 16 KiB segment ranges, exact loader/signing identity, signature
-  placement and space, linkedit bounds, and every CodeDirectory page hash.
-- Removes old donor dylib/framework load commands and embedded components.
-- Adds exactly one required `@rpath/Streamside.framework/Streamside` command
-  using existing Mach-O header padding (never a weak load).
-- Reads back the finished IPA and compares its framework byte-for-byte with
-  the verified build, then atomically installs the output filename.
-- Preserves unrelated entries and verifies the SHA-256 of `Assets.car`.
+Something not working? Start with [Troubleshooting](docs/TROUBLESHOOTING.md). If you need to [report an issue](https://github.com/BananaOnGitHub/Streamside/issues), include your Twitch and iOS versions, installation method, and steps to reproduce it.
 
-`build/Streamside.framework.macho.json` is the required build fingerprint.
-Keep it alongside the framework when moving it to another machine; packaging
-never regenerates a missing fingerprint or silently normalizes its input.
-For a separate unsigned final-package check:
+For playback issues, say whether it was a preroll, midroll, Picture in Picture, or channel preview. Enable diagnostic logging under **Profile → Settings → Streamside**, reproduce the problem, and copy the report from that session.
 
-```bash
-python3 tools/verify_ipa.py Twitch-Streamside.ipa --framework build/Streamside.framework
-```
+For emote issues, mention where they happen: chat, the message box, suggestions, or the library. A screenshot helps; crop unrelated chat and private information.
 
-## Install on a jailbroken device
+[Troubleshooting](docs/TROUBLESHOOTING.md) · [Report an issue](https://github.com/BananaOnGitHub/Streamside/issues) · [Contributing](CONTRIBUTING.md)
 
-Separate `-jb` prereleases include two standalone packages:
+Never post account tokens, signing certificates, provisioning profiles, or raw authenticated requests. [Security guidance](SECURITY.md) explains what to leave out.
 
-- `iphoneos-arm` for traditional rootful jailbreaks.
-- `iphoneos-arm64` for rootless jailbreaks using the `/var/jb` layout.
+## Learn more
 
-Install the package matching the jailbreak, then restart Twitch. The filter is
-scoped to the `tv.twitch` bundle and does not patch the app executable. It can
-therefore be used with the newest Twitch version supported by the device's iOS
-version. The package conflicts with level3tjg's TwitchAdBlock because both
-projects intercept the same playback stack.
-
-## Build from source
-
-Install [Zig 0.14.0](https://ziglang.org/download/0.14.0/) and run:
-
-```bash
-make verify
-make test
-```
-
-To use a Zig binary outside `PATH`:
-
-```bash
-ZIG=/path/to/zig make verify test
-```
-
-RN provider-library changes and Twitch bundle ports must also pass the
-[build 78 virtualization regression baseline](docs/EMOTE_DEMAND_PHASE1B_CALCULATION.md#build-78-device-confirmation-and-regression-baseline).
-Ordinary `make test` checks fractional column endpoints, five-row mapping and
-stable logical identities on opening/rerender/reopening without a donor bundle.
-The compiled check executes the production Hermes graft and Twitch's actual
-window algorithm; it cannot skip missing runtime inputs:
-
-```bash
-TAS_RN_DONOR=/path/original.hbc ZIG=/path/zig TAS_HERMESC=/path/hermesc TAS_HERMES_SNAPSHOT_RUNNER=/path/hermes-build/bin/streamside-snapshot-runner TAS_HERMES_SOURCE=/path/hermes make test-rn-virtualization
-```
-
-Use the matching Hermes runtime and parser setup documented with that baseline.
-A future Twitch port must explicitly review the pinned donor fingerprint,
-factory/function bindings and feature-flag adapters, then rerun this check.
-Passing the host tests does not replace device checks of actual mounting and
-image display. Diagnostic packaging requires a current passing compiled record.
-
-The build produces both identities:
-
-- `build/Streamside.dylib` for rootful/rootless jailbreak packages.
-- `build/Streamside.framework` for sideload IPA patching.
-- Adjacent `.macho.json` fingerprints required by the packagers.
-
-`make deb` prepares jailbreak packages locally and checks their data archive
-bytes. `make ipa INPUT_IPA=/path/to/Twitch.ipa OUTPUT_IPA=/path/to/output.ipa`
-builds, tests, and prepares an unsigned IPA. Neither command publishes anything.
-`make release` is a local developer-bundle command, not GitHub publication.
-ZIPs and checksum files are internal build artifacts, not release attachments.
-Standard public releases are IPA-only; `-jb` prereleases are DEB-only and retain
-the existing exact jailbreak warning. Publication requires separate approval.
-
-## Troubleshooting
-
-### The signer says it cannot sign the dylib
-
-Use the verified `Streamside.framework` build for sideloaded IPAs. Its Mach-O
-layout is normalized to the 16 KiB segment boundaries required by the tested
-iOS signing paths. The jailbreak dylib retains a 64 KiB replacement-signature
-reservation. The framework wrapper is retained; switching to a bare sideload
-dylib is a separate, untested migration.
-
-### Packaging refuses a hash or layout mismatch
-
-Do not bypass the check or regenerate the fingerprint over a replacement
-binary. Rebuild from the intended source with `make verify`, and package those
-exact outputs. Matching source labels or filenames do not establish binary
-equivalence. Tests recreate the segment-size regression and corrupt finished
-archives to ensure these paths fail closed.
-
-### The app launches logged out but crashes after login
-
-Verify that the input IPA contains the complete `Assets.car`. Twitch force-loads
-signed-in navigation assets; a truncated asset catalog can survive the login
-screen and then crash during scene creation. The included patcher refuses an IPA
-with no asset catalog and verifies its CRC after repackaging.
-
-### PiP and profile previews interfere with one another
-
-Upgrade to 2.0.3 or newer. Older native builds used one global VAFT context and
-could substitute one player's clean playlist into another player.
-
-Playback reports should include the Twitch and iOS versions, installation
-method, failure type, and the copied diagnostic report. Remove anything you do
-not want to share before posting it.
-
-See [Architecture](docs/ARCHITECTURE.md), [Version history](docs/HISTORY.md),
-[Contributing](CONTRIBUTING.md), and [Upstream provenance](UPSTREAM.md) for more
-detail.
+[Release changes](CHANGELOG.md) · [Documentation index](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Emote deep dives](docs/features/third-party-emotes/README.md) · [Project history](docs/HISTORY.md)
 
 ## License and attribution
 
-The native port is Apache-2.0 licensed.
+Streamside's native implementation is [Apache-2.0 licensed](LICENSE). VAFT and the emote references are credited in [Third-party notices](docs/THIRD_PARTY_NOTICES.md).
 
-This project is not affiliated with Twitch Interactive, Inc., Amazon.com, Inc.,
-pixeltris, level3tjg, or the Tweach project. Twitch is a trademark of its
-respective owner.
+Streamside is not affiliated with Twitch or Amazon. Twitch is a trademark of its respective owner.

@@ -1,207 +1,232 @@
-# Version history and reconstruction notes
+# History
 
-## Compatibility and diagnostic archive naming
+This history follows release and build order. Commit/report links provide provenance; dates are left to those records. Public release changes are summarized separately in [Changelog](../CHANGELOG.md).
 
-The completed build-92 compatibility branch is renamed to
-`archive/compat/twitch-31.5`. The four diagnostic archives move under
-`archive/diagnostic/` with their existing names, heads and histories preserved.
-Main documentation links follow the new names; `main` remains the active
-3.0.0 release-preparation branch. This changes no runtime source or build number.
+“Host checks” means automated behavior under controlled adapters. “Donor checks” means structural analysis of the inspected binary/bundle. “Device confirmation” means the visible result actually recorded for that configuration. Missing evidence stays missing.
 
-## 3.0.0 main consolidation — build 92 retained
+## Early releases and source recovery
 
-The user confirms build 92's touch highlight works and authorizes moving the
-completed work to main for 3.0.0 release preparation. Main is a direct ancestor
-of compat/twitch-31.5, so the complete 51-commit compatibility history moves
-across without conflicts or a runtime source change. The diagnostic archives
-remain preserved; their independent forensic probes are historical work, not
-additional release implementations. Release documentation now describes the
-completed RN and legacy behavior. VERSION remains 3.0.0 and the tested internal
-bundle version remains 3.0.0.92. No release tag or publication is part of this
-consolidation.
+The repository history was reconstructed from surviving source archives and injected binaries. Some commits record recovered states rather than original development commits.
 
-## Twitch 31.5 RN Reload Emotes pressed highlight — build 92
+| Version/state | Change and evidence | Source reference |
+| --- | --- | --- |
+| 1.0.0 | Native video-swap-new 1.55 / solution 23. The original source archive survives. | [e504a6a](https://github.com/BananaOnGitHub/Streamside/commit/e504a6a) |
+| 1.0.0 signing correction | Added ad-hoc signing/header padding to the downloadable binary without changing the ad-blocking source. | [47f7928](https://github.com/BananaOnGitHub/Streamside/commit/47f7928) |
+| 1.0.1 | Expanded replaceable signature space to 64 KiB. The recovered reservation step reproduces the surviving IPA dylib byte-for-byte. | [7b433d3](https://github.com/BananaOnGitHub/Streamside/commit/7b433d3) |
+| 2.0.0 | Transitioned to VAFT solution 24. The original source archive was lost; behavior was reconstructed from the later exact source state, symbols, and arm64 delta. Formatting/comments are not claimed original. | [61efb62](https://github.com/BananaOnGitHub/Streamside/commit/61efb62) |
+| 2.0.1 | Added direct playback-token task normalization while preserving unrelated authenticated startup requests. Its native binary is identical to the surviving 2.0.2 binary. | [1f22a0a](https://github.com/BananaOnGitHub/Streamside/commit/1f22a0a) |
+| 2.0.2 | Packaging-only complete Assets.car restoration fixed signed-in scene creation; native source/binary remained the 2.0.1 state. | [96b6713](https://github.com/BananaOnGitHub/Streamside/commit/96b6713) |
+| 2.0.3 | Replaced global playback state with per-channel contexts and exact rendition ownership, fixing PiP/profile-preview substitution. Complete source archive survives. | [ac71ae1](https://github.com/BananaOnGitHub/Streamside/commit/ac71ae1) |
+| 2.1.0 | Standalone clean dylib identity, rootful/rootless packaging, reproducible tooling, Apache-2.0, and CI. Published as a jailbreak prerelease, not a standard IPA release. | [8f13c1f](https://github.com/BananaOnGitHub/Streamside/commit/8f13c1f) |
+| 2.2.0 | Native settings/diagnostics and signer-compatible framework geometry. Retained historical donor path for IPA and clean identity for jailbreak. | [8c8b543](https://github.com/BananaOnGitHub/Streamside/commit/8c8b543) |
 
-The user confirms build 91's row works. Build 92 adds the same Pressable style
-callback used by Twitch's menu row (donor functions 22113/37952): the active
-background is theme.colors.backgroundElevation1, returning to transparent on
-release or cancellation. React Native owns the pressed state, including holds
-and scroll cancellation. The row's placement, geometry and reload action remain
-unchanged; existing source/compiled fixtures also exercise both style states.
+Surviving dylib evidence:
 
-## Twitch 31.5 RN Reload Emotes main-page admission — build 91
-
-Build 90 still omitted the row on the user's Chat Settings sheet. Its main-page
-guard required a truthy containerSections value, but this optional prop may be
-undefined or null. The donor always creates the prop on the main page; build 91
-checks its presence and the settings/onRequestClose signature instead. Reload
-Emotes is now the first scroll row, below the sheet title and before Identity,
-so it is visible without scrolling through the preferences.
-
-The required Hermes validation now executes the unchanged donor settings factory
-4884 and component 22114 together with the compiled production adapter, rather
-than checking only a hand-built page. The old guard reproduced the missing row
-with omitted sections. The corrected adapter passes omitted, null and empty
-sections, preserves donor scroll behavior, reloads the explicit channel, closes
-the sheet, and leaves the donor's own identity subpage unchanged. Shared fixtures
-also retain hidden/disabled and channel-change checks. The device-confirmed
-unconfirmed-input guard and native reload implementation are unchanged.
-
-## Twitch 31.5 RN Reload Emotes module binding — build 90
-
-The user confirms build 89's unconfirmed-input guard works, but its RN reload
-button does not appear. The adapter used Hermes factory function ID 4884 as a
-Metro module ID. The exact donor's global __d call registers that factory as
-module 4880; the incorrectly imported module has no ChatSettingsSheet export.
-Build 90 corrects only this binding, leaving the confirmed native guard intact.
-
-The prior host mock placed the settings export at the same incorrect ID, so its
-source/compiled button tests could pass without attaching to Twitch's real UI.
-The mock now maps settings to 4880 and gives 4884 no sheet export. The required
-Hermes validation also parses the admitted donor's actual __d registration and
-the factory's writable ChatSettingsSheet export (component function 22114), then
-compares that module ID with the owned adapter. A regression explicitly refuses
-the erroneous 4884 binding before compiled validation/build admission.
-
-## Twitch 31.5 RN settings reload and provisional input — build 89
-
-Build 89 prepared a Reload Emotes row for the RN ChatSettingsSheet main page;
-the failed module binding is corrected in build 90 above.
-The owned wrapper preserves the native sheet and scroll props, appends a themed
-accessible row, requests a refresh for that sheet's explicit channel, and closes
-the sheet. The native bridge rejects disabled, unknown and ambiguous channels.
-The existing refresh retires old identities, clears provider generations, and
-refetches global and selected-channel catalogs; background last-room state cannot
-redirect the RN action. Subpages and other scroll views retain their original UI.
-
-The donor change delegate tests markedTextRange, but its value and emote-map
-prop setters can rebuild attachments during unconfirmed keyboard composition.
-Build 89 holds provisional delegate events and guards both setters before their
-original implementations. Provisional draft values are discarded; only the latest
-recognition map is retained per input and applied after native committed-text
-reconstruction. Cancelling a prediction cannot replay its full suggested value.
-UIKit retains its composition, and confirmed input uses Twitch's tokenizer.
-The diagnostic report adds map-hook availability and an aggregate hold counter.
-
-ASAN/UBSAN native regressions cover commit/cancellation, deferred-map replacement
-and clearing, explicit reload scope, refusal, catalog retirement and fetches.
-Shared source and compiled Hermes fixtures cover the RN button, native props,
-subpages, hidden/disabled presses and channel changes. Full host/build/package
-checks are required; actual iOS inline-prediction and IME behavior remain a
-focused device trial.
-
-## Twitch 31.5 third-party library labels — build 88
-
-The RN library now shows each third-party emote's name below its thumbnail,
-including its provider Recent row. Labels use the suggestions picker's
-11-point secondary text styling and a single-line, trailing ellipsis. Full
-names remain available to accessibility and are inserted unchanged. A fixed
-32-point thumbnail band keeps labels aligned across emote aspect ratios.
-
-The existing 52-point tiles, five-row/260-point library, horizontal column
-metrics, virtualization settings, image identities and transport scheduler are
-unchanged. The legacy library already displays names and is left unchanged.
-Host library regressions and the compiled Hermes fixture cover label content,
-geometry and styling; the host test also covers long/Unicode names and exact
-insertion. These fixtures do not claim on-device visual confirmation.
-
-## Twitch 31.5 diagnostic closure — build 87
-
-`compat/twitch-31.5` advances from build 72 to build 87 by fast-forward. Builds
-73–78 investigate and correct RN fractional-column startup demand; builds 79–82
-add bounded cache-first delivery, real Foundation validation and conservative
-network receipt metadata; build 83 adds bounded overflow recovery. Builds 84–87
-investigate and correct native Recent startup and footer tint/insertion in the
-legacy picker. The user confirmed the build-86 and build-87 legacy fixes.
-
-All four diagnostic branch histories are preserved under `archive/`, with
-documentation-only closure commits. Only the image-demand implementation line
-is brought into compat; the older independent probe histories remain separate.
-The source stays build 87, main is unchanged, and no release is published.
-See [the archive index](DIAGNOSTIC_BRANCH_ARCHIVE.md) for precise heads,
-validation limits and the decision to freeze performance architecture.
-
-## Historical reconstruction
-
-This project began as a practical patch for a decrypted Twitch 30.4.2 arm64
-app and gained dedicated packaging and patching tooling in 2.0.3.
-
-The early source downloads were not all retained. Their history was recovered
-from surviving source archives and the injected Mach-O dylibs in the original
-test IPAs. The table distinguishes exact source from reconstructed source so
-the Git history does not pretend to have evidence that no longer exists.
-
-| Version | Date | Architecture | Source confidence | What changed |
-| --- | --- | --- | --- | --- |
-| 1.0.0 | 2026-08-12 | video-swap-new 1.55 / solution 23 | Exact surviving archive | Initial native iOS port. |
-| 1.0.0 signing correction | 2026-08-12 | video-swap-new | Exact surviving artifact | Replaced the downloadable dylib with an ad-hoc-signed build; no source delta. |
-| 1.0.1 | 2026-08-12 | video-swap-new | Exact reconstruction | Added a 64 KiB signature reservation. Applying the recovered reservation tool to the 1.0.0 dylib produces the IPA dylib byte-for-byte. |
-| 2.0.0 | 2026-08-12 | VAFT solution 24 | Source-level reconstruction | First VAFT port. Recovered by reversing the small 2.0.0-to-2.0.1 native delta from symbols and arm64 code. Formatting and comments may differ from the lost original source. |
-| 2.0.1 | 2026-08-12 | VAFT solution 24 | Exact code state | Added direct playback-token request normalization. Its dylib is byte-identical to the one built from the surviving 2.0.2 source archive. |
-| 2.0.2 | 2026-08-12 | VAFT solution 24 | Exact surviving archive | Packaging-only fix: restored the complete Twitch `Assets.car`; native code is byte-identical to 2.0.1. |
-| 2.0.3 | 2026-08-18 | VAFT solution 24 | Exact surviving archive | Isolated VAFT state per stream to fix PiP/profile-preview cross-talk. Added the local patcher and tests. |
-| 2.1.0 | 2026-08-18 | VAFT solution 24 | Current source | Renamed the dylib/load command and added standalone rootful/rootless DEBs. |
-| 2.2.0 | 2026-08-21 | VAFT solution 24 | Surviving source | Added the in-app settings/diagnostics system and restored the proven framework-based sideload compatibility identity while retaining the clean jailbreak identity. |
-| 2.2.1 IPA | 2026-09-28 | VAFT solution 24 | Device-tested binary and exact-input patch script; newer diagnostics source unavailable | Adds R5 opt-in privacy and route diagnostics, clearer copy, and a main Settings button guard. |
-| 2.2.1-jb | 2026-09-28 | VAFT solution 24 | Current source, not device-tested | Packages the main Settings button fix for rootful/rootless jailbreaks. Retains 2.2.0 diagnostics, without R5 route history and labels. |
-| 2.2.1 replacement | 2026-09-28 | VAFT solution 24 | Reconstructed, checked-in source; not device-tested | Replaces both release assets from one source tree with R5 privacy labels, route history, and the Settings guard. |
-| 2.3.0-dev.1 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; not device-tested | Adds bounded 7TV, BTTV, and FFZ chat emote support, a relaunch-gated switch, cache clearing, and chat-menu reload to the shared IPA/jailbreak source. |
-| 2.3.0-dev.2 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Adds emote transport/provider and chat-menu counters, hooks inherited WebSocket receive implementations, and recognizes ChatSettingsController sheets without relying on the exact title. |
-| 2.3.0-dev.3 | 2026-09-29 | VAFT solution 24 plus optional emotes | Development source; awaits device retest | Instruments image response outcomes and the chat settings button/presentation path after dev.2 confirmed frame and URL rewriting but no menu hook activity. |
-
-| 2.3.0-dev.4 | 2026-09-29 | VAFT solution 24 plus optional emotes | Exact development source | Added provider image outcomes and native chat-menu tracing. |
-| 2.3.0-dev.5 | 2026-09-29 | VAFT solution 24 plus optional emotes | Incoming emotes device-confirmed | Added punctuation matching and an initial chat-menu reload button. |
-| 2.3.0-dev.6 | 2026-09-30 | VAFT solution 24 plus optional emotes | Menu row device-confirmed; new emote UI failed | Added proportions, local tokenizer hook, and provider detail sheets. Diagnostics showed zero local calls, sizing adjustments, and tap hits. |
-| 2.3.0-dev.7 | 2026-09-30 | VAFT solution 24 plus optional emotes | Provider tap details device-confirmed; spacing corrected but images stay square | Corrects token-object lookup and TextKit spacing. Local-message filtering rejects NSNumber sender IDs, so own messages remain text. |
-| 2.3.0-dev.8 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact development source; device-confirmed | Accepts NSNumber sender IDs and corrects separate provider image-layer frames, with scoped layout recovery and counters. |
-| 2.3.0 | 2026-09-30 | VAFT solution 24 plus optional emotes | Exact checked-in source; final IPA packaging differs from working dev.8 | Finalizes emotes; later loader investigation found lost segment normalization in the packaged framework, despite the same main executable. |
-| 3.0.0 prepared | 2026-09-30 | Streamside; VAFT solution 24 plus emotes | Publication held; composer/keyboard device test pending | Project/app rebrand, minimal suggestions, editor previews, provider/scope keyboard tab and native Recent integration. Logo pending. |
-| 2.3.1 prepared | 2026-09-30 | VAFT solution 24 plus optional emotes | Source-built loader device-confirmed; publication held for approval | Removes the active donor identity in favor of Streamside; enforces 16 KiB geometry, signing metadata, and build-to-package fingerprints. Launches on device. Candidate build 2 raises the provider response/registry limits after live 7TV sets exposed the old 2 MiB rejection; emote fix awaits device verification. |
-
-## Binary evidence
-
-All historical test IPAs used the same Twitch 30.4.2 main executable. Only the
-injected dylib changed between native revisions; 2.0.0 through 2.0.2 also
-exposed the asset-catalog packaging regression described below.
-
-| Version | Injected dylib SHA-256 | `LC_CODE_SIGNATURE` reservation |
+| Version | SHA-256 | Signature reservation |
 | --- | --- | --- |
 | 1.0.1 | `f561350754e84062ecdf90cf1d47bf14b21f05852d7a4aa0f4d5f2c1a04c425f` | 65,536 bytes |
 | 2.0.0 | `f329fea631d6a74e866ab8de4a2bef1af3e2ee948a2f292789a77aba55fe3332` | 65,536 bytes |
-| 2.0.1 | `61a50c69c86a020c0855411db85aaaebae3cb5a0bc8237f71ed454201d6abf86` | 65,536 bytes |
-| 2.0.2 | `61a50c69c86a020c0855411db85aaaebae3cb5a0bc8237f71ed454201d6abf86` | 65,536 bytes |
+| 2.0.1 / 2.0.2 | `61a50c69c86a020c0855411db85aaaebae3cb5a0bc8237f71ed454201d6abf86` | 65,536 bytes |
 | 2.0.3 | `7c55a15000fb1b8dcab436aba05c1a952618bf67af1e165a83914577c61048ac` | 65,536 bytes |
 
-The only native symbols added by 2.0.1 were the GraphQL request-normalization
-helpers, the two `NSURLSession` data-task replacements, and their stored
-original implementations. The 2.0.1 and 2.0.2 dylibs are identical. The only
-IPA entry changed by the 2.0.2 repack was `Assets.car`, restoring the same CRC
-present in the working 1.0.1 and 2.0.3 packages.
+Historical IPAs used the same Twitch 30.4.2 main executable. The 2.0.2 repack changed Assets.car rather than the dylib. These binary identities do not validate later repackaged assets.
 
-## Architecture transition
+## 2.2.1: binary staging, correction, and source parity
 
-Versions 1.x followed `video-swap-new`: detect ad-bearing playlists, request
-alternate player types, and swap to a clean rendition. Version 2.0.0 moved to
-VAFT's broader stitched marker, ordered alternate-master cache, closest
-rendition fallback, and blank-segment response. Version 2.0.3 retained VAFT but
-replaced its single global stream state with per-channel contexts required by
-Twitch mobile's simultaneous PiP and muted profile-preview players.
+The R5 binary-staging line added temporary diagnostic labels and route history while its newer original source was unavailable. It also exposed a settings-entry scope problem: the button could appear on Chat Identity.
 
-The early `Tweach.dylib` name was a donor compatibility shim: the Twitch
-executable already had that load command. Version 2.1.0 introduced the clean
-`@rpath/TwitchAdBlock.dylib` identity used by the standalone jailbreak packages.
-Testing showed that common sideload resigners rejected the same library after a
-filename/load-command change and also rejected the initial replacement dylib's
-Mach-O layout. Version 2.2.0 keeps the clean identity for jailbreaks and uses
-the donor-compatible `Tweach.framework/Tweach` identity with 16 KiB-aligned
-segments for sideloaded IPAs.
+R6's tighter guard removed the entry entirely. R7 restored it only on main Settings and was device-confirmed. The exact-input historical staging script and binary hashes survive in [R5 production staging](archive/releases/R5_PRODUCTION_STAGE.md).
 
-The 2.3.0 loader investigation corrected that earlier inference: all three
-failed rename/path trials inherited the final IPA's unnormalized framework.
-Working dev.8 used rounded segment ranges, while the final IPA had `__TEXT`
-size 123528 instead of 131072 and `__DATA_CONST` size 40 instead of 16384.
-Restoring the build's normalizer and compact signature reproduced the aligned
-source-built 2.3.0 framework exactly. The corrected migration trial launches.
-The current build uses Streamside and binds normalization to each package's
-actual bytes; historical names below and the archived R5 reproducer are retained
-only for provenance and migration of old inputs, never as an active loader.
+The initial IPA and initial jailbreak source did not contain identical diagnostics. The replacement line reconstructed the R5 behavior in checked-in source and rebuilt both formats. [89f46da](https://github.com/BananaOnGitHub/Streamside/commit/89f46da) restored the shared implementation; [56255e2](https://github.com/BananaOnGitHub/Streamside/commit/56255e2) aligned provenance with replacement assets.
+
+The original binary-staged result was device-tested; the source-backed replacement passed build/package checks without a recorded replacement-device acceptance. The current published 2.2.1 IPA has SHA-256 `c930d39a28c9abf4a6d4e5fb8f042b84c58f648c5c31a3ee3ff5172e3d3e1d6a`. The candidate hash in [the archived release note](archive/releases/RELEASE_2.2.1.md) is a different artifact and remains preserved.
+
+## 2.3.0 development and publication
+
+| Build | Attempt, correction, or observed result |
+| --- | --- |
+| dev.1 | Added optional bounded 7TV/BTTV/FFZ definitions, incoming metadata, enable/clear/reload controls. Initial device validation was pending. |
+| dev.2 | Added inherited receive coverage and aggregate provider/menu diagnostics. Frame/URL rewriting was observed, but the menu seam remained absent. |
+| dev.3 | Added image and native menu tracing to separate successful matching from UI delivery. |
+| dev.4 | Added provider response outcomes and native presentation tracing; no visible-success claim followed from counters alone. |
+| dev.5 | Punctuation matching and native action-sheet placement made incoming emotes/menu behavior observable on device. |
+| dev.6 | Initial proportional/local/detail work failed at native seams: no local callback, effective sizing, or tap hits despite incoming images. The scrolling reload row was confirmed. |
+| dev.7 | Correct token-object ID lookup and TextKit reservation enabled provider details/spacing. The bitmap still stayed square; NSNumber sender IDs were still rejected. |
+| dev.8 | Accepted NSNumber sender IDs and corrected the separate image-layer frame. Incoming, sent, wide/animated emotes and details were device-confirmed on 30.4.2. |
+| 2.3.0 | Public IPA and separate jailbreak prerelease. Final IPA packaging differed from the working development framework. |
+
+[The preserved development changelog](archive/releases/DEVELOPMENT_CHANGELOG.md) retains the original scope/counters and intermediate pending states. Publication occurred at [9e8bfb7](https://github.com/BananaOnGitHub/Streamside/commit/9e8bfb7); release notes describe the historical iPhone 16 Pro / iOS 18.2 feature baseline.
+
+## The unpublished 2.3.1 transition
+
+The final 2.3.0 framework lost segment normalization. Its main executable still matched working dev.8, so three rename/path trials inherited the same bad framework and incorrectly implicated the loader name.
+
+Working dev.8 used rounded segment ranges. The failed final framework had __TEXT size 123,528 instead of 131,072 and __DATA_CONST size 40 instead of 16,384. Restoring normalization and compact signing reproduced the aligned source-built framework; the corrected Streamside-identity migration launched on device.
+
+[2601ad2](https://github.com/BananaOnGitHub/Streamside/commit/2601ad2) made build-to-package fingerprints/layout/signature checks mandatory. Prepared 2.3.1.2 at [f9bc46b](https://github.com/BananaOnGitHub/Streamside/commit/f9bc46b) raised provider response admission to 8 MiB and room capacity to 4,000 after valid large 7TV bodies exceeded the older 2 MiB limit.
+
+2.3.1 was prepared, not published. These changes continue in 3.0.0; they are not separate public releases.
+
+## Early 3.0.0 composer and native catalog work
+
+[545651a](https://github.com/BananaOnGitHub/Streamside/commit/545651a) introduced the Streamside composer/provider keyboard direction. Subsequent commits corrected undo-manager exceptions, hit regions/text styling, scene-window touch routing, active-word preview timing, UIKit autocorrection ownership, drag cancellation, native catalog bridging, selector suppression, and frozen-on-open recents.
+
+The surviving records do not individually identify every numbered build 2–16. These changes are linked by source history rather than assigned invented labels. Native catalog work found private Swift publication paths bypassing ObjC wrappers, a Swift weak input delegate, and the need to preserve actual array/string/URL ownership.
+
+Presentation-only suppression corrected native table crashes: zero returned rows conflicted with Twitch's scroll-to-row-zero behavior, and a UIView wrapper could not accept table-only reload calls. These were implementation failures, not provider API failures.
+
+Stable scope/name/URL IDs corrected cross-launch image mismatch. Separate decoder ownership corrected composer/suggestion animation interference.
+
+## Builds 17–38: UIKit interaction and animation
+
+| Build | Source | Change and recorded outcome |
+| --- | --- | --- |
+| 17 | `3cd5764` | Provider Recent row beneath Frequently Used; retained native history. |
+| 18 | `8351d72` | Clip provider Recent beneath the pinned heading. |
+| 19 | `82b48df` | Restore provider footer entry after native stack replacement. |
+| 20 | `e793677` | Embed provider library between native sections. |
+| 21 | `3fa30e2` | Invalidate native cached metrics before placement; still insufficient as the sole gap mechanism. |
+| 22 | `36f197c` | Copied layout coordinates/content/visible-query translation reserved the gap; device spacing confirmed. |
+| 23 | `6d8bbde` | Five-row horizontal library; device layout confirmed. |
+| 24 | `12db7be` | Case-insensitive display ordering; exact lookup unchanged, device order confirmed. |
+| 25 | `753a0d7` | Cancellable asynchronous transport and reused metadata snapshots; playback-pause improvement observed. |
+| 26 | `37d6d79` | Contiguous substring suggestions; device matching confirmed. |
+| 27 | `5f412e4` | Immediate preview reservation and unified menu backspace; device behavior confirmed. |
+| 28 | `681c16b` | Transparent loading pixel; device placeholder behavior confirmed. |
+| 29 | `3caf909` | Wait for native Recent heading/layout before gap placement; device initial layout confirmed. |
+| 30 | `29f1a23` | Attachment-local composer GIF clocks; animation observed, later ownership interference corrected. |
+| 31 | `e22353b` | Isolate preview decoders from suggestion-image playback. |
+| 32 | `b26674a` | Scroll-only footer-selection ownership; device testing rejected it as insufficient. |
+| 33 | `6387c54` | Guard renderer-boundary native footer paints while provider selection owns the section. |
+| 34 | `6a7b483` | Shared provider details from library/editor holds. |
+| 35 | `d5f281e` | Match 0.5-second hold timing and keep suggestions below modal sheets; device behavior confirmed. |
+| 36 | `a3c7293` | Gesture priority and one successful-presentation haptic; device single haptic confirmed. |
+| 37 | `09c82a3` | Wait for owned sheet dismissal before browser launch; device browser-return behavior confirmed. |
+| 38 | `ffd0aca` | Weak visible provider-layer recovery and preserved long GIF delays; host coverage recorded, isolated final device acceptance not established by the candidate entry. |
+
+The [native-emote archive](archive/investigations/NATIVE_EMOTES.md) and [development diary](archive/releases/DEVELOPMENT_CHANGELOG.md) retain full ownership, geometry, gesture, timing, and native-symbol findings.
+
+## Builds 39–47: image and playback forensics
+
+Build 39 (`8df9289`) added opt-in target-code diagnostics for emotes that remained text. Build 40 (`cc1299a`) separated provider-image delivery from HLS completion work, then exposed an expired room string in an asynchronous BTTV callback. Build 41 (`2626814`) explicitly retained that string across completion/cancellation/stale/unavailable paths.
+
+Build 42 (`2f1e132`) sampled selected provider playback; build 43 (`70b9d21`) added retrospective visible histories; build 44 (`d39f44e`) corrected attachment child roles, capacity/eviction interpretation, and independent last-progress records.
+
+Build 45 source at `5a0cda0` reconstructs decode/native-handoff provenance. It is not presented as a recovered original source archive. Build 73 later independently reproduced its framework byte-for-byte, a stronger but distinct artifact claim.
+
+Build 46 (`b074e6f`) added weak result/raster construction/reuse evidence. Build 47 (`1f58c73`) added guarded requester/cache-decision observations. Reuse of the same observed static UIImage did not establish a cache hit, nor did a prior matching GIF attempt prove flattening. Direct Swift/unobserved/expired paths remained gaps.
+
+These independent probe branches were not merged wholesale into the release implementation. [Their records](archive/README.md#archived-branches) preserve purpose, outcome, and coverage limits.
+
+## Builds 48–54: Twitch 31.5 and the RN boundary
+
+| Build | Source | Investigation/result |
+| --- | --- | --- |
+| 48 | `5472354` | Non-diagnostic 31.5 donor/package trial; exact app/UUID/input metadata preserved. |
+| 49 | `c4243ef` | Removed obsolete constraints and found the missing old own-message delivery/constructor seam. |
+| 50 | `3fbfa44` | Native per-message definition enrichment for the legacy renderer. This did not establish RN rendering. |
+| 51 | `79013c4` | Passive RN ingress probe after legacy hooks stayed idle on the tested surface. |
+| 52 | `494d375` | Bridgeless RN/Fabric surfaces and native input handoffs. |
+| 53 | `423858b` | Catalog identities and metadata consumers; reports retained in RN_BUILD53_FINDINGS. |
+| 54 | `572f1fa` | Paragraph/attachment consumers and presentation-seam research; standalone toolchain blocker and missing live per-emote join remained explicit. |
+
+Reports established SRWebSocket → RCTWebSocketModule → JS ingress and TwitchEmoteInputView catalog delivery. Static tracing linked code/ID maps, IRC ranges, EmotePart, and image URL construction.
+
+The distinctive presentation finding was that paragraph NSTextAttachment instances were reconstructed inline-child placeholders, not stable decoded-emote containers. Width had to agree with Fabric's measured child subtree. [The RN research records](archive/README.md#rn-boundary-research) preserve this, including what passive tracing did not prove.
+
+## Builds 55–70: completed RN integration
+
+| Build | Source | Attempt, correction, and evidence |
+| --- | --- | --- |
+| 55 | `4b137ab` | Incoming-only synthetic IRC metadata. Reports B/C established observed static/animated rendering and animation after scrolling; geometry remained square. |
+| 56 | `1fbb124` | Exact-body wrapper/image width patch before Fabric measurement; tested proportional reception confirmed. |
+| 57 | `2e8e4e6` | Separate TmiClient local-echo patch registered/admitted but recorded no local callbacks; sent code stayed literal. |
+| 58 | `d2fd744` | Corrected NativeModules lookup, but callback/export counts still stayed zero on the tested send. |
+| 59 | `804aa75` | Moved to LibraryTmiClient ordinary-chat event; reached export discovery, but sent messages disappeared before native preview entry. |
+| 60 | `c58afe5` | Frame 21 and isolated preview catch corrected the failure; tested sent messages/emotes rendered. |
+| 61 | `ea8654f` | Scoped native input recognition map; device trial produced a placeholder without an image. |
+| 62 | `4f64a58` | Covered native URL-based image completion transport; images appeared but were square/static. |
+| 63 | `a588e02` | Native provider attachment width and bounded GIF clocks; width worked, first-download animation missed startup. |
+| 64 | `59b3682` | Track pending input before decoder creation; first-download GIF startup confirmed. |
+| 65 | `82c3251` | Independent passive provider tap/sheet trace: route reached the RN sheet, query-backed native content remained absent. |
+| 66 | `c8c4842` | Provider card inside the existing bottom sheet; device popup confirmed. |
+| 67 | `e4ede56` | Compact provider suggestion strip; device behavior confirmed. |
+| 68 | `3593a6c` | Native Twitch/subscriber catalog in unified suggestions and conditional autocomplete takeover; confirmed before the library port. |
+| 69 | `8285854` | RN tray provider section and frozen recents; device library confirmed. |
+| 70 | `7d0c3ec` | Controls, five-row browsing, native token backspace; layout confirmed, slow image loading then reported. |
+
+### The build-59 call-frame failure
+
+Frame 18 staged outgoing Call4 values over the still-live callee register. Valid disassembly and a simplified host interpreter had not modeled that sequential order. The TypeError occurred before native entry and original emission.
+
+Build 60 moved outgoing slots above live locals, added failure injection across preview lookup/call/write, and resumed original emitLine on added-preview exceptions only. Its record reports 71 passing host tests, donor metadata/branch checks, independent Hermes disassembly, and package verification. Device confirmation is a separate result.
+
+The separate /me handler stayed unchanged. [Local-display trial](archive/experiments/RN_LOCAL_ECHO_TRIAL.md) retains the exact registers, headers, and artifact evidence.
+
+## Builds 71–78: demand, failed probes, and fractional geometry
+
+Build 71 (`991b7aa`) introduced shared provider caching/coalescing. Its report showed cancellation churn and slow completions. Build 72 (`645d34f`) kept bounded detached active transfers through view recycling, dropped abandoned queued work, and reserved foreground admission.
+
+Build 73 (`58b82e3`) reconstructed demand observations; build 74 (`c4f4446`) separated masks/ranges, lifecycle, assets, and flights. Reports established full-catalog stationary startup demand, not merely a high cumulative load count.
+
+Build 75 (`863cc25`) attempted calculation capture but emitted no accepted rows. Build 76 (`3e67fbb`) added stage accounting and compiled validation, corrected a literal-kind/parser mismatch, and still encountered a throwing nested helper. Neither diagnostic failure itself explained the render defect.
+
+Build 77 (`9ad8373`) independently guarded base values/helper failures and accepted all 16 startup rows. The range grew 0..6 → 0..13 → 0..20 toward all 168 columns. Metric queries appeared valid within the recorded tolerance.
+
+Actual donor overlap/window execution reproduced the gap at fractional column endpoints: 739.9999999999999 versus 740. The undefined overscan end fell back to the last item and spent another seven-item batch expanding each time.
+
+Build 78 (`4c24b7d`) derived interval length from adjacent offsets without changing RN's algorithm or transport capacities. Stationary opening/reopening stabilized at 0..11 and 60 live JS image instances in the recorded catalog; scrolling peaked at a 26-column mask/130 instances.
+
+The maintained baseline at `8e32a28` covers 1,584 compiled window calculations, logical identities, and native snapshot acceptance. Those are not physical-view/device-animation tests. [Calculation record](archive/investigations/EMOTE_DEMAND_PHASE1B_CALCULATION.md) preserves the failed capture, literal-kind correction, throwing helper, numerical defect, and observed cleanup.
+
+## Builds 79–83: cache annotation and bounded recovery
+
+| Build | Source | Result/correction |
+| --- | --- | --- |
+| 79 | `2f2c7d1` | Separate cache-first lookup lane. Initial Apple candidates failed due to compilation/run-loop/delegate-task integration; later real Foundation cache/revalidation passed at `80f14f6`. Device proposals still yielded zero annotations. |
+| 80 investigation | `839a02f` | First-rejection counters and production annotation tests isolated missing Date. The committed bundle/report labels still say build 79; do not silently relabel the artifact. |
+| 81 | `149e87f` | Passive accessor/dictionary comparison confirmed Date/Expires absence through both APIs on the recorded responses. |
+| 82 | `7b32f49` | Network-proven original receipts for eligible Date-less entries; local-cache reuse cannot mint/renew a receipt. |
+| 83 | `a3e107a` | Independent bounded overflow recovery with original deadlines, cancellation, and normal scheduler ownership; no throughput increase. |
+
+Build-82 E→F added 197 direct hits and 18 Foundation tasks, all local-cache transactions, with additional queue waits at most 250 ms. This establishes effective warm reuse for that run, not universal latency or proof that earlier long queues were harmless.
+
+[Cache record](archive/investigations/EMOTE_CACHE_PHASE2.md) and [overflow record](archive/experiments/EMOTE_OVERFLOW_RECOVERY.md) retain failed candidates, callback evidence, rejection accounting, and saturation limits.
+
+## Builds 84–87: retained legacy picker
+
+Build 84 (`762eb2e`) tried deferred layout settlement for initially blank native Recent and passed a host ordering fixture, but did not fix the device symptom. Build 85 (`2755acc`) added bounded passive palette observations.
+
+The device trace found zero sections at bind with an already inserted 410-point section-zero gap. When native sections arrived, translated query geometry could exclude the header/cells needed to classify placement. Build 86 (`144a8e1`) deferred the gap until native publication and fixed first-opening Recent.
+
+Build 87 (`7f48f67`) restored the owned footer's inactive tint at handoff and bound the palette container before lazy footer creation, resolving a weak input owner after keyboard reparenting. It repaired insertion during dragging without another timer/reload/synthetic scroll. Both fixes were device-confirmed.
+
+The recorded build-87 host suite had 117 tests with one local Apple-only skip; mandatory donor/Hermes, artifact/IPA checks and both CI jobs passed. These are that build's results, not a claim about a newly run test suite.
+
+## Builds 88–92: final RN refinements
+
+| Build | Source | Result/correction |
+| --- | --- | --- |
+| 88 | `5a6fa73` | Names below provider library/Recent thumbnails, preserving 52-point/five-row geometry. Subsequent device checks confirmed labels. |
+| 89 | `525e555` | Guard provisional native input callbacks/value/map props; device guard worked. First reload wrapper did not appear. |
+| 90 | `13f3d7f` | Correct module 4880 versus factory 4884 binding. The earlier mock shared the same error. The row still failed the device main-page guard. |
+| 91 | `fa413a0` | Admit containerSections prop presence even if undefined/null; execute the real donor settings factory/component. First-row placement confirmed. |
+| 92 | `30b9a14` | Native themed Pressable highlight for touch/hold/release; confirmed on device. |
+
+The composition guard discards provisional values and retains only the latest map until native committed-text reconstruction. The menu corrections are separate: registration, page admission, then touch feedback.
+
+## Consolidation and archives
+
+[98e96bf](https://github.com/BananaOnGitHub/Streamside/commit/98e96bf) consolidated the completed compatibility history onto main without a runtime change or new build number. [7754dd9](https://github.com/BananaOnGitHub/Streamside/commit/7754dd9) updated archive naming.
+
+The preserved compatibility head is `30b9a1445cb2ec04613547713787e809ae1be2cc` at [archive/compat/twitch-31.5](https://github.com/BananaOnGitHub/Streamside/tree/archive/compat/twitch-31.5). Four diagnostic branches retain independent histories under archive/diagnostic. Their [index](archive/README.md#archived-branches) distinguishes implementation heads from documentation-only closure heads.
+
+Public version remains 3.0.0; internal bundle remains 3.0.0.92. Consolidation and documentation do not publish a release.
+
+## Remaining provenance limits
+
+Early numbered 3.0.0 builds 2–16 are not individually established by the inspected report/bundle labels. Build-80 investigation numbering differs from its committed label. Original and replacement 2.2.1 assets are distinct. Build-45 reconstructed source and build-73 byte-identical reproduction remain separate claims.
+
+Where reports/artifacts cannot resolve a mapping, retain the uncertainty instead of inventing an unobserved build or device pass.
+
+[Research archive](archive/README.md) · [Public changelog](../CHANGELOG.md) · [Current architecture](ARCHITECTURE.md)

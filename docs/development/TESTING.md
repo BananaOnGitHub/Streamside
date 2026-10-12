@@ -45,7 +45,7 @@ It executes the production graft and native snapshot parser rather than a source
 
 - Native snapshot acceptance and bounded preparation/refusal stages.
 - The actual donor overlap/window functions with production `getItemLayout`.
-- Twelve viewport widths, six catalog sizes, two feature-flag branches, and eleven positions: 1,584 window calculations.
+- Twelve viewport widths, six catalog sizes, and two feature-flag branches: 7,344 window calculations across first opening, repeated idle calculations, eleven scroll positions, and a fresh reopening.
 - Contiguous fractional endpoints, bounded ranges, visible-column inclusion, five-row mapping, and stable logical identities.
 - Real donor settings registration: Metro module 4880 versus factory function 4884.
 - Unchanged settings factory/component behavior with optional containerSections props and subpages.

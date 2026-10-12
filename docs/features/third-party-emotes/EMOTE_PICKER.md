@@ -112,7 +112,7 @@ Library selection passes an ordinary string to the donor's existing append-token
 
 [RN strip](../../../tests/test_rn_strip.py), [RN library](../../../tests/test_rn_library.py), [RN backspace](../../../tests/test_rn_backspace.py), [Recent snapshots](../../../tests/test_recent_snapshot.py), [Legacy library](../../../tests/test_composer_library.py), and [Native picker](../../../tests/test_native_picker.py) cover their production adapters through fixtures.
 
-[Compiled virtualization validation](../../../tools/validate_rn_snapshot.py) is required for RN library changes/ports. Its 1,584 window scenarios complement host checks; neither is a replacement for device mounting/display/cancellation evidence.
+[Compiled virtualization validation](../../../tools/validate_rn_snapshot.py) is required for RN library changes/ports. Its 7,344 window scenarios cover opening, stationary calculations, scrolling, and reopening across the maintained width/catalog matrix. They complement host checks; neither is a replacement for device mounting/display/cancellation evidence.
 
 [Calculation investigation](../../archive/investigations/EMOTE_DEMAND_PHASE1B_CALCULATION.md) · [RN library port](../../archive/experiments/RN_LIBRARY_PORT.md) · [Legacy Recent investigation](../../archive/investigations/LEGACY_RECENTS_DIAGNOSTIC.md)
 

@@ -177,7 +177,7 @@ Actual donor overlap/window execution reproduced the gap at fractional column en
 
 Build 78 (`4c24b7d`) derived interval length from adjacent offsets without changing RN's algorithm or transport capacities. Stationary opening/reopening stabilized at 0..11 and 60 live JS image instances in the recorded catalog; scrolling peaked at a 26-column mask/130 instances.
 
-The maintained baseline at `8e32a28` covers 1,584 compiled window calculations, logical identities, and native snapshot acceptance. Those are not physical-view/device-animation tests. [Calculation record](archive/investigations/EMOTE_DEMAND_PHASE1B_CALCULATION.md) preserves the failed capture, literal-kind correction, throwing helper, numerical defect, and observed cleanup.
+The maintained baseline at `8e32a28` covers 7,344 compiled window calculations, logical identities, and native snapshot acceptance, including repeated idle checks and fresh reopening. Those are not physical-view/device-animation tests. [Calculation record](archive/investigations/EMOTE_DEMAND_PHASE1B_CALCULATION.md) preserves the failed capture, literal-kind correction, throwing helper, numerical defect, and observed cleanup.
 
 ## Builds 79–83: cache annotation and bounded recovery
 

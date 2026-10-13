@@ -32,16 +32,19 @@ static StringBridge bridge_string;
 static IMP bounds_original,layout_original,change_original,selection_original,move_original,value_original,map_original,dealloc_original,target_dealloc;
 static IMP item_menu_original,interaction_original;
 static IMP edit_original,selection_setter;
+static IMP image_original;
 static BOOL item_menu_installed,interaction_installed;
 static Class clock_class;
 static ptrdiff_t clock_offset;
 static id image_bytes,owners;
-static char identity_key,state_key,pending_map_key;
+static char identity_key,native_image_key,state_key,pending_map_key;
 static pthread_mutex_t install_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t bounds_calls,sized,syncs,decoders,advances,ticks,refused,images,provisional;
 static uint64_t details_holds;
 static uint64_t selection_invalidations;
 static uint64_t stale_selections;
+static uint64_t native_sized;
+static uint64_t native_layouts;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
@@ -76,7 +79,16 @@ static uint64_t attachment_number(id attachment) {
     uint64_t number=0;
     if (value && !strncmp(value,prefix,strlen(prefix))) {
         const char *digits=value+strlen(prefix);char *tail;
-        if (digits[0]=='9') {number=strtoull(digits,&tail,10);if(tail==digits || *tail!='/' || tail-digits>20)number=0;}
+        if(digits[0]>='1' && digits[0]<='9') {
+            uint64_t candidate=strtoull(digits,&tail,10);
+            if(tail!=digits && *tail=='/' && tail-digits<=20) {
+                /* Classic Twitch numeric IDs precede Streamside's earliest
+                 * synthetic reservation. Never treat an unknown synthetic
+                 * provider or transcript-width alias as a native image. */
+                if(candidate<9000000000ULL)associate(attachment,&native_image_key,num(candidate));
+                if(digits[0]=='9')number=candidate;
+            }
+        }
     }
     objc_release(string);
     id metadata=number ? tas_emotes_metadata_copy(number) : nil;
@@ -94,6 +106,23 @@ static id editor_for(id owner) {
     id editor=nil;memcpy(&editor,(char *)owner+ivar_getOffset(field),sizeof(editor));
     return kind(editor,"TwitchEmoteInputView") && kind(editor,"UITextView") ? editor : nil;
 }
+static double native_image_aspect(id image) {
+    if(!kind(image,"UIImage"))return 0;
+    Size size=((Size (*)(id,SEL))objc_msgSend)(image,sel_registerName("size"));
+    if(!isfinite(size.width) || !isfinite(size.height) || size.width<=0 || size.height<=0)return 0;
+    double ratio=size.width/size.height;
+    return isfinite(ratio) && ratio>0 && ratio<=20 ? ratio : 0;
+}
+static void native_geometry_changed(id attachment);
+static void attachment_image(id self,SEL command,id image) {
+    BOOL native=bounds_original && tas_emotes_enabled_this_launch() && main_thread() && bridge_string && kind(self,ATTACHMENT);
+    if(native){attachment_number(self);native=objc_getAssociatedObject(self,&native_image_key)!=nil;}
+    double before=native ? native_image_aspect(m0(self,"image")) : 0;
+    ((void (*)(id,SEL,id))image_original)(self,command,image);
+    /* The donor invalidates display only after a cold download. Changing the
+     * aspect also requires new glyph layout, without rebuilding the draft. */
+    if(native && before!=native_image_aspect(image))native_geometry_changed(self);
+}
 static Rect attachment_bounds(id self,SEL command,id container,Rect fragment,Point position,U index) {
     Rect result=((Rect (*)(id,SEL,id,Rect,Point,U))bounds_original)(self,command,container,fragment,position,index);
     INC(bounds_calls);
@@ -101,6 +130,12 @@ static Rect attachment_bounds(id self,SEL command,id container,Rect fragment,Poi
     double aspect=number ? tas_emotes_aspect(number) : 0;
     if (isfinite(aspect) && aspect>0 && aspect<=20 && isfinite(result.size.height) && result.size.height>0) {
         result.size.width=result.size.height*aspect;INC(sized);
+    } else if(!number && tas_emotes_enabled_this_launch() && main_thread() && bridge_string &&
+        objc_getAssociatedObject(self,&native_image_key) && isfinite(result.size.height) && result.size.height>0) {
+        double ratio=native_image_aspect(m0(self,"image")),width=result.size.height*ratio;
+        if(ratio>0 && isfinite(width) && width>0 && width!=result.size.width) {
+            result.size.width=width;INC(native_sized);
+        }
     }
     return result; /* Preserve native baseline, height and paragraph styling. */
 }
@@ -146,6 +181,19 @@ static BOOL visible(id editor) {
     return ancestor==nil;
 }
 static id attachment_at(id source,U location){return ((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),location,NULL);}
+static void native_geometry_changed(id attachment) {
+    id list=m0(owners,"allObjects");U count=integer(list,"count");
+    for(U n=0;n<count && n<8;n++) {
+        id owner=((id (*)(id,SEL,U))objc_msgSend)(list,sel_registerName("objectAtIndex:"),n),editor=editor_for(owner);
+        if(!visible(editor))continue;
+        id source=m0(editor,"attributedText");U length=integer(source,"length");
+        if(length>4096)continue;
+        for(U i=0;i<length;i++)if(attachment_at(source,i)==attachment) {
+            ((void (*)(id,SEL,Range,Range *))objc_msgSend)(m0(editor,"layoutManager"),sel_registerName("invalidateLayoutForCharacterRange:actualCharacterRange:"),(Range){i,1},NULL);
+            INC(native_layouts);
+        }
+    }
+}
 /* Read the live attributed text, never a draft string or arbitrary image.
  * Suppress UIKit menus only when our recognizer is attached to this editor. */
 static BOOL owned_attachment_at(id owner,id editor,id attachment,Range range) {
@@ -305,7 +353,12 @@ static void sync(id owner) {
     for(U i=0;i<length && n<MAX_FRAMES;i++) {
         if(((uint16_t (*)(id,SEL,U))objc_msgSend)(string,sel_registerName("characterAtIndex:"),i)!=0xfffc)continue;
         id attachment=attachment_at(source,i);uint64_t number=attachment_number(attachment);
-        if(!number)continue;
+        if(!number) {
+            /* Native numeric emotes also need a weak owner for cold-image
+             * geometry invalidation; no native decoder or clock is added. */
+            if(objc_getAssociatedObject(attachment,&native_image_key))watch_owner(owner);
+            continue;
+        }
         /* Track the visible input before its first image download completes.
          * A decoder-only registry misses cold attachments until another edit. */
         if(!watch_owner(owner)){INC(refused);break;}
@@ -461,6 +514,7 @@ void tas_rn_composer_ui_retry_hooks(void) {
             install(input,"setSelection:","v24@0:8@16",(IMP)selection_prop,&selection_setter);
     }
     install(attachment,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:","{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72",(IMP)attachment_bounds,&bounds_original);
+    install(attachment,"setImage:","v24@0:8@16",(IMP)attachment_image,&image_original);
     install(input,"layoutSubviews","v16@0:8",(IMP)layout,&layout_original);
     install(input,"textViewDidChange:","v24@0:8@16",(IMP)changed,&change_original);
     install(input,"textViewDidChangeSelection:","v24@0:8@16",(IMP)selection,&selection_original);
@@ -482,12 +536,14 @@ void tas_rn_composer_ui_status(char *buffer,size_t capacity) {
         "Provisional callbacks/props held: %llu\n"
         "Provider hold hooks (item menu/attachment)/details shown: %s/%s/%llu\n"
         "Cursor edit/selection hooks/props invalidated/stale props refused: %s/%s/%llu/%llu\n"
+        "Native numeric-emote image hook/aspect corrections/layout refreshes: %s/%llu/%llu\n"
         "Bounds/sizes/syncs/GIF bodies/decoders/ticks/advances/refused: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
         bounds_original ? "installed":"missing",layout_original ? "installed":"missing",change_original ? "installed":"missing",
         selection_original ? "installed":"missing",move_original ? "installed":"missing",value_original ? "installed":"missing",
         map_original ? "installed":"missing",dealloc_original ? "installed":"missing",bridge_string ? "available":"missing",(unsigned long long)GET(provisional),
         item_menu_installed ? "installed":"missing",interaction_installed ? "installed":"missing",(unsigned long long)GET(details_holds),
         edit_original ? "installed":"missing",selection_setter ? "installed":"missing",(unsigned long long)GET(selection_invalidations),(unsigned long long)GET(stale_selections),
+        image_original ? "installed":"missing",(unsigned long long)GET(native_sized),(unsigned long long)GET(native_layouts),
         (unsigned long long)GET(bounds_calls),(unsigned long long)GET(sized),(unsigned long long)GET(syncs),(unsigned long long)GET(images),
         (unsigned long long)GET(decoders),(unsigned long long)GET(ticks),(unsigned long long)GET(advances),(unsigned long long)GET(refused));
 }

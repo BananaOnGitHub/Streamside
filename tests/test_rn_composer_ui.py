@@ -20,13 +20,13 @@ struct Fake {
     id editor,next,identity,target,pending,value,window,parent,marked,image,items[8];
     unsigned char bytes[2048];uint16_t units[8];U length,count,index;
     double seconds,alpha;BOOL hidden,invalidated;int releases;
-    id prop_selection;uint64_t plain[2];id plain_cache;uint64_t generation,queued_generation;BOOL accept_edit;void *context;Point point;Rect rect;Insets insets;Range range;
+    id prop_selection,native_identity;uint64_t plain[2];id plain_cache;uint64_t generation,queued_generation;BOOL accept_edit;Size image_size;void *context;Point point;Rect rect;Insets insets;Range range;
 };
 static struct Fake classes[64];static unsigned classes_count;
 static id pool[512];static unsigned pool_count;
 static BOOL enabled=YES,is_main=YES,known=YES,bridge_available=YES;
 static double aspect=3;
-static unsigned copies,invalidations,assignments,originals,deallocs,bridge_calls;
+static unsigned copies,invalidations,assignments,originals,deallocs,bridge_calls,layout_invalidations;
 static ptrdiff_t url_gap=16,plain_gap=16;
 static struct Fake app={.cls="UIApplication"},mainqueue={.cls="NSOperationQueue"},runloop={.cls="NSRunLoop"},metadata={.cls="NSDictionary"};
 static id cache_data,clock_link,queued,shown;
@@ -34,6 +34,7 @@ static BOOL modal=NO,present_ok=YES;
 static unsigned presentations,haptics,scheduled,added,removed;
 BOOL tas_emote_ui_modal_visible(id view){(void)view;return modal;}
 BOOL tas_emote_ui_present_details(id view,id data){assert(data==&metadata);presentations++;shown=view;return present_ok;}
+static Size __attribute__((unused)) test_size(id o){return o->image_size;}
 static Point test_point(id o,id editor){assert(editor);return o->point;}
 static Rect test_rect(id o,Range range,id container){assert(range.length==1 && container);return o->rect;}
 static Insets test_insets(id o){return o->insets;}
@@ -52,8 +53,8 @@ void objc_release(id o){if(o)o->releases++;}
 id objc_initWeak(id *p,id o){*p=o;return o;}
 id objc_loadWeakRetained(id *p){return *p;}
 void objc_destroyWeak(id *p){*p=nil;}
-id objc_getAssociatedObject(id o,const void *key){return !o ? nil : key==&identity_key ? o->identity : key==&pending_map_key ? o->pending : o->target;}
-void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy){assert(policy==1);if(key==&identity_key)o->identity=value;else if(key==&pending_map_key)o->pending=value;else {assert(key==&state_key);o->target=value;}}
+id objc_getAssociatedObject(id o,const void *key){return !o ? nil : key==&identity_key ? o->identity : key==&native_image_key ? o->native_identity : key==&pending_map_key ? o->pending : o->target;}
+void objc_setAssociatedObject(id o,const void *key,id value,uintptr_t policy){assert(policy==1);if(key==&identity_key)o->identity=value;else if(key==&native_image_key)o->native_identity=value;else if(key==&pending_map_key)o->pending=value;else {assert(key==&state_key);o->target=value;}}
 bool tas_emotes_enabled_this_launch(void){return enabled;}
 id tas_emotes_metadata_copy(uint64_t n){return known && n==900000000000001ULL ? &metadata : nil;}
 double tas_emotes_aspect(uint64_t n){return n==900000000000001ULL ? aspect : 0;}
@@ -112,7 +113,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"initWithStyle:")){assert(va_arg(ap,long)==0);result=o;}
     else if(!strcmp(sel,"impactOccurred"))haptics++;
     else if(!strcmp(sel,"respondsToSelector:")){SEL probe=va_arg(ap,SEL);result=(id)(uintptr_t)(!strcmp(o->cls,"UITextItem") && (!strcmp(probe,"textAttachment") || !strcmp(probe,"range")));}
-    else if(!strcmp(sel,"textAttachment"))result=o->image;
+    else if(!strcmp(sel,"textAttachment") || !strcmp(sel,"image"))result=o->image;
     else if(!strcmp(sel,"configurationWithMenu:"))result=va_arg(ap,id);
     else if(!strcmp(sel,"window"))result=o->window;
     else if(!strcmp(sel,"superview"))result=o->parent;
@@ -123,6 +124,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"characterAtIndex:"))result=(id)(uintptr_t)o->units[va_arg(ap,U)];
     else if(!strcmp(sel,"attribute:atIndex:effectiveRange:")){assert(!strcmp((const char *)va_arg(ap,id)->value,"NSAttachment"));U i=va_arg(ap,U);assert(!va_arg(ap,Range *));result=o->items[i];}
     else if(!strcmp(sel,"setImage:")){o->image=va_arg(ap,id);assignments++;}
+    else if(!strcmp(sel,"invalidateLayoutForCharacterRange:actualCharacterRange:")){Range r=va_arg(ap,Range);assert(r.length==1 && (r.location==0 || r.location==2) && !va_arg(ap,Range *));layout_invalidations++;}
     else if(!strcmp(sel,"invalidateDisplayForCharacterRange:")){Range r=va_arg(ap,Range);assert(r.length==1);invalidations++;}
     else if(!strcmp(sel,"invalidate"))o->invalidated=YES;
     else assert(!"Unexpected RN preview selector");
@@ -139,9 +141,11 @@ static TestMethod view_method={"v16@0:8",(IMP)original_view},change_method={"v24
 static BOOL original_edit(id self,SEL command,id editor,Range range,id text){(void)command;(void)editor;(void)range;(void)text;originals++;return self->accept_edit;}
 static void original_selection_setter(id self,SEL command,id requested){assert(!strcmp(command,"setSelection:"));self->prop_selection=requested;self->generation++;if(requested)self->queued_generation=self->generation;}
 static TestMethod edit_method={"B48@0:8@16{_NSRange=QQ}24@40",(IMP)original_edit},setter_method={"v24@0:8@16",(IMP)original_selection_setter},getter_method={"@16@0:8",NULL};
+static void original_image(id self,SEL command,id image){(void)command;self->image=image;assignments++;}
+static TestMethod image_method={"v24@0:8@16",(IMP)original_image};
 static unsigned installed,optional_mode;
 static TestMethod item_method={"@40@0:8@16@24@32",(IMP)original_change},interaction_method={"B56@0:8@16@24{_NSRange=QQ}32q48",(IMP)original_change};
-Method class_getInstanceMethod(Class cls,SEL sel){(void)cls;if(!strcmp(sel,"textView:shouldChangeTextInRange:replacementText:"))return &edit_method;if(!strcmp(sel,"setSelection:"))return &setter_method;if(!strcmp(sel,"selection"))return &getter_method;if(strstr(sel,"menuConfigurationForTextItem"))return optional_mode ? &item_method : NULL;if(strstr(sel,"shouldInteractWithTextAttachment"))return optional_mode ? &interaction_method : NULL;if(!strcmp(sel,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:"))return &bounds_method;if(!strcmp(sel,"dealloc"))return &dealloc_method;return strchr(sel,':') ? &change_method : &view_method;}
+Method class_getInstanceMethod(Class cls,SEL sel){(void)cls;if(!strcmp(sel,"setImage:"))return &image_method;if(!strcmp(sel,"textView:shouldChangeTextInRange:replacementText:"))return &edit_method;if(!strcmp(sel,"setSelection:"))return &setter_method;if(!strcmp(sel,"selection"))return &getter_method;if(strstr(sel,"menuConfigurationForTextItem"))return optional_mode ? &item_method : NULL;if(strstr(sel,"shouldInteractWithTextAttachment"))return optional_mode ? &interaction_method : NULL;if(!strcmp(sel,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:"))return &bounds_method;if(!strcmp(sel,"dealloc"))return &dealloc_method;return strchr(sel,':') ? &change_method : &view_method;}
 const char *method_getTypeEncoding(Method m){return ((TestMethod *)m)->encoding;}
 IMP method_getImplementation(Method m){return ((TestMethod *)m)->original;}
 IMP method_setImplementation(Method m,IMP hook){(void)m;(void)hook;installed++;return NULL;}
@@ -217,10 +221,10 @@ static void playback(void) {
 }
 static void installation(void) {
     enabled=NO;tas_rn_composer_ui_retry_hooks();assert(!installed && !bridge_string);
-    enabled=YES;bounds_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(!bounds_original && installed==9);
+    enabled=YES;bounds_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(!bounds_original && installed==10);
     bounds_method.encoding="{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72";
-    tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==10 && clock_class);
-    tas_rn_composer_ui_retry_hooks();assert(installed==10);
+    tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==11 && clock_class);
+    tas_rn_composer_ui_retry_hooks();assert(installed==11);
 }
 static void cold_start(void) {
     tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
@@ -411,9 +415,54 @@ static void late_cursor_prop(void) {
     enabled=NO;bridge_string=bridge;selection_prop(owner,"setSelection:",request);assert(owner->prop_selection==request);
     selection_prop(owner,"setSelection:",nil);assert(!owner->prop_selection);
 }
+static void native_geometry(void) {
+    bridge_string=bridge;bounds_original=(IMP)original_bounds;
+    id smile=attachment("https://static-cdn.jtvnw.net/emoticons/v2/1/static/dark/3.0"),image=fresh("UIImage");
+    image->image_size=(Size){72,54};smile->image=image;
+    Rect r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);
+    assert(r.size.width==32 && r.size.height==24 && r.origin.y==-3);
+    image->image_size=(Size){24,18};r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==32);
+    id frown=attachment("https://static-cdn.jtvnw.net/emoticons/v2/2/static/dark/3.0");frown->image=image;
+    r=attachment_bounds(frown,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==32);
+    image->image_size=(Size){24,24};r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);
+    smile->image=nil;r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);
+    smile->image=image;image->image_size=(Size){72,54};r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==32); /* arrival on same attachment */
+    const Size invalid[]={{0,54},{72,0},{NAN,54},{72,INFINITY},{-1,54},{1000,1}};
+    for(unsigned i=0;i<sizeof(invalid)/sizeof(*invalid);i++){image->image_size=invalid[i];r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);}
+    image->image_size=(Size){72,54};image->cls="OtherImage";r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);image->cls="UIImage";
+    const char *urls[]={"https://example.com/emoticons/v2/1/static/dark/3.0","https://static-cdn.jtvnw.net/emoticons/v2/1junk/static/dark/3.0","https://static-cdn.jtvnw.net/emoticons/v2/0/static/dark/3.0","https://static-cdn.jtvnw.net/emoticons/v2/900000000000002/static/dark/3.0","https://static-cdn.jtvnw.net/emoticons/v2/860000000000125/static/dark/3.0","https://static-cdn.jtvnw.net/emoticons/v2/9000000001/static/dark/3.0"};
+    for(unsigned i=0;i<sizeof(urls)/sizeof(*urls);i++){id foreign=attachment(urls[i]);foreign->image=image;r=attachment_bounds(foreign,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);}
+    id other=fresh("NSTextAttachment");other->image=image;r=attachment_bounds(other,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);
+    enabled=NO;r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);enabled=YES;
+    is_main=NO;r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);is_main=YES;
+    bridge_string=NULL;r=attachment_bounds(smile,"bounds",nil,(Rect){0},(Point){0},0);assert(r.size.width==24);
+}
+static void native_arrival(void) {
+    tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
+    id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),source=fresh("NSAttributedString");owner->editor=editor;editor->value=source;editor->window=fresh("UIWindow");
+    id a=attachment("https://static-cdn.jtvnw.net/emoticons/v2/9/static/dark/3.0"),image=fresh("UIImage");image->image_size=(Size){72,54};
+    source->length=3;source->units[0]=source->units[2]=0xfffc;source->units[1]='x';source->items[0]=source->items[2]=a;
+    sync(owner);assert(owners->count==1 && owners->items[0]==owner && !state(owner->target)->link && !copies);
+    attachment_image(a,"setImage:",image);assert(a->image==image && assignments==1 && layout_invalidations==2 && GET(native_layouts)==2);
+    id same=fresh("UIImage");same->image_size=(Size){24,18};attachment_image(a,"setImage:",same);assert(assignments==2 && layout_invalidations==2);
+    id square=fresh("UIImage");square->image_size=(Size){24,24};attachment_image(a,"setImage:",square);assert(layout_invalidations==4);
+    editor->window=nil;attachment_image(a,"setImage:",image);assert(layout_invalidations==4);
+    editor->window=fresh("UIWindow");source->length=0;attachment_image(a,"setImage:",square);assert(layout_invalidations==4); /* removed */
+    source->length=3;source->items[0]=source->items[2]=provider();attachment_image(a,"setImage:",image);assert(layout_invalidations==4); /* rebuilt */
+    attachment_image(source->items[0],"setImage:",image);assert(layout_invalidations==4 && source->items[0]->image==image); /* providers untouched */
+    enabled=NO;source->items[0]=source->items[2]=a;attachment_image(a,"setImage:",square);assert(layout_invalidations==4);enabled=YES;
+    is_main=NO;attachment_image(a,"setImage:",image);assert(layout_invalidations==4);is_main=YES;
+    source->length=4097;attachment_image(a,"setImage:",square);assert(layout_invalidations==4);
+    source->length=3;assert(source->units[1]=='x' && !copies);owner_dealloc(owner,"dealloc");clock_dealloc(owner->target,"dealloc");
+}
+static void native_image_abi(void) {
+    image_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(bounds_original && !image_original);
+    unsigned count=installed;image_method.encoding="v24@0:8@16";tas_rn_composer_ui_retry_hooks();assert(image_original==(IMP)original_image && installed==count+1);
+    tas_rn_composer_ui_retry_hooks();assert(installed==count+1);
+}
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else if(!strcmp(argv[1],"nativegeometry"))native_geometry();else if(!strcmp(argv[1],"nativearrival"))native_arrival();else if(!strcmp(argv[1],"nativeimageabi"))native_image_abi();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -427,10 +476,11 @@ class RNComposerUITests(unittest.TestCase):
         source=(ROOT/'src/TASRNComposerUI.c').read_text()
         for obj,sel in [('ancestor','alpha'),('value','doubleValue'),('link','timestamp')]:
             source=source.replace(f'((double (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{sel}"))',f'test_double({obj},"{sel}")')
-        source=source.replace('#define ATTACHMENT', 'static Point test_point(id,id);\nstatic Rect test_rect(id,Range,id);\nstatic Insets test_insets(id);\nstatic Range test_range(id);\n#define ATTACHMENT')
+        source=source.replace('#define ATTACHMENT', 'static Size test_size(id);\nstatic Point test_point(id,id);\nstatic Rect test_rect(id,Range,id);\nstatic Insets test_insets(id);\nstatic Range test_range(id);\n#define ATTACHMENT')
         source=source.replace('((Point (*)(id,SEL,id))objc_msgSend)(location,sel_registerName("locationInView:"),editor)', 'test_point(location,editor)')
         source=source.replace('((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"))', 'test_insets(editor)')
         source=source.replace('((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container)', 'test_rect(manager,(Range){glyph,1},container)')
+        source=source.replace('((Size (*)(id,SEL))objc_msgSend)(image,sel_registerName("size"))', 'test_size(image)')
         source=source.replace('((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"))', 'test_range(item)')
         (p/'composer.c').write_text(source);(p/'test.c').write_text(HARNESS);cls.binary=p/'test'
         zig=os.environ.get('ZIG') or shutil.which('zig');assert zig
@@ -457,3 +507,8 @@ class RNComposerUITests(unittest.TestCase):
     def test_cursor_guard_requires_both_selection_abis_and_retries(self):self.run_mode('cursorabi')
 
     def test_late_suggestion_cursor_prop_checks_live_draft_and_preserves_native_props(self):self.run_mode('latecursor')
+
+    def test_native_emoticon_image_aspect_arrival_scale_and_guarded_fallback(self):self.run_mode('nativegeometry')
+
+    def test_native_cold_image_layout_only_for_live_identity_and_changed_aspect(self):self.run_mode('nativearrival')
+    def test_native_image_setter_requires_exact_abi_and_installs_once(self):self.run_mode('nativeimageabi')

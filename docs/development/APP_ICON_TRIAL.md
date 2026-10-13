@@ -1,7 +1,9 @@
 # 3.1.0 build 1 — flat app-icon trial
 
 Branch: `dev/3.1.0`. Target donor: Twitch 31.5 (`262752111271985979`).
-This is a sideload packaging experiment; appearance and installation are pending device validation.
+This is a sideload packaging experiment. Build 1 installation, the Streamside icon,
+and automatic Liquid Glass conversion were confirmed on-device. The iOS/device
+and signing configuration were not recorded, so this is scoped trial evidence.
 
 ## Input and scope
 
@@ -46,7 +48,8 @@ appearances to iOS. It does not provide layered Icon Composer artwork.
 The donor sets `UIDesignRequiresCompatibility=YES` and `UIPrerenderedIcon=YES`.
 The trial changes the icon's pre-rendered flag but preserves the app-wide compatibility
 setting. It also leaves the donor's SDK metadata unchanged. Default icon effects under
-that combination are an observation to establish on-device, not a package-check result.
+that combination were subsequently confirmed in the build-1 device trial; this is
+observed appearance evidence, not a package-check result.
 Apple's [Liquid Glass overview](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass)
 and [Icon Composer guide](https://developer.apple.com/documentation/Xcode/creating-your-app-icon-using-icon-composer)
 describe the separate layered-icon route.
@@ -65,7 +68,7 @@ and two private donor/Hermes checks). All nine icon tests passed. Native framewo
 verification, both DEB builds, and developer-bundle verification passed. These results
 do not establish the Home Screen appearance or jailbreak-device behavior.
 
-Device checks:
+Remaining device evidence and follow-up checks:
 
 - Sign and install the build as an update; confirm settings and recent emotes remain.
 - Confirm the default Streamside logo in the Home Screen, App Library, search, and Settings.

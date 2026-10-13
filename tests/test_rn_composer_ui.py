@@ -1,4 +1,4 @@
-"""Production RN attachment geometry and preview clock with a small ObjC host."""
+"""Production RN attachment geometry, holds and preview clock with a small ObjC host."""
 import os
 import shutil
 import subprocess
@@ -20,19 +20,28 @@ struct Fake {
     id editor,next,identity,target,pending,value,window,parent,marked,image,items[8];
     unsigned char bytes[2048];uint16_t units[8];U length,count,index;
     double seconds,alpha;BOOL hidden,invalidated;int releases;
-    void *context;
+    void *context;Point point;Rect rect;Insets insets;Range range;
 };
-static struct Fake classes[32];static unsigned classes_count;
+static struct Fake classes[64];static unsigned classes_count;
 static id pool[512];static unsigned pool_count;
 static BOOL enabled=YES,is_main=YES,known=YES,bridge_available=YES;
 static double aspect=3;
 static unsigned copies,invalidations,assignments,originals,deallocs,bridge_calls;
 static ptrdiff_t url_gap=16;
 static struct Fake app={.cls="UIApplication"},mainqueue={.cls="NSOperationQueue"},runloop={.cls="NSRunLoop"},metadata={.cls="NSDictionary"};
-static id cache_data,clock_link;
+static id cache_data,clock_link,queued,shown;
+static BOOL modal=NO,present_ok=YES;
+static unsigned presentations,haptics,scheduled,added,removed;
+BOOL tas_emote_ui_modal_visible(id view){(void)view;return modal;}
+BOOL tas_emote_ui_present_details(id view,id data){assert(data==&metadata);presentations++;shown=view;return present_ok;}
+static Point test_point(id o,id editor){assert(editor);return o->point;}
+static Rect test_rect(id o,Range range,id container){assert(range.length==1 && container);return o->rect;}
+static Insets test_insets(id o){return o->insets;}
+static Range test_range(id o){return o->range;}
+
 static id fresh(const char *cls){id o=calloc(1,sizeof(*o));assert(pool_count<512);pool[pool_count++]=o;o->cls=cls;o->alpha=1;return o;}
 static id text(const char *s){id o=fresh("NSString");o->value=(id)s;return o;}
-Class objc_getClass(const char *s){for(unsigned i=0;i<classes_count;i++)if(!strcmp(classes[i].cls,s))return &classes[i];assert(classes_count<32);classes[classes_count].cls=s;return &classes[classes_count++];}
+Class objc_getClass(const char *s){for(unsigned i=0;i<classes_count;i++)if(!strcmp(classes[i].cls,s))return &classes[i];assert(classes_count<64);classes[classes_count].cls=s;return &classes[classes_count++];}
 Class object_getClass(id o){return o;}
 SEL sel_registerName(const char *s){return s;}
 Ivar class_getInstanceVariable(Class cls,const char *s){(void)cls;if(!strcmp(s,"url"))return (Ivar)(uintptr_t)offsetof(struct Fake,url);if(!strcmp(s,"loaded"))return (Ivar)(uintptr_t)(offsetof(struct Fake,url)+url_gap);if(!strcmp(s,"textView"))return (Ivar)(uintptr_t)offsetof(struct Fake,editor);if(!strcmp(s,"emoteMapDict"))return (Ivar)(uintptr_t)offsetof(struct Fake,next);if(!strcmp(s,"_state"))return (Ivar)(uintptr_t)offsetof(struct Fake,context);return NULL;}
@@ -85,6 +94,24 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"addToRunLoop:forMode:")){assert(va_arg(ap,id)==&runloop);assert(!strcmp((const char *)va_arg(ap,id)->value,"kCFRunLoopCommonModes"));}
     else if(!strcmp(sel,"mainRunLoop"))result=&runloop;
     else if(!strcmp(sel,"sharedApplication"))result=&app;
+    else if(!strcmp(sel,"view"))result=o->editor;
+    else if(!strcmp(sel,"state"))result=(id)(uintptr_t)o->index;
+    else if(!strcmp(sel,"initWithTarget:action:")){o->target=va_arg(ap,id);assert(!strcmp(va_arg(ap,SEL),"ssHold:"));result=o;}
+    else if(!strcmp(sel,"setMinimumPressDuration:"))assert(va_arg(ap,double)==0.5);
+    else if(!strcmp(sel,"setCancelsTouchesInView:"))assert(!va_arg(ap,int));
+    else if(!strcmp(sel,"setDelegate:"))o->target=va_arg(ap,id);
+    else if(!strcmp(sel,"addGestureRecognizer:")){id g=va_arg(ap,id);g->editor=o;added++;}
+    else if(!strcmp(sel,"removeGestureRecognizer:")){id g=va_arg(ap,id);g->editor=nil;removed++;}
+    else if(!strcmp(sel,"textContainer"))result=o->value;
+    else if(!strcmp(sel,"numberOfGlyphs"))result=(id)(uintptr_t)o->length;
+    else if(!strcmp(sel,"glyphIndexForPoint:inTextContainer:")){(void)va_arg(ap,Point);assert(va_arg(ap,id)==o);result=(id)(uintptr_t)o->index;}
+    else if(!strcmp(sel,"characterIndexForGlyphAtIndex:"))result=(id)(uintptr_t)va_arg(ap,U);
+    else if(!strcmp(sel,"performSelector:withObject:afterDelay:")){assert(!strcmp(va_arg(ap,SEL),"ssDetails:"));assert(!va_arg(ap,id) && va_arg(ap,double)==0);queued=o;scheduled++;}
+    else if(!strcmp(sel,"initWithStyle:")){assert(va_arg(ap,long)==0);result=o;}
+    else if(!strcmp(sel,"impactOccurred"))haptics++;
+    else if(!strcmp(sel,"respondsToSelector:")){SEL probe=va_arg(ap,SEL);result=(id)(uintptr_t)(!strcmp(o->cls,"UITextItem") && (!strcmp(probe,"textAttachment") || !strcmp(probe,"range")));}
+    else if(!strcmp(sel,"textAttachment"))result=o->image;
+    else if(!strcmp(sel,"configurationWithMenu:"))result=va_arg(ap,id);
     else if(!strcmp(sel,"window"))result=o->window;
     else if(!strcmp(sel,"superview"))result=o->parent;
     else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
@@ -107,12 +134,13 @@ static void original_dealloc(id self,SEL command){(void)self;(void)command;deall
 typedef struct {const char *encoding;IMP original;} TestMethod;
 static TestMethod bounds_method={"{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72",(IMP)original_bounds};
 static TestMethod view_method={"v16@0:8",(IMP)original_view},change_method={"v24@0:8@16",(IMP)original_change},dealloc_method={"v16@0:8",(IMP)original_dealloc};
-static unsigned installed;
-Method class_getInstanceMethod(Class cls,SEL sel){(void)cls;if(!strcmp(sel,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:"))return &bounds_method;if(!strcmp(sel,"dealloc"))return &dealloc_method;return strchr(sel,':') ? &change_method : &view_method;}
+static unsigned installed,optional_mode;
+static TestMethod item_method={"@40@0:8@16@24@32",(IMP)original_change},interaction_method={"B56@0:8@16@24{_NSRange=QQ}32q48",(IMP)original_change};
+Method class_getInstanceMethod(Class cls,SEL sel){(void)cls;if(strstr(sel,"menuConfigurationForTextItem"))return optional_mode ? &item_method : NULL;if(strstr(sel,"shouldInteractWithTextAttachment"))return optional_mode ? &interaction_method : NULL;if(!strcmp(sel,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:"))return &bounds_method;if(!strcmp(sel,"dealloc"))return &dealloc_method;return strchr(sel,':') ? &change_method : &view_method;}
 const char *method_getTypeEncoding(Method m){return ((TestMethod *)m)->encoding;}
 IMP method_getImplementation(Method m){return ((TestMethod *)m)->original;}
 IMP method_setImplementation(Method m,IMP hook){(void)m;(void)hook;installed++;return NULL;}
-BOOL class_addMethod(Class cls,SEL sel,IMP imp,const char *encoding){(void)sel;(void)imp;(void)encoding;return !strcmp(cls->cls,"StreamsideRNPreviewClock");}
+BOOL class_addMethod(Class cls,SEL sel,IMP imp,const char *encoding){(void)sel;(void)imp;(void)encoding;return !strcmp(cls->cls,"StreamsideRNPreviewClock") || (!strcmp(cls->cls,INPUT) && (strstr(sel,"menuConfigurationForTextItem") || strstr(sel,"shouldInteractWithTextAttachment")));}
 BOOL class_addIvar(Class cls,const char *name,size_t size,uint8_t alignment,const char *type){(void)cls;assert(!strcmp(name,"_state") && size==sizeof(State *) && alignment==3 && !strcmp(type,"^v"));return YES;}
 Class objc_allocateClassPair(Class base,const char *name,size_t n){(void)base;assert(!n);return objc_getClass(name);}
 void objc_registerClassPair(Class cls){(void)cls;}
@@ -195,7 +223,7 @@ static void cold_start(void) {
     owner->editor=editor;editor->window=window;editor->parent=window;editor->value=source;
     source->length=1;source->units[0]=0xfffc;source->items[0]=provider();
     /* Original token already exists while its first network request is pending. */
-    sync(owner);assert(!owner->target && !copies);
+    sync(owner);assert(owner->target && state(owner->target)->hold && !state(owner->target)->link && !copies);
     assert(owners && owners->count==1 && owners->items[0]==owner);
     sync(owner);assert(owners->count==1); /* pending owners are a weak set */
     id template=fresh("Animation"),delays=fresh("NSDictionary");template->value=delays;
@@ -214,10 +242,10 @@ static void cold_start(void) {
     id second=fresh(INPUT),editor2=fresh("TwitchEmoteInputView"),source2=fresh("NSAttributedString");
     second->editor=editor2;editor2->window=window;editor2->parent=window;editor2->value=source2;
     source2->length=1;source2->units[0]=0xfffc;source2->items[0]=provider();cache_data=nil;
-    sync(second);assert(!second->target && owners->count==2);
+    sync(second);assert(second->target && !state(second->target)->link && owners->count==2);
     source2->length=0;source2->items[0]=nil;
     tas_rn_composer_ui_image(900000000000001ULL,data,response,nil);
-    assert(!second->target && copies==1 && s->frames[0].index==1);
+    assert(!state(second->target)->link && copies==1 && s->frames[0].index==1);
     assert(source->length==1 && source->units[0]==0xfffc); /* no edit/retype required */
     owner_dealloc(owner,"dealloc");clock_dealloc(owner->target,"dealloc");
 }
@@ -248,9 +276,90 @@ static void composition(void) {
     owner->editor=nil;value(owner,"setValue:",prediction);assert(originals==8);
     owner->editor=editor;editor->marked=fresh("UITextRange");enabled=NO;changed(owner,"textViewDidChange:",editor);assert(originals==9);
 }
+
+static id detail_owner,detail_editor,detail_source,detail_target,detail_gesture;
+static void setup_details(void) {
+    tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
+    detail_owner=fresh(INPUT);detail_editor=fresh("TwitchEmoteInputView");detail_source=fresh("NSAttributedString");
+    detail_owner->editor=detail_editor;detail_editor->window=fresh("UIWindow");detail_editor->value=detail_source;
+    detail_editor->insets=(Insets){.top=8,.left=4};
+    detail_source->length=3;detail_source->units[0]=detail_source->units[2]=0xfffc;detail_source->units[1]='x';
+    detail_source->items[0]=provider();detail_source->items[2]=attachment("https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0");
+    detail_source->rect=(Rect){{0,0},{24,24}};
+    sync(detail_owner);detail_target=detail_owner->target;detail_gesture=state(detail_target)->hold;
+    if(!optional_mode)assert(detail_gesture && added==1 && !state(detail_target)->link);
+    if(detail_gesture){detail_gesture->point=(Point){12,16};detail_gesture->index=1;}
+}
+static void detail_hits(void) {
+    setup_details();Range r={0};id touch=fresh("UITouch");touch->point=detail_gesture->point;
+    assert(attachment_at_point(detail_target,detail_gesture,touch,&r)==detail_source->items[0] && r.location==0 && r.length==1);
+    assert(hold_receive_touch(detail_target,"touch",detail_gesture,touch));
+    assert(hold_should_begin(detail_target,"begin",detail_gesture));
+    id native=fresh("Gesture"),child=fresh("UIView");native->editor=child;child->parent=detail_editor;
+    assert(hold_priority(detail_target,"priority",detail_gesture,native));
+    native->editor=fresh("UIView");assert(!hold_priority(detail_target,"priority",detail_gesture,native));
+    assert(!hold_priority(detail_target,"priority",detail_gesture,detail_gesture));
+    touch->point=(Point){100,16};assert(!hold_receive_touch(detail_target,"touch",detail_gesture,touch));
+    native->editor=detail_editor;assert(!hold_priority(detail_target,"priority",detail_gesture,native));
+    detail_source->index=1;assert(!attachment_at_point(detail_target,detail_gesture,detail_gesture,&r)); /* text */
+    detail_source->index=2;assert(!attachment_at_point(detail_target,detail_gesture,detail_gesture,&r)); /* native */
+    detail_source->index=3;assert(!attachment_at_point(detail_target,detail_gesture,detail_gesture,&r)); /* outside glyphs */
+    detail_source->index=0;detail_editor->marked=fresh("UITextRange");assert(!hold_should_begin(detail_target,"begin",detail_gesture));detail_editor->marked=nil;
+    modal=YES;assert(!hold_should_begin(detail_target,"begin",detail_gesture));modal=NO;
+    enabled=NO;assert(!hold_should_begin(detail_target,"begin",detail_gesture));enabled=YES;
+    detail_editor->window=nil;assert(!hold_should_begin(detail_target,"begin",detail_gesture));
+    detail_editor->window=fresh("UIWindow");detail_gesture->point.x=NAN;assert(!hold_should_begin(detail_target,"begin",detail_gesture));
+    sync(detail_owner);assert(added==1); /* no duplicate recognizers */
+}
+static void detail_safety(void) {
+    setup_details();
+    detail_gesture->index=2;hold(detail_target,"hold",detail_gesture);assert(!scheduled);
+    detail_gesture->index=1;hold(detail_target,"hold",detail_gesture);hold(detail_target,"hold",detail_gesture);
+    assert(scheduled==1 && queued==detail_target && !presentations);
+    details(queued,"details",nil);assert(presentations==1 && shown==detail_owner && haptics==1 && GET(details_holds)==1 && !state(queued)->details_attachment);
+    details(queued,"details",nil);assert(presentations==1 && haptics==1);
+    hold(detail_target,"hold",detail_gesture);id original=detail_source->items[0];detail_source->items[0]=provider();
+    details(queued,"details",nil);assert(presentations==1); /* same ID, replaced native attachment */
+    detail_source->items[0]=original;hold(detail_target,"hold",detail_gesture);detail_editor->marked=fresh("UITextRange");
+    details(queued,"details",nil);assert(presentations==1);detail_editor->marked=nil;
+    hold(detail_target,"hold",detail_gesture);modal=YES;details(queued,"details",nil);assert(presentations==1);modal=NO;
+    hold(detail_target,"hold",detail_gesture);known=NO;details(queued,"details",nil);assert(presentations==1);known=YES; /* metadata refreshed */
+    hold(detail_target,"hold",detail_gesture);present_ok=NO;details(queued,"details",nil);assert(presentations==2 && haptics==1);
+    hold(detail_target,"hold",detail_gesture);state(detail_target)->owner=nil;details(queued,"details",nil);assert(presentations==2);state(detail_target)->owner=detail_owner;
+    hold(detail_target,"hold",detail_gesture);owner_dealloc(detail_owner,"dealloc");
+    assert(!state(detail_target)->hold && !state(detail_target)->details_attachment && removed==1 && !detail_gesture->target);
+    details(queued,"details",nil);assert(presentations==2);clock_dealloc(detail_target,"dealloc");
+    assert(detail_source->length==3 && detail_source->units[1]=='x');
+}
+static id original_menu(id owner,SEL command,id editor,id item,id menu){(void)owner;(void)command;(void)editor;(void)item;originals++;return menu;}
+static BOOL original_interaction(id owner,SEL command,id editor,id attachment,Range range,long interaction){(void)owner;(void)command;(void)editor;(void)attachment;assert(range.length==1 && interaction==2);originals++;return NO;}
+static void detail_menus(void) {
+    setup_details();id item=fresh("UITextItem"),menu=fresh("UIMenu");item->range=(Range){0,1};item->image=detail_source->items[0];
+    item_menu_original=(IMP)original_menu;interaction_original=(IMP)original_interaction;
+    assert(!item_menu(detail_owner,"menu",detail_editor,item,menu));
+    assert(!attachment_interaction(detail_owner,"interact",detail_editor,item->image,item->range,2) && !originals);
+    item->range=(Range){2,1};item->image=detail_source->items[2];
+    assert(item_menu(detail_owner,"menu",detail_editor,item,menu)==menu);
+    assert(!attachment_interaction(detail_owner,"interact",detail_editor,item->image,item->range,2) && originals==2);
+    item_menu_original=NULL;interaction_original=NULL;
+    assert(item_menu(detail_owner,"menu",detail_editor,item,menu)==menu);
+    assert(attachment_interaction(detail_owner,"interact",detail_editor,item->image,item->range,2));
+    item->range=(Range){0,2};item->image=detail_source->items[0];assert(item_menu(detail_owner,"menu",detail_editor,item,menu)==menu);
+    item->range=(Range){~0UL,1};assert(item_menu(detail_owner,"menu",detail_editor,item,menu)==menu);
+    item->range=(Range){0,1};clear_hold(state(detail_target));assert(item_menu(detail_owner,"menu",detail_editor,item,menu)==menu);
+    assert(attachment_interaction(detail_owner,"interact",detail_editor,item->image,item->range,2));
+}
+static void detail_abi(void) {
+    optional_mode=1;item_method.encoding="v16@0:8";interaction_method.encoding="v16@0:8";
+    setup_details();assert(!item_menu_installed && !interaction_installed && !state(detail_target)->hold && !added);
+    item_method.encoding="@40@0:8@16@24@32";interaction_method.encoding="B56@0:8@16@24{_NSRange=QQ}32q48";
+    tas_rn_composer_ui_retry_hooks();sync(detail_owner);
+    assert(item_menu_installed && interaction_installed && item_menu_original && interaction_original && state(detail_target)->hold && added==1);
+    unsigned count=installed;tas_rn_composer_ui_retry_hooks();sync(detail_owner);assert(installed==count && added==1);
+}
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -264,6 +373,11 @@ class RNComposerUITests(unittest.TestCase):
         source=(ROOT/'src/TASRNComposerUI.c').read_text()
         for obj,sel in [('ancestor','alpha'),('value','doubleValue'),('link','timestamp')]:
             source=source.replace(f'((double (*)(id,SEL))objc_msgSend)({obj},sel_registerName("{sel}"))',f'test_double({obj},"{sel}")')
+        source=source.replace('#define ATTACHMENT', 'static Point test_point(id,id);\nstatic Rect test_rect(id,Range,id);\nstatic Insets test_insets(id);\nstatic Range test_range(id);\n#define ATTACHMENT')
+        source=source.replace('((Point (*)(id,SEL,id))objc_msgSend)(location,sel_registerName("locationInView:"),editor)', 'test_point(location,editor)')
+        source=source.replace('((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"))', 'test_insets(editor)')
+        source=source.replace('((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container)', 'test_rect(manager,(Range){glyph,1},container)')
+        source=source.replace('((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"))', 'test_range(item)')
         (p/'composer.c').write_text(source);(p/'test.c').write_text(HARNESS);cls.binary=p/'test'
         zig=os.environ.get('ZIG') or shutil.which('zig');assert zig
         result=subprocess.run([zig,'cc','-fblocks','-Wall','-Wextra','-Werror','-Wno-cast-function-type-mismatch','-fsanitize=address,undefined','-ffunction-sections','-fdata-sections','-I',str(p),'-I',str(ROOT/'src'),str(p/'test.c'),'-Wl,--gc-sections','-pthread','-o',str(cls.binary)],capture_output=True,text=True)
@@ -277,3 +391,9 @@ class RNComposerUITests(unittest.TestCase):
     def test_exact_abi_preference_retry_and_idempotent_hooks(self):self.run_mode('install')
     def test_first_download_starts_original_attachment_without_retyping(self):self.run_mode('cold')
     def test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft(self):self.run_mode('composition')
+
+    def test_hold_admission_hit_bounds_native_text_ime_modal_and_priority(self):self.run_mode('hits')
+    def test_deferred_details_live_identity_metadata_teardown_and_one_haptic(self):self.run_mode('safety')
+    def test_provider_menu_suppression_and_original_native_fallback(self):self.run_mode('menus')
+
+    def test_optional_menu_hooks_refuse_unknown_abi_and_retry_existing_methods(self):self.run_mode('abi')

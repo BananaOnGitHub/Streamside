@@ -3,6 +3,7 @@
 #include "TASRNComposerUI.h"
 #include "TASRNComposerModel.h"
 #include "TASEmotes.h"
+#include "TASEmoteUI.h"
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <dlfcn.h>
@@ -15,6 +16,7 @@ typedef struct {double x,y;} Point;
 typedef struct {double width,height;} Size;
 typedef struct {Point origin;Size size;} Rect;
 typedef struct {U location,length;} Range;
+typedef struct {double top,left,bottom,right;} Insets;
 #define ATTACHMENT "_TtC21twitch_rn_emote_input21TwitchEmoteAttachment"
 #define INPUT "_TtC21twitch_rn_emote_input20TwitchEmoteInputView"
 #define MAX_FRAMES 128
@@ -28,12 +30,15 @@ extern void objc_setAssociatedObject(id,const void *,id,uintptr_t);
 typedef id (__attribute__((swiftcall)) *StringBridge)(uint64_t,uint64_t);
 static StringBridge bridge_string;
 static IMP bounds_original,layout_original,change_original,selection_original,move_original,value_original,map_original,dealloc_original,target_dealloc;
+static IMP item_menu_original,interaction_original;
+static BOOL item_menu_installed,interaction_installed;
 static Class clock_class;
 static ptrdiff_t clock_offset;
 static id image_bytes,owners;
 static char identity_key,state_key,pending_map_key;
 static pthread_mutex_t install_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t bounds_calls,sized,syncs,decoders,advances,ticks,refused,images,provisional;
+static uint64_t details_holds;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
@@ -117,14 +122,19 @@ void tas_rn_composer_ui_image(uint64_t number,id data,id response,id error) {
     });
 }
 typedef struct {id attachment,animation;U location,index,cost;double elapsed;} Frame;
-typedef struct {id owner,link;double timestamp;U count;Frame frames[MAX_FRAMES];} State;
+typedef struct {id owner,link,hold,details_attachment;BOOL hold_touch;double timestamp;U count;Frame frames[MAX_FRAMES];} State;
 static State *state(id target){State *s=NULL;if(target)memcpy(&s,(char *)target+clock_offset,sizeof(s));return s;}
 static void clear_frames(State *s) {
     for(U i=0;i<s->count;i++){objc_release(s->frames[i].attachment);objc_release(s->frames[i].animation);}
     s->count=0;
 }
 static void stop(State *s){id link=s->link;s->link=nil;s->timestamp=0;m0(link,"invalidate");objc_release(link);}
-static void clock_dealloc(id self,SEL command){State *s=state(self);if(s){stop(s);clear_frames(s);objc_destroyWeak(&s->owner);free(s);}((void (*)(id,SEL))target_dealloc)(self,command);}
+static void clear_hold(State *s) {
+    v1(m0(s->hold,"view"),"removeGestureRecognizer:",s->hold);
+    v1(s->hold,"setDelegate:",nil);objc_release(s->hold);s->hold=nil;s->hold_touch=NO;
+    objc_release(s->details_attachment);s->details_attachment=nil;
+}
+static void clock_dealloc(id self,SEL command){State *s=state(self);if(s){stop(s);clear_frames(s);clear_hold(s);objc_destroyWeak(&s->owner);free(s);}((void (*)(id,SEL))target_dealloc)(self,command);}
 static BOOL visible(id editor) {
     if (!editor || !m0(editor,"window") || integer(m0((id)objc_getClass("UIApplication"),"sharedApplication"),"applicationState")) return NO;
     id ancestor=editor;
@@ -133,6 +143,109 @@ static BOOL visible(id editor) {
     return ancestor==nil;
 }
 static id attachment_at(id source,U location){return ((id (*)(id,SEL,id,U,Range *))objc_msgSend)(source,sel_registerName("attribute:atIndex:effectiveRange:"),str("NSAttachment"),location,NULL);}
+/* Read the live attributed text, never a draft string or arbitrary image.
+ * Suppress UIKit menus only when our recognizer is attached to this editor. */
+static BOOL owned_attachment_at(id owner,id editor,id attachment,Range range) {
+    State *s=state(objc_getAssociatedObject(owner,&state_key));
+    if(!tas_emotes_enabled_this_launch() || !main_thread() || !s || !s->hold ||
+        editor!=editor_for(owner) || m0(s->hold,"view")!=editor || !visible(editor) ||
+        m0(editor,"markedTextRange") || !attachment || range.length!=1)return NO;
+    id source=m0(editor,"attributedText");U length=integer(source,"length");
+    return length<=4096 && range.location<length &&
+        ((uint16_t (*)(id,SEL,U))objc_msgSend)(m0(source,"string"),sel_registerName("characterAtIndex:"),range.location)==0xfffc &&
+        attachment_at(source,range.location)==attachment && attachment_number(attachment)!=0;
+}
+static id attachment_at_point(id target,id gesture,id location,Range *range) {
+    State *s=state(target);if(!s || gesture!=s->hold)return nil;
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner),attachment=nil;
+    if(editor && m0(gesture,"view")==editor && visible(editor) && !m0(editor,"markedTextRange") &&
+        !tas_emote_ui_modal_visible(owner)) {
+        Point point=((Point (*)(id,SEL,id))objc_msgSend)(location,sel_registerName("locationInView:"),editor);
+        Insets inset=((Insets (*)(id,SEL))objc_msgSend)(editor,sel_registerName("textContainerInset"));
+        point.x-=inset.left;point.y-=inset.top;
+        id manager=m0(editor,"layoutManager"),container=m0(editor,"textContainer");
+        if(manager && container && isfinite(point.x) && isfinite(point.y)) {
+            U glyph=((U (*)(id,SEL,Point,id))objc_msgSend)(manager,sel_registerName("glyphIndexForPoint:inTextContainer:"),point,container);
+            if(glyph<integer(manager,"numberOfGlyphs")) {
+                U index=((U (*)(id,SEL,U))objc_msgSend)(manager,sel_registerName("characterIndexForGlyphAtIndex:"),glyph);
+                Rect bounds=((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container);
+                id source=m0(editor,"attributedText");
+                /* TextKit's nearest glyph can be outside the actual text. */
+                if(index<integer(source,"length") && point.x>=bounds.origin.x && point.y>=bounds.origin.y &&
+                    point.x<bounds.origin.x+bounds.size.width && point.y<bounds.origin.y+bounds.size.height) {
+                    id candidate=attachment_at(source,index);
+                    if(owned_attachment_at(owner,editor,candidate,(Range){index,1})) {attachment=candidate;*range=(Range){index,1};}
+                }
+            }
+        }
+    }
+    objc_release(owner);return attachment;
+}
+static BOOL hold_receive_touch(id self,SEL command,id gesture,id touch) {
+    (void)command;State *s=state(self);Range range={0};
+    if(!s || gesture!=s->hold)return YES;
+    s->hold_touch=attachment_at_point(self,gesture,touch,&range)!=nil;return s->hold_touch;
+}
+static BOOL hold_should_begin(id self,SEL command,id gesture) {
+    (void)command;State *s=state(self);Range range={0};
+    return !s || gesture!=s->hold || attachment_at_point(self,gesture,gesture,&range)!=nil;
+}
+static BOOL hold_priority(id self,SEL command,id gesture,id other) {
+    (void)command;State *s=state(self);
+    if(!s || gesture!=s->hold || gesture==other || !s->hold_touch)return NO;
+    id editor=m0(gesture,"view"),view=m0(other,"view");
+    for(U depth=0;editor && view && depth<12;depth++,view=m0(view,"superview"))if(view==editor)return YES;
+    return NO;
+}
+static void details(id self,SEL command,id object) {
+    (void)command;(void)object;State *s=state(self);if(!s)return;
+    id attachment=s->details_attachment;s->details_attachment=nil;
+    id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
+    /* Recheck identity after UIKit has finished processing the gesture. A
+     * deleted/rebuilt attachment, detached chat or pending modal cannot open. */
+    U length=integer(m0(editor,"attributedText"),"length");
+    if(attachment && length<=4096 && !tas_emote_ui_modal_visible(owner))for(U i=0;i<length;i++) {
+        if(!owned_attachment_at(owner,editor,attachment,(Range){i,1}))continue;
+        id metadata=tas_emotes_metadata_copy(attachment_number(attachment));
+        if(metadata && tas_emote_ui_present_details(owner,metadata)) {
+            INC(details_holds);
+            id feedback=((id (*)(id,SEL,long))objc_msgSend)(m0((id)objc_getClass("UIImpactFeedbackGenerator"),"alloc"),sel_registerName("initWithStyle:"),0);
+            m0(feedback,"impactOccurred");objc_release(feedback);
+        }
+        objc_release(metadata);break;
+    }
+    objc_release(attachment);objc_release(owner);
+}
+static void hold(id self,SEL command,id gesture) {
+    (void)command;if(integer(gesture,"state")!=1)return; /* Began only. */
+    Range range={0};id attachment=attachment_at_point(self,gesture,gesture,&range);State *s=state(self);
+    if(!attachment || !s || s->details_attachment)return;
+    s->details_attachment=objc_retain(attachment);
+    ((void (*)(id,SEL,SEL,id,double))objc_msgSend)(self,sel_registerName("performSelector:withObject:afterDelay:"),sel_registerName("ssDetails:"),nil,0.0);
+}
+static void install_hold(id target,id editor) {
+    State *s=state(target);
+    if(!s || !interaction_installed || (objc_getClass("UITextItem") && !item_menu_installed))return;
+    if(s->hold && m0(s->hold,"view")==editor)return;
+    clear_hold(s);
+    s->hold=((id (*)(id,SEL,id,SEL))objc_msgSend)(m0((id)objc_getClass("UILongPressGestureRecognizer"),"alloc"),sel_registerName("initWithTarget:action:"),target,sel_registerName("ssHold:"));
+    ((void (*)(id,SEL,double))objc_msgSend)(s->hold,sel_registerName("setMinimumPressDuration:"),0.5);
+    ((void (*)(id,SEL,BOOL))objc_msgSend)(s->hold,sel_registerName("setCancelsTouchesInView:"),NO);
+    v1(s->hold,"setDelegate:",target);v1(editor,"addGestureRecognizer:",s->hold);
+}
+static id item_menu(id owner,SEL command,id editor,id item,id menu) {
+    if(((BOOL (*)(id,SEL,SEL))objc_msgSend)(item,sel_registerName("respondsToSelector:"),sel_registerName("textAttachment")) &&
+        ((BOOL (*)(id,SEL,SEL))objc_msgSend)(item,sel_registerName("respondsToSelector:"),sel_registerName("range"))) {
+        Range range=((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"));
+        if(owned_attachment_at(owner,editor,m0(item,"textAttachment"),range))return nil;
+    }
+    return item_menu_original ? ((id (*)(id,SEL,id,id,id))item_menu_original)(owner,command,editor,item,menu) :
+        m1((id)objc_getClass("UITextItemMenuConfiguration"),"configurationWithMenu:",menu);
+}
+static BOOL attachment_interaction(id owner,SEL command,id editor,id attachment,Range range,long interaction) {
+    if(owned_attachment_at(owner,editor,attachment,range))return NO;
+    return interaction_original ? ((BOOL (*)(id,SEL,id,id,Range,long))interaction_original)(owner,command,editor,attachment,range,interaction) : YES;
+}
 static double delay_at(Frame *f) {
     id value=m1(m0(f->animation,"delayTimesForIndexes"),"objectForKey:",num(f->index));
     return tas_rn_composer_delay(((double (*)(id,SEL))objc_msgSend)(value,sel_registerName("doubleValue")));
@@ -177,6 +290,14 @@ static void sync(id owner) {
     if(m0(editor,"markedTextRange"))return;
     id source=m0(editor,"attributedText");U length=integer(source,"length");
     if(length>4096){if(s){stop(s);clear_frames(s);}INC(refused);return;}
+    if(!s) {
+        target=m0((id)clock_class,"new");s=calloc(1,sizeof(*s));
+        if(s && target){objc_initWeak(&s->owner,owner);memcpy((char *)target+clock_offset,&s,sizeof(s));associate(owner,&state_key,target);}
+        else {free(s);s=NULL;}
+        objc_release(target);
+    }
+    /* Holds must work for static and cold emotes as well as decoded GIFs. */
+    if(s)install_hold(target,editor);
     Frame frames[MAX_FRAMES];U n=0,total_cost=0;id string=m0(source,"string");
     for(U i=0;i<length && n<MAX_FRAMES;i++) {
         if(((uint16_t (*)(id,SEL,U))objc_msgSend)(string,sel_registerName("characterAtIndex:"),i)!=0xfffc)continue;
@@ -212,12 +333,6 @@ static void sync(id owner) {
         }
         total_cost+=f.cost;
         objc_retain(f.attachment);frames[n++]=f;
-    }
-    if(!s && n) {
-        target=m0((id)clock_class,"new");s=calloc(1,sizeof(*s));
-        if(s && target){objc_initWeak(&s->owner,owner);memcpy((char *)target+clock_offset,&s,sizeof(s));associate(owner,&state_key,target);}
-        else {free(s);s=NULL;}
-        objc_release(target);
     }
     if(!s){for(U i=0;i<n;i++){objc_release(frames[i].attachment);objc_release(frames[i].animation);}return;}
     clear_frames(s);memcpy(s->frames,frames,n*sizeof(*frames));s->count=n;
@@ -263,12 +378,19 @@ static void selection(id self,SEL command,id editor){if(composing(self)){INC(pro
 static void moved(id self,SEL command){((void (*)(id,SEL))move_original)(self,command);sync(self);}
 static void value(id self,SEL command,id text){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))value_original)(self,command,text);flush_map(self);sync(self);}
 static void emote_map(id self,SEL command,id map){if(composing(self)){associate(self,&pending_map_key,map ? map : m0((id)objc_getClass("NSNull"),"null"));INC(provisional);return;}associate(self,&pending_map_key,nil);((void (*)(id,SEL,id))map_original)(self,command,map);sync(self);}
-static void owner_dealloc(id self,SEL command){id target=objc_getAssociatedObject(self,&state_key);if(target){State *s=state(target);if(s){stop(s);clear_frames(s);}}((void (*)(id,SEL))dealloc_original)(self,command);}
+static void owner_dealloc(id self,SEL command){id target=objc_getAssociatedObject(self,&state_key);if(target){State *s=state(target);if(s){stop(s);clear_frames(s);clear_hold(s);}}((void (*)(id,SEL))dealloc_original)(self,command);}
 static void install(Class cls,const char *selector,const char *encoding,IMP replacement,IMP *original) {
     if(!cls || *original)return;Method method=class_getInstanceMethod(cls,sel_registerName(selector));
     if(!method || strcmp(method_getTypeEncoding(method),encoding))return;
     *original=method_getImplementation(method);
     if(!class_addMethod(cls,sel_registerName(selector),replacement,encoding))method_setImplementation(method,replacement);
+}
+static BOOL optional_input_hook(Class cls,const char *selector,const char *encoding,IMP replacement,IMP *original) {
+    if(!cls)return NO;
+    if(class_getInstanceMethod(cls,sel_registerName(selector))) {
+        install(cls,selector,encoding,replacement,original);return *original!=NULL;
+    }
+    return class_addMethod(cls,sel_registerName(selector),replacement,encoding);
 }
 void tas_rn_composer_ui_retry_hooks(void) {
     if(!tas_emotes_enabled_this_launch())return;
@@ -278,6 +400,11 @@ void tas_rn_composer_ui_retry_hooks(void) {
         Class cls=objc_allocateClassPair(objc_getClass("NSObject"),"StreamsideRNPreviewClock",0);
         if(cls && class_addIvar(cls,"_state",sizeof(State *),3,"^v") &&
             class_addMethod(cls,sel_registerName("ssTick:"),(IMP)animate,"v24@0:8@16") &&
+            class_addMethod(cls,sel_registerName("ssHold:"),(IMP)hold,"v24@0:8@16") &&
+            class_addMethod(cls,sel_registerName("ssDetails:"),(IMP)details,"v24@0:8@16") &&
+            class_addMethod(cls,sel_registerName("gestureRecognizerShouldBegin:"),(IMP)hold_should_begin,"B24@0:8@16") &&
+            class_addMethod(cls,sel_registerName("gestureRecognizer:shouldReceiveTouch:"),(IMP)hold_receive_touch,"B32@0:8@16@24") &&
+            class_addMethod(cls,sel_registerName("gestureRecognizer:shouldBeRequiredToFailByGestureRecognizer:"),(IMP)hold_priority,"B32@0:8@16@24") &&
             class_addMethod(cls,sel_registerName("dealloc"),(IMP)clock_dealloc,"v16@0:8")) {
             target_dealloc=class_getMethodImplementation(objc_getClass("NSObject"),sel_registerName("dealloc"));
             objc_registerClassPair(cls);clock_class=cls;clock_offset=ivar_getOffset(class_getInstanceVariable(cls,"_state"));
@@ -292,6 +419,8 @@ void tas_rn_composer_ui_retry_hooks(void) {
     install(input,"setValue:","v24@0:8@16",(IMP)value,&value_original);
     install(input,"setEmoteMap:","v24@0:8@16",(IMP)emote_map,&map_original);
     install(input,"dealloc","v16@0:8",(IMP)owner_dealloc,&dealloc_original);
+    if(!item_menu_installed && objc_getClass("UITextItem"))item_menu_installed=optional_input_hook(input,"textView:menuConfigurationForTextItem:defaultMenu:","@40@0:8@16@24@32",(IMP)item_menu,&item_menu_original);
+    if(!interaction_installed)interaction_installed=optional_input_hook(input,"textView:shouldInteractWithTextAttachment:inRange:interaction:","B56@0:8@16@24{_NSRange=QQ}32q48",(IMP)attachment_interaction,&interaction_original);
     pthread_mutex_unlock(&install_lock);
     /* The existing launch/foreground observer retries these hooks. */
     sync_owners();
@@ -301,10 +430,12 @@ void tas_rn_composer_ui_status(char *buffer,size_t capacity) {
     snprintf(buffer,capacity,"\nRN native input previews (this launch)\n"
         "Hooks (bounds/layout/change/selection/window/value/map/dealloc)/String bridge: %s/%s/%s/%s/%s/%s/%s/%s/%s\n"
         "Provisional callbacks/props held: %llu\n"
+        "Provider hold hooks (item menu/attachment)/details shown: %s/%s/%llu\n"
         "Bounds/sizes/syncs/GIF bodies/decoders/ticks/advances/refused: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
         bounds_original ? "installed":"missing",layout_original ? "installed":"missing",change_original ? "installed":"missing",
         selection_original ? "installed":"missing",move_original ? "installed":"missing",value_original ? "installed":"missing",
         map_original ? "installed":"missing",dealloc_original ? "installed":"missing",bridge_string ? "available":"missing",(unsigned long long)GET(provisional),
+        item_menu_installed ? "installed":"missing",interaction_installed ? "installed":"missing",(unsigned long long)GET(details_holds),
         (unsigned long long)GET(bounds_calls),(unsigned long long)GET(sized),(unsigned long long)GET(syncs),(unsigned long long)GET(images),
         (unsigned long long)GET(decoders),(unsigned long long)GET(ticks),(unsigned long long)GET(advances),(unsigned long long)GET(refused));
 }

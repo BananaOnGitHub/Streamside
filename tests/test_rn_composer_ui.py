@@ -20,14 +20,14 @@ struct Fake {
     id editor,next,identity,target,pending,value,window,parent,marked,image,items[8];
     unsigned char bytes[2048];uint16_t units[8];U length,count,index;
     double seconds,alpha;BOOL hidden,invalidated;int releases;
-    void *context;Point point;Rect rect;Insets insets;Range range;
+    id prop_selection;uint64_t plain[2];id plain_cache;uint64_t generation,queued_generation;BOOL accept_edit;void *context;Point point;Rect rect;Insets insets;Range range;
 };
 static struct Fake classes[64];static unsigned classes_count;
 static id pool[512];static unsigned pool_count;
 static BOOL enabled=YES,is_main=YES,known=YES,bridge_available=YES;
 static double aspect=3;
 static unsigned copies,invalidations,assignments,originals,deallocs,bridge_calls;
-static ptrdiff_t url_gap=16;
+static ptrdiff_t url_gap=16,plain_gap=16;
 static struct Fake app={.cls="UIApplication"},mainqueue={.cls="NSOperationQueue"},runloop={.cls="NSRunLoop"},metadata={.cls="NSDictionary"};
 static id cache_data,clock_link,queued,shown;
 static BOOL modal=NO,present_ok=YES;
@@ -44,7 +44,7 @@ static id text(const char *s){id o=fresh("NSString");o->value=(id)s;return o;}
 Class objc_getClass(const char *s){for(unsigned i=0;i<classes_count;i++)if(!strcmp(classes[i].cls,s))return &classes[i];assert(classes_count<64);classes[classes_count].cls=s;return &classes[classes_count++];}
 Class object_getClass(id o){return o;}
 SEL sel_registerName(const char *s){return s;}
-Ivar class_getInstanceVariable(Class cls,const char *s){(void)cls;if(!strcmp(s,"url"))return (Ivar)(uintptr_t)offsetof(struct Fake,url);if(!strcmp(s,"loaded"))return (Ivar)(uintptr_t)(offsetof(struct Fake,url)+url_gap);if(!strcmp(s,"textView"))return (Ivar)(uintptr_t)offsetof(struct Fake,editor);if(!strcmp(s,"emoteMapDict"))return (Ivar)(uintptr_t)offsetof(struct Fake,next);if(!strcmp(s,"_state"))return (Ivar)(uintptr_t)offsetof(struct Fake,context);return NULL;}
+Ivar class_getInstanceVariable(Class cls,const char *s){(void)cls;if(!strcmp(s,"url"))return (Ivar)(uintptr_t)offsetof(struct Fake,url);if(!strcmp(s,"loaded"))return (Ivar)(uintptr_t)(offsetof(struct Fake,url)+url_gap);if(!strcmp(s,"textView"))return (Ivar)(uintptr_t)offsetof(struct Fake,editor);if(!strcmp(s,"emoteMapDict"))return (Ivar)(uintptr_t)offsetof(struct Fake,next);if(!strcmp(s,"currentPlainText"))return (Ivar)(uintptr_t)offsetof(struct Fake,plain);if(!strcmp(s,"imageCache"))return (Ivar)(uintptr_t)(offsetof(struct Fake,plain)+plain_gap);if(!strcmp(s,"_state"))return (Ivar)(uintptr_t)offsetof(struct Fake,context);return NULL;}
 ptrdiff_t ivar_getOffset(Ivar v){return (ptrdiff_t)(uintptr_t)v;}
 size_t class_getInstanceSize(Class cls){(void)cls;return sizeof(struct Fake);}
 id objc_retain(id o){return o;}
@@ -67,6 +67,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"isKindOfClass:")){Class c=va_arg(ap,Class);result=(id)(uintptr_t)(!strcmp(o->cls,c->cls) || (!strcmp(o->cls,"TwitchEmoteInputView") && !strcmp(c->cls,"UITextView")));}
     else if(!strcmp(sel,"stringWithUTF8String:"))result=text(va_arg(ap,const char *));
     else if(!strcmp(sel,"null"))result=fresh("NSNull");
+    else if(!strcmp(sel,"isEqualToString:")){id other=va_arg(ap,id);result=(id)(uintptr_t)!strcmp((const char *)o->value,(const char *)other->value);}
     else if(!strcmp(sel,"UTF8String"))result=o->value;
     else if(!strcmp(sel,"numberWithUnsignedLongLong:")){result=fresh("NSNumber");result->index=va_arg(ap,uint64_t);}
     else if(!strcmp(sel,"unsignedLongLongValue") || !strcmp(sel,"posterImageFrameIndex") || !strcmp(sel,"applicationState"))result=(id)(uintptr_t)o->index;
@@ -95,6 +96,7 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"mainRunLoop"))result=&runloop;
     else if(!strcmp(sel,"sharedApplication"))result=&app;
     else if(!strcmp(sel,"view"))result=o->editor;
+    else if(!strcmp(sel,"selection"))result=o->prop_selection;
     else if(!strcmp(sel,"state"))result=(id)(uintptr_t)o->index;
     else if(!strcmp(sel,"initWithTarget:action:")){o->target=va_arg(ap,id);assert(!strcmp(va_arg(ap,SEL),"ssHold:"));result=o;}
     else if(!strcmp(sel,"setMinimumPressDuration:"))assert(va_arg(ap,double)==0.5);
@@ -134,9 +136,12 @@ static void original_dealloc(id self,SEL command){(void)self;(void)command;deall
 typedef struct {const char *encoding;IMP original;} TestMethod;
 static TestMethod bounds_method={"{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72",(IMP)original_bounds};
 static TestMethod view_method={"v16@0:8",(IMP)original_view},change_method={"v24@0:8@16",(IMP)original_change},dealloc_method={"v16@0:8",(IMP)original_dealloc};
+static BOOL original_edit(id self,SEL command,id editor,Range range,id text){(void)command;(void)editor;(void)range;(void)text;originals++;return self->accept_edit;}
+static void original_selection_setter(id self,SEL command,id requested){assert(!strcmp(command,"setSelection:"));self->prop_selection=requested;self->generation++;if(requested)self->queued_generation=self->generation;}
+static TestMethod edit_method={"B48@0:8@16{_NSRange=QQ}24@40",(IMP)original_edit},setter_method={"v24@0:8@16",(IMP)original_selection_setter},getter_method={"@16@0:8",NULL};
 static unsigned installed,optional_mode;
 static TestMethod item_method={"@40@0:8@16@24@32",(IMP)original_change},interaction_method={"B56@0:8@16@24{_NSRange=QQ}32q48",(IMP)original_change};
-Method class_getInstanceMethod(Class cls,SEL sel){(void)cls;if(strstr(sel,"menuConfigurationForTextItem"))return optional_mode ? &item_method : NULL;if(strstr(sel,"shouldInteractWithTextAttachment"))return optional_mode ? &interaction_method : NULL;if(!strcmp(sel,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:"))return &bounds_method;if(!strcmp(sel,"dealloc"))return &dealloc_method;return strchr(sel,':') ? &change_method : &view_method;}
+Method class_getInstanceMethod(Class cls,SEL sel){(void)cls;if(!strcmp(sel,"textView:shouldChangeTextInRange:replacementText:"))return &edit_method;if(!strcmp(sel,"setSelection:"))return &setter_method;if(!strcmp(sel,"selection"))return &getter_method;if(strstr(sel,"menuConfigurationForTextItem"))return optional_mode ? &item_method : NULL;if(strstr(sel,"shouldInteractWithTextAttachment"))return optional_mode ? &interaction_method : NULL;if(!strcmp(sel,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:"))return &bounds_method;if(!strcmp(sel,"dealloc"))return &dealloc_method;return strchr(sel,':') ? &change_method : &view_method;}
 const char *method_getTypeEncoding(Method m){return ((TestMethod *)m)->encoding;}
 IMP method_getImplementation(Method m){return ((TestMethod *)m)->original;}
 IMP method_setImplementation(Method m,IMP hook){(void)m;(void)hook;installed++;return NULL;}
@@ -212,10 +217,10 @@ static void playback(void) {
 }
 static void installation(void) {
     enabled=NO;tas_rn_composer_ui_retry_hooks();assert(!installed && !bridge_string);
-    enabled=YES;bounds_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(!bounds_original && installed==7);
+    enabled=YES;bounds_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(!bounds_original && installed==9);
     bounds_method.encoding="{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72";
-    tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==8 && clock_class);
-    tas_rn_composer_ui_retry_hooks();assert(installed==8);
+    tas_rn_composer_ui_retry_hooks();assert(bounds_original && installed==10 && clock_class);
+    tas_rn_composer_ui_retry_hooks();assert(installed==10);
 }
 static void cold_start(void) {
     tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
@@ -357,9 +362,58 @@ static void detail_abi(void) {
     assert(item_menu_installed && interaction_installed && item_menu_original && interaction_original && state(detail_target)->hold && added==1);
     unsigned count=installed;tas_rn_composer_ui_retry_hooks();sync(detail_owner);assert(installed==count && added==1);
 }
+/* Controlled donor queue: the inspected closure compares only its captured
+ * selectionGeneration, then applies its old plain offsets to the current text. */
+static void apply_queued_selection(id owner,id editor,id request) {
+    if(owner->queued_generation==owner->generation)editor->range=request->range;
+}
+static void cursor_race(void) {
+    tas_rn_composer_ui_retry_hooks();selection_setter=(IMP)original_selection_setter;
+    id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),request=fresh("NSDictionary");owner->editor=editor;owner->accept_edit=YES;
+    request->range=(Range){5,0};original_selection_setter(owner,"setSelection:",request);
+    /* A completed emote occupies one displayed character. Additional typing
+     * expands that token back into an editable word before the queue drains. */
+    assert(should_change(owner,"edit",editor,(Range){1,0},text("tail")));
+    editor->range=(Range){9,0};apply_queued_selection(owner,editor,request);
+    assert(editor->range.location==9 && !owner->prop_selection && owner->generation==2);
+    assert(originals==1 && GET(selection_invalidations)==1);
+    /* A vetoed edit must keep the requested selection valid. */
+    original_selection_setter(owner,"setSelection:",request);owner->accept_edit=NO;
+    assert(!should_change(owner,"edit",editor,(Range){1,0},text("x")));
+    apply_queued_selection(owner,editor,request);assert(editor->range.location==5 && owner->prop_selection==request && owner->generation==3);
+    /* Missing editor / disabled emotes / missing ABI preserve native behavior. */
+    owner->accept_edit=YES;owner->editor=nil;assert(should_change(owner,"edit",editor,(Range){1,0},text("x")) && owner->generation==3);owner->editor=editor;
+    enabled=NO;assert(should_change(owner,"edit",editor,(Range){1,0},text("x")) && owner->generation==3);enabled=YES;
+    selection_setter=NULL;assert(should_change(owner,"edit",editor,(Range){1,0},text("x")) && owner->generation==3);
+    selection_setter=(IMP)original_selection_setter;is_main=NO;assert(should_change(owner,"edit",editor,(Range){1,0},text("x")) && owner->generation==3);is_main=YES;
+    owner->prop_selection=nil;assert(should_change(owner,"edit",editor,(Range){1,0},text("x")) && owner->generation==3);
+}
+static void cursor_abi(void) {
+    setter_method.encoding="v16@0:8";tas_rn_composer_ui_retry_hooks();assert(edit_original && !selection_setter);
+    setter_method.encoding="v24@0:8@16";getter_method.encoding="v16@0:8";
+    tas_rn_composer_ui_retry_hooks();assert(!selection_setter);
+    getter_method.encoding="@16@0:8";tas_rn_composer_ui_retry_hooks();assert(selection_setter==(IMP)original_selection_setter);
+    unsigned before=installed;tas_rn_composer_ui_retry_hooks();assert(installed==before);
+}
+static void late_cursor_prop(void) {
+    tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
+    id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),request=fresh("NSDictionary");owner->editor=editor;
+    owner->plain[0]=(uint64_t)(uintptr_t)text("Wide tail");owner->plain[1]=1;
+    request->items[0]=text("Wide ");request->range=(Range){5,0};editor->range=(Range){9,0};
+    selection_prop(owner,"setSelection:",request);apply_queued_selection(owner,editor,request);
+    assert(!owner->prop_selection && editor->range.location==9 && GET(stale_selections)==1);
+    request->items[0]=text("Wide tail");selection_prop(owner,"setSelection:",request);
+    assert(owner->prop_selection==request);apply_queued_selection(owner,editor,request);assert(editor->range.location==5);
+    editor->marked=fresh("UITextRange");selection_prop(owner,"setSelection:",request);assert(!owner->prop_selection && GET(stale_selections)==2);editor->marked=nil;
+    /* Native props without a draft, and unknown field/bridge layouts, pass through. */
+    request->items[0]=nil;selection_prop(owner,"setSelection:",request);assert(owner->prop_selection==request);
+    request->items[0]=text("stale");plain_gap=8;selection_prop(owner,"setSelection:",request);assert(owner->prop_selection==request);plain_gap=16;bridge_string=NULL;selection_prop(owner,"setSelection:",request);assert(owner->prop_selection==request);
+    enabled=NO;bridge_string=bridge;selection_prop(owner,"setSelection:",request);assert(owner->prop_selection==request);
+    selection_prop(owner,"setSelection:",nil);assert(!owner->prop_selection);
+}
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -397,3 +451,9 @@ class RNComposerUITests(unittest.TestCase):
     def test_provider_menu_suppression_and_original_native_fallback(self):self.run_mode('menus')
 
     def test_optional_menu_hooks_refuse_unknown_abi_and_retry_existing_methods(self):self.run_mode('abi')
+
+    def test_accepted_edit_invalidates_queued_cursor_but_veto_and_fallback_do_not(self):self.run_mode('cursor')
+
+    def test_cursor_guard_requires_both_selection_abis_and_retries(self):self.run_mode('cursorabi')
+
+    def test_late_suggestion_cursor_prop_checks_live_draft_and_preserves_native_props(self):self.run_mode('latecursor')

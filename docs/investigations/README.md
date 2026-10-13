@@ -9,6 +9,7 @@ not here.
 
 - [App-icon trial](APP_ICON_TRIAL.md): flat Streamside icon packaging and automatic Liquid Glass appearance observations, build 1.
 - [RN composer emote holds](RN_COMPOSER_HOLDS.md): provider attachment holds, native menu fallback, host checks, and device observations, build 2.
+- [RN composer cursor requests](RN_COMPOSER_CURSOR.md): stale queued/late selection requests during continued typing, build 3.
 
 At feature freeze, reconcile the completed implementation with its owning
 [feature documents](../features/). Preserve closed investigation evidence in

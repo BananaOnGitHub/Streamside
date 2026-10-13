@@ -1,4 +1,4 @@
-/* Twitch 31.5 RN input presentation and composition admission. UIKit owns
+/* Twitch 31.5 RN input presentation, composition and cursor admission. UIKit owns
  * marked text; Twitch keeps text storage, selection, tokenization and sending. */
 #include "TASRNComposerUI.h"
 #include "TASRNComposerModel.h"
@@ -31,6 +31,7 @@ typedef id (__attribute__((swiftcall)) *StringBridge)(uint64_t,uint64_t);
 static StringBridge bridge_string;
 static IMP bounds_original,layout_original,change_original,selection_original,move_original,value_original,map_original,dealloc_original,target_dealloc;
 static IMP item_menu_original,interaction_original;
+static IMP edit_original,selection_setter;
 static BOOL item_menu_installed,interaction_installed;
 static Class clock_class;
 static ptrdiff_t clock_offset;
@@ -39,6 +40,8 @@ static char identity_key,state_key,pending_map_key;
 static pthread_mutex_t install_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t bounds_calls,sized,syncs,decoders,advances,ticks,refused,images,provisional;
 static uint64_t details_holds;
+static uint64_t selection_invalidations;
+static uint64_t stale_selections;
 #define INC(v) ((void)__atomic_add_fetch(&(v),1,__ATOMIC_RELAXED))
 #define GET(v) __atomic_load_n(&(v),__ATOMIC_RELAXED)
 static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
@@ -378,6 +381,46 @@ static void selection(id self,SEL command,id editor){if(composing(self)){INC(pro
 static void moved(id self,SEL command){((void (*)(id,SEL))move_original)(self,command);sync(self);}
 static void value(id self,SEL command,id text){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))value_original)(self,command,text);flush_map(self);sync(self);}
 static void emote_map(id self,SEL command,id map){if(composing(self)){associate(self,&pending_map_key,map ? map : m0((id)objc_getClass("NSNull"),"null"));INC(provisional);return;}associate(self,&pending_map_key,nil);((void (*)(id,SEL,id))map_original)(self,command,map);sync(self);}
+static id current_plain_copy(id owner) {
+    if(!main_thread() || !kind(owner,INPUT) || !bridge_string)return nil;
+    Class cls=object_getClass(owner);
+    Ivar field=class_getInstanceVariable(cls,"currentPlainText"),next=class_getInstanceVariable(cls,"imageCache");
+    if(!field || !next)return nil;
+    ptrdiff_t offset=ivar_getOffset(field),end=ivar_getOffset(next);
+    if(offset<0 || end-offset!=16 || (size_t)end>=class_getInstanceSize(cls))return nil;
+    uint64_t words[2];memcpy(words,(char *)owner+offset,sizeof(words));
+    return words[1] ? bridge_string(words[0],words[1]) : nil;
+}
+static void selection_prop(id self,SEL command,id request) {
+    /* Our suggestion request carries the draft it was created for. Reject
+     * late props after newer native text; ordinary Twitch selection props
+     * without that context retain their original behavior. */
+    if(tas_emotes_enabled_this_launch() && main_thread() && kind(request,"NSDictionary") && editor_for(self)) {
+        id expected=m1(request,"objectForKey:",str("text"));
+        if(kind(expected,"NSString")) {
+            id current=current_plain_copy(self);
+            BOOL stale=composing(self) || (kind(current,"NSString") &&
+                !((BOOL (*)(id,SEL,id))objc_msgSend)(current,sel_registerName("isEqualToString:"),expected));
+            objc_release(current);
+            if(stale){request=nil;INC(stale_selections);}
+        }
+    }
+    ((void (*)(id,SEL,id))selection_setter)(self,command,request);
+}
+static BOOL should_change(id self,SEL command,id editor,Range range,id text) {
+    BOOL accepted=((BOOL (*)(id,SEL,id,Range,id))edit_original)(self,command,editor,range,text);
+    /* The donor applies selection props asynchronously, checking only its
+     * selectionGeneration. An accepted edit supersedes those old offsets.
+     * Its nil setter increments that generation without moving the caret.
+     * Cancel before UIKit performs the edit; preserve vetoed edits and leave
+     * tokenization, UTF-16 mapping and the resulting selection to Twitch. */
+    if(accepted && tas_emotes_enabled_this_launch() && main_thread() && selection_setter &&
+        editor==editor_for(self) && editor && m0(self,"selection")) {
+        ((void (*)(id,SEL,id))selection_setter)(self,sel_registerName("setSelection:"),nil);
+        INC(selection_invalidations);
+    }
+    return accepted;
+}
 static void owner_dealloc(id self,SEL command){id target=objc_getAssociatedObject(self,&state_key);if(target){State *s=state(target);if(s){stop(s);clear_frames(s);clear_hold(s);}}((void (*)(id,SEL))dealloc_original)(self,command);}
 static void install(Class cls,const char *selector,const char *encoding,IMP replacement,IMP *original) {
     if(!cls || *original)return;Method method=class_getInstanceMethod(cls,sel_registerName(selector));
@@ -411,10 +454,17 @@ void tas_rn_composer_ui_retry_hooks(void) {
         } else if(cls)objc_disposeClassPair(cls);
     }
     Class attachment=objc_getClass(ATTACHMENT),input=objc_getClass(INPUT);
+    if(input && !selection_setter) {
+        Method getter=class_getInstanceMethod(input,sel_registerName("selection"));
+        Method setter=class_getInstanceMethod(input,sel_registerName("setSelection:"));
+        if(getter && setter && !strcmp(method_getTypeEncoding(getter),"@16@0:8"))
+            install(input,"setSelection:","v24@0:8@16",(IMP)selection_prop,&selection_setter);
+    }
     install(attachment,"attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:","{CGRect={CGPoint=dd}{CGSize=dd}}80@0:8@16{CGRect={CGPoint=dd}{CGSize=dd}}24{CGPoint=dd}56q72",(IMP)attachment_bounds,&bounds_original);
     install(input,"layoutSubviews","v16@0:8",(IMP)layout,&layout_original);
     install(input,"textViewDidChange:","v24@0:8@16",(IMP)changed,&change_original);
     install(input,"textViewDidChangeSelection:","v24@0:8@16",(IMP)selection,&selection_original);
+    install(input,"textView:shouldChangeTextInRange:replacementText:","B48@0:8@16{_NSRange=QQ}24@40",(IMP)should_change,&edit_original);
     install(input,"didMoveToWindow","v16@0:8",(IMP)moved,&move_original);
     install(input,"setValue:","v24@0:8@16",(IMP)value,&value_original);
     install(input,"setEmoteMap:","v24@0:8@16",(IMP)emote_map,&map_original);
@@ -431,11 +481,13 @@ void tas_rn_composer_ui_status(char *buffer,size_t capacity) {
         "Hooks (bounds/layout/change/selection/window/value/map/dealloc)/String bridge: %s/%s/%s/%s/%s/%s/%s/%s/%s\n"
         "Provisional callbacks/props held: %llu\n"
         "Provider hold hooks (item menu/attachment)/details shown: %s/%s/%llu\n"
+        "Cursor edit/selection hooks/props invalidated/stale props refused: %s/%s/%llu/%llu\n"
         "Bounds/sizes/syncs/GIF bodies/decoders/ticks/advances/refused: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
         bounds_original ? "installed":"missing",layout_original ? "installed":"missing",change_original ? "installed":"missing",
         selection_original ? "installed":"missing",move_original ? "installed":"missing",value_original ? "installed":"missing",
         map_original ? "installed":"missing",dealloc_original ? "installed":"missing",bridge_string ? "available":"missing",(unsigned long long)GET(provisional),
         item_menu_installed ? "installed":"missing",interaction_installed ? "installed":"missing",(unsigned long long)GET(details_holds),
+        edit_original ? "installed":"missing",selection_setter ? "installed":"missing",(unsigned long long)GET(selection_invalidations),(unsigned long long)GET(stale_selections),
         (unsigned long long)GET(bounds_calls),(unsigned long long)GET(sized),(unsigned long long)GET(syncs),(unsigned long long)GET(images),
         (unsigned long long)GET(decoders),(unsigned long long)GET(ticks),(unsigned long long)GET(advances),(unsigned long long)GET(refused));
 }

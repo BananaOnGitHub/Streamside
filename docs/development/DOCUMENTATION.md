@@ -12,7 +12,8 @@ Streamside's documentation describes the maintained implementation and preserves
 | [Feature documents](../features/) | Current implementation details, algorithms, lifecycle, fallback behavior, and feature-specific limitations. The [third-party emote guides](../features/third-party-emotes/README.md) divide that subsystem into its individual features. |
 | [Compatibility](../COMPATIBILITY.md) | Supported Twitch versions and configurations, validation scope, and known compatibility limits. |
 | [Troubleshooting](../TROUBLESHOOTING.md) | Practical diagnosis, recovery, and useful bug reports. |
-| [Development guides](../README.md#developing-streamside) | Building, testing, packaging, and investigation methods. |
+| [Development guides](../README.md#developing-streamside) | Reusable maintainer guidance for building, testing, packaging, and investigation methods. `docs/development/` is for development guidance, not records of active work. |
+| [Investigations](../investigations/README.md) | Active investigations, implementation trials, per-build findings, and their testing evidence. |
 | [History](../HISTORY.md) and [archive](../archive/README.md) | Development chronology, experiments, failures, superseded approaches, and supporting technical evidence. |
 | [Documentation index](../README.md) | Navigation between the current guides and historical records. |
 
@@ -20,7 +21,7 @@ Put each substantial explanation in its owning document and link to it from othe
 
 ## When to update
 
-During active development, prioritize implementation, testing, and recording findings. Keep useful evidence in development notes, investigation records, or commits: what changed, why, what was tested, what failed, and what remains unresolved. Include source revisions, build labels, and artifact identities when they are needed to interpret the result.
+During active development, prioritize implementation, testing, and recording findings. Keep active investigation, implementation-trial, and per-build notes in `docs/investigations/`, not `docs/development/`. Records and commits should explain what changed, why, what was tested, what failed, and what remains unresolved. Include source revisions, build labels, and artifact identities when they are needed to interpret the result.
 
 Do not continually rewrite public-facing guides around experiments or unfinished behavior. At feature freeze, review the completed implementation and update all affected documentation before publication. Finalize the release's changelog entry against the changes since the previous published version.
 
@@ -28,13 +29,13 @@ Correct inaccurate security or compatibility information immediately, even durin
 
 ## Preserve development evidence
 
-Never silently erase failed experiments, superseded approaches, or unique technical findings. When replacing an explanation, carry still-relevant information into its current owner and preserve the remaining evidence in History or the archive.
+Never silently erase failed experiments, superseded approaches, or unique technical findings. At feature freeze, carry maintained implementation details into the owning feature documents. Preserve the remaining investigation evidence in History or the archive when closing the work; update links rather than deleting records or silently replacing their outcomes.
 
 Historical records should retain their original scope and outcome. Add a clearly separated correction or supersession note when later evidence changes the conclusion. Identify the relevant build, Twitch donor, source revision, successor document, and validation limits where available.
 
 Keep recorded artifact hashes attached to the artifacts they originally described. A replacement asset gets its own identity and explanation. Do not rewrite an earlier result as though the replacement or corrected approach had always existed.
 
-When moving records, update the archive index and affected links. Preserve distinct branch closure records and make their source revisions traceable.
+When moving records, update the investigation or archive index and affected links. Preserve distinct branch closure records and make their source revisions traceable.
 
 ## Writing standards
 

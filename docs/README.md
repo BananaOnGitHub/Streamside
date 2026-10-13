@@ -28,6 +28,7 @@ Start at the level that answers your question. Each guide links to the deeper im
 
 ## Project history
 
+- [Active investigations](investigations/README.md): implementation trials, per-build findings, and testing evidence; separate from reusable development guides.
 - [History](HISTORY.md): release/build chronology, failures, corrections, and validation.
 - [Research archive](archive/README.md): an indexed record of investigations and experiments.
 

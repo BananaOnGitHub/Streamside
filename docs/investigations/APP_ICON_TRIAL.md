@@ -78,4 +78,4 @@ Remaining device evidence and follow-up checks:
 - Check launch and the existing chat/playback behavior. Do not infer those results from icon verification.
 
 Public feature, installation, compatibility, and changelog documents remain at the
-published 3.0.0 baseline until feature freeze, per [Documentation maintenance](DOCUMENTATION.md).
+published 3.0.0 baseline until feature freeze, per [Documentation maintenance](../development/DOCUMENTATION.md).

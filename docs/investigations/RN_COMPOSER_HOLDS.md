@@ -3,7 +3,11 @@
 Branch: `dev/3.1.0`. Target donor: Twitch 31.5 (`262752111271985979`).
 The RN input previously left provider attachment holds to UIKit's generic image
 menu. This trial routes those holds to the same provider-details sheet used by
-the legacy composer. Device acceptance is pending.
+the legacy composer. Initial device acceptance was pending at build preparation.
+
+Build-2 follow-up: the provider-emote hold route was confirmed working on-device.
+The full interaction matrix below and the device/signing configuration were not
+recorded, so this confirms the observed popup behavior only.
 
 ## Native seam
 
@@ -81,4 +85,4 @@ Device checks for this build:
 Record iOS/device, signing route, renderer, donor/build, cold/warm catalog state,
 visible results, and diagnostics. Host and package checks do not establish device
 interaction. Public feature and release documents are reconciled at feature
-freeze under [Documentation maintenance](DOCUMENTATION.md).
+freeze under [Documentation maintenance](../development/DOCUMENTATION.md).

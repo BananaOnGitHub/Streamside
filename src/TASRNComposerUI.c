@@ -1,4 +1,4 @@
-/* Twitch 31.5 RN input presentation, composition and cursor admission. UIKit owns
+/* Inspected Twitch 31.5/31.6 RN input presentation, composition and cursor admission. UIKit owns
  * marked text; Twitch keeps text storage, selection, tokenization and sending. */
 #include "TASRNComposerUI.h"
 #include "TASRNComposerModel.h"

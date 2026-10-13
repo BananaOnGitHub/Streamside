@@ -1,4 +1,4 @@
-"""Verify the complete in-memory patch chain against the exact 31.5 donor.
+"""Verify the complete in-memory patch chain against the exact 31.6 donor.
 
 Own RN behavior is tested separately with mocks. This verifies file structure,
 every unaffected function/handler, closure IDs, all imported branch targets,
@@ -30,7 +30,7 @@ def verify(donor,zig,hermesc,strip=False):
         assert generated.read_bytes()==(ROOT/'src/TASRNPopupPayload.h').read_bytes(), 'Stale payload'
         if strip:
             generate(original,hermesc,ROOT/'src/rn/ProviderEmoteStrip.js',generated,
-                     prefix='STRIP',factory_id=4869,function_base=47322)
+                     prefix='STRIP',factory_id=4924,function_base=48996)
             assert generated.read_bytes()==(ROOT/'src/TASRNStripPayload.h').read_bytes(),'Stale strip payload'
         (tmp/'patch.c').write_text('''#include "TASRNStripPatch.h"
 void *patch(const void *p,size_t n,TASRNSHA1 sha,size_t *out,unsigned step) {
@@ -65,13 +65,13 @@ void dispose(void *p){free(p);}
         patched=apply(before,3);assert patched,'Popup patch refused'
         assert not apply(body,3),'Ungated donor accepted'
         bad=bytearray(before);bad[100]^=1;assert not apply(bytes(bad),3),'Bad footer accepted'
-        bad=bytearray(before);bad[128+3801*12]^=1
+        bad=bytearray(before);bad[128+3694*12]^=1
         bad[-20:]=hashlib.sha1(bad[:-20]).digest();assert not apply(bytes(bad),3),'Changed target accepted'
         assert not apply(patched,3),'Duplicate patch accepted'
-        target,join,step=3801,0x5e,3
+        target,join,step=3694,0x5e,3
         if strip:
             before=patched;patched=apply(before,4);assert patched,'Strip patch refused'
-            target,join,step=4869,0x46,4
+            target,join,step=4924,0x46,4
             assert not apply(body,4),'Ungated strip donor accepted'
             assert not apply(patched,4),'Duplicate strip patch accepted'
             bad=bytearray(before);bad[100]^=1;assert not apply(bytes(bad),4),'Bad strip footer accepted'
@@ -84,92 +84,104 @@ void dispose(void *p){free(p);}
         def dependencies(factory):
             at=next(i for i,x in enumerate(registrations) if x.inst.name=='CreateClosure' and x.arg3==factory)
             return ast.literal_eval(str(registrations[at-1]).split('# Array: ',1)[1])
-        card_deps=dependencies(4056);host_deps=dependencies(3801)
-        assert card_deps[1]==72 and card_deps[2]==5 and card_deps[3]==245 and card_deps[6]==2118
-        assert host_deps[13]==2118
-        card_ops={x.original_pos:x for x in parse_hbc_bytecode(h.function_headers[19704],h)}
+        card_deps=dependencies(3974);host_deps=dependencies(3694)
+        assert card_deps[1]==72 and card_deps[2]==5 and card_deps[3]==245 and card_deps[6]==2071
+        assert host_deps[13]==2071
+        card_ops={x.original_pos:x for x in parse_hbc_bytecode(h.function_headers[19688],h)}
         assert card_ops[0x69].inst.name=='GetByIndex' and card_ops[0x69].arg3==6
         assert h.strings[card_ops[0x72].arg4]=='useTheme'
-        sheet_ops={x.original_pos:x for x in parse_hbc_bytecode(h.function_headers[19172],h)}
+        sheet_ops={x.original_pos:x for x in parse_hbc_bytecode(h.function_headers[19081],h)}
         assert sheet_ops[0x1e0].inst.name=='GetByIndex' and sheet_ops[0x1e0].arg3==13
         assert h.strings[sheet_ops[0x1e9].arg4]=='useSheetHandoff'
         jsx_ops=list(parse_hbc_bytecode(h.function_headers[250],h))
         assert any(x.inst.name=='PutByIdStrict' and h.strings[x.arg4]=='jsx' for x in jsx_ops)
-        print('Original module bindings verified: React 72, RN 5, useTheme/sheet 2118; 245 is JSX runtime')
+        print('Original module bindings verified: React 72, RN 5, useTheme/sheet 2071; 245 is JSX runtime')
         if strip:
-            assert dependencies(3763)[3:6]==[72,5,245]
-            assert dependencies(4623)[10]==3758 and dependencies(3762)[0]==3759
-            getter=list(parse_hbc_bytecode(h.function_headers[19082],h))
+            assert dependencies(3463)[3:6]==[72,5,245]
+            assert dependencies(4680)[9]==3458 and dependencies(3462)[0]==3459
+            getter=list(parse_hbc_bytecode(h.function_headers[18496],h))
             assert any(x.inst.name=='GetByIndex' and x.arg3==0 for x in getter)
             assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='EmoteTextInput' for x in getter)
-            composer_factory=list(parse_hbc_bytecode(h.function_headers[4869],h))
-            assert any(x.inst.name=='CreateClosure' and x.arg3==22083 for x in composer_factory)
+            composer_factory=list(parse_hbc_bytecode(h.function_headers[4924],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==22516 for x in composer_factory)
             assert h.strings[next(x.arg4 for x in composer_factory if x.inst.name=='PutByIdLoose')]=='ChatComposerBar'
             # Takeover adapters must target writable leaves, not read-only
             # barrel getters. The autocomplete adapter adds no hook slots.
-            for factory,export in [(4623,'useAutocomplete'),(4717,'ChatAutocompleteTray'),(4178,'EmotePickerTray')]:
+            for factory,export in [(4680,'useAutocomplete'),(4781,'ChatAutocompleteTray'),(4157,'EmotePickerTray')]:
                 ops=list(parse_hbc_bytecode(h.function_headers[factory],h))
                 assert any(x.inst.name=='PutByIdLoose' and h.strings[x.arg4]==export for x in ops),(factory,export)
-            assert dependencies(4619)[1]==4619
-            for fid,index,export in [(21405,1,'useAutocomplete')]:
+            assert dependencies(4676)[1]==4676
+            for fid,index,export in [(21810,1,'useAutocomplete')]:
                 ops=list(parse_hbc_bytecode(h.function_headers[fid],h))
                 assert any(x.inst.name=='GetByIndex' and x.arg3==index for x in ops)
                 assert any(x.inst.name=='GetById' and h.strings[x.arg4]==export for x in ops)
-            assert dependencies(4711)[4]==4615 and dependencies(4717)[3]==4615
-            ac=list(parse_hbc_bytecode(h.function_headers[21601],h))
-            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='useAutocomplete' for x in ac)
-            catalog=list(parse_hbc_bytecode(h.function_headers[21334],h))
+            assert dependencies(4775)[5]==4672 and dependencies(4781)[3]==4672
+            ac=list(parse_hbc_bytecode(h.function_headers[22035],h))
+            assert dependencies(4773)[2]==4771
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='useComposerAutocomplete' for x in ac)
+            helper=list(parse_hbc_bytecode(h.function_headers[4775],h))
+            exported=next(i for i,x in enumerate(helper) if x.inst.name=='PutByIdLoose' and
+                          h.strings[x.arg4]=='useComposerAutocomplete')
+            assert helper[exported-1].inst.name=='CreateClosure'
+            helper_body=list(parse_hbc_bytecode(h.function_headers[helper[exported-1].arg3],h))
+            assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='useAutocomplete' for x in helper_body)
+            native_ac=list(parse_hbc_bytecode(h.function_headers[21822],h))
+            output=next(x for x in native_ac if x.inst.name=='NewObjectWithBufferLong' and "'matches'" in str(x))
+            fields=ast.literal_eval(str(output).split('# Object: ',1)[1].replace('null','None'))
+            assert set(fields)=={'matches','forcedSelection','onChange','onMatchSelect','reset'}
+            assert 'confirmHighlightedMatch' not in (ROOT/'src/rn/ProviderEmoteStrip.js').read_text()
+            catalog=list(parse_hbc_bytecode(h.function_headers[21721],h))
             assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='buildEmoteTokenMap' for x in catalog)
-            slots=ast.literal_eval(str(next(x for x in catalog if x.original_pos==0x93cf)).split('# Object: ',1)[1].replace('null','None'))
-            assert list(slots)[20]=='emoteMap'
-            assignment=next(x for x in catalog if x.original_pos==0x942f)
-            assert assignment.inst.name=='PutOwnBySlotIdx' and (assignment.arg1,assignment.arg2,assignment.arg3)==(25,136,20)
-            templates=list(parse_hbc_bytecode(h.function_headers[4623],h))
+            slots=ast.literal_eval(str(next(x for x in catalog if x.original_pos==0xa822)).split('# Object: ',1)[1].replace('null','None'))
+            assert list(slots)[21]=='emoteMap'
+            assignment=next(x for x in catalog if x.original_pos==0xa886)
+            assert assignment.inst.name=='PutOwnBySlotIdx' and (assignment.arg1,assignment.arg2,assignment.arg3)==(25,145,21)
+            templates=list(parse_hbc_bytecode(h.function_headers[4680],h))
             for name in ['makeEmoteURL','EMOTE_URL_TEMPLATE','EMOTE_URL_TEMPLATE_STATIC']:
-                assert any(x.inst.name in ('GetById','PutByIdLoose') and h.strings[x.arg4]==name for x in templates)
-            print('Scoped composer factory 4869 -> 22083; Autocomplete input module 3759 -> 19094/19088 verified')
+                assert any(x.inst.name in ('GetById','GetByIdLong','PutByIdLoose','PutByIdLooseLong') and h.strings[x.arg4]==name for x in templates)
+            print('Scoped composer factory 4924 -> 22516; Autocomplete input module 3459 -> 18508/18502 verified')
             print('Native catalog/templates; writable autocomplete leaves and live getter paths verified')
-            library=list(parse_hbc_bytecode(h.function_headers[20057],h))
-            assert dependencies(4178)[3:5]==[5,245]
-            assert dependencies(4178)[8]==2118
-            for position,element,test_id in [(0x1827,'SectionList','emote-grid-list'),(0x122c,'ScrollView','emote-nav-tablist')]:
+            library=list(parse_hbc_bytecode(h.function_headers[20260],h))
+            assert dependencies(4157)[3:5]==[5,245]
+            assert dependencies(4157)[8]==2071
+            for position,element,test_id in [(0x1957,'SectionList','emote-grid-list'),(0x1352,'ScrollView','emote-nav-tablist')]:
                 i=next(i for i,x in enumerate(library) if x.original_pos==position)
                 assert library[i-1].inst.name=='GetById' and h.strings[library[i-1].arg4]==element
                 props=ast.literal_eval(str(library[i]).split('# Object: ',1)[1].replace('null','None').replace('true','True').replace('false','False'))
                 assert props['testID']==test_id
-            select=list(parse_hbc_bytecode(h.function_headers[37374],h))
+            select=list(parse_hbc_bytecode(h.function_headers[38485],h))
             assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='trim' for x in select)
             for slot,value in [(13,52),(14,28)]:
-                factory=list(parse_hbc_bytecode(h.function_headers[4178],h))
+                factory=list(parse_hbc_bytecode(h.function_headers[4157],h))
                 i=next(i for i,x in enumerate(factory) if x.inst.name=='StoreNPToEnvironment' and x.arg2==slot)
                 assert factory[i-1].inst.name=='LoadConstUInt8' and factory[i-1].arg2==value
-            print('Library leaf 4174, scoped grid/footer JSX, string insertion and native row/header geometry verified')
-            hook=list(parse_hbc_bytecode(h.function_headers[4691],h))
-            i=next(i for i,x in enumerate(hook) if x.inst.name=='CreateClosure' and x.arg3==21555)
+            print('Library leaf 4153, scoped grid/footer JSX, string insertion and native row/header geometry verified')
+            hook=list(parse_hbc_bytecode(h.function_headers[4755],h))
+            i=next(i for i,x in enumerate(hook) if x.inst.name=='CreateClosure' and x.arg3==21987)
             assert h.strings[hook[i+1].arg4]=='useChatComposer' and hook[i+1].inst.name=='PutByIdLoose'
-            assert dependencies(4691)[19:21]==[3382,3758]
-            backspace=list(parse_hbc_bytecode(h.function_headers[37375],h))
-            assert any(x.inst.name=='CreateClosure' and x.arg3==44613 for x in backspace)
-            updater=list(parse_hbc_bytecode(h.function_headers[44613],h))
+            assert dependencies(4755)[21:23]==[3488,3458]
+            backspace=list(parse_hbc_bytecode(h.function_headers[38486],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==46142 for x in backspace)
+            updater=list(parse_hbc_bytecode(h.function_headers[46142],h))
             assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='smartBackspace' for x in updater)
             assert any(x.inst.name=='GetByIdShort' and h.strings[x.arg4]=='length' for x in updater)
-            pure=list(parse_hbc_bytecode(h.function_headers[3766],h))
-            assert any(x.inst.name=='CreateClosure' and x.arg3==19095 for x in pure)
+            pure=list(parse_hbc_bytecode(h.function_headers[3466],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==18509 for x in pure)
             assert any(x.inst.name=='PutByIdLoose' and h.strings[x.arg4]=='smartBackspace' for x in pure)
             # The adapter uses the exact same functional setter and native
             # recognition inputs; only provider lookup extends that predicate.
-            composer=list(parse_hbc_bytecode(h.function_headers[21555],h))
+            composer=list(parse_hbc_bytecode(h.function_headers[21987],h))
             output=next(x for x in composer if x.inst.name=='NewObjectWithBufferLong' and "'backspaceDraft'" in str(x))
             props=ast.literal_eval(str(output).split('# Object: ',1)[1].replace('null','None'))
             assert 'setDraft' in props and 'cheermoteTokenImages' in props
-            recognition=list(parse_hbc_bytecode(h.function_headers[44612],h))
+            recognition=list(parse_hbc_bytecode(h.function_headers[46141],h))
             assert sum(x.inst.name=='GetById' and h.strings[x.arg4]=='hasOwn' for x in recognition)==2
             assert any(x.inst.name=='LoadFromEnvironment' and x.arg3==7 for x in recognition)
             assert any(x.inst.name=='LoadFromEnvironment' and x.arg3==73 for x in recognition)
-            assert any(x.inst.name=='CreateClosure' and x.arg3==46706 for x in recognition)
-            alias=list(parse_hbc_bytecode(h.function_headers[46706],h))
+            assert any(x.inst.name=='CreateClosure' and x.arg3==48346 for x in recognition)
+            alias=list(parse_hbc_bytecode(h.function_headers[48346],h))
             assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='emoteTokenAliases' for x in alias)
-            print('Writable composer leaf 4687, functional end-of-draft backspace, native token/alias/Unicode helper verified')
+            print('Writable composer leaf 4751, functional end-of-draft backspace, native token/alias/Unicode helper verified')
         for i,f in enumerate(h.function_headers):
             new=after.function_headers[i]
             for field in f._fields_:

@@ -1,4 +1,4 @@
-"""Read-only verification of the exact Twitch 31.5 in-memory width patch.
+"""Read-only verification of the exact Twitch 31.6 in-memory width patch.
 
 Requires Zig 0.14 and hermes-dec 0.1.7 (analysis only, not build dependencies).
 Optionally pass Hermes-98 hermesc for an independent disassembler check.
@@ -6,6 +6,7 @@ No donor code or modified bundle is saved to the repository or output IPA.
 Does not execute Twitch or prove live device layout/animation.
 """
 import argparse
+import ast
 import ctypes
 import hashlib
 import io
@@ -18,8 +19,8 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DONOR_SHA256 = '718762b71095c11754b1f58ad01fb580852414e6d7f468fbb2236b7c2419e641'
-BODY_SHA256 = '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
+DONOR_SHA256 = '36d85ac4a7f0979ca392415af697a43fe7eb019f7fbfdf84dce18b7a25249cea'
+BODY_SHA256 = '20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458'
 
 
 def verify(donor, zig, hermesc=None, local=False, composer=False):
@@ -40,7 +41,7 @@ def verify(donor, zig, hermesc=None, local=False, composer=False):
                         {'_pack_':True,'_layout_':'ms','_fields_':fields})
     with donor.open('rb') as handle:
         if hashlib.file_digest(handle,'sha256').hexdigest() != DONOR_SHA256:
-            raise ValueError('Not the verified Twitch 31.5 donor')
+            raise ValueError('Not the verified Twitch 31.6 donor')
     with zipfile.ZipFile(donor) as archive:
         body = archive.read('Payload/Twitch.app/index.ios.bundle')
     if hashlib.sha256(body).hexdigest() != BODY_SHA256:
@@ -77,6 +78,18 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         lib.dispose.argtypes = [ctypes.c_void_p]
         lib.code.argtypes = [ctypes.c_void_p,ctypes.c_uint]
         lib.code.restype = ctypes.c_size_t
+        # An altered body cannot be admitted merely by recomputing its footer.
+        for offset in (8,100,128+18563*12,27576948+36):
+            altered=bytearray(body);altered[offset]^=1
+            altered[-20:]=hashlib.sha1(altered[:-20]).digest()
+            candidate=ctypes.create_string_buffer(bytes(altered));refused_size=ctypes.c_size_t(99)
+            refused=lib.patch(candidate,len(altered),sha,ctypes.byref(refused_size))
+            if refused:
+                lib.dispose(refused)
+                raise ValueError('Changed donor accepted with a fresh footer')
+            if refused_size.value or candidate.raw[:-1]!=bytes(altered):
+                raise ValueError('Refusal modified its result length or input')
+        print('Same-size altered donors with valid recomputed footers refused unchanged')
         original = ctypes.create_string_buffer(body)
         size = ctypes.c_size_t()
         pointer = lib.patch(original,len(body),sha,ctypes.byref(size))
@@ -111,6 +124,23 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         if hashlib.sha1(patched[:-20]).digest() != patched[-20:]: raise ValueError('Bad patched footer')
         h, changed = HBCReader(), HBCReader()
         h.read_whole_file(io.BytesIO(body)); changed.read_whole_file(io.BytesIO(patched))
+        # The shim's 24/56 heights must agree with the real factory styles,
+        # not only the emitted-code fixture. Verify the export and every slot.
+        styles=list(parse_hbc_bytecode(h.function_headers[3484],h))
+        exported=next(i for i,x in enumerate(styles) if x.inst.name=='PutByIdLoose' and
+                      h.strings[x.arg4]=='EmotePart')
+        assert styles[exported-1].inst.name=='CreateClosure' and styles[exported-1].arg3==18563
+        style_at=next(i for i,x in enumerate(styles) if 'WithBuffer' in x.inst.name and
+                      "'inlineWrapper'" in str(x))
+        fields=ast.literal_eval(str(styles[style_at]).split('# Object: ',1)[1].replace('null','None'))
+        assert list(fields)==['inlineWrapper','gigantifiedWrapper','inlineImage','gigantifiedImage']
+        for slot in range(4):
+            literal,assignment=styles[style_at+1+slot*2:style_at+3+slot*2]
+            value=ast.literal_eval(str(literal).split('# Object: ',1)[1])
+            assert value=={'width':56 if slot%2 else 24,'height':56 if slot%2 else 24}
+            assert assignment.inst.name=='PutOwnBySlotIdx' and assignment.arg3==slot
+            assert assignment.arg1==styles[style_at].arg1 and assignment.arg2==literal.arg1
+        print('Actual EmotePart export and native wrapper/image style heights 24/56 verified')
         if local:
             # Exact Metro registration: NativeModules factory 20 is module 16.
             # Verify the donor lookup instead of assuming a bridge global exists.
@@ -125,26 +155,26 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 raise ValueError('NativeModules Metro registration mismatch')
             factory=list(parse_hbc_bytecode(h.function_headers[20],h))
             keys={x.arg4 for x in factory if x.inst.name in ('GetById','TryGetById')}
-            if not {51393,55620}.issubset(keys):
+            if not {50787,58459}.issubset(keys):
                 raise ValueError('NativeModules proxy/config routes not present')
-            for identity,value in [(18843,'__r'),(110,'default'),(20058,'buildLocalEcho')]:
+            for identity,value in [(17475,'__r'),(112,'default'),(44702,'buildLocalEcho')]:
                 if h.strings[identity]!=value: raise ValueError('Local lookup constant mismatch')
             # Follow the class method binding, not merely a similar function body.
-            methods=list(parse_hbc_bytecode(h.function_headers[3398],h))
-            own=next(i for i,x in enumerate(methods) if x.inst.name=='CreateClosure' and x.arg3==34307)
+            methods=list(parse_hbc_bytecode(h.function_headers[3504],h))
+            own=next(i for i,x in enumerate(methods) if x.inst.name=='CreateClosure' and x.arg3==35388)
             if "'key': 'onChatEvent'" not in str(methods[own-1]):
                 raise ValueError('Ordinary-chat method binding mismatch')
-            print('LibraryTmiClient factory 3398: function 34307 bound to onChatEvent')
+            print('LibraryTmiClient factory 3504: function 35388 bound to onChatEvent')
             print('NativeModules module 16 / factory 20: proxy and classic config routes verified')
-        index = 19127
+        index = 18563
         before, after = h.function_headers[index], changed.function_headers[index]
         for i,(a,b) in enumerate(zip(h.function_headers,changed.function_headers)):
             for field in a._fields_:
                 name = field[0]
-                targets={index}|({34307} if local else set())|({22083} if composer else set())
+                targets={index}|({35388} if local else set())|({22516} if composer else set())
                 if i in targets and name in ('offset','bytecodeSizeInBytes'): continue
-                if local and i==34307 and name in ('frameSize','hasExceptionHandler'): continue
-                if composer and i==22083 and name=='hasExceptionHandler':continue
+                if local and i==35388 and name in ('frameSize','hasExceptionHandler'): continue
+                if composer and i==22516 and name=='hasExceptionHandler':continue
                 left,right=getattr(a,name),getattr(b,name)
                 if isinstance(left,ctypes.Array):left,right=bytes(left),bytes(right)
                 if left != right: raise ValueError(f'Unexpected function header {i}/{name}')
@@ -162,7 +192,7 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
         def target_position(pos):
             return pos + extra*(pos > 0xd0) + extra*(pos > 0x238)
         new_instructions = {x.original_pos:x for x in parse_hbc_bytecode(after,changed)}
-        branches = 0
+        width_branches = 0
         for ins in parse_hbc_bytecode(before,h):
             at = instruction_position(ins.original_pos)
             current = new_instructions[at]
@@ -175,14 +205,14 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 actual = current.original_pos+getattr(current,f'arg{arg}')
                 if actual != target_position(target): raise ValueError(f'Branch relocation needed at {ins.original_pos:x}')
                 if actual not in new_instructions: raise ValueError('Branch misses instruction boundary')
-                branches += 1
+                width_branches += 1
         allowed = {32,33,34,35}
-        large = 26954740
+        large = 27576948
         allowed.update(range(large,large+4)); allowed.update(range(large+12,large+16))
         if local:
-            small=128+34307*12
+            small=128+35388*12
             allowed.update(range(small,small+12))
-            old_header,new_header=h.function_headers[34307],changed.function_headers[34307]
+            old_header,new_header=h.function_headers[35388],changed.function_headers[35388]
             instructions={x.original_pos:x for x in parse_hbc_bytecode(new_header,changed)}
             local_branches=0
             for ins in parse_hbc_bytecode(old_header,h):
@@ -205,7 +235,7 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 raise ValueError('Unexpected local function extent')
             if new_header.frameSize!=21 or not new_header.hasExceptionHandler:
                 raise ValueError('Own-preview calls require safe frame and exception containment')
-            handlers=changed.function_id_to_exc_handlers[34307]
+            handlers=changed.function_id_to_exc_handlers[35388]
             expected=(0x6d,0x6d+local_extra-7,0x6d+local_extra-2)
             if len(handlers)!=1 or (handlers[0].start,handlers[0].end,handlers[0].target)!=expected:
                 raise ValueError('Own-preview exception interval mismatch')
@@ -221,17 +251,17 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 if min(outgoing,10)<=max(sources):
                     raise ValueError('Injected call overlaps its own outgoing frame')
             print('Frame 21: outgoing call writes isolated from r0..r9; one fail-open Catch verified')
-            print(f'Library own-event function 34307: 121 -> {121+3+local_extra}; {local_branches} original branch targets verified')
+            print(f'Library own-event function 35388: 121 -> {121+3+local_extra}; {local_branches} original branch targets verified')
         if composer:
-            allowed.update(range(128+22083*12,140+22083*12))
-            old_header,new_header=h.function_headers[22083],changed.function_headers[22083]
+            allowed.update(range(128+22516*12,140+22516*12))
+            old_header,new_header=h.function_headers[22516],changed.function_headers[22516]
             instructions={x.original_pos:x for x in parse_hbc_bytecode(new_header,changed)}
             original_ops=list(parse_hbc_bytecode(old_header,h))
-            if str(next(x for x in original_ops if x.original_pos==0xa1)).find("'emoteMap'")<0:
+            if str(next(x for x in original_ops if x.original_pos==0xa7)).find("'emoteMap'")<0:
                 raise ValueError('Composer preview-map join mismatch')
             branches=0
             for ins in original_ops:
-                at=ins.original_pos+composer_extra*(ins.original_pos>=0xa7)
+                at=ins.original_pos+composer_extra*(ins.original_pos>=0xad)
                 current=instructions[at]
                 old=body[old_header.offset+ins.original_pos:old_header.offset+ins.next_pos]
                 new=patched[new_header.offset+at:new_header.offset+current.next_pos]
@@ -240,33 +270,33 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                     if not operand.operand_type.name.startswith('Addr'):continue
                     target=ins.original_pos+getattr(ins,f'arg{arg}')
                     actual=current.original_pos+getattr(current,f'arg{arg}')
-                    if actual!=target+composer_extra*(target>=0xa7) or actual not in instructions:
+                    if actual!=target+composer_extra*(target>=0xad) or actual not in instructions:
                         raise ValueError('Composer branch relocation mismatch')
                     branches+=1
-            if new_header.offset!=composer_base-20 or new_header.frameSize!=97:
+            if new_header.offset!=composer_base-20 or new_header.frameSize!=100:
                 raise ValueError('Composer frame/extent changed')
-            expected=(0xa7,0xa7+composer_extra-9,0xa7+composer_extra-4)
-            handlers=changed.function_id_to_exc_handlers[22083]
+            expected=(0xad,0xad+composer_extra-9,0xad+composer_extra-4)
+            handlers=changed.function_id_to_exc_handlers[22516]
             if len(handlers)!=1 or (handlers[0].start,handlers[0].end,handlers[0].target)!=expected:
                 raise ValueError('Composer handler interval mismatch')
             if instructions[expected[2]].inst.name!='Catch' or instructions[expected[1]].inst.name!='JmpLong':
                 raise ValueError('Composer exception containment mismatch')
-            restore=instructions[0xa7+composer_extra-2]
+            restore=instructions[0xad+composer_extra-2]
             if restore.inst.name!='LoadConstUndefined' or restore.arg1!=2:
                 raise ValueError('Composer original undefined must be restored')
-            live={6,7,8,11,12,17,18,23,26,31,32,33,36,37,43,44,46,47,49,50,56,57,62,74,75,76}
+            live={6,7,8,11,12,17,18,24,26,31,32,35,38,39,45,46,48,49,50,51,52,58,59,61,64,77,78,79}
             for ins in instructions.values():
-                if not 0xa7<=ins.original_pos<expected[1] or ins.inst.name not in ('Call2','Call4'):continue
+                if not 0xad<=ins.original_pos<expected[1] or ins.inst.name not in ('Call2','Call4'):continue
                 argc=2 if ins.inst.name=='Call2' else 4
                 staging=set(range(new_header.frameSize-7-argc,new_header.frameSize))
                 sources={getattr(ins,f'arg{i}') for i in range(2,argc+3)}
                 if staging&(live|sources):raise ValueError('Composer call clobbers live state')
-            print(f'Scoped composer 22083: unchanged frame 97; {branches} original branch targets and fail-open Catch verified')
+            print(f'Scoped composer 22516: unchanged frame 100; {branches} original branch targets and fail-open Catch verified')
         modifications = [i for i,(a,b) in enumerate(zip(body[:-20],patched)) if a != b]
         if set(modifications)-allowed: raise ValueError('Unexpected original-body change')
-        expected_length=len(body)+947+2*extra
+        expected_length=len(body)+943+2*extra
         if local: expected_length=((expected_length-20+121+3+local_extra+3)&~3)+40+16+20
-        if composer:expected_length=((expected_length-20+6240+composer_extra+3)&~3)+40+16+20
+        if composer:expected_length=((expected_length-20+6488+composer_extra+3)&~3)+40+16+20
         if len(patched) != expected_length: raise ValueError('Unexpected patch extent')
         if hermesc:
             if local:
@@ -302,8 +332,8 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 with (root/'hermes.dump').open(errors='replace') as output:
                     for line in output:
                         if line.startswith(('Function<','NCFunction<')):identity+=1
-                        if identity==34307:own.append(line)
-                        if identity>34307:break
+                        if identity==35388:own.append(line)
+                        if identity>35388:break
                 text=''.join(own)
                 if not all(key in text for key in ('21 registers','Catch','Exception Handlers:','start =','target =')):
                     raise ValueError('Hermes-98 did not recognize own-preview frame and handler')
@@ -313,14 +343,14 @@ size_t code(unsigned char *p,unsigned style){return tas_rn_width_code(p,style);}
                 with (root/'hermes.dump').open(errors='replace') as output:
                     for line in output:
                         if line.startswith(('Function<','NCFunction<')):identity+=1
-                        if identity==22083:own.append(line)
-                        if identity>22083:break
+                        if identity==22516:own.append(line)
+                        if identity>22516:break
                 text=''.join(own)
-                if not all(key in text for key in ('97 registers','Catch','Exception Handlers:','emoteMap')):
+                if not all(key in text for key in ('100 registers','Catch','Exception Handlers:','emoteMap')):
                     raise ValueError('Hermes-98 did not recognize composer frame/handler')
                 print('Independent Hermes-98 disassembly recognizes composer preview map and Catch table')
         print(f'Exact donor admitted; function {index}: {before.bytecodeSizeInBytes} -> {after.bytecodeSizeInBytes} bytes')
-        print(f'{branches} original branch targets and all other function headers preserved')
+        print(f'{width_branches} original width branch targets and all other function headers preserved')
         print(f'{len(modifications)} original-body bytes changed, solely in length and target header; footer valid')
         print('Static donor validation passed; new local-preview device execution remains pending' if local else
               'Wrapper/image overrides verified before layout')

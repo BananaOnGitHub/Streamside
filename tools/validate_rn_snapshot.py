@@ -17,7 +17,7 @@ import subprocess
 import tempfile
 ROOT=Path(__file__).resolve().parent.parent
 RUNTIME_COMMIT='40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c'
-DONOR_SHA='422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b'
+DONOR_SHA='20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458'
 WINDOW_BASELINE=json.loads((ROOT/'tests/fixtures/window_baseline.json').read_text())
 INPUTS=['src/rn/ProviderEmoteStrip.js','src/TASRNStripPayload.h','src/TASDemandRNBridge.h',
         'src/TASImageDemand.c','src/TASImageDemand.h','src/TASEmotes.c',
@@ -52,7 +52,7 @@ def validate_settings_binding(donor,source):
     instructions=list(parse_hbc_bytecode(h.function_headers[0],h))
     registrations=[]
     for i,x in enumerate(instructions):
-        if x.inst.name!='CreateClosure' or x.arg3!=4884:continue
+        if x.inst.name!='CreateClosure' or x.arg3!=4941:continue
         symbol,module,deps=instructions[i-3:i]
         call=instructions[i+1]
         if (symbol.inst.name!='TryGetById' or h.strings[symbol.arg4]!='__d' or
@@ -65,15 +65,15 @@ def validate_settings_binding(donor,source):
     if len(registrations)!=1 or not binding or int(binding.group(1))!=registrations[0]:
         raise ValueError('Settings adapter module differs from donor factory registration')
     # Also confirm this factory owns the writable sheet export we wrap.
-    instructions=list(parse_hbc_bytecode(h.function_headers[4884],h))
+    instructions=list(parse_hbc_bytecode(h.function_headers[4941],h))
     exports=[(i,x) for i,x in enumerate(instructions) if x.inst.name=='PutByIdLoose' and
              h.strings[x.arg4]=='ChatSettingsSheet']
     if len(exports)!=1:
         raise ValueError('Missing donor ChatSettingsSheet export')
     i,export=exports[0];component=instructions[i-1]
-    if component.inst.name!='CreateClosure' or component.arg1!=export.arg2 or component.arg3!=22114:
+    if component.inst.name!='CreateClosure' or component.arg1!=export.arg2 or component.arg3!=22549:
         raise ValueError('Changed donor ChatSettingsSheet component')
-    print('Donor ChatSettingsSheet module/factory/component binding validated:',registrations[0],4884,22114)
+    print('Donor ChatSettingsSheet module/factory/component binding validated:',registrations[0],4941,22549)
     return registrations[0]
 def patch_chain(zig,donor,tmp):
     (tmp/'patch.c').write_text('''#include "TASRNStripPatch.h"
@@ -99,7 +99,7 @@ void dispose(void *p){free(p);}
         finally:lib.dispose(p)
     return donor
 
-def test_entry(body,compiler,tmp,entry_id=47322):
+def test_entry(body,compiler,tmp,entry_id=48996):
     from rn_graft import read, assemble
     h=read(body);ids={s:i for i,s in reversed(list(enumerate(h.strings)))}
     (tmp/'entry.js').write_text('function buildLocalEcho() {}')
@@ -154,7 +154,7 @@ def validate(a):
     with tempfile.TemporaryDirectory() as folder:
         from rn_graft import generate
         tmp=Path(folder)
-        generate(a.donor,a.hermesc,ROOT/'src/rn/ProviderEmoteStrip.js',tmp/'payload.h',prefix='STRIP',factory_id=4869,function_base=47322)
+        generate(a.donor,a.hermesc,ROOT/'src/rn/ProviderEmoteStrip.js',tmp/'payload.h',prefix='STRIP',factory_id=4924,function_base=48996)
         assert (tmp/'payload.h').read_bytes()==(ROOT/'src/TASRNStripPayload.h').read_bytes(),'Stale production payload'
         native=native_adapter(a.zig,tmp)
         body=patch_chain(a.zig,a.donor.read_bytes(),tmp)
@@ -165,7 +165,7 @@ def validate(a):
         prefix+='\n_runtimeGlobal.__r=env.__r;_runtimeGlobal.setInterval=env.setInterval;_runtimeGlobal.clearInterval=env.clearInterval;\n'
         # Execute the actual settings factory/component against the shipped
         # adapter. A hand-built page fixture missed optional containerSections.
-        (tmp/'settings-donor.hbc').write_bytes(test_entry(a.donor.read_bytes(),a.hermesc,tmp,4884))
+        (tmp/'settings-donor.hbc').write_bytes(test_entry(a.donor.read_bytes(),a.hermesc,tmp,4941))
         (tmp/'settings-setup.js').write_text(prefix+(ROOT/'tests/fixtures/rn_settings_donor.js').read_text())
         compile_js(a.hermesc,tmp/'settings-setup.js',tmp/'settings-setup.hbc')
         (tmp/'settings-exercise.js').write_text('exerciseDonorSettings();')
@@ -175,7 +175,7 @@ def validate(a):
         print('Unchanged donor settings factory/component + compiled reload adapter passed: omitted/null/empty sections, first row, scope and identity subpage.')
         (tmp/'exercise.js').write_text(prefix+(ROOT/'tests/fixtures/snapshot_exercise.js').read_text()+(ROOT/'tests/fixtures/rn_settings_exercise.js').read_text())
         compile_js(a.hermesc,tmp/'exercise.js',tmp/'exercise.hbc')
-        # Execute Twitch's unchanged RN factory 350/7242/7244, then the shipped
+        # Execute Twitch's unchanged RN factory 350/7436/7438, then the shipped
         # graft's layout callback. No replica of the window/search algorithm.
         (tmp/'algorithm-donor.hbc').write_bytes(test_entry(a.donor.read_bytes(),a.hermesc,tmp,350))
         (tmp/'algorithm.js').write_text((ROOT/'tests/fixtures/window_algorithm.js').read_text())

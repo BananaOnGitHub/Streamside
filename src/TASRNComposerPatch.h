@@ -2,16 +2,17 @@
 #define TAS_RN_COMPOSER_PATCH_H
 #include "TASRNLocalEchoPatch.h"
 
-#define TAS_RN_COMPOSER_INDEX 22083U
-#define TAS_RN_COMPOSER_OFFSET 22793824U
-#define TAS_RN_COMPOSER_SIZE 6240U
+#define TAS_RN_COMPOSER_INDEX 22516U
+#define TAS_RN_COMPOSER_OFFSET 23152959U
+#define TAS_RN_COMPOSER_SIZE 6488U
 #define TAS_RN_COMPOSER_HEADER (128U + TAS_RN_COMPOSER_INDEX * 12U)
-#define TAS_RN_COMPOSER_INFO 27033284U
-#define TAS_RN_COMPOSER_JOIN 0xa7U
+#define TAS_RN_COMPOSER_BODY_SIZE (TAS_RN_BODY_SIZE + 8192U)
+#define TAS_RN_COMPOSER_INFO 27713740U
+#define TAS_RN_COMPOSER_JOIN 0xadU
 
-/* Scoped chat composer: r49=draft, r75=channelID, r47=native emoteMap.
+/* Scoped chat composer: r51=draft, r78=channelID, r49=native emoteMap.
  * r0/r1/r2/r9/r10 are dead here (r2's undefined is restored). The existing
- * frame 97 already puts Call4 staging in r86..96; no frame growth, remapping,
+ * frame 100 already puts Call4 staging in r89..99; no frame growth, remapping,
  * hooks, draft/selection/props mutation or outgoing-message rewrite.
  * Every original branch is after this straight-line prefix, so appending an
  * insertion here preserves every original relative branch byte verbatim.
@@ -22,19 +23,19 @@ static inline size_t tas_rn_composer_code(unsigned char *out) {
 #define COM_KEY(reg,key) COM_BYTES(144,reg,(key)&255,(key)>>8)
 #define COM_FALSE(reg) do { jumps[n++]=p; COM_BYTES(179,0,0,0,0,reg); } while (0)
     COM_BYTES(61,9);
-    COM_KEY(10,18843); COM_BYTES(93,10,9,10); /* __r */
+    COM_KEY(10,17475); COM_BYTES(93,10,9,10); /* __r */
     COM_FALSE(10);
     COM_BYTES(139,1,16,110,10,10,9,1); /* NativeModules */
     COM_FALSE(10);
-    COM_KEY(1,110); COM_BYTES(93,10,10,1); /* default */
+    COM_KEY(1,112); COM_BYTES(93,10,10,1); /* default */
     COM_FALSE(10);
-    COM_KEY(1,20058); COM_BYTES(93,10,10,1); /* separate module */
+    COM_KEY(1,44702); COM_BYTES(93,10,10,1); /* separate module */
     COM_FALSE(10);
-    COM_KEY(1,46459); COM_BYTES(93,9,10,1); /* emoteMap method */
+    COM_KEY(1,52120); COM_BYTES(93,9,10,1); /* emoteMap method */
     COM_FALSE(9);
-    COM_BYTES(112,0,9,10,49,75,47);
+    COM_BYTES(112,0,9,10,51,78,49);
     COM_FALSE(0);
-    COM_BYTES(16,47,0); /* update local preview map only */
+    COM_BYTES(16,49,0); /* update local preview map only */
     COM_BYTES(175,7,0,0,0,119,0); /* skip Catch */
     for (unsigned i=0;i<n;i++) tas_rn_put32(jumps[i]+1,(uint32_t)(p-jumps[i]));
     COM_BYTES(147,2); /* original undefined */
@@ -49,14 +50,13 @@ static inline size_t tas_rn_composer_code(unsigned char *out) {
  * redirect only its overflow header to an appended full header + handler. */
 static inline unsigned char *tas_rn_composer_patch(const unsigned char *body,
         size_t length,TASRNSHA1 sha1,size_t *result_length) {
-    static const unsigned char small[12]={0xc4,0x7e,0x9c,0,0,0x40,0,0,0,0,0,0x20};
+    static const unsigned char small[12]={204,224,166,0,0,64,0,0,0,0,0,32};
     if (result_length) *result_length=0;
-    if (!body || !sha1 || !result_length || length<TAS_RN_BODY_SIZE+1207 ||
-        length>TAS_RN_BODY_SIZE+4096 || tas_rn_u32(body+32)!=length ||
+    if (!body || !sha1 || !result_length || length!=TAS_RN_LOCAL_BODY_SIZE || tas_rn_u32(body+32)!=length ||
         memcmp(body+TAS_RN_COMPOSER_HEADER,small,12) ||
         tas_rn_u32(body+TAS_RN_COMPOSER_INFO)!=TAS_RN_COMPOSER_OFFSET ||
         tas_rn_u32(body+TAS_RN_COMPOSER_INFO+12)!=TAS_RN_COMPOSER_SIZE ||
-        tas_rn_u32(body+TAS_RN_COMPOSER_INFO+28)!=97 || body[TAS_RN_COMPOSER_INFO+36]!=2) return NULL;
+        tas_rn_u32(body+TAS_RN_COMPOSER_INFO+28)!=100 || body[TAS_RN_COMPOSER_INFO+36]!=2) return NULL;
     unsigned char digest[20];
     if (!sha1(body,(uint32_t)length-20,digest) || memcmp(digest,body+length-20,20)) return NULL;
     unsigned char code[256]; size_t extra=tas_rn_composer_code(code);

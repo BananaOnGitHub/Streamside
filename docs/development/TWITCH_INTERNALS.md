@@ -35,13 +35,19 @@ Do not use historical unslid addresses as live hooks. Archive addresses are dono
 
 ## Hermes source and patch chain
 
-Original 31.5 body: 27,786,480 bytes, Hermes 98, SHA-256 `422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b`.
+Released 3.0.0 baseline: original 31.5 body, 27,786,480 bytes, Hermes 98,
+SHA-256 `422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b`.
+Current 3.1.0 development headers target the original 31.6 body: 28,682,408
+bytes, Hermes 98, SHA-256
+`20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458`.
+The [build-5 port record](../investigations/TWITCH_31_6_COMPATIBILITY.md#build-5-hermes-port)
+preserves the previous refusal and defines host validation and pending device scope.
 
-[TASRNWidthPatch.h](../../src/TASRNWidthPatch.h) admits the original body and appends width-adjusted EmotePart code. Subsequent [local](../../src/TASRNLocalEchoPatch.h), [composer](../../src/TASRNComposerPatch.h), [popup](../../src/TASRNPopupPatch.h), and [strip](../../src/TASRNStripPatch.h) stages validate their expected predecessor/function metadata.
+[TASRNWidthPatch.h](../../src/TASRNWidthPatch.h) admits the exact target body and appends width-adjusted EmotePart code. Subsequent [local](../../src/TASRNLocalEchoPatch.h), [composer](../../src/TASRNComposerPatch.h), [popup](../../src/TASRNPopupPatch.h), and [strip](../../src/TASRNStripPatch.h) stages validate their expected predecessor/function metadata.
 
 `RCTSource` owns a cached patched NSData. The donor file and original caller data remain unchanged. Each stage recomputes the footer and preserves unrelated function/data/debug structures according to its verified layout.
 
-Hermes function IDs, Metro module IDs, and React component identities are different domains. Factory 4884 registers Metro module 4880; importing 4884 as the module caused a real missing-menu failure while an equally incorrect mock passed.
+Hermes function IDs, Metro module IDs, and React component identities are different domains. In the 31.5 investigation, factory 4884 registered Metro module 4880; importing 4884 as the module caused a real missing-menu failure while an equally incorrect mock passed. The 31.6 binding is factory 4941 / module 4937 and is verified against that donor's registration.
 
 ## Register and exception correctness
 

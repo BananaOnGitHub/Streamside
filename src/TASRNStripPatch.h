@@ -12,10 +12,10 @@ static inline unsigned char *tas_rn_strip_patch(const unsigned char *body,
     const size_t prior_delta=TAS_RN_POPUP_FUNCTIONS*12U;
     const size_t table_end=128U+TAS_RN_STRIP_BASE*12U;
     const size_t delta=TAS_RN_STRIP_FUNCTIONS*12U;
-    const size_t join=0x46,fh=128U+4869U*12U;
+    const size_t join=0x46,fh=128U+4924U*12U;
     const size_t old_info=TAS_RN_STRIP_FACTORY_INFO+prior_delta;
     const size_t old_start=TAS_RN_STRIP_FACTORY_OFFSET+prior_delta;
-    if(!body || !sha1 || !result_length || length!=27797044U || tas_rn_u32(body+32)!=length ||
+    if(!body || !sha1 || !result_length || length!=28693212U || tas_rn_u32(body+32)!=length ||
         tas_rn_u32(body+40)!=TAS_RN_STRIP_BASE || body[fh+11]!=32 ||
         ((tas_rn_u32(body+fh)&0x00ffffffU)|((tas_rn_u32(body+fh+4)>>14)<<24))!=old_info ||
         tas_rn_u32(body+old_info)!=old_start || tas_rn_u32(body+old_info+12)!=TAS_RN_STRIP_FACTORY_SIZE ||

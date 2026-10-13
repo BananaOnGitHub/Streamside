@@ -1,4 +1,4 @@
-/* Owned RN component for the exact Twitch 31.5 donor. install() is invoked
+/* Owned RN component for the exact Twitch 31.6 donor. install() is invoked
  * once in ChatCardHost's factory with its original emote sheet component.
  * No hooks in the routing wrapper; native/provider cards have separate trees.
  * Empty objects are populated incrementally so the compiled graft needs no
@@ -8,7 +8,7 @@ function install(original) {
   var React = __r(72);
   React = React.default || React;
   var RN = __r(5);
-  var sheets = __r(2118);
+  var sheets = __r(2071);
   var bridge = __r(16).default.buildLocalEcho;
   if (!React || !RN.Image || !RN.Pressable || !sheets.BottomSheet ||
       !sheets.useSheetHandoff || !sheets.useTheme || !bridge ||

@@ -1,5 +1,10 @@
 # Twitch 31.6 compatibility inspection
 
+> Follow-up: [3.1.0 build 5 ports the Hermes chain](#build-5-hermes-port) to the
+> same 31.6 donor. The original inspection below describes source `ba7dd0b` and
+> its refusal; it is preserved as the pre-port result. Host port validation now
+> passes, while 31.6 device acceptance remains pending.
+
 Inspected 2026-10-13 on `dev/3.1.0`, source `ba7dd0b` (Streamside 3.1.0 build 4).
 This is donor inspection, not a completed port or device acceptance. Twitch
 31.5 remains the admitted RN donor. The separate
@@ -170,3 +175,142 @@ classic emoticon proportions, cold images, suggestions/library/settings,
 account/channel changes, and lifecycle behavior. Record exact donor/artifact
 identities and failures under
 [Documentation maintenance](../development/DOCUMENTATION.md).
+
+## Build 5 Hermes port
+
+Streamside 3.1.0 build 5 ports all five stages to Twitch 31.6
+(`262821841498166537`), prepared from source parent `8eae51b` with the changes
+in this port. The input and original Hermes SHA-256 identities remain those
+recorded above. Admission now requires the exact 28,682,408-byte Hermes-98
+body and its pinned SHA-1 footer `d2428c8fa344f3956c89b991c4bd488b42a12db7`.
+This development build targets 31.6 only: the old 31.5 body is refused. Build 4
+and released 3.0.0 retain their 31.5 scope.
+
+### Resolved seams and chain
+
+| Stage | Original donor function / bytes | In-memory result bytes |
+| --- | --- | --- |
+| Width | EmotePart 18563 / 943 | 28,683,611 |
+| Local echo | onChatEvent 35388 / 121 | 28,683,956 |
+| Composer | ChatComposerBar 22516 / 6488 | 28,690,600 |
+| Popup | ChatCardHost factory 3694 / 600 | 28,693,212 |
+| Strip/library | ChatComposerBar factory 4924 / 336 | 28,723,688 |
+
+[Width](../../src/TASRNWidthPatch.h) retains insertion boundaries `0xd0` and
+`0x238`, style registers 13/14, emote ID 10, gigantified flag 11, and scratch
+registers 18–21 in the donor's existing frame 41. Original branch destinations
+remain valid despite a changed literal-buffer instruction width later in the
+31.6 function. Its complete 40-byte large header is admitted explicitly.
+
+[Local echo](../../src/TASRNLocalEchoPatch.h) follows the actual
+`LibraryTmiClient` factory 3504 binding to `onChatEvent` 35388. Its instruction
+flow is unchanged after resolving string IDs. The donor now already uses a
+full header, which is copied before changing only offset, size, frame 18 to 21,
+and the added handler flag. Null-line and nonce joins retain their behavior;
+preview exceptions resume original emission outside the protected interval.
+
+[Composer](../../src/TASRNComposerPatch.h) retains 31.6's frame 100 and reads
+draft/channel/native map from registers 51/78/49. The insertion moves to `0xad`,
+immediately after the native map read at `0xa7`. Calls stage in registers
+89–99, isolated from the live prefix. Only the local preview map is replaced;
+the undefined register is restored and native draft, selection, props, and
+send serialization are retained. Stage admission now requires the exact local
+predecessor length rather than a length range.
+
+[Popup](../../src/TASRNPopupPatch.h) and
+[strip](../../src/TASRNStripPatch.h) retain factory joins `0x5e` and `0x46`,
+respectively, with original frames 32 and 22 and contained installer exceptions.
+[rn_graft.py](../../tools/rn_graft.py) regenerates 11 owned card functions
+(1,800 bytes) and 131 owned strip functions (28,492 bytes). They begin at
+function IDs 48985 and 48996; the final body has 49,127 functions. Original
+literal buffers, strings and their kinds, handlers, and debug records are
+preserved; function-table expansion relocates absolute section/code offsets.
+Long string operands are widened where required by the 31.6 pool.
+
+### Module bindings and changed autocomplete API
+
+Owned requires are checked against donor registrations and writable exports:
+
+| Adapter dependency | 31.6 Metro module |
+| --- | --- |
+| React / RN / NativeModules / JSX | 72 / 5 / 16 / 245 |
+| Theme and sheet APIs | 2071 |
+| EmoteTextInput | 3459 |
+| Autocomplete leaf | 4676 |
+| ChatAutocompleteTray | 4777 |
+| useChatComposer | 4751 |
+| Native backspace / alias barrels | 3458 / 3488 |
+| EmotePickerTray | 4153 |
+| ChatSettingsSheet | 4937 |
+
+Settings module 4937 registers factory 4941, which exports component 22549.
+The verifier checks that registration and rejects using the factory number as
+the module number. Native composer catalog publication also moved: ChatArea
+21721 assigns `emoteMap` in slot 21 at `0xa886`, not the old slot 20.
+Native library row/header heights remain 52/28; the verified grid/navigation JSX
+surfaces moved to `0x1957`/`0x1352` in EmotePickerTray 20260.
+
+Payload regeneration initially refused `confirmHighlightedMatch`, which is
+absent from 31.6. Donor `useAutocomplete` 21822 returns `matches`,
+`forcedSelection`, `onChange`, `onMatchSelect`, and `reset`. The caller now
+passes through `useComposerAutocomplete` (factory 4775/helper 22037).
+[ProviderEmoteStrip.js](../../src/rn/ProviderEmoteStrip.js) removes the obsolete
+confirm override. Provider filtering and stale emote-match masking remain;
+current native selection/change/reset callbacks and their identities remain
+intact, without adding React hook slots. Fixtures cover that returned shape.
+
+The structural verifier caught changed dependency indices and catalog slots
+while rechecking the port. Those checks were rebound to the inspected 31.6
+instructions and registrations, rather than dropping the assertions.
+
+### Port verification
+
+- [Width/local/composer verification](../../tools/verify_rn_width.py) passes:
+  34 original width branches, five local branches, and 264 composer branches
+  preserve their destinations. Original instructions remain intact except the
+  verified local null-branch widening; unrelated function metadata is preserved.
+  Independent Hermes-98 disassembly and the Call4
+  compiler probe confirm call frames and exception intervals. Same-size altered
+  inputs with freshly recomputed footers are refused without input mutation.
+- [Full graft verification](../../tools/verify_rn_popup.py) passes deterministic
+  regeneration, module/leaf bindings, every unaffected function body/header,
+  original constants/handlers/debug data, imported closure/branch/handler bounds,
+  and independent disassembly. The last stage checks 48,996 predecessor
+  functions, including the already admitted 11 card functions.
+- [Compiled runtime validation](../../tools/validate_rn_snapshot.py) passes
+  against pinned Hermes source `40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c`.
+  It executes the production graft, real donor settings factory/component,
+  original RN overlap/window algorithm, and native demand handler: 32 bounded
+  snapshots and all 7,344 window scenarios pass. Settings checks include
+  omitted/null/empty sections, first-row reload scope/close, and identity subpages.
+  React/RN and Objective-C boxing use host adapters; this is not iOS execution.
+- The complete host suite runs 171 tests: 170 pass, one Apple Foundation test
+  is skipped on Linux. Both private donor/Hermes tests execute and pass.
+  `make verify` passes both native artifact contracts; both DEB packages verify.
+- The unsigned build-5 IPA passes the patcher's archive checks and a separate
+  `verify_ipa.py` invocation. Its disk `index.ios.bundle` remains the original
+  31.6 body: the runtime patch is not written into the IPA. Icon assets and
+  `Assets.car` pass packaging preservation checks.
+
+Compiler SHA-256:
+`1f7f8e1d1cb9dc7ed6d3432c92f511fe1c47cf3d0f3a3eea8f757126752c38e5`.
+Snapshot runner SHA-256:
+`4e3954bf41b6083a35fd90f0ca4d34ef18d304ee3e8abeceea7d07dd28520665`.
+Build-5 framework binary SHA-256:
+`0bfde7d3fe484ce3d8f514722c260ae3accd907b699a77bf3a3a46f6b6829540`.
+
+Unsigned artifact: `Twitch_31.6_Streamside_3.1.0-build.5_unsigned.ipa`,
+194,477,376 bytes, SHA-256
+`1f2e91afa41fe683ff4138e0f85e86abbec181d9a61546be4f06d62d5d66dd98`.
+
+### Device and release status
+
+The Hermes port is implemented and host-validated. Device acceptance on 31.6
+is still pending for actual renderer routing, own/incoming emotes, composer
+proportions and cursor continuation, holds, suggestions/library/settings,
+account/channel changes, and lifecycle. The native/runtime layout and playback
+limits from the inspection remain open, including an actual ad-bearing case.
+The previous 31.5 device confirmations do not count as 31.6 acceptance.
+
+No release tag or main merge is part of this trial. Public feature documentation
+is reconciled at feature freeze under the maintenance policy.

@@ -29,7 +29,7 @@ const RN={View:'view',Text:'text',Image:'image',Pressable:'button',ScrollView:'s
 const ui={useTheme:()=>({colors:{backgroundBase:'black',textAlt:'white'}})};
 const autocomplete={EMOTE_URL_TEMPLATE:'https://fixture/{id}/default',EMOTE_URL_TEMPLATE_STATIC:'https://fixture/{id}/static',caretFromEdit:(before,after)=>{let suffix=0;while(suffix<Math.min(before.length,after.length)&&before[before.length-suffix-1]===after[after.length-suffix-1])suffix++;return after.length-suffix;}};
 autocomplete.useAutocomplete=(...args)=>{hookCalls.push(args);return nativeResult;};
-const env={__r:id=>({72:React,5:RN,2118:ui,245:{},16:{default:{buildLocalEcho:bridge}},3759:inputs,4619:autocomplete,3337:buttons,4174:trays,4713:suggestions})[id],encodeURIComponent,WeakMap,
+const env={__r:id=>({72:React,5:RN,2071:ui,245:{},16:{default:{buildLocalEcho:bridge}},3459:inputs,4676:autocomplete,3337:buttons,4153:trays,4777:suggestions})[id],encodeURIComponent,WeakMap,
  setInterval:fn=>{timer=fn;return 1;},clearInterval:()=>{timer=null;}};
 vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);
 const Original='composer',Composer=env.install(Original),Input=inputs.EmoteTextInput;
@@ -93,12 +93,14 @@ assert.deepStrictEqual(Array.from(hookCalls.at(-1)[2]),[command,mention]);
 assert.strictEqual(hookCalls.at(-1)[1],setter);assert.strictEqual(hookCalls.at(-1)[3],complete);
 const filtered=hookCalls.at(-1)[2];autocomplete.useAutocomplete(':Su',setter,providers,complete);
 assert.strictEqual(hookCalls.at(-1)[2],filtered,'stable provider identity across renders');
-nativeResult={matches:[{type:'emote'}],confirmHighlightedMatch:()=>{confirmed++;return nativeResult.matches[0];},onChange:()=>{}};
+nativeResult={matches:[{type:'emote'}],forcedSelection:{start:3,end:3},onMatchSelect:()=>{confirmed++;return nativeResult.matches[0];},onChange:()=>{},reset:()=>{}};
 const masked=autocomplete.useAutocomplete(':Su',setter,providers,complete);
-assert.strictEqual(masked.matches,null);assert.strictEqual(masked.confirmHighlightedMatch(),null);assert.strictEqual(confirmed,0);
+assert.strictEqual(masked.matches,null);assert.strictEqual(masked.onMatchSelect,nativeResult.onMatchSelect);assert.strictEqual(confirmed,0);
 assert.strictEqual(masked.onChange,nativeResult.onChange);
+assert.strictEqual(masked.forcedSelection,nativeResult.forcedSelection);assert.strictEqual(masked.reset,nativeResult.reset);
+assert.strictEqual(Object.prototype.hasOwnProperty.call(masked,'confirmHighlightedMatch'),false);
 // This mirrors the donor composer's send branch: null matches send ordinary text.
-let sends=0;if(masked.matches===null)sends++;else masked.confirmHighlightedMatch();assert.strictEqual(sends,1);
+let sends=0;if(masked.matches===null)sends++;else masked.onMatchSelect();assert.strictEqual(sends,1);
 const matchProps={matches:nativeResult.matches};assert.strictEqual(render(suggestions.ChatAutocompleteTray,matchProps),null);
 nativeResult={matches:[{type:'mention'}]};assert.strictEqual(autocomplete.useAutocomplete('@test',setter,providers,complete),nativeResult);
 assert.strictEqual(render(suggestions.ChatAutocompleteTray,{matches:nativeResult.matches}).type,'native-suggestions');

@@ -20,11 +20,12 @@ static inline uint64_t tas_rn_width_id(uint64_t image_id, double aspect) {
 }
 
 typedef unsigned char *(*TASRNSHA1)(const void *, uint32_t, unsigned char *);
-#define TAS_RN_BODY_SIZE 27786480U
-#define TAS_RN_FUNCTION_OFFSET 21568121U
-#define TAS_RN_FUNCTION_SIZE 947U
-#define TAS_RN_LARGE_HEADER 26954740U
-#define TAS_RN_SMALL_HEADER (128U + 19127U * 12U)
+#define TAS_RN_BODY_SIZE 28682408U
+#define TAS_RN_WIDTH_BODY_SIZE (TAS_RN_BODY_SIZE + 1203U)
+#define TAS_RN_FUNCTION_OFFSET 21663039U
+#define TAS_RN_FUNCTION_SIZE 943U
+#define TAS_RN_LARGE_HEADER 27576948U
+#define TAS_RN_SMALL_HEADER (128U + 18563U * 12U)
 
 static inline uint32_t tas_rn_u32(const unsigned char *p) {
     uint32_t v; memcpy(&v,p,4); return v;
@@ -81,18 +82,16 @@ static inline size_t tas_rn_width_code(unsigned char *out, unsigned style) {
  */
 static inline unsigned char *tas_rn_width_patch(const unsigned char *body,
         size_t length, TASRNSHA1 sha1, size_t *result_length) {
-    static const unsigned char digest[20]={0x5f,0x22,0x11,0x97,0x49,0x24,0x27,0x17,0xf3,0x78,
-        0x87,0x97,0xcf,0x50,0xa7,0x7f,0x0e,0xdc,0x07,0x15};
-    static const unsigned char small[12]={0xf4,0x4b,0x9b,0,0,0x40,0,0,0,0,0,0x20};
-    static const unsigned char large[36]={0x79,0x1a,0x49,1,2,0,0,0,0,0,0,0,0xb3,3,0,0,
-        0x37,0x41,0,0,2,0,0,0,2,0,0,0,0x29,0,0,0,0x1b,0,0,0};
+    static const unsigned char digest[20]={0xd2,0x42,0x8c,0x8f,0xa3,0x44,0xf3,0x95,0x6c,0x89,0xb9,0x91,0xc4,0xbd,0x48,0x8b,0x42,0xa1,0x2d,0xb7};
+    static const unsigned char small[12]={116,202,164,0,0,64,0,0,0,0,0,32};
+    static const unsigned char large[40]={63,141,74,1,2,0,0,0,0,0,0,0,175,3,0,0,167,164,0,0,2,0,0,0,2,0,0,0,41,0,0,0,27,0,0,0,2,0,0,0};
     if (result_length) *result_length=0;
     if (!body || length!=TAS_RN_BODY_SIZE || !sha1 || !result_length ||
         tas_rn_u32(body)!=0x03bc1fc6 || tas_rn_u32(body+4)!=0x1f1903c1 ||
         tas_rn_u32(body+8)!=98 || tas_rn_u32(body+32)!=length ||
         memcmp(body+length-20,digest,20) ||
         memcmp(body+TAS_RN_SMALL_HEADER,small,12) ||
-        memcmp(body+TAS_RN_LARGE_HEADER,large,36)) return NULL;
+        memcmp(body+TAS_RN_LARGE_HEADER,large,40)) return NULL;
     unsigned char check[20];
     if (!sha1(body,(uint32_t)length-20,check) || memcmp(check,digest,20)) return NULL;
     unsigned char wrapper[192],image[192];

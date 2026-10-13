@@ -24,8 +24,7 @@ HARNESS = r'''
 static bool fail_sha;
 static unsigned char *fixture_sha(const void *p,uint32_t n,unsigned char *out) {
     (void)p;(void)n;if(fail_sha)return NULL;
-    const unsigned char d[]={0x5f,0x22,0x11,0x97,0x49,0x24,0x27,0x17,0xf3,0x78,
-        0x87,0x97,0xcf,0x50,0xa7,0x7f,0x0e,0xdc,0x07,0x15};memcpy(out,d,20);return out;
+    const unsigned char d[]={210,66,140,143,163,68,243,149,108,137,185,145,196,189,72,139,66,161,45,183};memcpy(out,d,20);return out;
 }
 int main(int argc,char **argv) {
     assert(argc==2);
@@ -41,15 +40,17 @@ int main(int argc,char **argv) {
     assert(tas_rn_width_id(900000000000001ULL,3.333)%10000==3333);
     assert(tas_rn_width_id(900000000000001ULL,1)!=tas_rn_width_id(900000000000002ULL,1));
     unsigned char *body=calloc(1,TAS_RN_BODY_SIZE);assert(body);
-    const unsigned char small[]={0xf4,0x4b,0x9b,0,0,0x40,0,0,0,0,0,0x20};
-    const unsigned char large[]={0x79,0x1a,0x49,1,2,0,0,0,0,0,0,0,0xb3,3,0,0,
-        0x37,0x41,0,0,2,0,0,0,2,0,0,0,0x29,0,0,0,0x1b,0,0,0};
+    const unsigned char small[]={116,202,164,0,0,64,0,0,0,0,0,32};
+    const unsigned char large[]={63,141,74,1,2,0,0,0,0,0,0,0,175,3,0,0,167,164,0,0,2,0,0,0,2,0,0,0,41,0,0,0,27,0,0,0,2,0,0,0};
     tas_rn_put32(body,0x03bc1fc6);tas_rn_put32(body+4,0x1f1903c1);
     tas_rn_put32(body+8,98);tas_rn_put32(body+32,TAS_RN_BODY_SIZE);
     memcpy(body+TAS_RN_SMALL_HEADER,small,sizeof(small));
     memcpy(body+TAS_RN_LARGE_HEADER,large,sizeof(large));
-    const unsigned char local_header[]={0x6e,0x43,0x7e,5,0x79,0,0x3e,0x18,0x12,8,2,2};
+    const unsigned char local_header[]={68,191,173,0,0,64,0,0,0,0,0,32};
     memcpy(body+TAS_RN_LOCAL_HEADER,local_header,12);
+    tas_rn_put32(body+TAS_RN_LOCAL_INFO,TAS_RN_LOCAL_OFFSET);
+    tas_rn_put32(body+TAS_RN_LOCAL_INFO+12,TAS_RN_LOCAL_SIZE);
+    tas_rn_put32(body+TAS_RN_LOCAL_INFO+28,18);body[TAS_RN_LOCAL_INFO+36]=2;
     body[TAS_RN_LOCAL_OFFSET+0x32]=178;body[TAS_RN_LOCAL_OFFSET+0x33]=67;body[TAS_RN_LOCAL_OFFSET+0x34]=4;
     fixture_sha(NULL,0,body+TAS_RN_BODY_SIZE-20);
     for(unsigned i=0;i<TAS_RN_FUNCTION_SIZE;i++)body[TAS_RN_FUNCTION_OFFSET+i]=(unsigned char)i;
@@ -57,7 +58,7 @@ int main(int argc,char **argv) {
     assert(!tas_rn_width_patch(body,TAS_RN_BODY_SIZE-1,fixture_sha,&n));
     assert(!tas_rn_width_patch(body,TAS_RN_BODY_SIZE,NULL,&n));
     assert(!tas_rn_width_patch(body,TAS_RN_BODY_SIZE,fixture_sha,NULL));
-    const unsigned offsets[]={0,4,8,32,TAS_RN_SMALL_HEADER,TAS_RN_LARGE_HEADER,TAS_RN_BODY_SIZE-20};
+    const unsigned offsets[]={0,4,8,32,TAS_RN_SMALL_HEADER,TAS_RN_LARGE_HEADER,TAS_RN_LARGE_HEADER+36,TAS_RN_BODY_SIZE-20};
     for(unsigned i=0;i<sizeof(offsets)/sizeof(offsets[0]);i++) {
         body[offsets[i]]^=1;assert(!tas_rn_width_patch(body,TAS_RN_BODY_SIZE,fixture_sha,&n));body[offsets[i]]^=1;
     }
@@ -81,6 +82,12 @@ int main(int argc,char **argv) {
     unsigned char local_code[256];size_t local_extra=tas_rn_local_code(local_code),local_count=0;
     assert(!tas_rn_local_patch(body,TAS_RN_BODY_SIZE,fixture_sha,&local_count));
     copy[TAS_RN_LOCAL_HEADER]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[TAS_RN_LOCAL_HEADER]^=1;
+    const unsigned local_offsets[]={0,12,28,36};
+    for(unsigned i=0;i<4;i++) {
+        copy[TAS_RN_LOCAL_INFO+local_offsets[i]]^=1;
+        assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));
+        copy[TAS_RN_LOCAL_INFO+local_offsets[i]]^=1;
+    }
     copy[n-1]^=1;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));copy[n-1]^=1;
     fail_sha=true;assert(!tas_rn_local_patch(copy,n,fixture_sha,&local_count));fail_sha=false;
     unsigned char *local=tas_rn_local_patch(copy,n,fixture_sha,&local_count);assert(local);
@@ -94,7 +101,7 @@ int main(int argc,char **argv) {
     assert(tas_rn_u32(local+local_info+48)==0x6d+local_extra-7);
     assert(tas_rn_u32(local+local_info+52)==0x6d+local_extra-2);
     assert(!memcmp(local+TAS_RN_LARGE_HEADER,copy+TAS_RN_LARGE_HEADER,36));
-    assert(!memcmp(local+TAS_RN_BODY_SIZE-20,copy+TAS_RN_BODY_SIZE-20,1207));
+    assert(!memcmp(local+TAS_RN_BODY_SIZE-20,copy+TAS_RN_BODY_SIZE-20,1203));
     assert(!memcmp(local+TAS_RN_LOCAL_OFFSET,copy+TAS_RN_LOCAL_OFFSET,121));
     unsigned char *new_fn=local+n-20;
     assert(new_fn[0x32]==179 && tas_rn_u32(new_fn+0x33)==67+3+local_extra && new_fn[0x37]==4);
@@ -108,11 +115,11 @@ int main(int argc,char **argv) {
     }
     assert(!tas_rn_local_patch(local,local_count,fixture_sha,&second));
     /* Independent composer gate, immutable working patches, full-header ABI. */
-    const unsigned char composer_small[]={0xc4,0x7e,0x9c,0,0,0x40,0,0,0,0,0,0x20};
+    const unsigned char composer_small[]={204,224,166,0,0,64,0,0,0,0,0,32};
     memcpy(local+TAS_RN_COMPOSER_HEADER,composer_small,12);
     tas_rn_put32(local+TAS_RN_COMPOSER_INFO,TAS_RN_COMPOSER_OFFSET);
     tas_rn_put32(local+TAS_RN_COMPOSER_INFO+12,TAS_RN_COMPOSER_SIZE);
-    tas_rn_put32(local+TAS_RN_COMPOSER_INFO+28,97);local[TAS_RN_COMPOSER_INFO+36]=2;
+    tas_rn_put32(local+TAS_RN_COMPOSER_INFO+28,100);local[TAS_RN_COMPOSER_INFO+36]=2;
     unsigned char composer_code[256];size_t composer_extra=tas_rn_composer_code(composer_code),composer_count=0;
     local[TAS_RN_COMPOSER_HEADER]^=1;
     assert(!tas_rn_composer_patch(local,local_count,fixture_sha,&composer_count));local[TAS_RN_COMPOSER_HEADER]^=1;
@@ -124,7 +131,7 @@ int main(int argc,char **argv) {
     assert(!memcmp(composer_fn+TAS_RN_COMPOSER_JOIN+composer_extra,
         local+TAS_RN_COMPOSER_OFFSET+TAS_RN_COMPOSER_JOIN,TAS_RN_COMPOSER_SIZE-TAS_RN_COMPOSER_JOIN));
     size_t composer_info=(local_count-20+TAS_RN_COMPOSER_SIZE+composer_extra+3)&~(size_t)3;
-    assert(composer_count==composer_info+76 && tas_rn_u32(composer+composer_info+28)==97);
+    assert(composer_count==composer_info+76 && tas_rn_u32(composer+composer_info+28)==100);
     assert(composer[composer_info+36]==10);
     assert(tas_rn_u32(composer+composer_info+44)==TAS_RN_COMPOSER_JOIN);
     assert(tas_rn_u32(composer+composer_info+48)==TAS_RN_COMPOSER_JOIN+composer_extra-9);
@@ -158,7 +165,7 @@ def execute_local(code, line, client, event, global_object, frame=21, fail_at=No
             elif op==61: regs[code[pos]]=global_object;pos+=1
             elif op==144:
                 dest=code[pos];key=struct.unpack_from('<H',code,pos+1)[0];pos+=3
-                regs[dest]={18843:'__r',110:'default',20058:'buildLocalEcho',40125:'sentByCurrentUser',59101:'sourceRoomID',80:'body',90:'channel',57438:'emotes',102:'concat',46459:'emoteMap'}[key]
+                regs[dest]={17475:'__r',112:'default',44702:'buildLocalEcho',40472:'sentByCurrentUser',35155:'sourceRoomID',80:'body',90:'channel',57035:'emotes',103:'concat',52120:'emoteMap'}[key]
             elif op==139:
                 dest,val=code[pos:pos+2];pos+=2;regs[dest]=val
             elif op==93:
@@ -341,8 +348,8 @@ class RNWidthTests(unittest.TestCase):
     def test_composer_call_frame_live_state_native_map_and_exception_fallback(self):
         code=subprocess.run([self.binary,'composercode'],capture_output=True,check=True).stdout
         native={'Kappa':'25'};enriched={**native,'Square':'900000000000001'}
-        state={r:object() for r in (6,7,8,11,12,17,18,23,26,31,32,33,36,37,43,44,46,50,56,57,62,74,76)}
-        state.update({2:None,47:native,49:'Kappa Square',75:'42'})
+        state={r:object() for r in (6,7,8,11,12,17,18,24,26,31,32,35,38,39,45,46,48,50,52,58,59,61,64,77,79)}
+        state.update({2:None,49:native,51:'Kappa Square',78:'42'})
         calls=[]
         def preview(this,body,channel,mapping):
             self.assertIs(this,module);self.assertEqual((body,channel),('Kappa Square','42'))
@@ -350,13 +357,13 @@ class RNWidthTests(unittest.TestCase):
         module={'emoteMap':preview}
         global_object={'__r':lambda this,identity:{'default':{'buildLocalEcho':module}}}
         def run(fail=None,glob=global_object):
-            return execute_local(code,None,None,None,glob,frame=97,fail_at=fail,
+            return execute_local(code,None,None,None,glob,frame=100,fail_at=fail,
                 initial=state,catch_end=len(code)-9,catch_target=len(code)-4)
-        regs,caught,stages=run();self.assertEqual(caught,0);self.assertIs(regs[47],enriched)
+        regs,caught,stages=run();self.assertEqual(caught,0);self.assertIs(regs[49],enriched)
         self.assertEqual(native,{'Kappa':'25'});self.assertEqual(len(calls),1)
         for r,value in state.items():
-            if r!=47:self.assertIs(regs[r],value)
+            if r!=49:self.assertIs(regs[r],value)
         for stage in range(1,stages+1):
             regs,caught,_=run(stage);self.assertEqual(caught,1)
             for r,value in state.items():self.assertIs(regs[r],value)
-        regs,caught,_=run(glob={});self.assertEqual(caught,0);self.assertIs(regs[47],native)
+        regs,caught,_=run(glob={});self.assertEqual(caught,0);self.assertIs(regs[49],native)

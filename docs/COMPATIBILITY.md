@@ -23,12 +23,13 @@ Original Hermes SHA-256:
 
 The exact RN source fingerprint and function metadata gate component changes. Merely renaming a different app as “31.5” cannot satisfy them.
 
-Twitch 31.6 (`262821841498166537`) is not admitted by the current RN patch
-chain. Its Hermes-98 body has changed in size, checksum, and function count;
-the production gate rejects it without modifying the input. The
-[31.6 investigation](investigations/TWITCH_31_6_COMPATIBILITY.md) records the
-native inspection and remaining port/testing requirements. Static native
-similarities do not establish support for that donor.
+The 3.1.0 development chain in build 5 admits the exact Twitch 31.6
+(`262821841498166537`) Hermes body after a five-stage port and host/runtime
+validation. It targets 31.6 only; build 4 and released 3.0.0 retain their 31.5
+scope. [The port investigation](investigations/TWITCH_31_6_COMPATIBILITY.md#build-5-hermes-port)
+records the preserved initial refusal, changed bindings, passing host checks,
+and pending 31.6 device acceptance. It does not extend the released compatibility
+matrix above or establish playback/ad-suppression acceptance.
 
 ## Both theatre/chat paths
 

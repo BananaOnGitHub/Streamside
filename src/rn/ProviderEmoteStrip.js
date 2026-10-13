@@ -3,21 +3,21 @@
  * last-room fallback or global draft/selection state. */
 function install(original) {
   var React = __r(72); React = React.default || React;
-  var RN = __r(5), ui = __r(2118);
+  var RN = __r(5), ui = __r(2071);
   var bridge = __r(16).default.buildLocalEcho;
-  var inputs = __r(3759), NativeInput = inputs.EmoteTextInput;
-  var autocomplete = __r(4619), caretFromEdit = autocomplete.caretFromEdit;
+  var inputs = __r(3459), NativeInput = inputs.EmoteTextInput;
+  var autocomplete = __r(4676), caretFromEdit = autocomplete.caretFromEdit;
   var nativeAutocomplete = autocomplete.useAutocomplete;
-  var suggestions = __r(4713), NativeSuggestions = suggestions.ChatAutocompleteTray;
-  var composerHooks = __r(4687) || {}, nativeComposer = composerHooks.useChatComposer;
-  var smartBackspace = (__r(3758) || {}).smartBackspace, aliases = (__r(3382) || {}).emoteTokenAliases;
+  var suggestions = __r(4777), NativeSuggestions = suggestions.ChatAutocompleteTray;
+  var composerHooks = __r(4751) || {}, nativeComposer = composerHooks.useChatComposer;
+  var smartBackspace = (__r(3458) || {}).smartBackspace, aliases = (__r(3488) || {}).emoteTokenAliases;
   if (!React.createContext || !React.useContext || !RN.ScrollView || !RN.Pressable ||
       !ui.useTheme || !NativeInput || !caretFromEdit || !nativeAutocomplete || !NativeSuggestions ||
       !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
       !bridge || !bridge.getState || !bridge.search) return original;
   var Context = React.createContext(null);
-  // Metro module 4880 registers donor factory function 4884; these IDs differ.
-  var settings = __r(4880) || {}, NativeSettings = settings.ChatSettingsSheet;
+  // Metro module 4937 registers donor factory function 4941; these IDs differ.
+  var settings = __r(4937) || {}, NativeSettings = settings.ChatSettingsSheet;
   var SettingsContext = React.createContext(null);
   // Demand-only wrapper: original Image type/source/style and handlers remain
   // intact. Effects count committed JS instances, never attempted renders.
@@ -144,7 +144,6 @@ function install(original) {
     // emote match before its composer hook constructs native Send handlers.
     if (active && emoteMatches(result.matches)) {
       var copy = Object.assign({}, result); copy.matches = null;
-      copy.confirmHighlightedMatch = function () { return null; };
       return copy;
     }
     return result;
@@ -306,7 +305,7 @@ function install(original) {
   /* The donor's library leaf uses JSX runtime 245 for exactly two verified
    * surfaces. Route those elements through context; other JSX calls retain
    * their original type, props, key and runtime. No hooks enter donor bodies. */
-  var trays = __r(4174), NativeLibrary = trays.EmotePickerTray;
+  var trays = __r(4153), NativeLibrary = trays.EmotePickerTray;
   var jsxRuntime = __r(245), nativeJSX = jsxRuntime.jsx, nativeJSXS = jsxRuntime.jsxs;
   var LibraryContext = React.createContext(null);
   var librarySequence = 0, calculationSequence = 0;

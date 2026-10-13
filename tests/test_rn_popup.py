@@ -23,7 +23,7 @@ const sheets={BottomSheet:'sheet',useSheetHandoff:options=>{
  onClosed:()=>{calls.push(['closed']);options.onPlainClose();}};}};
 const theme={useTheme:()=>{hooks.push('theme');return {colors:{backgroundBase:'black',textBase:'white',textAlt:'gray'}};}};
 sheets.useTheme=theme.useTheme;
-const modules={72:React,5:RN,2118:sheets,16:{default:{buildLocalEcho:native}}};
+const modules={72:React,5:RN,2071:sheets,16:{default:{buildLocalEcho:native}}};
 const context={__r:id=>modules[id],Math};vm.createContext(context);
 vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),context);
 const original=()=>{};const wrapper=context.install(original);

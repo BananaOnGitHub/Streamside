@@ -27,9 +27,9 @@ function smart(text,caret,predicate){
  return {value:Array.from(text).slice(0,-1).join(''),caret:caret-1};
 }
 const bridge={getState:()=>config,search:()=>[],lookup:(room,code)=>{lookups.push([room,code]);return config.enabled&&room==='42'&&['Wide','om'].includes(code)?{name:code}:null;}};
-const modules={72:React,5:RN,2118:ui,16:{default:{buildLocalEcho:bridge}},3759:{EmoteTextInput:1},
- 4619:{useAutocomplete:()=>null,caretFromEdit:()=>0,EMOTE_URL_TEMPLATE:'a',EMOTE_URL_TEMPLATE_STATIC:'b'},
- 4713:{ChatAutocompleteTray:1},4174:{},245:{},4687:hooks,3758:{smartBackspace:smart},3382:{emoteTokenAliases:token=>[token,':'+token+':']}};
+const modules={72:React,5:RN,2071:ui,16:{default:{buildLocalEcho:bridge}},3459:{EmoteTextInput:1},
+ 4676:{useAutocomplete:()=>null,caretFromEdit:()=>0,EMOTE_URL_TEMPLATE:'a',EMOTE_URL_TEMPLATE_STATIC:'b'},
+ 4777:{ChatAutocompleteTray:1},4153:{},245:{},4751:hooks,3458:{smartBackspace:smart},3488:{emoteTokenAliases:token=>[token,':'+token+':']}};
 const env={__r:id=>modules[id],WeakMap};vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);env.install('composer');
 assert.notStrictEqual(hooks.useChatComposer,original);
 const p=Object.freeze({channelID:'42',emoteTokenMap:Object.freeze({Kappa:1}),emoteSuggestions:Object.freeze([{token:'Smile'}])});

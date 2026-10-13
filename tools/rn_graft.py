@@ -99,9 +99,9 @@ def assemble(reader, fid, strings, base):
                   for e in reader.function_id_to_exc_handlers.get(fid,[])]
     return bytes(body), exceptions
 
-def generate(donor, compiler, source, output, *, prefix='POPUP', factory_id=3801, function_base=None):
+def generate(donor, compiler, source, output, *, prefix='POPUP', factory_id=3694, function_base=None):
     original = Path(donor).read_bytes()
-    if hashlib.sha256(original).hexdigest() != '422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b':
+    if hashlib.sha256(original).hexdigest() != '20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458':
         raise ValueError('Wrong donor')
     h = read(original)
     class DonorStrings(dict): pass

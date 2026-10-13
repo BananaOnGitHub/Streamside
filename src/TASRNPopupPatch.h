@@ -14,8 +14,8 @@ static inline unsigned char *tas_rn_popup_patch(const unsigned char *body,
     if (result_length) *result_length=0;
     const size_t table_end=128U+TAS_RN_POPUP_BASE*12U;
     const size_t delta=TAS_RN_POPUP_FUNCTIONS*12U;
-    const size_t join=0x5e, fh=128U+3801U*12U;
-    if (!body || !sha1 || !result_length || length!=TAS_RN_BODY_SIZE+7948 || tas_rn_u32(body+32)!=length ||
+    const size_t join=0x5e, fh=128U+3694U*12U;
+    if (!body || !sha1 || !result_length || length!=TAS_RN_COMPOSER_BODY_SIZE || tas_rn_u32(body+32)!=length ||
         tas_rn_u32(body+40)!=TAS_RN_POPUP_BASE ||
         memcmp(body+fh,tas_rn_popup_factory_small,12) ||
         tas_rn_u32(body+TAS_RN_POPUP_FACTORY_INFO)!=TAS_RN_POPUP_FACTORY_OFFSET ||

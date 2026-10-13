@@ -2,10 +2,12 @@
 #define TAS_RN_LOCAL_ECHO_PATCH_H
 #include "TASRNWidthPatch.h"
 
-#define TAS_RN_LOCAL_INDEX 34307U
-#define TAS_RN_LOCAL_OFFSET 25052014U
+#define TAS_RN_LOCAL_INDEX 35388U
+#define TAS_RN_LOCAL_OFFSET 25590499U
 #define TAS_RN_LOCAL_SIZE 121U
 #define TAS_RN_LOCAL_HEADER (128U + TAS_RN_LOCAL_INDEX * 12U)
+#define TAS_RN_LOCAL_INFO 28163908U
+#define TAS_RN_LOCAL_BODY_SIZE (TAS_RN_BODY_SIZE + 1548U)
 #define TAS_RN_LOCAL_FRAME 21U
 #define TAS_RN_LOCAL_JOIN 0x6dU
 
@@ -25,29 +27,29 @@ static inline size_t tas_rn_local_code(unsigned char *out) {
 #define LOCAL_KEY(reg,key) LOCAL_BYTES(144,reg,(key)&255,(key)>>8)
 #define LOCAL_FALSE(reg) do { jumps[n++]=p; LOCAL_BYTES(179,0,0,0,0,reg); } while (0)
     LOCAL_BYTES(137,6,1);                     /* LoadParam event */
-    LOCAL_KEY(7,40125); LOCAL_BYTES(93,6,6,7); /* sentByCurrentUser */
+    LOCAL_KEY(7,40472); LOCAL_BYTES(93,6,6,7); /* sentByCurrentUser */
     LOCAL_FALSE(6);
-    LOCAL_KEY(7,59101); LOCAL_BYTES(93,6,4,7); /* sourceRoomID */
+    LOCAL_KEY(7,35155); LOCAL_BYTES(93,6,4,7); /* sourceRoomID */
     jumps[n++]=p; LOCAL_BYTES(177,0,0,0,0,6); /* JmpTrueLong: shared scope */
     LOCAL_BYTES(61,6);                        /* global */
-    LOCAL_KEY(7,18843); LOCAL_BYTES(93,7,6,7); /* __r */
+    LOCAL_KEY(7,17475); LOCAL_BYTES(93,7,6,7); /* __r */
     LOCAL_FALSE(7);
     LOCAL_BYTES(139,8,16,110,7,7,6,8);        /* require NativeModules */
     LOCAL_FALSE(7);
-    LOCAL_KEY(9,110); LOCAL_BYTES(93,7,7,9);   /* default */
+    LOCAL_KEY(9,112); LOCAL_BYTES(93,7,7,9);   /* default */
     LOCAL_FALSE(7);
-    LOCAL_KEY(9,20058); LOCAL_BYTES(93,7,7,9); /* buildLocalEcho module */
+    LOCAL_KEY(9,44702); LOCAL_BYTES(93,7,7,9); /* buildLocalEcho module */
     LOCAL_FALSE(7);
     LOCAL_BYTES(93,8,7,9);                    /* method */
     LOCAL_FALSE(8);
     LOCAL_KEY(9,80); LOCAL_BYTES(93,1,4,9);   /* body */
     LOCAL_KEY(9,90); LOCAL_BYTES(93,2,4,9);   /* channel */
-    LOCAL_KEY(9,57438); LOCAL_BYTES(93,3,4,9);/* native emotes */
+    LOCAL_KEY(9,57035); LOCAL_BYTES(93,3,4,9);/* native emotes */
     LOCAL_BYTES(112,1,8,7,1,2,3);             /* method(body,channel,emotes) */
     LOCAL_FALSE(1);
-    LOCAL_KEY(2,102); LOCAL_BYTES(93,2,3,2);  /* native emotes.concat */
+    LOCAL_KEY(2,103); LOCAL_BYTES(93,2,3,2);  /* native emotes.concat */
     LOCAL_BYTES(110,1,2,3,1);                 /* concat(additions) */
-    LOCAL_KEY(2,57438); LOCAL_BYTES(96,4,2,1);/* line.emotes only */
+    LOCAL_KEY(2,57035); LOCAL_BYTES(96,4,2,1);/* line.emotes only */
     LOCAL_BYTES(175,7,0,0,0,119,6);           /* JmpLong past Catch r6 */
     for (unsigned i=0;i<n;i++) tas_rn_put32(jumps[i]+1,(uint32_t)(p-jumps[i]));
 #undef LOCAL_FALSE
@@ -56,23 +58,25 @@ static inline size_t tas_rn_local_code(unsigned char *out) {
     return (size_t)(p-out);
 }
 
-/* Accepts only the admitted width output. Append a new copy of function 34307,
+/* Accepts only the admitted width output. Append a new copy of function 35388,
  * widen its short null-return branch, then insert at the nonce-handling / emitLine join.
  * The nonce gate lands at the injection; null skips it entirely.
  */
 static inline unsigned char *tas_rn_local_patch(const unsigned char *body,
         size_t length, TASRNSHA1 sha1, size_t *result_length) {
-    static const unsigned char header[12]={0x6e,0x43,0x7e,5,0x79,0,0x3e,0x18,0x12,8,2,2};
+    static const unsigned char header[12]={68,191,173,0,0,64,0,0,0,0,0,32};
     if (result_length) *result_length=0;
-    if (!body || !sha1 || !result_length || length!=TAS_RN_BODY_SIZE+1207 ||
-        tas_rn_u32(body+32)!=length || memcmp(body+TAS_RN_LOCAL_HEADER,header,12)) return NULL;
+    if (!body || !sha1 || !result_length || length!=TAS_RN_WIDTH_BODY_SIZE ||
+        tas_rn_u32(body+32)!=length || memcmp(body+TAS_RN_LOCAL_HEADER,header,12) ||
+        tas_rn_u32(body+TAS_RN_LOCAL_INFO)!=TAS_RN_LOCAL_OFFSET ||
+        tas_rn_u32(body+TAS_RN_LOCAL_INFO+12)!=TAS_RN_LOCAL_SIZE ||
+        tas_rn_u32(body+TAS_RN_LOCAL_INFO+28)!=18 || body[TAS_RN_LOCAL_INFO+36]!=2) return NULL;
     unsigned char digest[20];
     if (!sha1(body,(uint32_t)length-20,digest) || memcmp(digest,body+length-20,20)) return NULL;
     unsigned char code[256]; size_t extra=tas_rn_local_code(code);
     size_t fn_size=TAS_RN_LOCAL_SIZE+3+extra;
-    /* Small headers cannot carry inline exception data without displacing
-     * the next function's header. Append a large header and its one-entry
-     * aligned exception table, and redirect only this small header to it. */
+    /* Preserve the donor's full metadata and append a new full header with
+     * one aligned handler. Redirect only its existing overflow table entry. */
     size_t large=(length-20+fn_size+3)&~(size_t)3;
     size_t count=large+40+16+20;
     unsigned char *copy=calloc(1,count);
@@ -90,15 +94,13 @@ static inline unsigned char *tas_rn_local_patch(const unsigned char *body,
     tas_rn_put32(small+4,((uint32_t)large>>24)<<14);
     small[11]=0x20;                          /* overflowed */
     unsigned char *info=copy+large;
+    memcpy(info,body+TAS_RN_LOCAL_INFO,40);
     tas_rn_put32(info,(uint32_t)(length-20));
-    tas_rn_put32(info+4,2);                   /* paramCount incl this */
     tas_rn_put32(info+12,(uint32_t)fn_size);
-    tas_rn_put32(info+16,248);                /* original functionName */
-    tas_rn_put32(info+24,3);                  /* original nonPtrRegCount */
     tas_rn_put32(info+28,TAS_RN_LOCAL_FRAME);
     /* Exact Hermes-98 full header is 40 bytes, flags at 36 (NOT the
      * analysis parser's provisional 36-byte layout with flags at 35). */
-    info[32]=8; info[33]=2; info[36]=0x0a;    /* caches, prohibit ctor, handler */
+    info[36]|=8;                            /* preserve flags; add handler */
     tas_rn_put32(info+40,1);                  /* exception table count */
     tas_rn_put32(info+44,TAS_RN_LOCAL_JOIN);
     tas_rn_put32(info+48,(uint32_t)(TAS_RN_LOCAL_JOIN+extra-7));

@@ -11,7 +11,7 @@ not here.
 - [RN composer emote holds](RN_COMPOSER_HOLDS.md): provider attachment holds, native menu fallback, host checks, and device observations, build 2.
 - [RN composer cursor requests](RN_COMPOSER_CURSOR.md): stale queued/late selection requests during continued typing, build 3.
 - [Native emoticon proportions](NATIVE_EMOTICON_PROPORTIONS.md): image-aspect sizing and cold-load layout refresh for classic Twitch emoticons, build 4.
-- [Twitch 31.6 compatibility](TWITCH_31_6_COMPATIBILITY.md): changed Hermes admission, native ABI comparison, packaging probe, and remaining device checks against build 4.
+- [Twitch 31.6 compatibility](TWITCH_31_6_COMPATIBILITY.md): build-4 donor inspection, build-5 Hermes port, native ABI comparison, packaging, and pending 31.6 device acceptance.
 
 At feature freeze, reconcile the completed implementation with its owning
 [feature documents](../features/). Preserve closed investigation evidence in

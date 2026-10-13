@@ -2320,7 +2320,7 @@ static id rn_source_data(id self, SEL command) {
         if (popup) __atomic_store_n(&g_rn_popup_ready,true,__ATOMIC_RELEASE);
         if (strip) __atomic_store_n(&g_rn_strip_ready,true,__ATOMIC_RELEASE);
         PROBE_INC(g_rn_width_patches);
-        tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.5 body admitted; wrapper/image styles patched in memory");
+        tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.6 body admitted; wrapper/image styles patched in memory");
         if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
         if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
         if (popup) tas_diag_log("RN_INFO_PATCH","Provider RN sheet installed in memory; native cards preserved");

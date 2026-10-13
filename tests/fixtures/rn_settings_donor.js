@@ -1,4 +1,4 @@
-/* Dependencies for unchanged donor factory 4884 / component 22114.
+/* Dependencies for unchanged donor factory 4941 / component 22549.
  * Run this after loading the settings factory, before the owned installer.
  * The donor constructs the sheet, page children, test IDs and scroll props. */
 React.__esModule=true;React.default=React;
@@ -8,14 +8,14 @@ var donorIntl={defineMessages:function(x){return x;},useIntl:function(){return {
 function settingsRequire(id){
  if(id===1)return function(x){return x&&x.__esModule?x:{default:x};};
  if(id===17)return function(x){return x;};
- if(id===4881)return {USERNAME_COLOR_OPTIONS:[]};
+ if(id===4938)return {USERNAME_COLOR_OPTIONS:[]};
  if(id===519)return donorMemo;
  if(id===517)return {usePlatformOrNull:function(){return null;}};
- if(id===1838)return donorIntl;
- if(id===2118)return {BottomSheet:'native-bottom-sheet',useTheme:function(){return theme;}};
+ if(id===1846)return donorIntl;
+ if(id===2071)return {BottomSheet:'native-bottom-sheet',useTheme:function(){return theme;}};
  return env.__r(id)||{};
 }
-buildLocalEcho(_runtimeGlobal,settingsRequire,null,null,{exports:settings},settings,[1,17,72,5,245,2118,1838,519,517,4881,4630,4882,4902,2132,4901]);
+buildLocalEcho(_runtimeGlobal,settingsRequire,null,null,{exports:settings},settings,[1,17,72,5,245,2071,1846,519,517,4938,4687,4939,4962,2085,4961]);
 _runtimeGlobal.exerciseDonorSettings=function(){
  function check(ok,msg){if(!ok)throw new Error(msg);}
  buildLocalEcho('composer');

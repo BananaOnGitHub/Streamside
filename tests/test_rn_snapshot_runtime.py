@@ -15,8 +15,8 @@ class SnapshotGateTests(unittest.TestCase):
     def test_settings_module_matches_real_donor_registration_not_factory_number(self):
         donor=Path(os.environ['TAS_RN_DONOR']).read_bytes()
         source=(ROOT/'src/rn/ProviderEmoteStrip.js').read_text()
-        self.assertEqual(validate_settings_binding(donor,source),4880)
-        wrong=source.replace('var settings = __r(4880)','var settings = __r(4884)')
+        self.assertEqual(validate_settings_binding(donor,source),4937)
+        wrong=source.replace('var settings = __r(4937)','var settings = __r(4941)')
         with self.assertRaisesRegex(ValueError,'module differs'):
             validate_settings_binding(donor,wrong)
 

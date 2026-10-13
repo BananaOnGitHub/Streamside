@@ -23,6 +23,13 @@ Original Hermes SHA-256:
 
 The exact RN source fingerprint and function metadata gate component changes. Merely renaming a different app as “31.5” cannot satisfy them.
 
+Twitch 31.6 (`262821841498166537`) is not admitted by the current RN patch
+chain. Its Hermes-98 body has changed in size, checksum, and function count;
+the production gate rejects it without modifying the input. The
+[31.6 investigation](investigations/TWITCH_31_6_COMPATIBILITY.md) records the
+native inspection and remaining port/testing requirements. Static native
+similarities do not establish support for that donor.
+
 ## Both theatre/chat paths
 
 The inspected donor includes RN/Hermes/Fabric and legacy UIKit/Swift chat. Device observations associated horizontal-only broadcasts with RN and horizontal/vertical broadcasts with legacy. Streamside retains both implementations.

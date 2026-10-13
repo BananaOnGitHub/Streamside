@@ -2,8 +2,8 @@
 
 Branch: `dev/3.1.0`; source baseline `01c4d17`. Target: Twitch 31.5
 (`262752111271985979`). The RN composer displays classic Twitch emoticons such
-as `:)` and `:(` with squeezed proportions. Device acceptance of this correction
-is pending.
+as `:)` and `:(` with squeezed proportions. Device acceptance was pending when
+this trial was prepared; the follow-up below records the result.
 
 ## Image and layout evidence
 
@@ -84,3 +84,12 @@ route, visible results, and sanitized counters.
 
 Public feature documentation is reconciled at feature freeze under
 [Documentation maintenance](../development/DOCUMENTATION.md).
+
+## Device follow-up — 2026-10-13
+
+The build-4 correction on the existing Twitch 31.5 development package was
+confirmed to fix the reported emoticon proportions. This establishes acceptance
+of the observed visual correction. Device model, iOS version, signing route,
+sanitized counters, and results for the complete checklist above were not
+recorded; this result does not extend support to Twitch 31.6 or a full device
+matrix.

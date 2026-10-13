@@ -12,9 +12,11 @@ import zipfile
 from pathlib import Path
 
 try:
+    from .app_icons import load_icons
     from .artifact_guard import (BINARY_NAME, FRAMEWORK_NAME, checked_artifact,
                                  compare_packaged, receipt_path)
 except ImportError:
+    from app_icons import load_icons
     from artifact_guard import (BINARY_NAME, FRAMEWORK_NAME, checked_artifact,
                                 compare_packaged, receipt_path)
 
@@ -104,7 +106,10 @@ def main() -> int:
         (ROOT / "tools" / "artifact_guard.py", "tools/artifact_guard.py"),
         (ROOT / "tools" / "verify_macho.py", "tools/verify_macho.py"),
         (ROOT / "tools" / "verify_ipa.py", "tools/verify_ipa.py"),
+        (ROOT / "tools" / "app_icons.py", "tools/app_icons.py"),
     ]
+    files.extend((ROOT / "packaging" / "app-icons" / name, f"packaging/app-icons/{name}")
+                 for name in load_icons())
     files.extend(documentation_files())
     files.extend((deb, deb.name) for deb in debs)
     prefix = f"Streamside-{version}/"

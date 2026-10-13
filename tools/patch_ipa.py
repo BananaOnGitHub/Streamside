@@ -13,11 +13,13 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
+    from .app_icons import apply_icon_info, load_icons
     from .artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from .macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
     from .verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
     from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:  # Direct execution from tools/patch_ipa.py.
+    from app_icons import apply_icon_info, load_icons
     from artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
     from verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
@@ -51,8 +53,8 @@ def _copy_entry(source: zipfile.ZipFile, destination: zipfile.ZipFile, info: zip
 
 
 def update_app_info(data: bytes) -> bytes:
-    """Set the installed app name while preserving its other Info.plist keys."""
-    info = plistlib.loads(data)
+    """Set sideload branding while preserving unrelated application metadata."""
+    info = apply_icon_info(plistlib.loads(data))
     info["CFBundleDisplayName"] = APP_DISPLAY_NAME
     info["CFBundleName"] = APP_DISPLAY_NAME
     return plistlib.dumps(info, fmt=plistlib.FMT_BINARY)
@@ -65,6 +67,7 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
     # Mandatory even when this script is called directly instead of via make.
     # Never repair an unnormalized or changed binary silently at packaging time.
     framework_binary, framework_info_bytes = checked_artifact(framework_path, True)
+    icon_assets = load_icons()
     framework_binary_path = framework_path / FRAMEWORK_BINARY_NAME
     framework_info_path = framework_path / "Info.plist"
     if not framework_binary_path.is_file():
@@ -109,6 +112,7 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
             framework_binary_entry = f"{framework_root}/{FRAMEWORK_BINARY_NAME}"
             framework_info_entry = f"{framework_root}/Info.plist"
             asset_entry = f"{app_root}/Assets.car"
+            icon_entries = {f"{app_root}/{name}": data for name, data in icon_assets.items()}
 
             names = set(source.namelist())
             if executable_entry not in names:
@@ -134,6 +138,8 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
                         destination.writestr(item, updated_info_plist)
                     elif item.filename == executable_entry:
                         destination.writestr(item, executable)
+                    elif item.filename in icon_entries:
+                        continue  # Repatching replaces owned icons once, not duplicate ZIP entries.
                     elif item.filename in donor_entries or any(
                         item.filename.rstrip("/") == root or item.filename.startswith(root + "/")
                         for root in donor_roots
@@ -150,9 +156,14 @@ def patch_ipa(input_path: Path, framework_path: Path, output_path: Path,
                 info_item.compress_type = zipfile.ZIP_DEFLATED
                 info_item.external_attr = 0o100644 << 16
                 destination.writestr(info_item, framework_info_bytes)
+                for entry, data in icon_entries.items():
+                    icon_item = zipfile.ZipInfo(entry)
+                    icon_item.compress_type = zipfile.ZIP_DEFLATED
+                    icon_item.external_attr = 0o100644 << 16
+                    destination.writestr(icon_item, data)
 
         with zipfile.ZipFile(temp_path, "r") as result:
-            verify_archive(result, framework_binary, framework_info_bytes)
+            verify_archive(result, framework_binary, framework_info_bytes, icon_assets)
             if hashlib.sha256(result.read(asset_entry)).digest() != asset_hash:
                 raise ValueError("Assets.car changed while repackaging")
 

@@ -8,10 +8,12 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
+    from .app_icons import load_icons, verify_icons
     from .artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
     from .macho import LC_LOAD_DYLIB, dylib_loads, encryption_ids
     from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:
+    from app_icons import load_icons, verify_icons
     from artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
     from macho import LC_LOAD_DYLIB, dylib_loads, encryption_ids
     from verify_macho import FRAMEWORK_IDENTITY
@@ -23,7 +25,7 @@ LEGACY_FRAMEWORKS = {"Tweach.framework", "VAFT.framework", "TwitchAdBlock.framew
 
 
 def verify_archive(archive: zipfile.ZipFile, expected_binary: bytes,
-                   expected_info: bytes) -> None:
+                   expected_info: bytes, expected_icons: dict[str, bytes] | None = None) -> None:
     names = archive.namelist()
     if len(names) != len(set(names)):
         raise ValueError("duplicate IPA entries are forbidden")
@@ -59,6 +61,7 @@ def verify_archive(archive: zipfile.ZipFile, expected_binary: bytes,
         raise ValueError("framework Info.plist changed during packaging")
     if f"{root}/Assets.car" not in names:
         raise ValueError("Assets.car is missing")
+    verify_icons(info, root, archive, load_icons() if expected_icons is None else expected_icons)
 
 
 def verify_ipa(path: Path, framework: Path) -> None:

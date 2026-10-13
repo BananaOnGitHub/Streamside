@@ -97,3 +97,84 @@ The icon and hold-popup trials remain included.
 Record donor/build, device/iOS/signing route, interaction results, and sanitized
 cursor counters. Finalize maintained feature documentation at feature freeze
 under [Documentation maintenance](../development/DOCUMENTATION.md).
+
+## Build-6 follow-up: late native requests on 31.6
+
+Source baseline: `f3121d5`; Twitch 31.6 (`262821841498166537`). Build 5
+was reported to run successfully, but continued typing after an emote becomes
+an image can again displace the cursor. The build-3 confirmation on 31.5 is
+preserved above; it does not establish this interaction on 31.6.
+
+The native guard was not removed or changed by the port. Its accepted-edit
+invalidation only cancels a selection that has already reached the native
+owner. A request arriving afterward bypasses that cancellation. The second
+guard checks a request's expected draft, but only Streamside's explicit
+suggestion requests previously supplied it. Twitch's native autocomplete
+returns `forcedSelection` objects containing just `start` and `end`.
+
+Donor inspection resolves 31.6 `useAutocomplete` to function 21822. At `0x210`
+its automatic draft-reconciliation branch constructs bare offsets from the
+draft's UTF-16 length; the ordinary change callback 38293 clears forced
+selection. Native input function 18502 forwards the selection object intact
+at `0x2d0`. The corresponding automatic-offset branch also exists in 31.5
+function 21416. This is an uncovered ordering case, not evidence that 31.6
+introduced that algorithm or proof of the precise device event sequence.
+
+The [autocomplete adapter](../../src/rn/ProviderEmoteStrip.js) now attaches the
+draft from a native selection request's first observation. A weak-key cache
+keeps that same request identity and original draft across later renders; an
+old request is never relabeled with newer text. The donor object is not mutated,
+and the existing native draft guard can reject late offsets once typing has
+advanced. Other callback identities and command/mention matches remain native.
+Off mode and disabled emotes retain the original requests. Requests outside
+this adapter still use the existing native fallback.
+
+No new React hooks, Swift-field writes, debounce, forced-end behavior, draft
+rewrites, tokenizer replacement, or UIKit-selection mapping were added.
+Current noncollapsed/middle selections retain their requested offsets.
+
+### Regression coverage
+
+The new [strip test](../../tests/test_rn_strip.py) first failed against build-5
+source because a native request had no draft tag. It covers stable identity,
+reused requests after newer text, fresh requests, immutable donor objects,
+empty drafts, Unicode UTF-16 positions, noncollapsed selection, and off/disabled
+fallback. The [native host fixture](../../tests/test_rn_composer_ui.py) models an
+edit with no outstanding selection, followed by a late request: bare offsets
+move the caret into newer text, whereas the tagged request is refused. It also
+checks that a current request can still intentionally select the middle.
+
+These controlled fixtures identify a concrete gap and its correction; they do
+not execute UIKit/Fabric or establish that every reported cursor displacement
+has the same cause. Build-6 device acceptance remains pending, particularly
+rapid continued typing after recognition, deliberate middle edits, suggestion
+insertion, prediction/IME, and send/clear/channel transitions.
+
+### Build-6 validation and artifact
+
+- Full host suite: 173 tests run, 172 pass, one Apple Foundation integration
+  test skipped on Linux. The private exact-donor and matching Hermes cases
+  execute rather than skip. All 17 native-input cases pass.
+- The [compiled runtime fixture](../../tests/fixtures/snapshot_exercise.js)
+  exercises the shipped request-tagging bytecode: original draft, reused-request
+  identity after newer text, immutable donor object, callback identity, and a
+  fresh current request. The required runtime gate also passes donor settings,
+  32 bounded snapshots, and all 7,344 virtualization scenarios.
+- Full graft verification passes deterministic regeneration, the donor's bare
+  offset/selection forwarding bindings, all 48,996 predecessor functions,
+  original constants/handlers/debug data, and independent Hermes-98 disassembly.
+  The strip remains 131 functions; its owned payload grows from 28,492 to
+  28,684 bytes. The donor fingerprint and predecessor admission are unchanged.
+- Native artifact contracts and both DEB archives pass. The unsigned IPA
+  passes packaging checks and a separate verifier. Documentation validation
+  checks 72 Markdown files and 702 explicit references with zero errors.
+
+Build-6 framework binary SHA-256:
+`20875ea7e1e56af6ee0206ad79d7242ff6f03d4066458cfb59ce6cf7784b5ded`.
+Unsigned artifact: `Twitch_31.6_Streamside_3.1.0-build.6_unsigned.ipa`,
+194,477,541 bytes, SHA-256
+`c9878fa8a888ce958fb7ab3b37915114859c864c1c9e030a69524873afcfa332`.
+The Hermes compiler and snapshot runner are rebuilt from the same pinned source
+and have the same hashes recorded for [build 5](TWITCH_31_6_COMPATIBILITY.md#build-5-hermes-port).
+These results establish host/bytecode/package validation, not a completed
+on-device cursor fix or a published compatibility claim.

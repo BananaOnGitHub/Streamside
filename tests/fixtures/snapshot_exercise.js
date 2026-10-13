@@ -10,6 +10,17 @@ bridge.observe=function(e,s,asset,x,y){
  return _observeNative(e,s,asset===undefined?null:asset,x===undefined?0:x,y===undefined?0:y);
 };
 check(typeof buildLocalEcho('composer')==='function','installer result');
+// Execute the shipped request-tagging bytecode, not a source-level replica.
+var cursorRequest=Object.freeze({start:5,end:5}),cursorCallback=function(){};
+autocompleteResult={matches:null,forcedSelection:cursorRequest,onChange:cursorCallback};
+var cursorFirst=autocomplete.useAutocomplete('Wide ',cursorCallback,[],cursorCallback);
+check(cursorFirst.forcedSelection.text==='Wide '&&cursorFirst.forcedSelection.start===5,'compiled native request draft');
+var cursorLate=autocomplete.useAutocomplete('Wide tail',cursorCallback,[],cursorCallback);
+check(cursorLate.forcedSelection===cursorFirst.forcedSelection&&cursorLate.forcedSelection.text==='Wide ','compiled late request identity and original draft');
+check(cursorRequest.text===undefined&&cursorLate.onChange===cursorCallback,'compiled donor object and callback preserved');
+autocompleteResult={matches:null,forcedSelection:Object.freeze({start:9,end:9})};
+check(autocomplete.useAutocomplete('Wide tail',cursorCallback,[],cursorCallback).forcedSelection.text==='Wide tail','compiled current request draft');
+autocompleteResult={};
 check(typeof trays.EmotePickerTray==='function','compiled installer library binding');
 check(bridge.getSnapshot('42')!==null,'fixture snapshot');
 channel=Array.from({length:837},function(_,i){return Object.assign({},a,{id:1000+i,url:'asset-'+i});});

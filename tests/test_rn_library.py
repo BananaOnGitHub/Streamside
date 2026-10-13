@@ -55,7 +55,8 @@ const bridge={reload:room=>reloaded.push(room),getState:()=>config,search:()=>[]
 const nativeJSX=(type,props,key)=>({type,props,key});const jsx={jsx:nativeJSX,jsxs:nativeJSX};
 const settings={ChatSettingsSheet:'native-settings'};
 const trays={EmotePickerTray:'native-library'},buttons={IconButton:'native-button'},inputs={EmoteTextInput:'native-input'},suggestions={ChatAutocompleteTray:'native-suggestions'};
-const autocomplete={useAutocomplete:()=>({}),caretFromEdit:()=>0,EMOTE_URL_TEMPLATE:'animated',EMOTE_URL_TEMPLATE_STATIC:'static'};
+var autocompleteResult={};
+const autocomplete={useAutocomplete:()=>autocompleteResult,caretFromEdit:()=>0,EMOTE_URL_TEMPLATE:'animated',EMOTE_URL_TEMPLATE_STATIC:'static'};
 const env={__r:id=>({72:React,5:RN,2071:{useTheme:()=>theme},245:jsx,4937:settings,4941:{},16:{default:{buildLocalEcho:bridge}},4153:trays,3459:inputs,4676:autocomplete,4777:suggestions})[id],setInterval:fn=>{timers.push(fn);return fn;},clearInterval:fn=>timers=timers.filter(x=>x!==fn),WeakMap};
 vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);env.install('composer');
 const p={channelID:'42',emotePickerSID:'open1',sections:[{id:'channel'}],onSelectEmote:(...x)=>insertions.push(x)};

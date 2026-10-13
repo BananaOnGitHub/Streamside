@@ -8,6 +8,50 @@ ROOT=Path(__file__).resolve().parent.parent
 
 class RNStripTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('node'),'Node required for RN mocks')
+    def test_native_selection_keeps_its_original_draft_across_late_renders(self):
+        script=r'''
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const React={createElement:()=>{},createContext:()=>({}),useContext:()=>null};
+let config={mode:0,revision:1,enabled:1};
+const bridge={getState:()=>config,search:()=>[]};
+const inputs={EmoteTextInput:'native-input'},suggestions={ChatAutocompleteTray:'native-suggestions'};
+const change=()=>{},select=()=>{},reset=()=>{};
+const request=Object.freeze({start:5,end:5});
+let result={matches:null,forcedSelection:request,onChange:change,onMatchSelect:select,reset};
+const autocomplete={useAutocomplete:()=>result,caretFromEdit:()=>0,EMOTE_URL_TEMPLATE:'a',EMOTE_URL_TEMPLATE_STATIC:'b'};
+const env={__r:id=>({72:React,5:{ScrollView:'scroll',Pressable:'button'},2071:{useTheme:()=>{}},
+ 16:{default:{buildLocalEcho:bridge}},245:{},3459:inputs,4153:{EmotePickerTray:'native-tray'},4676:autocomplete,4777:suggestions})[id],WeakMap};
+vm.createContext(env);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),env);env.install('composer');
+const first=autocomplete.useAutocomplete('Wide ',change,[],select);
+assert.strictEqual(first.forcedSelection.text,'Wide ');
+assert.strictEqual(first.forcedSelection.start,5);assert.strictEqual(first.forcedSelection.end,5);
+assert.deepStrictEqual(request,{start:5,end:5},'never mutate Twitch requests');
+assert.strictEqual(first.onChange,change);assert.strictEqual(first.onMatchSelect,select);assert.strictEqual(first.reset,reset);
+assert.strictEqual(first.matches,result.matches);
+assert.strictEqual(autocomplete.useAutocomplete('Wide ',change,[],select).forcedSelection,first.forcedSelection,
+ 'stable identity prevents unnecessary native selection setter calls');
+const late=autocomplete.useAutocomplete('Wide tail',change,[],select);
+assert.strictEqual(late.forcedSelection,first.forcedSelection);
+assert.strictEqual(late.forcedSelection.text,'Wide ','an old request must not be relabeled with newer text');
+result={...result,forcedSelection:Object.freeze({start:9,end:9}),matches:[{type:'mention'}]};
+const fresh=autocomplete.useAutocomplete('Wide tail',change,[],select);
+assert.strictEqual(fresh.forcedSelection.text,'Wide tail');assert.strictEqual(fresh.forcedSelection.start,9);
+assert.strictEqual(fresh.matches,result.matches,'command/mention matches remain native');
+// Empty drafts, UTF-16 positions, and deliberately noncollapsed selections are unchanged.
+for(const [draft,start,end] of [['',0,0],['😀 Wide ',2,7],['Wide tail',2,5]]) {
+ result={...result,forcedSelection:Object.freeze({start,end})};
+ const tagged=autocomplete.useAutocomplete(draft,change,[],select).forcedSelection;
+ assert.strictEqual(tagged.text,draft);assert.strictEqual(tagged.start,start);assert.strictEqual(tagged.end,end);
+}
+result={...result,forcedSelection:null};assert.strictEqual(autocomplete.useAutocomplete('x',change,[],select),result);
+result={...result,forcedSelection:request};config={...config,mode:2};
+assert.strictEqual(autocomplete.useAutocomplete('x',change,[],select),result,'off mode retains native props');
+config={...config,mode:0,enabled:0};assert.strictEqual(autocomplete.useAutocomplete('x',change,[],select),result);
+'''
+        r=subprocess.run(['node','-e',script,str(ROOT/'src/rn/ProviderEmoteStrip.js')],capture_output=True,text=True)
+        self.assertEqual(r.returncode,0,r.stderr)
+
+    @unittest.skipUnless(shutil.which('node'),'Node required for RN mocks')
     def test_modes_scope_selection_live_settings_and_plain_text_insertion(self):
         script=r'''
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
@@ -97,7 +141,8 @@ nativeResult={matches:[{type:'emote'}],forcedSelection:{start:3,end:3},onMatchSe
 const masked=autocomplete.useAutocomplete(':Su',setter,providers,complete);
 assert.strictEqual(masked.matches,null);assert.strictEqual(masked.onMatchSelect,nativeResult.onMatchSelect);assert.strictEqual(confirmed,0);
 assert.strictEqual(masked.onChange,nativeResult.onChange);
-assert.strictEqual(masked.forcedSelection,nativeResult.forcedSelection);assert.strictEqual(masked.reset,nativeResult.reset);
+assert.strictEqual(masked.forcedSelection.text,':Su');assert.strictEqual(masked.forcedSelection.start,3);
+assert.strictEqual(masked.forcedSelection.end,3);assert.strictEqual(masked.reset,nativeResult.reset);
 assert.strictEqual(Object.prototype.hasOwnProperty.call(masked,'confirmHighlightedMatch'),false);
 // This mirrors the donor composer's send branch: null matches send ordinary text.
 let sends=0;if(masked.matches===null)sends++;else masked.onMatchSelect();assert.strictEqual(sends,1);

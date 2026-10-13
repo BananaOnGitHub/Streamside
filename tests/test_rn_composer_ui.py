@@ -415,6 +415,26 @@ static void late_cursor_prop(void) {
     enabled=NO;bridge_string=bridge;selection_prop(owner,"setSelection:",request);assert(owner->prop_selection==request);
     selection_prop(owner,"setSelection:",nil);assert(!owner->prop_selection);
 }
+static void late_native_cursor(void) {
+    tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
+    id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),request=fresh("NSDictionary");owner->editor=editor;owner->accept_edit=YES;
+    owner->plain[0]=(uint64_t)(uintptr_t)text("Wide ");owner->plain[1]=1;
+    /* No selection has arrived yet, so the edit guard has nothing to cancel. */
+    assert(should_change(owner,"edit",editor,(Range){2,0},text("tail")));
+    assert(!owner->prop_selection && GET(selection_invalidations)==0);
+    owner->plain[0]=(uint64_t)(uintptr_t)text("Wide tail");editor->range=(Range){9,0};request->range=(Range){5,0};
+    /* Bare native offsets reproduce the uncovered late-arrival path. */
+    selection_prop(owner,"setSelection:",request);apply_queued_selection(owner,editor,request);
+    assert(editor->range.location==5);
+    /* The scoped adapter now preserves the original request draft. */
+    editor->range=(Range){9,0};request->items[0]=text("Wide ");
+    selection_prop(owner,"setSelection:",request);apply_queued_selection(owner,editor,request);
+    assert(editor->range.location==9 && !owner->prop_selection && GET(stale_selections)==1);
+    /* A current request can deliberately select the middle; never force end. */
+    request->items[0]=text("Wide tail");request->range=(Range){2,3};
+    selection_prop(owner,"setSelection:",request);apply_queued_selection(owner,editor,request);
+    assert(editor->range.location==2 && editor->range.length==3);
+}
 static void native_geometry(void) {
     bridge_string=bridge;bounds_original=(IMP)original_bounds;
     id smile=attachment("https://static-cdn.jtvnw.net/emoticons/v2/1/static/dark/3.0"),image=fresh("UIImage");
@@ -462,7 +482,7 @@ static void native_image_abi(void) {
 }
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else if(!strcmp(argv[1],"nativegeometry"))native_geometry();else if(!strcmp(argv[1],"nativearrival"))native_arrival();else if(!strcmp(argv[1],"nativeimageabi"))native_image_abi();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else if(!strcmp(argv[1],"latenative"))late_native_cursor();else if(!strcmp(argv[1],"nativegeometry"))native_geometry();else if(!strcmp(argv[1],"nativearrival"))native_arrival();else if(!strcmp(argv[1],"nativeimageabi"))native_image_abi();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -507,6 +527,8 @@ class RNComposerUITests(unittest.TestCase):
     def test_cursor_guard_requires_both_selection_abis_and_retries(self):self.run_mode('cursorabi')
 
     def test_late_suggestion_cursor_prop_checks_live_draft_and_preserves_native_props(self):self.run_mode('latecursor')
+
+    def test_late_native_selection_after_recognition_requires_its_original_draft(self):self.run_mode('latenative')
 
     def test_native_emoticon_image_aspect_arrival_scale_and_guarded_fallback(self):self.run_mode('nativegeometry')
 

@@ -129,6 +129,18 @@ void dispose(void *p){free(p);}
             output=next(x for x in native_ac if x.inst.name=='NewObjectWithBufferLong' and "'matches'" in str(x))
             fields=ast.literal_eval(str(output).split('# Object: ',1)[1].replace('null','None'))
             assert set(fields)=={'matches','forcedSelection','onChange','onMatchSelect','reset'}
+            # Automatic draft reconciliation also produces bare native offsets,
+            # not just explicit suggestion insertion. The adapter's draft tag
+            # must survive the donor input wrappers as part of selection itself.
+            forced=next(x for x in native_ac if x.original_pos==0x210)
+            assert forced.inst.name=='NewObjectWithBufferLong'
+            offsets=ast.literal_eval(str(forced).split('# Object: ',1)[1].replace('null','None'))
+            assert set(offsets)=={'start','end'}
+            native_input=list(parse_hbc_bytecode(h.function_headers[18502],h))
+            selection_props=next(i for i,x in enumerate(native_input) if x.original_pos==0x2d0)
+            assert native_input[selection_props].inst.name=='NewObjectWithBuffer'
+            assert "{'selection': null}" in str(native_input[selection_props])
+            assert native_input[selection_props+1].inst.name=='PutOwnBySlotIdx' and native_input[selection_props+1].arg2==37
             assert 'confirmHighlightedMatch' not in (ROOT/'src/rn/ProviderEmoteStrip.js').read_text()
             catalog=list(parse_hbc_bytecode(h.function_headers[21721],h))
             assert any(x.inst.name=='GetById' and h.strings[x.arg4]=='buildEmoteTokenMap' for x in catalog)

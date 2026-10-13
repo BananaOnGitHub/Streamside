@@ -314,3 +314,15 @@ The previous 31.5 device confirmations do not count as 31.6 acceptance.
 
 No release tag or main merge is part of this trial. Public feature documentation
 is reconciled at feature freeze under the maintenance policy.
+
+### Build-5 device follow-up and build-6 cursor trial
+
+Build 5 was reported to work on 31.6, with a remaining cursor displacement
+during continued typing after an emote becomes an image. The device/iOS/signing
+configuration and a full interaction matrix were not recorded. This confirms
+the reported port result, not blanket acceptance of the pending cases above.
+
+The [cursor investigation](RN_COMPOSER_CURSOR.md#build-6-follow-up-late-native-requests-on-316)
+records the build-6 correction for native selection requests arriving after
+newer typing. The original five-stage donor admission is retained. Build-5
+artifact hashes and validation results remain attached to build 5.

@@ -445,9 +445,9 @@ static id current_plain_copy(id owner) {
     return words[1] ? bridge_string(words[0],words[1]) : nil;
 }
 static void selection_prop(id self,SEL command,id request) {
-    /* Our suggestion request carries the draft it was created for. Reject
+    /* Scoped suggestion and native autocomplete requests carry their draft. Reject
      * late props after newer native text; ordinary Twitch selection props
-     * without that context retain their original behavior. */
+     * outside the adapter and without that context retain their original behavior. */
     if(tas_emotes_enabled_this_launch() && main_thread() && kind(request,"NSDictionary") && editor_for(self)) {
         id expected=m1(request,"objectForKey:",str("text"));
         if(kind(expected,"NSString")) {

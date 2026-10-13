@@ -127,6 +127,7 @@ function install(original) {
     return takeover(config) && emoteMatches(p.matches) ? null : React.createElement(NativeSuggestions, p);
   }
   var providerCache = new WeakMap();
+  var selectionRequests = new WeakMap();
   function useAutocomplete(draft, setDraft, providers, onCompleteSuggestion) {
     var active = takeover(state()), filtered = providers;
     // This adapter adds NO React hooks: the parent can have rendered before
@@ -140,6 +141,19 @@ function install(original) {
       }
     }
     var result = nativeAutocomplete(draft, setDraft, filtered, onCompleteSuggestion);
+    // The native queue checks a generation, not the draft. A request can
+    // arrive after the edit that would have cancelled it. Keep the draft from
+    // its first observation, including when Twitch reuses it in a later render;
+    // the native guard can then refuse obsolete offsets. Never mutate donor
+    // state or manufacture a new request identity on an unchanged render.
+    if (active && result.forcedSelection && typeof result.forcedSelection === "object" && typeof draft === "string") {
+      var request = selectionRequests.get(result.forcedSelection);
+      if (!request) {
+        request = Object.assign({}, result.forcedSelection); request.text = draft;
+        selectionRequests.set(result.forcedSelection, request);
+      }
+      result = Object.assign({}, result); result.forcedSelection = request;
+    }
     // Twitch retains matches in state until an edit. Hide a pre-takeover
     // emote match before its composer hook constructs native Send handlers.
     if (active && emoteMatches(result.matches)) {

@@ -3,7 +3,8 @@
 Branch: `dev/3.1.0`; source baseline `16188d5`. Target: Twitch 31.5
 (`262752111271985979`). Continued typing around an emote token can leave the
 cursor inside newer text. This trial addresses two stale selection-request paths;
-device confirmation and broader typing-performance investigation remain pending.
+Device confirmation and broader typing-performance investigation were pending
+at build preparation; subsequent feedback is recorded below.
 
 ## Donor evidence
 
@@ -70,6 +71,21 @@ contracts, both DEB packages, the developer bundle, and the unsigned IPA passed
 verification. Documentation validation found zero errors across 70 Markdown
 files and 663 explicit references. These results do not establish device behavior
 or a typing-performance improvement.
+
+## Build-3 device follow-up
+
+Typing in the RN composer was reported to feel much faster with build 3 than
+with the preceding build. The reported cursor jump during continued typing
+around emote tokens was also confirmed no longer occurring. These are on-device
+results for the exercised typing case, not a timed benchmark or a measured
+latency reduction. The tested implementation is
+`2c166bc`; the unsigned build-3 IPA has SHA-256
+`4697c62d006c7328e04bb2c01b9f486c98e622e7afec433624564de4d723e6c1`.
+
+The full interaction matrix, device/iOS/signing configuration, and cursor
+counters were not recorded. Keep those remaining checks separate from the
+confirmed resolution of the reported cursor jump and improvement in perceived
+typing responsiveness.
 
 Device acceptance should include rapid typing after manual recognition and
 suggestion insertion, repeated codes, emoji before tokens, edits in the middle of

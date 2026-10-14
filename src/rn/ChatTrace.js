@@ -2,28 +2,29 @@
  * Slots: id,store,IDs,nonces,store-seen,label-sequence,last-snapshot,probes,
  * unsubscribe,objects,data-seen,render-seen,last-access,disposed,last-state,
  * mounts,cycle,last-measurement,client,viewport,scan-offset,probe-offset,frame,
- * own-labels,object-count. Bounded four-store LRU; caches rotate.
+ * own-labels,object-count,target-labels,store-hook. Bounded four-store LRU.
  * Wire: event,session,label,flags,a,b,c,d,cycle,frame (numbers only).
  */
 function install(original) {
   var React=__r(72); React=React.default || React;
   var bridge=__r(16).default.buildLocalEcho, lines=__r(4782), jsx=__r(245), client=__r(3500).LibraryTmiClient;
   if (!bridge || typeof bridge.trace!=="function" || !React.createContext || !React.useEffect || !lines.ChatLine || !jsx.jsx || !client) return original;
-  var Context=React.createContext(null),sessions=[],stores=new WeakMap(),clients=new WeakMap(),sequence=0,hookRecords=[];
-  var normal=32,geometry=24,metadata=8,priority=8,last=Date.now(),skipped=0,urgentSkipped=0,registrySkipped=0,aliases=0,sampleCursor=0,pending=0;
+  var Context=React.createContext(null),sessions=[],stores=new WeakMap(),clients=new WeakMap(),routes=new WeakMap(),sequence=0,hookRecords=[],rewardHook=null,rewardModule=safe(function(){return __r(4790);});
+  var normal=32,geometry=24,metadata=8,priority=8,target=16,last=Date.now(),skipped=0,urgentSkipped=0,registrySkipped=0,aliases=0,sampleCursor=0,pending=0;
   function safe(fn) { try { return fn(); } catch (error) { return null; } }
   function number(value) { return typeof value==="number" && Number.isFinite(value) && Math.abs(value)<=10000000 ? value : -1; }
   function emit(event,s,id,f,a,b,c,d,frame) {
     if (!s || s[13]) return false;
     var time=Date.now(), elapsed=Math.max(0,time-last); last=time;
-    normal=Math.min(32,normal+elapsed*0.032);geometry=Math.min(24,geometry+elapsed*0.016);metadata=Math.min(8,metadata+elapsed*0.004);priority=Math.min(8,priority+elapsed*0.008);
+    normal=Math.min(32,normal+elapsed*0.032);geometry=Math.min(24,geometry+elapsed*0.016);metadata=Math.min(8,metadata+elapsed*0.004);priority=Math.min(8,priority+elapsed*0.008);target=Math.min(16,target+elapsed*0.012);
+    var lifecycle=event===17 || event===18 || event===21;
     var urgent=event===0 || event===9 || event===11 || event===13 || ((f&1) && event<=3);
-    var spatial=event===7 || event===8 || event===14;
-    var status=event===12 || event===16;
-    if(urgent?priority<1:status?metadata<1:spatial?geometry<1:normal<1){if(urgent)urgentSkipped++;else skipped++;return false;}
-    if(urgent)priority--;else if(status)metadata--;else if(spatial)geometry--;else normal--;
+    var spatial=event===7 || event===8 || event===14 || event===19 || event===20;
+    var status=event===12 || event===16 || event===22;
+    if(lifecycle?target<1:urgent?priority<1:status?metadata<1:spatial?geometry<1:normal<1){if(urgent || lifecycle)urgentSkipped++;else skipped++;return false;}
+    if(lifecycle)target--;else if(urgent)priority--;else if(status)metadata--;else if(spatial)geometry--;else normal--;
     var accepted=safe(function(){var value=bridge.trace(JSON.stringify([event,s[0],id||0,f||0,number(a),number(b),number(c),number(d),s[16],frame||0]));return value===1 || value===true;})===true;
-    if(!accepted){if(urgent)urgentSkipped++;else skipped++;}return accepted;
+    if(!accepted){if(urgent || lifecycle)urgentSkipped++;else skipped++;}return accepted;
   }
   function trim(map,key,value,limit) {
     if (map.has(key)) map.delete(key); map.set(key,value);
@@ -32,6 +33,7 @@ function install(original) {
   function flags(line) {
     var value=0, emotes=line && line.emotes;
     if (line && line.isUnpublished) value|=1;
+    if (line && line.type==="channelpointsreward") value|=64;
     if (Array.isArray(emotes)) emotes.slice(0,128).forEach(function (e) {
       var id=Number(e.id); value|=(id>=860000000000000 && id<861000000000000) || (id>=900000000000000 && id<1000000000000000)?2:4;
     }); return value;
@@ -49,6 +51,36 @@ function install(original) {
     return value || 0;
   }
   function lineFlags(s,line,id) { return flags(line) | (s && s[23].get(id) || 0); }
+  function watch(s,id,f){if(s && id && (f&1))trim(s[23],id,1,256);if(s && id && (f&65) && !s[25].has(id))trim(s[25],id,[f,0,0,-1],256);else if(s && s[25].has(id))s[25].get(id)[0]|=f;}
+  function targets(s,full){
+    if(!s || s[13] || !s[15] || !s[25].size)return;
+    safe(function(){var list=s[1].getState().lines;if(!Array.isArray(list))return;
+      var count=Math.min(list.length,full?2000:64),found=new Set(),live=new Set(),start=full?0:Math.max(0,list.length-count);
+      s[2].forEach(function(id){live.add(id);});s[3].forEach(function(id){live.add(id);});
+      for(var i=start;i<start+count;i++){var line=list[i].line || list[i],id=label(s,line,false);if(s[25].has(id))found.add(id);}
+      s[25].forEach(function(record,id){var status=found.has(id)?2:count===list.length && live.has(id)?1:3,time=Date.now();
+        if(record[1]!==status || record[3]!==s[16] || time-record[2]>=10000)
+          if(emit(21,s,id,record[0],status,count,list.length,0)){record[1]=status;record[2]=time;record[3]=s[16];}
+      });
+    });
+  }
+  function storeHook(s){
+    if(!s || s[13] || !s[15] || s[26])return;
+    safe(function(){var state=s[1].getState(),descriptor=Object.getOwnPropertyDescriptor(state,"pushRewardRedemption");
+      if(!descriptor || !descriptor.writable || typeof descriptor.value!=="function")return;
+      var native=descriptor.value,copy=Object.assign({},descriptor);
+      copy.value=function(){var line=arguments[0],id=0,f=0;
+        safe(function(){if(s[13] || !s[15])return;id=label(s,line,true);f=lineFlags(s,line,id)|64;watch(s,id,f);emit(17,s,id,f,2,1,0,0);});
+        try{var value=native.apply(this,arguments);safe(function(){if(id){emit(17,s,id,f,2,2,0,0);targets(s,true);}});return value;}
+        catch(error){safe(function(){if(id)emit(17,s,id,f,2,3,0,errorCode(error));});throw error;}
+      };
+      Object.defineProperty(state,"pushRewardRedemption",copy);s[26]=[state,native,copy.value];
+    });
+  }
+  function restoreStore(s){
+    if(!s || !s[26])return;var record=s[26];
+    safe(function(){[record[0],s[1].getState()].forEach(function(state){var d=Object.getOwnPropertyDescriptor(state,"pushRewardRedemption");if(d && d.writable && d.value===record[2]){d.value=record[1];Object.defineProperty(state,"pushRewardRedemption",d);}});});s[26]=null;
+  }
   function seen(s,map,event,id,f,a) {
     if (!id || !s || s[13]) return;
     var time=Date.now(), previous=map.get(id);
@@ -65,11 +97,13 @@ function install(original) {
         s[18]=state._tmiClient; if (s[18]) clients.set(s[18],s);
       }
       var length=Array.isArray(list)?list.length:-1;
+      storeHook(s);targets(s,true);
       emit(10,s,0,f,length,state.connected?1:0,Math.min(32,Math.max(0,length)),s[20]);
       if (length>0) {
         var count=Math.min(length,2000), start=s[20]%count;
         for (var i=0;i<Math.min(count,32);i++) {
           var entry=list[(start+i)%count], line=entry.line || entry, id=label(s,line,true);
+          watch(s,id,lineFlags(s,line,id));
           seen(s,s[4],4,id,lineFlags(s,line,id)|f,1);
         }
         s[20]=(start+32)%count;
@@ -77,12 +111,14 @@ function install(original) {
     });
   }
   function unsubscribe(s) {
+    restoreStore(s);
     if (typeof s[8]==="function") safe(s[8]); s[8]=null;
     if (s[18] && clients.get(s[18])===s) clients.delete(s[18]); s[18]=null;
   }
   function subscribe(s) {
     if (!s || s[13]) return;
-    if (!s[8] && typeof s[1].subscribe==="function") s[8]=safe(function () { return s[1].subscribe(function () { snapshot(s,false); }); });
+    storeHook(s);
+    if (!s[8] && typeof s[1].subscribe==="function") s[8]=safe(function () { return s[1].subscribe(function () { targets(s,false);snapshot(s,false); }); });
     snapshot(s,true);emit(12,s,0,0,typeof s[8]==="function"?1:0,currentHooks(),0,0);
   }
   function session(store) {
@@ -93,14 +129,17 @@ function install(original) {
       for (var i=1;i<sessions.length;i++) if ((sessions[i][15]===0 && sessions[at][15]>0) || ((sessions[i][15]===0)===(sessions[at][15]===0) && sessions[i][12]<sessions[at][12])) at=i;
       var old=sessions.splice(at,1)[0]; emit(11,old,0,0,3,old[15],0,0); unsubscribe(old); stores.delete(old[1]); old[13]=true;old[1]=null;
       old[2].clear();old[3].clear();old[4].clear();old[7].clear();old[9]=new WeakMap();old[10].clear();old[11].clear();old[23].clear();
+      old[25].clear();
     }
     if (sequence>=10000000) return null;
     s=[];s[0]=++sequence;s[1]=store;s[2]=new Map();s[3]=new Map();s[4]=new Map();s[5]=0;s[6]=-100000;s[7]=new Map();s[9]=new WeakMap();s[10]=new Map();s[11]=new Map();
     s[12]=Date.now();s[13]=false;s[15]=0;s[16]=0;s[17]=0;s[19]=null;s[20]=0;s[21]=0;s[22]=0;s[23]=new Map();s[24]=0;
+    s[25]=new Map();s[26]=null;
     stores.set(store,s);sessions.push(s);emit(0,s,0,0,1,0,0,0);return s;
   }
   function errorCode(error) { return safe(function () { return error && error.name==="TypeError"?1:error && error.name==="RangeError"?2:3; }) || 3; }
-  function currentHooks(){var count=0;hookRecords.forEach(function(record){var descriptor=Object.getOwnPropertyDescriptor(record[0],record[1]);if(descriptor && descriptor.value===record[2])count++;});return count;}
+  function currentHooks(){var count=0;hookRecords.forEach(function(record){var descriptor=Object.getOwnPropertyDescriptor(record[0],record[1]);if(record[1]!=="onChannelPointsRewardEvent" && descriptor && descriptor.value===record[2])count++;});return count;}
+  function routeHook(){return hookRecords.some(function(record){var d=Object.getOwnPropertyDescriptor(record[0],record[1]);return record[1]==="onChannelPointsRewardEvent" && d && d.value===record[2];})?1:0;}
   function method(name,wrap) {
     safe(function () {
       var target=client.prototype, descriptor=Object.getOwnPropertyDescriptor(target,name);
@@ -109,20 +148,37 @@ function install(original) {
     });
   }
   method("translateChatMessage",function (native) { return function () {
-    var result=native.apply(this,arguments), s=clients.get(this), event=arguments[0];
+    var result=native.apply(this,arguments), s=clients.get(this), event=arguments[0],route=routes.get(this);
     safe(function () { var id=label(s,result,true), own=event && event.sentByCurrentUser?1:0;if(s && id && own)trim(s[23],id,own,256);
       emit(1,s,id,lineFlags(s,result,id)|own,result?1:0,0,0,0);
+      if(route){route[1]=id;route[2]=lineFlags(s,result,id)|own|64;watch(s,id,route[2]);emit(17,s,id,route[2],1,1,0,0);route[3]=true;}
     });return result;
   }; });
   method("emitLine",function (native) { return function () {
     var s=clients.get(this),line=arguments[0],id=safe(function () { return label(s,line,true); }) || 0;
+    safe(function(){watch(s,id,lineFlags(s,line,id));});
     safe(function () { emit(2,s,id,lineFlags(s,line,id),1,0,0,0); });
-    try { var value=native.apply(this,arguments);safe(function () { emit(3,s,id,lineFlags(s,line,id),1,0,0,0);snapshot(s,false); });return value; }
+    try { var value=native.apply(this,arguments);safe(function () { emit(3,s,id,lineFlags(s,line,id),1,0,0,0);targets(s,true);snapshot(s,false); });return value; }
     catch (error) { safe(function () { emit(3,s,id,lineFlags(s,line,id),0,errorCode(error),0,0); });throw error; }
   }; });
+  method("onChannelPointsRewardEvent",function(native){return function(){
+    var s=clients.get(this),previous=routes.get(this),route=[s,0,64,false];if(s)routes.set(this,route);
+    try{var value=native.apply(this,arguments);safe(function(){if(!route[3])emit(17,s,0,64,1,1,0,0);emit(17,s,route[1],route[2],1,2,0,0);targets(s,true);});return value;}
+    catch(error){safe(function(){if(!route[3])emit(17,s,0,64,1,1,0,0);emit(17,s,route[1],route[2],1,3,0,errorCode(error));});throw error;}
+    finally{if(previous)routes.set(this,previous);else routes.delete(this);}
+  };});
+  safe(function(){if(!rewardModule)return;var descriptor=Object.getOwnPropertyDescriptor(rewardModule,"ChannelPointsRewardLine");
+    if(!descriptor || !descriptor.writable || typeof descriptor.value!=="function")return;
+    var native=descriptor.value,copy=Object.assign({},descriptor);
+    copy.value=function(p){var c=React.useContext(Context),s=c && c[0],line=p && p.event,id=safe(function(){return label(s,line,true);}) || 0,f=safe(function(){return lineFlags(s,line,id)|64;}) || 64;
+      var available=0,body=0;safe(function(){available=p.rewardsById && p.rewardsById[line.rewardId]?2:1;body=typeof line.body==="string"?(line.body.trim().length?2:1):0;watch(s,id,f);});
+      try{var value=native.apply(this,arguments);safe(function(){emit(18,s,id,f,available,value===null?1:React.isValidElement && React.isValidElement(value)?2:0,body,0);});return value;}
+      catch(error){safe(function(){emit(18,s,id,f,available,3,body,errorCode(error));});throw error;}
+    };Object.defineProperty(rewardModule,"ChannelPointsRewardLine",copy);rewardHook=copy.value;
+  });
   var NativeLine=lines.ChatLine;
   lines.ChatLine=function (p) {
-    var c=safe(function () { var s=session(p.chatStore),id=label(s,p.line,true);return [s,id,lineFlags(s,p.line,id)]; }),props={};props.value=c;
+    var c=safe(function () { var s=session(p.chatStore),id=label(s,p.line,true),f=lineFlags(s,p.line,id);watch(s,id,f);return [s,id,f]; }),props={};props.value=c;
     return React.createElement(Context.Provider,props,React.createElement(NativeLine,p));
   };
   function forward(ref,node) { if (typeof ref==="function") return ref(node);if(ref)ref.current=node; }
@@ -181,6 +237,23 @@ function install(original) {
             if(!s[13] && s[16]===cycle && s[22]===frame && version===generation.current && view.current===node && current.current[1] && current.current[1][0]===s)emit(8,s,0,0,x,y,w,h,frame);
           });
         });
+        safe(function(){if(!s || !node)return;var state=typeof node.getState==="function"?safe(function(){return node.getState();}):null,data=state && state.data;
+          emit(22,s,0,0,routeHook(),s[26] && s[1].getState().pushRewardRedemption===s[26][2]?1:0,rewardModule && rewardModule.ChannelPointsRewardLine===rewardHook?1:0,Array.isArray(data)?1:0);
+          if(!Array.isArray(data)){registrySkipped++;return;}
+          var count=Math.min(data.length,2000),selected=[];
+          for(var i=0;i<count;i++){var line=data[i].line || data[i],id=label(s,line,false);if(s[25].has(id))selected.push([i,id,lineFlags(s,line,id)]);}
+          var offset=s[27] || 0,limit=Math.min(4,selected.length);s[27]=selected.length?(offset+limit)%selected.length:0;
+          for(var j=0;j<limit;j++){
+            var entry=selected[(offset+j)%selected.length],index=entry[0],item=data[index],key=item.key,known=state.sizes && typeof state.sizes.has==="function" && state.sizes.has(key),size=known?number(state.sizes.get(key)):-1,pos=typeof state.positionAtIndex==="function"?state.positionAtIndex(index):-1;
+            if(size<0)known=false;
+            emit(19,s,entry[1],entry[2],size,pos,known?1:0,index,frame);
+            var cell=typeof state.elementAtIndex==="function"?state.elementAtIndex(index):null;
+            if(cell && typeof cell.measureInWindow==="function")(function(entry,index,key,cell){request(cell,function(x,y,w,h){
+              var latest=view.current===node && typeof node.getState==="function"?node.getState():null;
+              if(!s[13] && s[16]===cycle && s[22]===frame && version===generation.current && latest && latest.data && latest.data[index] && latest.data[index].key===key && latest.elementAtIndex(index)===cell)emit(20,s,entry[1],entry[2],x,y,w,h,frame);
+            });})(entry,index,key,cell);
+          }
+        });
       };
       value.renderItem=function () {
         var data=current.current[0],s=current.current[1] && current.current[1][0],item=arguments[0];
@@ -210,7 +283,7 @@ function install(original) {
     var copy=Object.assign({},p.data);copy.reportError=report;return React.createElement(p.type,copy);
   }
   function intercept(native){return function(type,p,key){
-    var component=p && p.testID==="chat-message-row"?Row:p && p.testID==="chat-message-list"?List:p && p.name==="ChatLine" && typeof p.reportError==="function"?Boundary:null;
+    var component=p && (p.testID==="chat-message-row" || p.testID==="chat-channelpointsreward-line")?Row:p && p.testID==="chat-message-list"?List:p && p.name==="ChatLine" && typeof p.reportError==="function"?Boundary:null;
     if(component){var props={};props.type=type;props.data=p;return native(component,props,key);}return native.apply(this,arguments);
   };}
   jsx.jsx=intercept(jsx.jsx);if(jsx.jsxs)jsx.jsxs=intercept(jsx.jsxs);

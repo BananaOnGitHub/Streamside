@@ -1,5 +1,5 @@
 /* Shared Node/source and Hermes/shipped-graft fixture. Host React, not Fabric. */
-var packets=[], timer=null, context=null, slots=new Map(), activeSlots=null, cursor=0;
+var packets=[],timer=null,context=null,slots=new Map(),activeSlots=null,cursor=0,effects=[],clock=1000;
 function check(value,reason) { if (!value) throw new Error(reason); }
 function same(a,b,reason) { check(a===b,reason); }
 function element(type,props,key) { return {type:type,props:props,key:key}; }
@@ -12,24 +12,31 @@ var React={
   useMemo:function (fn,deps) { var i=cursor++, old=activeSlots[i];
     if (!old || old.deps.length!==deps.length || deps.some(function (v,j) { return v!==old.deps[j]; })) activeSlots[i]={deps:deps.slice(),value:fn()};
     return activeSlots[i].value;
+  },
+  useEffect:function(fn,deps){var i=cursor++,old=activeSlots[i],list=activeSlots;
+    if(!old || old.deps.length!==deps.length || deps.some(function(v,j){return v!==old.deps[j];}))
+      effects.push(function(){if(old && old.cleanup)old.cleanup();list[i]={deps:deps.slice(),cleanup:fn()};});
   }
 };
-function render(fn,p) { activeSlots=slots.get(fn)||[]; slots.set(fn,activeSlots); cursor=0; return fn(p); }
+function render(fn,p,key){activeSlots=slots.get(key||fn)||[];slots.set(key||fn,activeSlots);cursor=0;effects=[];var out=fn(p);effects.forEach(function(fn){fn();});return out;}
+function unmount(key){var list=slots.get(key)||[];list.forEach(function(value){if(value.cleanup)value.cleanup();});slots.delete(key);}
+function advance(ms){clock+=ms;if(typeof _observeNative==="function")_observeNative(61,0,null,clock/1000,0);}
+function tick(ms){advance(ms);if(timer)timer();}
 var calls=[], failure=null;
 function Client() {}
 Client.prototype.translateChatMessage=function (event,second) { calls.push([this,event,second]); if (failure) throw failure; return event.line; };
 Client.prototype.emitLine=function (line,second) { calls.push([this,line,second]); if (failure) throw failure; return second; };
 var nativeTranslate=Client.prototype.translateChatMessage,nativeEmit=Client.prototype.emitLine;
 var bridge={trace:function (packet) {
-  var values=JSON.parse(packet); check(values.length===8 && values.every(function(v){return typeof v==="number" && Number.isFinite(v);}),"numeric-only wire");
+  var values=JSON.parse(packet); check(values.length===10 && values.every(function(v){return typeof v==="number" && Number.isFinite(v);}),"numeric-only wire");
   packets.push(values); return typeof _observeNative==="function"?_observeNative(60,0,packet,0,0):1;
 }};
 var jsx={jsx:element,jsxs:element}, lines={ChatLine:"native-line"};
 var RN={StyleSheet:{create:function (x) { return x; }}};
 var modules={1:function (x) { return {default:x}; },17:{},72:React,5:RN,245:jsx,16:{default:{buildLocalEcho:bridge}},4782:lines,3500:{LibraryTmiClient:Client}};
 _runtimeGlobal.__r=function (id) { return modules[id]; };
-_runtimeGlobal.setTimeout=function (fn,ms) { same(ms,120000,"bounded timer"); timer=fn; return 1; };
-_runtimeGlobal.clearTimeout=function () { timer=null; };
+_runtimeGlobal.Date.now=function(){return clock;};
+_runtimeGlobal.setInterval=function(fn,ms){same(ms,2000,"rolling sampler");timer=fn;return 1;};
 var installEntry=typeof install==="function"?install:buildLocalEcho;
 if (typeof _chatFactory!=="undefined") {
   var exports={};
@@ -48,7 +55,7 @@ var line={id:"private-id",clientNonce:"private-nonce",isUnpublished:true,emotes:
 var event={line:line,sentByCurrentUser:true}, translated=a.translateChatMessage(event,42);
 same(translated,line,"translation identity"); same(calls[0][0],a,"translation this"); same(calls[0][2],42,"translation args");
 same(a.emitLine(line,123),123,"emit return"); same(calls[1][1],line,"emit args");
-sa.state.lines=[{key:"private-key",line:line}]; sa.notify();
+sa.state.lines=[{key:"private-key",line:line}]; tick(2000);sa.notify();
 var nativeProps={testID:"chat-message-list",data:sa.state.lines,recycleItems:false,estimatedItemSize:36,renderItem:function(item,second){same(this,sa,"render this");same(second,22,"render args");return item;}};
 var listElement=jsx.jsx("native-list",nativeProps,"key"), list=render(listElement.type,listElement.props);
 same(list.type,"native-list","no native wrapper"); same(list.props.recycleItems,false,"recycling unchanged"); same(list.props.estimatedItemSize,36,"estimate unchanged");
@@ -63,31 +70,40 @@ var rowElement=jsx.jsx("native-row",rowProps,"row-key"), row=render(rowElement.t
 same(row.type,"native-row","no row host wrapper");same(row.props.style,rowProps.style,"row style identity");
 var node={measureInWindow:function(cb){cb(0,150,100,44);}}, cleanup=row.props.ref(node);same(refNode,node,"forward ref");
 var e={nativeEvent:{layout:{height:44,width:100,x:0,y:150}}};same(row.props.onLayout.call(sa,e),9,"layout return");same(layoutCalls,1,"layout once");
+tick(2000);
+var windowBefore=packets.filter(function(v){return v[0]===7;}).length;
+for(var storm=0;storm<1000;storm++)row.props.onLayout.call(sa,{nativeEvent:{layout:{height:40+storm,width:100,x:0,y:150}}});
+tick(2000);check(packets.filter(function(v){return v[0]===7;}).length>windowBefore,"layout storm cannot exhaust native geometry lane");
 var rowAgain=render(rowElement.type,rowElement.props);same(rowAgain.props.ref,row.props.ref,"stable ref");same(cleanup(),88,"cleanup return");same(cleanupCalls,1,"cleanup once");
 var delayed=null, node2={measureInWindow:function(cb){delayed=cb;}};
-row.props.ref(node2);row.props.onLayout.call(sa,e);row.props.ref(null);
+row.props.ref(node2);tick(2000);row.props.onLayout.call(sa,e);row.props.ref(null);
 var before=packets.length;delayed(0,1,1,1);same(packets.length,before,"stale geometry rejected");
+var pendingCallbacks=[],blockedNode={measureInWindow:function(cb){pendingCallbacks.push(cb);}};
+row.props.ref(blockedNode);for(var blocked=0;blocked<50;blocked++)tick(2000);
+same(pendingCallbacks.length,32,"native in-flight measurement cap");
+pendingCallbacks[0](0,1,1,1);pendingCallbacks[0](0,1,1,1);tick(2000);same(pendingCallbacks.length,33,"slot returned once, not twice");
+row.props.ref(null);pendingCallbacks.slice(1).forEach(function(fn){fn(0,1,1,1);});
 context=out.props.value;
 var reported=null, report=function(error){reported=error;return 7;}, error=new TypeError("private-error");
 var boundaryElement=jsx.jsx("native-boundary",{name:"ChatLine",reportError:report,children:{props:{line:line}},fallback:undefined}), boundary=render(boundaryElement.type,boundaryElement.props);
 same(boundary.props.reportError(error),7,"report return");same(reported,error,"report identity");same(boundary.props.fallback,undefined,"fallback unchanged");
-render(Wrapped,{chatStore:sb});context=render(Wrapped,{chatStore:sb}).props.value;
-var line2={id:"private-id",emotes:[]};sb.state.lines=[{line:line2}];b.translateChatMessage({line:line2});b.emitLine(line2,1);
+render(Wrapped,{chatStore:sb},"second-list");context=render(Wrapped,{chatStore:sb},"second-list").props.value;
+var line2={id:"private-id",emotes:[]};sb.state.lines=[{line:line2}];advance(2000);b.translateChatMessage({line:line2});b.emitLine(line2,1);
 context=out.props.value; boundary.props.reportError(error);
 check(packets.some(function(v){return v[0]===9 && v[1]===1 && v[2]===1;}),"error remains original session");
 check(packets.some(function(v){return v[0]===2 && v[1]===2 && v[2]===1;}),"separate session labels");
-var echo={id:"replacement-id",clientNonce:"private-nonce"};a.translateChatMessage({line:echo});a.emitLine(echo,1);
+var echo={id:"replacement-id",clientNonce:"private-nonce"};advance(2000);a.translateChatMessage({line:echo});a.emitLine(echo,1);
 check(packets.filter(function(v){return v[0]===2 && v[1]===1;}).every(function(v){return v[2]===1;}),"nonce reconciliation");
 before=packets.length;unknown.emitLine(line,3);same(packets.length,before,"unscoped client");
-a.translateChatMessage({line:null,sentByCurrentUser:true});
+advance(2000);a.translateChatMessage({line:null,sentByCurrentUser:true});
 check(packets.some(function(v){return v[0]===1 && v[2]===0 && v[4]===0 && v[3]===1;}),"null own translation");
 failure=error;try{a.emitLine(line,1);throw "not thrown";}catch(caught){same(caught,error,"original exception identity");} failure=null;
 check(packets.some(function(v){return v[0]===3 && v[4]===0 && v[5]===1;}),"emit failure");
 check(packets.some(function(v){return v[0]===5 && v[4]===1;}) && packets.some(function(v){return v[0]===5 && v[4]===2;}),"data versus rendered");
 check(packets.some(function(v){return v[0]===7;}) && packets.some(function(v){return v[0]===8;}),"window geometry");
 check(JSON.stringify(packets).indexOf("private")===-1,"privacy");
-if (typeof _diagnosticReport==="function") { var reportText=_diagnosticReport();check(reportText.indexOf("s1 m1")>=0 && reportText.indexOf("error=1")>=0 && reportText.indexOf("private")===-1 && reportText.indexOf("Null translations/all-own: 1/1")>=0,"native report"); }
-var foreign=function(){};Client.prototype.emitLine=foreign;var stop=timer;stop();
-same(Client.prototype.emitLine,foreign,"foreign replacement preserved");same(Client.prototype.translateChatMessage,nativeTranslate,"owned hook restored");same(sa.unsub(),1,"unsubscribe");same(sb.unsub(),1,"unsubscribe2");
-before=packets.length;sa.notify();row.props.onLayout.call(sa,e);same(packets.length,before,"stopped trace silent");
+if(typeof _diagnosticReport==="function"){var reportText=_diagnosticReport();check(reportText.indexOf("s1 m1")>=0 && reportText.indexOf("error=1")>=0 && reportText.indexOf("private")===-1 && reportText.indexOf("null all/own=1/1")>=0,"native report");}
+unmount(Wrapped);unmount("second-list");same(sa.unsub(),1,"unsubscribe");same(sb.unsub(),1,"unsubscribe2");
+before=packets.length;sa.notify();a.emitLine(line,1);same(packets.length,before,"unmounted store silent");
+render(Wrapped,p);advance(2000);same(a.emitLine(line,27),27,"reopening original emit");check(packets.some(function(v){return v[0]===13 && v[4]===1 && v[8]===2;}),"reopen cycle");
 bridge.trace=null; same(installEntry(original),typeof _chatFactory!=="undefined"?Wrapped:original,"missing bridge no-op");

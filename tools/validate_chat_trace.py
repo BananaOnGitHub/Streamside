@@ -7,6 +7,7 @@ import argparse
 import ctypes
 import hashlib
 import json
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -42,7 +43,8 @@ def graft(zig,body,tmp):
     corrupt=bytearray(body);corrupt[-1]^=1;assert apply(bytes(corrupt)) is None,'Invalid digest admitted'
     from rn_graft import read
     before,after=read(body),read(out)
-    assert after.header.functionCount==before.header.functionCount+61
+    count=int(re.search(r'TAS_RN_CHAT_FUNCTIONS (\d+)U',(ROOT/'src/TASRNChatTracePayload.h').read_text()).group(1))
+    assert after.header.functionCount==before.header.functionCount+count
     for i,f in enumerate(before.function_headers):
         other=after.function_headers[i]
         a=body[f.offset:f.offset+f.bytecodeSizeInBytes];b=out[other.offset:other.offset+other.bytecodeSizeInBytes]
@@ -52,7 +54,7 @@ def graft(zig,body,tmp):
             exc=after.function_id_to_exc_handlers[i];assert len(exc)==1 and (exc[0].start,exc[0].end,exc[0].target)==(0x116,0x120,0x125)
             damaged=bytearray(body) # Corrupt join, keeping the footer valid.
             damaged[f.offset+0x116]=0;damaged[-20:]=hashlib.sha1(damaged[:-20]).digest();assert apply(bytes(damaged)) is None
-    delta=61*12;table_end=128+before.header.functionCount*12
+    delta=count*12;table_end=128+before.header.functionCount*12
     expected=bytearray(body[table_end:-20])
     for i,f in enumerate(before.function_headers):
         small=body[128+i*12:140+i*12]
@@ -69,6 +71,9 @@ def adapter(zig,tmp):
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
+static double test_clock=1;
+#define TAS_CHAT_TRACE_NOW() test_clock
+#include "TASChatTrace.c"
 typedef void *SEL;typedef bool BOOL;typedef struct Fake *id;
 struct Fake {const char *text;unsigned type;};
 #define YES true
@@ -80,15 +85,15 @@ static id box(int n){static struct Fake result;result.type=77;result.text=n?"1":
 #define TAS_CHAT_TRACE_BOX(n) box(n)
 #include "TASChatTraceBridge.h"
 double ss_observe(double e,double s,const char *packet,double a,double b){
- (void)s;(void)a;(void)b;assert(e==60);
+ (void)s;(void)b;if(e==61){test_clock=a;return 1;}assert(e==60);
  const TASRNMethodInfo *info=rn_chat_trace_export(nil,0);
  assert(info->sync && !strcmp(info->jsName,"trace") && !strcmp(info->objcName,"trace:(NSString *)packet"));
  struct Fake arg={packet,78};id result=rn_chat_trace(nil,0,packet?&arg:nil);return result->text[0]=='1';
 }
-const char *ss_report(void){static char buffer[24576];tas_chat_trace_status(buffer,sizeof(buffer));return buffer;}
+const char *ss_report(void){static char buffer[32768];tas_chat_trace_status(buffer,sizeof(buffer));return buffer;}
 '''
     path=tmp/'chat_native.c';path.write_text(source);out=tmp/'chat_native.so'
-    subprocess.run([str(zig),'cc','-shared','-fPIC','-DTAS_CHAT_TRACE_DIAGNOSTIC=1','-I',str(ROOT/'src'),str(path),str(ROOT/'src/TASChatTrace.c'),'-pthread','-lm','-o',str(out)],check=True)
+    subprocess.run([str(zig),'cc','-shared','-fPIC','-DTAS_CHAT_TRACE_DIAGNOSTIC=1','-I',str(ROOT/'src'),str(path),'-pthread','-lm','-o',str(out)],check=True)
     return out
 def validate(a):
     from rn_graft import generate,read
@@ -124,12 +129,12 @@ def validate(a):
             limits=fixture.split('var original=')[0]+(ROOT/'tests/fixtures/chat_trace_limits.js').read_text()
             (tmp/'limits.js').write_text(limits);compile_js(a.hermesc,tmp/'limits.js',tmp/'limits.hbc')
             result=subprocess.run([str(a.runner),str(native),str(tmp/'grafted.hbc'),str(tmp/'limits.hbc')],check=True,text=True,capture_output=True)
-            assert 'stop=2' in result.stdout and 'secret' not in result.stdout
-            print('Compiled chat entry',entry,'passed: session/label/packet limits and budget teardown.')
+            assert 'rolling' in result.stdout and 'secret' not in result.stdout and 'm3001' in result.stdout
+            print('Compiled chat entry',entry,'passed: rolling capture, late labels, long runs and store eviction.')
         (tmp/'refusal.js').write_bytes((ROOT/'tests/fixtures/chat_trace_refusal.js').read_bytes())
         compile_js(a.hermesc,tmp/'refusal.js',tmp/'refusal.hbc')
         result=subprocess.run([str(a.runner),str(native),str(tmp/'grafted.hbc'),str(tmp/'refusal.hbc')],check=True,text=True,capture_output=True)
-        assert 'Packets accepted/refused: 0/0' in result.stdout
+        assert 'lifetime accepted/schema-refused/rate-limited: 0/0/0' in result.stdout
         print('Actual donor factory fallback passed: absent bridge and throwing installer; original export/styles retained.')
     a.record.write_text(json.dumps({'passed':True,'factory_executed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,
         'compiler_sha256':hashlib.sha256(a.hermesc.read_bytes()).hexdigest(),'runner_sha256':hashlib.sha256(a.runner.read_bytes()).hexdigest(),

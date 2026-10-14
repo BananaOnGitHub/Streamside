@@ -31,31 +31,48 @@ class ChatTraceTests(unittest.TestCase):
     def test_numeric_schema_rejects_text_and_malformed_packets(self):
         with tempfile.TemporaryDirectory() as folder:
             lib=self.native(folder)
-            bad=[b'',b'[',b'[]',b'[0,1,0,0,0,0,0',b'[0,1,0,0,0,0,0,0]x',b'[0,1,0,0,0,0,0,0,0]',b'[0,1,0,0,"secret",0,0,0]',b'[0,1,0,0,NaN,0,0,0]',b'[0,1,0,0,01,0,0,0]',b'[0,3,0,0,0,0,0,0]',b'[0,1,257,0,0,0,0,0]',b'[9,1,1,0,-1,0,0,0]',b'[11,1,0,0,1.5,0,0,0]']
+            bad=[b'',b'[',b'[]',b'[0,1,0,0,0,0,0',b'[0,1,0,0,0,0,0,0,0,0]x',b'[0,1,0,0,0,0,0,0,0]',b'[0,1,0,0,"secret",0,0,0,0,0]',b'[0,1,0,0,NaN,0,0,0,0,0]',b'[0,1,0,0,01,0,0,0,0,0]',b'[0,0,0,0,0,0,0,0,0,0]',b'[0,1,10000001,0,0,0,0,0,0,0]',b'[9,1,1,0,-1,0,0,0,0,0]',b'[13,1,0,0,1.5,0,0,0,0,0]']
             for packet in bad:
                 with self.subTest(packet=packet):self.assertFalse(lib.tas_chat_trace_packet(packet))
-            self.assertTrue(lib.tas_chat_trace_packet(b'[0,1,0,0,1,0,0,0]'))
-            self.assertTrue(lib.tas_chat_trace_packet(b'[6,1,1,3,44,100,0,-1.5e2]'))
-            out=ctypes.create_string_buffer(24576);lib.tas_chat_trace_status(out,len(out));self.assertIn(b's1 m1',out.value);self.assertNotIn(b'secret',out.value)
+            self.assertTrue(lib.tas_chat_trace_packet(b'[0,1,0,0,1,0,0,0,1,0]'))
+            self.assertTrue(lib.tas_chat_trace_packet(b'[6,1,1,3,44,100,0,-1.5e2,1,0]'))
+            out=ctypes.create_string_buffer(32768);lib.tas_chat_trace_status(out,len(out));self.assertIn(b's1 m1',out.value);self.assertNotIn(b'secret',out.value)
             for n in (1,2,32,256):lib.tas_chat_trace_status(ctypes.create_string_buffer(n),n)
-    def test_native_limits_and_stop(self):
+    def test_native_ring_rate_limit_and_long_running_capture(self):
         with tempfile.TemporaryDirectory() as folder:
             lib=self.native(folder)
-            self.assertTrue(lib.tas_chat_trace_packet(b'[0,1,0,0,1,0,0,0]'))
-            self.assertTrue(lib.tas_chat_trace_packet(b'[11,1,0,0,1,0,0,0]'))
-            self.assertFalse(lib.tas_chat_trace_packet(b'[6,1,1,0,44,100,0,0]'))
-            self.assertTrue(lib.tas_chat_trace_packet(b'[0,2,0,0,1,0,0,0]'))
-            lib.advance(132);self.assertFalse(lib.tas_chat_trace_packet(b'[10,2,0,0,1,0,0,0]'))
+            self.assertTrue(lib.tas_chat_trace_packet(b'[9,1,1,1,1,0,0,0,1,0]'))
+            for i in range(3000):
+                lib.advance(i+2)
+                self.assertTrue(lib.tas_chat_trace_packet(f'[6,1,{i+2},0,44,100,0,0,1,0]'.encode()))
+            lib.advance(5000);self.assertTrue(lib.tas_chat_trace_packet(b'[2,5,3001,1,1,0,0,0,2,0]'))
+            out=ctypes.create_string_buffer(32768);lib.tas_chat_trace_status(out,len(out))
+            self.assertIn(b'Retained: 2048/2048',out.value);self.assertIn(b'overwrites=954',out.value)
+            self.assertIn(b's5 m3001',out.value);self.assertIn(b'e=9 s=1 m=1',out.value);self.assertIn(b'Running elapsed: 4999',out.value)
         with tempfile.TemporaryDirectory() as folder:
             lib=self.native(folder)
-            for i in range(1536):self.assertTrue(lib.tas_chat_trace_packet(b'[10,1,0,0,1,0,0,0]'))
-            self.assertFalse(lib.tas_chat_trace_packet(b'[10,1,0,0,1,0,0,0]'))
+            for i in range(64):self.assertTrue(lib.tas_chat_trace_packet(b'[10,1,0,0,1,0,0,0,1,0]'))
+            self.assertFalse(lib.tas_chat_trace_packet(b'[10,1,0,0,1,0,0,0,1,0]'))
+            self.assertTrue(lib.tas_chat_trace_packet(b'[9,1,1,0,1,0,0,0,1,0]'))
+            lib.advance(10000);self.assertTrue(lib.tas_chat_trace_packet(b'[10,1,0,0,1,0,0,0,1,0]'))
+    def test_geometry_is_not_combined_across_frames_or_reopen_cycles(self):
+        with tempfile.TemporaryDirectory() as folder:
+            lib=self.native(folder);out=ctypes.create_string_buffer(32768)
+            for packet in (b'[14,1,0,0,1,1,0,0,1,7]',b'[8,1,0,0,0,0,400,800,1,7]',b'[7,1,1,0,0,500,100,40,1,7]'):
+                self.assertTrue(lib.tas_chat_trace_packet(packet))
+            lib.tas_chat_trace_status(out,len(out));self.assertIn(b'visibility=vertical-overlap',out.value)
+            lib.advance(10);self.assertTrue(lib.tas_chat_trace_packet(b'[14,1,0,0,1,1,0,0,1,8]'))
+            lib.tas_chat_trace_status(out,len(out));self.assertNotIn(b'visibility=vertical-overlap',out.value)
+            for packet in (b'[14,1,0,0,1,1,0,0,2,7]',b'[8,1,0,0,0,0,400,800,2,7]',b'[4,1,1,0,1,0,0,0,2,0]'):
+                self.assertTrue(lib.tas_chat_trace_packet(packet))
+            lib.tas_chat_trace_status(out,len(out));self.assertIn(b'm1 cycle=1',out.value);self.assertIn(b'm1 cycle=2',out.value)
+            self.assertNotIn(b'visibility=vertical-overlap',out.value);self.assertIn(b'local=unobserved',out.value)
     @unittest.skipUnless(shutil.which('node'),'Node required for host React mock')
     def test_scoped_observer_preserves_behavior_and_privacy(self):
         script="global._runtimeGlobal=global;\n"+(ROOT/'src/rn/ChatTrace.js').read_text()+(ROOT/'tests/fixtures/chat_trace_exercise.js').read_text()
         subprocess.run(['node','-e',script],check=True)
     @unittest.skipUnless(shutil.which('node'),'Node required for host React mock')
-    def test_js_packet_label_and_session_caps(self):
+    def test_js_rolling_capture_late_reopen_rotating_labels_and_rate_caps(self):
         prefix=(ROOT/'tests/fixtures/chat_trace_exercise.js').read_text().split('var original=')[0]
         script="global._runtimeGlobal=global;\n"+(ROOT/'src/rn/ChatTrace.js').read_text()+prefix+(ROOT/'tests/fixtures/chat_trace_limits.js').read_text()
         subprocess.run(['node','-e',script],check=True)

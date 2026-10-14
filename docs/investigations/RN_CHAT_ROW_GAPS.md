@@ -279,3 +279,181 @@ was performed here.
 These identities describe this trace candidate, not the preceding build-6
 cursor candidate. The gap remains unresolved until a device report can be
 correlated with an observed failure.
+
+## Build 8 rolling trace trial
+
+This follow-up on `fix/rn-chat-gaps` starts from `64dfd94` (build 7).
+The supplied build-7 device report confirms that instrumentation ran, but
+exposes capture exhaustion rather than a proven cause of the chat gaps:
+
+- 1,502 packets, no native refusals, and `stop=2` in both sessions mean
+  the JS lifetime event budget ended capture. The report has no elapsed
+  capture timestamp; it does not establish when the visible symptom began.
+- Session 2 reached all 256 store snapshots. Later labels still appeared
+  in list data and render callbacks, so absent store-stage bits after that
+  point are not evidence of actual message rejection.
+- Only ten window measurements were accepted. Many async callbacks could
+  be invalidated by a newly allocated context array even when the same row
+  and native ref remained current. No row errors were observed during the
+  retained capture; later errors remain unknown.
+
+The device observation suggests possible onset after closing/reopening a
+stream and possible worsening with time. Both are tentative observations.
+The report cannot tie their timing to the old capture, establish progressive
+layout corruption, or assign responsibility to Twitch or Streamside.
+The original build-7 record, limits, validation and artifact hashes above
+describe that candidate and remain preserved.
+
+### Rolling retention
+
+Build 8 removes the two-minute timeout and all lifetime packet, store-snapshot,
+and geometry-request cutoffs. Sampling continues for the app process's
+lifetime, including later stream reopening. It is still a diagnostic trial,
+not a message, row-height, virtualization, deduplication or cursor fix.
+
+The native collector retains the latest 2,048 events and a separate
+128-event priority ring for own-message translation/emission, row errors,
+list lifecycle changes and store retirement. Old events are overwritten;
+the report states the retained elapsed-time range and overwrite count.
+Retention duration depends on traffic and sampling, not a promised number of
+minutes. Elapsed times use the native monotonic clock from first acceptance.
+Copying the report creates a bounded snapshot without stopping capture.
+Native memory remains fixed; input strings and arbitrary message data are
+never stored.
+
+The JS observer retains at most four stores, preferring inactive stores for
+eviction and then the least recently accessed store. Eviction unsubscribes,
+removes owned client mappings, clears caches and releases the store/probes.
+An evicted store can be admitted later under a new opaque session number.
+List mount/unmount effects emit lifecycle markers; reopening a retained
+store increments its cycle and reattaches the subscription. These markers
+describe the React list lifecycle, not a transport acknowledgment or proof
+that a stream successfully opened.
+
+Each store has bounded 512-entry ID and nonce alias maps, 256-entry stage
+and own-label caches, and a weak object map reset at 256 new objects.
+Raw aliases remain JS-only and rotate; eviction can relabel an older message,
+so opaque labels are not permanent historical identifiers. Numeric session
+and label allocation has a 10,000,000 ceiling; saturation yields unavailable
+new labels/admissions and requires process restart, rather than reusing an
+identity for a different message. Sample-frame numbers wrap at the same ceiling;
+the much shorter retained window and lifecycle/elapsed fields scope comparisons.
+
+### Sampling and loss reporting
+
+The observer uses independent token buckets: ordinary flow/local-layout/ref
+events replenish at 32/s (burst 32), native window sampling at 16/s (burst 24),
+admission/coverage metadata at 4/s (burst 8), and priority events at 8/s
+(burst 8). Full snapshot scans cannot exhaust the coverage-metadata lane.
+Native independently limits regular
+events to 64/s and priority events to 16/s. These are rate bounds, not lifetime
+limits. Busy periods can suppress observations; the report explicitly records
+loss counters and native schema/rate refusals.
+
+One sampler runs every two seconds. Active-store order rotates for fairness.
+Store snapshots no longer run on every row render; they sample up to 32
+entries per store from a rotating scan of the first 2,000 entries. Observed
+stage membership can refresh after ten seconds instead of remaining a
+launch-wide one-shot assertion. List-data render observations sample the last
+32 entries of that bounded range; original render-item callbacks remain
+observed separately.
+
+Each store retains at most 128 mounted row probes, sampling up to eight per
+tick in rotation, plus its latest list viewport probe. At most 32 native
+measurement callbacks may be in flight globally. A callback returns its slot
+only once; a throwing request returns it immediately. Stalled callbacks keep
+their slots rather than creating an unbounded native measurement queue.
+Sample-frame records show the pending count; busy-slot skips are explicit.
+Unchanged local layouts
+are suppressed. A burst of local layouts cannot consume the native-window
+sampling bucket. Row, native ref, lifecycle cycle and sample-frame checks
+reject stale asynchronous callbacks; a harmless replacement of the context
+array no longer invalidates a current row's measurement.
+
+The ten-number wire adds lifecycle cycle and sample frame to the earlier
+numeric schema. Reports group row evidence by session, label **and cycle**.
+Window comparisons require matching row/viewport frames and cycles from the
+latest observed sample, with separate measurement ages. Unobserved local
+layout is explicitly marked unobserved. The latest 32 priority events and
+48 geometry/coverage events are printed with elapsed times; ordinary summaries
+show up to four recent sessions and 28 rows per session from at most 256
+retained row/cycle keys. Display truncation is explicitly marked.
+
+Coverage event 16 reports ordinary/geometry suppression, priority suppression,
+probe eviction or measurement-slot skips, and alias/stage/object-cache turnover since the last accepted
+coverage event. Native rate refusals are separate; bridge refusals also
+contribute to JS suppression. Current prototype-hook ownership and subscription
+availability are sampled repeatedly. The observer preserves a subsequent
+foreign hook replacement instead of reinstalling over it.
+
+Missing stages are **unobserved**, not dropped messages. Error masks, counts
+and null-translation counts cover only the retained event window. The priority
+tail may contain older evidence and is labeled separately. Geometry still
+does not prove painted pixels, occlusion, LegendList cache correctness, or
+send/receipt success. Multiple list views sharing a store use that store's
+latest viewport probe; their geometry needs human interpretation, not automatic
+cross-view comparisons. Background JS scheduling and delayed native callbacks
+can also reduce coverage.
+
+### Capture
+
+Install/sign the new diagnostic IPA, keep Streamside's third-party emotes
+enabled, and fully restart Twitch once to load it. Then use chat normally,
+including closing and reopening streams. There is no initial capture deadline.
+When gaps or missing messages appear, copy the Streamside report promptly
+**before restarting Twitch**. The ring keeps recent evidence, not the entire
+session. State whether the symptom followed reopening and whether it appeared
+to grow; no exact onset time is required.
+
+### Validation
+
+The first updated regression run failed two native cases and one cap fixture
+that still asserted the build-7 eight-number/lifetime-stop contract. Those
+expectations were replaced with rolling-specific checks. This was a host
+fixture-contract transition, not a device failure.
+
+Six focused tests now pass, covering strict numeric rejection, bounded ring
+overwrite, independent native rate limits, long-running capture, elapsed time,
+late store admission/reopening, rotating labels, callback/ref/error preservation,
+layout storms, privacy, and refusal of stale validation records. A geometry
+fixture rejects cross-frame and cross-cycle overlap claims.
+
+The shipped C graft and native RN handler execute in pinned Hermes through
+both the owned installer and actual donor factory/export join. Flow and long-run
+fixtures pass for both entries; the latter sends 3,000 messages before a late
+reopen, using controlled JS/native clocks. They also verify that a foreign
+prototype replacement is observed rather than overwritten. Factory fallback
+passes with an absent bridge and a throwing installer.
+
+The owned payload's regenerated identity is recorded with the candidate below. The factory join and
+33-register frame remain unchanged from build 7; original predecessor bodies,
+constant/literal buffers and debug data still pass preservation checks.
+The separate library gate still passes its 32 accepted snapshots and
+7,344 window calculations.
+
+The complete host suite runs 179 tests: 178 pass, no failures, one Apple
+Foundation/Xcode-only skip. Both normal native artifacts verify with the trace
+omitted. The rolling collector passes AddressSanitizer/UndefinedBehaviorSanitizer
+stress with 20,000 malformed packets, 5,000 valid events across eight numeric
+sessions, ring overwrite and truncated report buffers. LeakSanitizer remains
+disabled because of the previously recorded process-metadata restriction.
+These are controlled host/runtime checks; live iOS/Fabric/RCTMethod acceptance
+and a captured reproduction of the gap are still pending.
+
+### Rolling candidate identity
+
+`Twitch_31.6_Streamside_3.1.0-build.8_rolling-chat-trace_unsigned.ipa`
+is 194,490,755 bytes, with report build `3.1.0-build.8`, framework build
+`3.1.0.8`, and the same original Twitch 31.6 donor. Build flags are
+`CHAT_TRACE_DIAGNOSTIC=1`, `IMAGE_DEMAND_DIAGNOSTIC=0`,
+and `EMOTE_DIAGNOSTIC=0`. Both diagnostic native artifacts and the
+independent unsigned IPA verifier pass. This candidate is not signed or
+device-accepted.
+
+- IPA SHA-256: `515b723f5f29385a3a3f9885bc141f57f10d11faee988dee43abf1a1b2119040`.
+- Framework executable SHA-256: `cde925151792c5ab454dbdd00c0d50e437f72d07146ecbf917d4d2d044bccee5`.
+- Owned payload: 78 functions, 14,208 bytes.
+- Final six-stage diagnostic HBC: 28,739,480 bytes, SHA-256 `77117499e3f6116a4001866885ad2ebbe96493d2b0bd5ba7a5f2fc3f31d9799b`.
+
+These are new artifact identities. The preceding build-7 hashes and device
+capture findings are not reinterpreted as evidence for this candidate.

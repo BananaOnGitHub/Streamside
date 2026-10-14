@@ -43,7 +43,7 @@ typedef struct {
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
 #define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.1.0-build.7"
+#define TAS_REPORT_VERSION "3.1.0-build.8"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -337,7 +337,7 @@ static id diagnostic_report_create(void) {
     vmsg1(report,"appendString:",nsstr("\n"));vmsg1(report,"appendString:",nsstr(demand));
 #endif
 #if TAS_CHAT_TRACE_DIAGNOSTIC
-    char chat_trace[24576];tas_chat_trace_status(chat_trace,sizeof(chat_trace));
+    char chat_trace[32768];tas_chat_trace_status(chat_trace,sizeof(chat_trace));
     vmsg1(report,"appendString:",nsstr(chat_trace));
 #endif
     snprintf(menu_status, sizeof(menu_status),

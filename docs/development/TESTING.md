@@ -100,7 +100,9 @@ CHAT_TRACE_DIAGNOSTIC=1 make verify
 
 [validate_chat_trace.py](../../tools/validate_chat_trace.py) writes `build/chat-trace-validation.json`; the build rejects missing, failed, or stale records. `CHAT_TRACE_VALIDATION` can select another record. The gate regenerates owned bytecode, applies the production six-stage C chain, checks unchanged predecessor functions/constants/debug data, and executes both the installer and donor factory/export join in pinned Hermes through the production native handler. Controlled React/store/measurement and Objective-C boxing adapters are not Fabric, RCTMethod, or device validation.
 
-Normal builds omit the sixth graft and trace bridge. The trace is content-free, bounded and read-only with respect to chat state; it has diagnostic overhead and may miss delayed, unmeasured, filtered, or out-of-window events. Capture instructions and interpretation limits live in the [RN row-gap investigation](../investigations/RN_CHAT_ROW_GAPS.md#build-7-bounded-trace-trial).
+Normal builds omit the sixth graft and trace bridge. The current trace runs continuously with bounded event rings, rotating correlation caches and separate flow/geometry/priority rate limits. The native report provides elapsed time, retention bounds, lifecycle cycles, sample frames and coverage losses. Compiled tests use controlled JS/native clocks to exercise late reopening and long logical runs; they do not claim an equivalent duration of real device testing.
+
+The trace is content-free and read-only with respect to chat state; it has diagnostic overhead and can miss throttled, unmeasured, filtered or overwritten evidence. Copy the report when the symptom appears, before restarting the process. Current capture instructions and limits live in the [rolling-trace investigation](../investigations/RN_CHAT_ROW_GAPS.md#build-8-rolling-trace-trial); the earlier build-7 trial is preserved there.
 
 ## Real Foundation checks
 

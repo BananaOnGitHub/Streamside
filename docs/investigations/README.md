@@ -12,7 +12,7 @@ not here.
 - [RN composer cursor requests](RN_COMPOSER_CURSOR.md): build-3 queued-selection guard and build-6 follow-up for late native requests on 31.6.
 - [Native emoticon proportions](NATIVE_EMOTICON_PROPORTIONS.md): image-aspect sizing and cold-load layout refresh for classic Twitch emoticons, build 4.
 - [Twitch 31.6 compatibility](TWITCH_31_6_COMPATIBILITY.md): build-4 donor inspection, build-5 Hermes port, native ABI comparison, packaging, and pending 31.6 device acceptance.
-- [RN transcript gaps](RN_CHAT_ROW_GAPS.md): build-6 read-only investigation and build-7 bounded trace for spaces and intermittently invisible messages on 31.6; no speculative layout fix.
+- [RN transcript gaps](RN_CHAT_ROW_GAPS.md): build-6 investigation, build-7 capture-limit findings, and build-8 rolling trace for spaces and intermittently invisible messages on 31.6; no speculative layout fix.
 
 At feature freeze, reconcile the completed implementation with its owning
 [feature documents](../features/). Preserve closed investigation evidence in

@@ -189,6 +189,38 @@ static void flow(void) {
     assert(PROBE_GET(g_rn_rewritten)>0 && PROBE_GET(g_frame_refused)==3);
     assert(r->size==3 && !strcmp(find_word(r,"Square")->name,"Square"));
 }
+static void reward_metadata(void) {
+    flow();
+    Room *r=ready("42");
+    for(unsigned proportional=0;proportional<2;proportional++) {
+        __atomic_store_n(&g_rn_width_ready,proportional!=0,__ATOMIC_RELEASE);
+        const char *formats[]={
+            "@room-id=42;custom-reward-id=fixture-reward;emotes=;id=fixture-message :u!u@h PRIVMSG #fixture :Square",
+            "@room-id=42;emotes=;custom-reward-id=fixture-reward;id=fixture-message :u!u@h PRIVMSG #fixture :Square"
+        };
+        for(unsigned i=0;i<2;i++) {
+            id input=string(formats[i]);receive(expected_socket,input);
+            assert(delivered!=input);check_body(input,delivered);
+            Emote *e=find_word(r,"Square");
+            uint64_t number=proportional ? e->width_id : e->fake_id;
+            char expected[512];
+            snprintf(expected,sizeof(expected),i==0 ?
+                "@room-id=42;custom-reward-id=fixture-reward;emotes=%llu:0-5;id=fixture-message :u!u@h PRIVMSG #fixture :Square" :
+                "@room-id=42;emotes=%llu:0-5;custom-reward-id=fixture-reward;id=fixture-message :u!u@h PRIVMSG #fixture :Square",
+                (unsigned long long)number);
+            assert(number && !strcmp(delivered->value,expected));
+        }
+    }
+    const char *untouched[]={
+        "@room-id=42;custom-reward-id=fixture-reward :server USERNOTICE #fixture :Square",
+        "@room-id=42;custom-reward-id=fixture-reward :server NOTICE #fixture :Square"
+    };
+    for(unsigned i=0;i<2;i++){id input=string(untouched[i]);receive(expected_socket,input);assert(delivered==input);}
+    id url=expected_socket->children[0];
+    snprintf(url->value,sizeof(url->value),"wss://pubsub-edge.twitch.tv/");
+    id input=string("{\"type\":\"MESSAGE\",\"data\":{\"topic\":\"fixture\"}}");
+    receive(expected_socket,input);assert(delivered==input); /* outside IRC rewrite scope */
+}
 static void widths(void) {
     flow();
     Room *r=ready("42");
@@ -678,6 +710,7 @@ static void reload_settings(void) {
 }
 int main(int argc,char **argv) {
     assert(argc==2);if(!strcmp(argv[1],"flow"))flow();else if(!strcmp(argv[1],"widths"))widths();
+    else if(!strcmp(argv[1],"rewards"))reward_metadata();
     else if(!strcmp(argv[1],"source"))source_hook();else if(!strcmp(argv[1],"local"))local_echo();
     else if(!strcmp(argv[1],"array"))local_array();else if(!strcmp(argv[1],"composer"))composer_map();
     else if(!strcmp(argv[1],"url"))image_url_flow();else if(!strcmp(argv[1],"url-install"))image_url_installation();
@@ -755,6 +788,9 @@ class RNIncomingTests(unittest.TestCase):
 
     def test_incoming_identity_metadata_unicode_room_scope_and_redirect(self):
         self.run_harness("flow")
+
+    def test_reward_tags_notices_and_non_irc_socket_identity(self):
+        self.run_harness("rewards")
 
     def test_hook_abi_ownership_and_retry_idempotence(self):
         self.run_harness("install")

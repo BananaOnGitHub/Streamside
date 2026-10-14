@@ -457,3 +457,146 @@ device-accepted.
 
 These are new artifact identities. The preceding build-7 hashes and device
 capture findings are not reinterpreted as evidence for this candidate.
+
+## Build 8 device capture and redemption investigation
+
+The subsequent device report identifies `3.1.0-build.8` and the same Twitch
+31.6 donor. The rolling observer remained active for 131.8 seconds, accepting
+4,603 packets with no native schema refusals or native rate refusals. Its
+ordinary ring retained 2,048 events from 74.5 to 129.4 seconds, overwriting
+2,555 older events; 15 priority events survived separately. This establishes
+live observer and native measurement activity for this run, not a chat fix or
+general device acceptance.
+
+The priority tail records the first list unmount at 42.0 seconds, a second
+store/list mount at 44.2 seconds, and its unmount at 129.4 seconds. Two store
+sessions do not identify two symptom incidents. Full first-session evidence
+has aged out. Successful own-message translation/emission is preserved at
+23.3, 63.2 and 82.7 seconds. Those events establish completed function calls,
+not receipt, display, or which messages were missing.
+
+The retained second-session summary contains no row-error events and no null
+translations. Coverage events still report JS suppression and alias/cache
+turnover. Missing render/layout observations, including for own-message labels,
+remain unobserved rather than proof of a drop. Flags combine observations over
+time; a paused bit on one label is not a claim that the entire run was paused.
+
+### Geometry interpretation
+
+The printed native samples contain these contiguous blocks within individual
+frames and lifecycle cycle 1:
+
+| Frame | Labels | Sampled vertical positions and heights |
+| --- | --- | --- |
+| 40 | 267–270 | `342/40`, `382/40`, `422/34`, `456/40` |
+| 41 | 274–277 | `501.67/40`, `541.67/40`, `581.67/40`, `621.67/40` |
+| 42 | 283–285 | `656.67/40`, `696.67/40`, `736.67/40` |
+| 43 | 271–274 | `-212.67/40`, `-172.67/40`, `-132.67/40`, `-92.67/40` |
+
+These blocks do not contain a measured gap between their sampled rows. Frame
+43's rows are outside its sampled viewport. Do not compare positions across
+frames to infer a gap: scrolling, viewport changes and unsampled intervening
+rows prevent that conclusion. Only eight of 48 registered probes were selected
+per printed frame. Several labels have identical duplicate measurements in
+the same frame; probe counts are not counts of unique messages. The capture
+does not determine whether those probes belong to nested hosts or separate
+views. Local/window geometry also does not establish painted text or images.
+
+### Redemption routing and a silent empty-render condition
+
+Exact donor inspection distinguishes two redemption routes:
+
+- IRC `custom-reward-id` messages become `channelpointsreward` events in
+  `handleMessage` (35931). `onChannelPointsRewardEvent` (35389) calls
+  `translateChatMessage`, attaches the reward identity, then calls `emitLine`.
+- `useSynthesizedRewardNotices` (22060) subscribes to reward and celebration
+  PubSub topics. Callbacks 38552/38553 create a `channelpointsreward` line with
+  an empty body and pass it directly to the store's `pushRewardRedemption`
+  (45065). This bypasses the two prototype methods observed by build 8.
+  Store/list sampling can still observe the line, but the report does not
+  classify its type or record the reward lookup result.
+
+`ChatLineComponent` (22068) dispatches reward lines to
+`ChannelPointsRewardLine` (22089), exported by Metro module 4790/factory 4794.
+The renderer looks up `rewardsById[event.rewardId]`. For ordinary redemptions
+without animation/celebration effects, the controlled renderer cases show:
+
+| Inputs | Renderer result |
+| --- | --- |
+| Empty or whitespace body; missing reward definition | `null`, without an exception |
+| Empty body; known reward definition | Reward notice view |
+| Nonempty body; missing definition | Chat message row, without the reward header |
+| Nonempty body; known definition | Reward notice and chat message |
+| Deleted, empty-body line | `null` |
+| Deleted, nonempty-body line | Chat message renderer, without the reward header |
+
+With a stable event and retained compiler memo cache, supplying the missing
+definition restores the notice; removing the definition returns it to `null`.
+This is not evidence of a permanently cached empty render.
+
+`useChatData` (21772) supplies the map via `buildRewardSnapshotMap` (20059),
+which indexes automatic/custom reward definitions from settings. Reward updates
+also have a separate Apollo/PubSub cache path. The device report contains no
+catalog/query status or redemption classification, so it cannot establish
+whether a definition was actually missing, a subscription failed, a notice was
+filtered, or no redemption occurred during its retained window.
+
+The silent `null` result is a concrete explanation for how a redemption notice
+can be absent with zero row errors. Its connection to the reported blank spaces
+is still a hypothesis: neither this fixture nor the sampled report proves that
+LegendList retains space for such a line on the device.
+
+### Streamside checks and reproducible evidence
+
+The seven inspected reward bodies (4794, 22060, 22089, 35389, 38552, 38553,
+45065) are byte-identical before and after the six-stage build-8 patch chain.
+The IPA carries the original donor bundle; these patches are applied in memory.
+The [reward investigation utility](../../tools/investigate_rn_rewards.py)
+reproduces the recorded patched-HBC identity and runs the actual reward factory
+and renderer on both original and patched bundles. The
+[owned fixture](../../tests/fixtures/rn_reward_render.js) uses host dependency
+adapters, not a replacement implementation of the renderer.
+
+Eight render scenarios and a stable-event catalog arrival/loss sequence pass
+on both bundles in pinned Hermes. An initial memo-identity assertion failed
+because the host adapters supplied fresh Intl/attachment objects on each call;
+stabilizing those adapter identities made the retained-cache check meaningful.
+No donor renderer change was needed.
+
+The additional [incoming transport regression](../../tests/test_rn_incoming.py)
+passes exact-byte checks for `custom-reward-id` before and after the emote tag,
+with proportional aliases both enabled and disabled. `NOTICE`/`USERNOTICE`
+objects and non-IRC PubSub-socket frames retain their original identity.
+All 16 tests in that native transport module pass with its existing
+AddressSanitizer/UndefinedBehaviorSanitizer harness. This verifies Streamside's
+rewrite boundary, not Twitch's downstream delivery or server subscriptions.
+
+The full host suite runs 180 tests: 177 pass and three environment-dependent
+checks initially skip. The two donor/runtime checks then pass when rerun with
+the available exact-donor and pinned-Hermes inputs. The Apple Foundation/Xcode
+check remains skipped; there are no failures. Documentation validation passes
+for 73 Markdown files and 717 explicit references. Production source, version
+metadata, the build-8 artifact and workflow configuration are unchanged.
+
+Run the optional donor investigation with the parser environment and pinned
+runtime prepared as described in [Testing](../development/TESTING.md):
+
+```sh
+python3 tools/investigate_rn_rewards.py \
+  --donor /path/to/original/index.ios.bundle \
+  --hermesc /path/to/pinned/bin/hermesc \
+  --runner /path/to/pinned/bin/streamside-snapshot-runner \
+  --runtime-source /path/to/pinned/hermes \
+  --zig /path/to/zig
+```
+
+This utility is deliberately pinned to the recorded 31.6/build-8 identities.
+It does not run in ordinary CI or change release/build gates. Private donor
+bytecode and disassembly are not checked into the repository.
+
+The next useful device observation must distinguish reward lines from ordinary
+chat and record, numerically, catalog lookup presence and renderer `null` versus
+element outcomes. It must include the direct PubSub/store route. Those facts,
+aligned with list measurements and explicit coverage loss, can test the
+redemption hypothesis without retaining reward IDs, titles, users, or chat
+text. No behavioral fix or new app artifact accompanies this investigation.

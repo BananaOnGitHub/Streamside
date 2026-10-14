@@ -38,7 +38,7 @@ _runtimeGlobal.__r=function (id) { return modules[id]; };
 _runtimeGlobal.Date.now=function(){return clock;};
 _runtimeGlobal.setInterval=function(fn,ms){same(ms,2000,"rolling sampler");timer=fn;return 1;};
 var installEntry=typeof install==="function"?install:buildLocalEcho;
-if (typeof _chatFactory!=="undefined") {
+if (typeof _chatFactory!=="undefined" && typeof _rewardSetup==="undefined") {
   var exports={};
   buildLocalEcho(_runtimeGlobal,__r,null,null,{},exports,[1,17,72,5,245,4782,519,2071,1846,3488,517,4897,4898,3487,4899,3458,2085,4900,4901,3864,4904,4905]);
   installEntry=function () { return exports.ChatMessageList; };

@@ -15,12 +15,12 @@ import tempfile
 from validate_rn_snapshot import ROOT, RUNTIME_COMMIT, DONOR_SHA, fingerprints as base_fingerprints, patch_chain, test_entry, compile_js
 INPUTS=['src/rn/ChatTrace.js','src/TASChatTrace.c','src/TASChatTrace.h','src/TASChatTraceBridge.h',
         'tools/validate_chat_trace.py','tests/test_chat_trace.py','tests/fixtures/chat_trace_exercise.js',
-        'packaging/StreamsideFramework-Info.plist','tests/fixtures/chat_trace_limits.js','tests/fixtures/chat_trace_refusal.js']
+        'packaging/StreamsideFramework-Info.plist','tests/fixtures/chat_trace_limits.js','tests/fixtures/chat_trace_refusal.js','tests/fixtures/chat_trace_rewards.js']
 def fingerprints():
     return dict(base_fingerprints(),**{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in INPUTS})
 def check_gate(path):
     value=json.loads(path.read_text())
-    if not value.get('passed') or value.get('inputs')!=fingerprints() or value.get('runtime_commit')!=RUNTIME_COMMIT or value.get('donor_sha256')!=DONOR_SHA or value.get('factory_executed') is not True:
+    if not value.get('passed') or value.get('inputs')!=fingerprints() or value.get('runtime_commit')!=RUNTIME_COMMIT or value.get('donor_sha256')!=DONOR_SHA or value.get('factory_executed') is not True or value.get('redemption_executed') is not True:
         raise ValueError('Chat trace compiled validation missing/failed/stale; rerun make test-chat-trace')
     print('Compiled chat trace gate passed (host Hermes; no device rendering claim).')
 def graft(zig,body,tmp):
@@ -90,7 +90,7 @@ double ss_observe(double e,double s,const char *packet,double a,double b){
  assert(info->sync && !strcmp(info->jsName,"trace") && !strcmp(info->objcName,"trace:(NSString *)packet"));
  struct Fake arg={packet,78};id result=rn_chat_trace(nil,0,packet?&arg:nil);return result->text[0]=='1';
 }
-const char *ss_report(void){static char buffer[32768];tas_chat_trace_status(buffer,sizeof(buffer));return buffer;}
+const char *ss_report(void){static char buffer[65536];tas_chat_trace_status(buffer,sizeof(buffer));return buffer;}
 '''
     path=tmp/'chat_native.c';path.write_text(source);out=tmp/'chat_native.so'
     subprocess.run([str(zig),'cc','-shared','-fPIC','-DTAS_CHAT_TRACE_DIAGNOSTIC=1','-I',str(ROOT/'src'),str(path),'-pthread','-lm','-o',str(out)],check=True)
@@ -102,11 +102,13 @@ def validate(a):
     # Admit writable leaves through actual Metro registrations, not mock IDs.
     from hermes_dec.parsers.hbc_bytecode_parser import parse_hbc_bytecode
     h=read(a.donor.read_bytes());instructions=list(parse_hbc_bytecode(h.function_headers[0],h))
-    for module,factory in ((4896,4900),(4782,4786),(3500,3504)):
+    for module,factory in ((4896,4900),(4782,4786),(3500,3504),(4790,4794)):
         registrations=[i for i,x in enumerate(instructions) if x.inst.name=='CreateClosure' and x.arg3==factory]
         assert len(registrations)==1
         i=registrations[0];assert instructions[i-2].inst.name=='LoadConstInt' and instructions[i-2].arg2==module
-    for fid,property_name in ((4900,'ChatMessageList'),(4786,'ChatLine'),(3504,'LibraryTmiClient'),(27213,'reportError')):
+    for fid,property_name in ((4900,'ChatMessageList'),(4786,'ChatLine'),(3504,'LibraryTmiClient'),(27213,'reportError'),
+                              (4794,'ChannelPointsRewardLine'),(35389,'translateChatMessage'),(38552,'pushRewardRedemption'),
+                              (38553,'pushRewardRedemption'),(38870,'sizesKnown'),(46258,'positions'),(46260,'sizesKnown'),(22311,'key')):
         assert any(x.inst.name.startswith(('GetById','PutById')) and h.strings[x.arg4]==property_name for x in parse_hbc_bytecode(h.function_headers[fid],h)),('Changed donor binding',fid,property_name)
     stamp=json.loads(a.runner.with_suffix('.build.json').read_text())
     assert stamp['runtime_commit']==RUNTIME_COMMIT and stamp['runner_source_sha256']==hashlib.sha256((ROOT/'tests/native/hermes_snapshot_runner.cpp').read_bytes()).hexdigest() and stamp['runner_sha256']==hashlib.sha256(a.runner.read_bytes()).hexdigest()
@@ -131,12 +133,22 @@ def validate(a):
             result=subprocess.run([str(a.runner),str(native),str(tmp/'grafted.hbc'),str(tmp/'limits.hbc')],check=True,text=True,capture_output=True)
             assert 'rolling' in result.stdout and 'secret' not in result.stdout and 'm3001' in result.stdout
             print('Compiled chat entry',entry,'passed: rolling capture, late labels, long runs and store eviction.')
+            # Execute the actual unchanged reward factory/renderer together with
+            # the shipped observer; transport/store/Fabric remain host adapters.
+            (tmp/'reward-entry.hbc').write_bytes(test_entry(body,a.hermesc,tmp,entry_id=4794))
+            (tmp/'save-reward.js').write_text('var _rewardFactory=buildLocalEcho;\n')
+            compile_js(a.hermesc,tmp/'save-reward.js',tmp/'save-reward.hbc')
+            rewards='var _rewardSetup=true;\n'+fixture.split('var original=')[0]+(ROOT/'tests/fixtures/chat_trace_rewards.js').read_text()
+            (tmp/'rewards.js').write_text(rewards);compile_js(a.hermesc,tmp/'rewards.js',tmp/'rewards.hbc')
+            result=subprocess.run([str(a.runner),str(native),str(tmp/'reward-entry.hbc'),str(tmp/'save-reward.hbc'),str(tmp/'grafted.hbc'),str(tmp/'rewards.hbc')],check=True,text=True,capture_output=True)
+            assert 'route=2' in result.stdout and 'catalog=1 render=1' in result.stdout and 'cell=measured' in result.stdout and 'secret' not in result.stdout
+            print('Compiled chat entry',entry,'passed: donor reward renderer, routes, catalog/null, list containers, own lifecycle and alias expiry.')
         (tmp/'refusal.js').write_bytes((ROOT/'tests/fixtures/chat_trace_refusal.js').read_bytes())
         compile_js(a.hermesc,tmp/'refusal.js',tmp/'refusal.hbc')
         result=subprocess.run([str(a.runner),str(native),str(tmp/'grafted.hbc'),str(tmp/'refusal.hbc')],check=True,text=True,capture_output=True)
         assert 'lifetime accepted/schema-refused/rate-limited: 0/0/0' in result.stdout
         print('Actual donor factory fallback passed: absent bridge and throwing installer; original export/styles retained.')
-    a.record.write_text(json.dumps({'passed':True,'factory_executed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,
+    a.record.write_text(json.dumps({'passed':True,'factory_executed':True,'redemption_executed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,
         'compiler_sha256':hashlib.sha256(a.hermesc.read_bytes()).hexdigest(),'runner_sha256':hashlib.sha256(a.runner.read_bytes()).hexdigest(),
         'grafted_body_sha256':hashlib.sha256(body).hexdigest(),'grafted_body_bytes':len(body),'inputs':fingerprints()},indent=2)+'\n')
     check_gate(a.record)

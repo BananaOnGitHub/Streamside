@@ -600,3 +600,92 @@ element outcomes. It must include the direct PubSub/store route. Those facts,
 aligned with list measurements and explicit coverage loss, can test the
 redemption hypothesis without retaining reward IDs, titles, users, or chat
 text. No behavioral fix or new app artifact accompanies this investigation.
+
+## Build 9 redemption and own-message capture
+
+The build-9 candidate completes the observer and collector checkpoints
+`465a204` and `b9c8700` on `fix/rn-chat-gaps`, following the build-8
+investigation `aeaf9bb`. It remains diagnostic instrumentation, with no
+redemption, message-admission, renderer-result, or row-sizing fix. The exact
+original Twitch 31.6 donor and five production patch stages are retained.
+
+### Additional observations
+
+- The IRC reward callback is correlated with its translation/emission label.
+  The direct `pushRewardRedemption` store action identifies the synthesized
+  PubSub route. Entry, original return and numeric exception outcomes are
+  distinct. These callbacks establish route execution, not transport receipt
+  or server acknowledgment; unobserved callbacks remain unknown.
+- Reward rendering records missing/available/unknown reward definitions,
+  empty/nonempty/unknown body classification, and null/element/error/unknown
+  outcomes. The original renderer is called once with its arguments, return
+  value and thrown object preserved. No reward identities or content leave JS.
+- Own and reward labels get bounded store-membership observations. Absence
+  requires a complete scan and a live identity alias; partial scans or expired
+  identity associations report unknown. Nonce reconciliation retains the own
+  label while its aliases remain available.
+- The actual LegendList ref exposes `getState`, `sizes`, `positionAtIndex`
+  and `elementAtIndex`; donor function 38870's object shape and functions
+  46253/46258/46260 confirm those bindings. The observer samples known sizes
+  separately from estimates and measures native list containers, including
+  valid zero-height cells. It rejects stale frames, lifecycle cycles, keys
+  and refs. Up to four rotating targets per active store are sampled per tick.
+
+The numeric schema adds stages 17–22 and reward flag 64. A separate 512-event
+target ring retains reward lifecycle/space observations, while the existing
+128-event own/error/lifecycle priority ring remains separate. The ordinary
+ring remains 2,048 events. Target lifecycle uses separate JS/native rate
+budgets; suppression and hook admission remain visible. At most 256 target
+labels per store are retained, within the existing four-store LRU. Reports
+show the latest 64 target events; row summaries still use the main ring.
+The native report buffer grows to 65,536 bytes and retains its truncation
+marker. Missing, throttled, expired or overwritten evidence is not a drop.
+
+### Validation and limits
+
+The owned payload is regenerated from `ChatTrace.js`: 112 functions and
+20,696 bytes. The mandatory compiled gate passes both the owned installer
+and actual donor factory/export join, including the unchanged donor reward
+factory/renderer. Cases cover both routes, catalog arrival/loss and null
+results, observed store admission/absence, alias expiry, known versus unknown
+list sizes, zero-height native cells, stale measurement refusal, callback
+return/error identity, own-message lifecycle/reconciliation, rolling limits
+and missing-bridge/throwing-installer fallback. The gate checks preservation
+of predecessor bodies, strings, literal buffers and debug data.
+
+The separate compiled virtualization gate passes 32 accepted snapshots and
+7,344 window calculations. Normal and chat-trace native artifact contracts
+pass; the finished unsigned IPA passes independent verification. The collector
+also passes AddressSanitizer/UndefinedBehaviorSanitizer stress with 20,000
+malformed packets, 5,000 target events across eight sessions, ring overwrites
+and truncated output buffers. Leak checking remains disabled as in the earlier
+host stress runs. These checks do not establish live Fabric, PubSub, catalog
+fetch, measured blank-space reproduction or on-device acceptance.
+
+The cache receipt diagnostic fixture initially hits a Clang 19 frontend crash
+with alignment instrumentation in its clock/block adapter. Disabling only
+that sanitizer for this host fixture resolves compilation; assertions, the
+other UBSan checks and production build flags remain enabled/unchanged. The
+full host suite runs 183 tests: 181 pass, zero failures, and two checks
+skip. The compiled runtime gate passes separately with the exact donor and
+pinned runner supplied; the Apple Foundation/Xcode-only check remains skipped.
+
+### Candidate identity and capture
+
+`Twitch_31.6_Streamside_3.1.0-build.9_redemption-trace_unsigned.ipa` is
+194,495,992 bytes. Report identity is `3.1.0-build.9`, framework build
+`3.1.0.9`. Build flags are `CHAT_TRACE_DIAGNOSTIC=1`,
+`IMAGE_DEMAND_DIAGNOSTIC=0` and `EMOTE_DIAGNOSTIC=0`.
+
+- IPA SHA-256: `e27367e963f2cffe88e4ae7f31e986aa4e6e5fa60b863f7519e17a94e89254af`.
+- Framework executable SHA-256: `87c8a8c894d9ebf4442ad070c5930336f37a607947239fd9770af986398b703c`.
+- Six-stage diagnostic HBC: 28,746,376 bytes, SHA-256 `bc83ad8ebafedb6654d128210f8506628035f4ad105fda53e7c16aa42f4245ce`.
+
+Sign/install through the usual route, fully close and relaunch Twitch, leave
+third-party emotes enabled, and use the affected stream normally. Include a
+few own messages and observed redemptions when available; closing/reopening
+the stream is covered by lifecycle cycles. Copy the report promptly when a
+gap, missing own message or missing redemption is observed, before restarting
+the process. State which symptom was visible. Continuous sampling has bounded
+retention, so older evidence can still age out. This candidate has not yet
+received device validation.

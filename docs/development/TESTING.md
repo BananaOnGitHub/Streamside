@@ -12,6 +12,7 @@ Tests are organized around production boundaries. Record what ran, what failed, 
 | DEB packaging | `make deb` | Rootful/rootless data archives match verified build bytes |
 | Apple HTTP cache | `make test-foundation-cache` | macOS/Xcode required; cannot skip |
 | Compiled RN virtualization | `make test-rn-virtualization` | Five explicit donor/runtime/compiler variables; cannot skip |
+| RN transcript trace | `make test-chat-trace` | Diagnostic-only chat graft, compiled observer/native handler; same five inputs, cannot skip |
 | Final IPA | `tools/verify_ipa.py` | Finished unsigned IPA matches the expected framework and app contract |
 | Device acceptance | Focused manual matrix | Actual rendering, interaction, keyboard, playback, and lifecycle on the target configuration |
 
@@ -66,6 +67,7 @@ This gate validates structure and declared current metadata. It does not require
 | HTTP cache/receipts/overflow | `test_cache_protocol.py`, `test_http_cache.py`, `test_cache_annotation.py`, `test_cache_receipt.py`, `test_image_overflow.py` |
 | Foundation integration | `test_foundation_cache.py`, native Foundation fixtures |
 | Demand/runtime probes | `test_image_demand.py`, `test_rn_calculation_boundary.py`, `test_rn_snapshot_runtime.py`, `test_legacy_palette_probe.py` |
+| RN transcript trace | `test_chat_trace.py`, compiled `make test-chat-trace` fixtures |
 | Documentation validator | `test_docs.py` |
 | Artifact tooling | `test_tools.py`, `test_artifact_guard.py` |
 
@@ -81,12 +83,24 @@ It executes the production graft and native snapshot parser rather than a source
 - The actual donor overlap/window functions with production `getItemLayout`.
 - Twelve viewport widths, six catalog sizes, and two feature-flag branches: 7,344 window calculations across first opening, repeated idle calculations, eleven scroll positions, and a fresh reopening.
 - Contiguous fractional endpoints, bounded ranges, visible-column inclusion, five-row mapping, and stable logical identities.
-- Real donor settings registration: Metro module 4880 versus factory function 4884.
+- Current Twitch 31.6 donor settings registration: Metro module 4937 versus factory function 4941. The archived 31.5 evidence retains its original 4880/4884 binding.
 - Unchanged settings factory/component behavior with optional containerSections props and subpages.
 
 The record includes input/source/payload/compiler/runner hashes. A diagnostic build checks it before compiling. A record becomes stale when its fingerprinted inputs change.
 
 See [Building](../BUILDING.md) for commands and [the calculation archive](../archive/investigations/EMOTE_DEMAND_PHASE1B_CALCULATION.md) for the failed probes and maintained baseline.
+
+## RN transcript trace build
+
+`CHAT_TRACE_DIAGNOSTIC=1` is a separate, opt-in diagnostic build, not the emote-library demand probe or a row-layout fix. Run `make test-chat-trace` with `TAS_RN_DONOR`, `ZIG`, `TAS_HERMESC`, `TAS_HERMES_SNAPSHOT_RUNNER`, and `TAS_HERMES_SOURCE` set as for the compiled Hermes baseline, then:
+
+```sh
+CHAT_TRACE_DIAGNOSTIC=1 make verify
+```
+
+[validate_chat_trace.py](../../tools/validate_chat_trace.py) writes `build/chat-trace-validation.json`; the build rejects missing, failed, or stale records. `CHAT_TRACE_VALIDATION` can select another record. The gate regenerates owned bytecode, applies the production six-stage C chain, checks unchanged predecessor functions/constants/debug data, and executes both the installer and donor factory/export join in pinned Hermes through the production native handler. Controlled React/store/measurement and Objective-C boxing adapters are not Fabric, RCTMethod, or device validation.
+
+Normal builds omit the sixth graft and trace bridge. The trace is content-free, bounded and read-only with respect to chat state; it has diagnostic overhead and may miss delayed, unmeasured, filtered, or out-of-window events. Capture instructions and interpretation limits live in the [RN row-gap investigation](../investigations/RN_CHAT_ROW_GAPS.md#build-7-bounded-trace-trial).
 
 ## Real Foundation checks
 

@@ -19,6 +19,11 @@
 #include "TASRNComposerPatch.h"
 #include "TASRNPopupPatch.h"
 #include "TASRNStripPatch.h"
+#include "TASChatTrace.h"
+#if TAS_CHAT_TRACE_DIAGNOSTIC
+#include "TASRNChatTracePatch.h"
+static bool g_rn_chat_trace_ready;
+#endif
 #include "TASRNComposerUI.h"
 
 #include <dlfcn.h>
@@ -1442,6 +1447,7 @@ static const TASRNMethodInfo *rn_composer_export(id self, SEL command) {
  * JS polls this tiny revision/config snapshot only while the input is focused;
  * catalog entries are searched on token/revision changes, never on each tick. */
 #include "TASDemandRNBridge.h"
+#include "TASChatTraceBridge.h"
 static id rn_strip_state(id self,SEL command) {
     (void)self;(void)command;
     id result=call0((id)objc_getClass("NSMutableDictionary"),"new");
@@ -1631,6 +1637,10 @@ static void install_rn_local(void) {
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
                     class_addMethod(cls,sel_registerName("observe:scope:asset:a:b:"),(IMP)rn_demand_observe,"@56@0:8@16@24@32@40@48") &&
                     class_addMethod(meta,sel_registerName("__rct_export__streamsideDemand"),(IMP)rn_demand_export,"^v16@0:8") &&
+#endif
+#if TAS_CHAT_TRACE_DIAGNOSTIC
+                    class_addMethod(cls,sel_registerName("trace:"),(IMP)rn_chat_trace,"@24@0:8@16") &&
+                    class_addMethod(meta,sel_registerName("__rct_export__streamsideChatTrace"),(IMP)rn_chat_trace_export,"^v16@0:8") &&
 #endif
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
@@ -2301,6 +2311,13 @@ static id rn_source_data(id self, SEL command) {
                         size_t strip_count=0;
                         unsigned char *strip_patch=tas_rn_strip_patch(patch,count,sha1,&strip_count);
                         if(strip_patch){free(patch);patch=strip_patch;count=strip_count;strip=true;}
+#if TAS_CHAT_TRACE_DIAGNOSTIC
+                        if(strip) {
+                            size_t trace_count=0;
+                            unsigned char *trace_patch=tas_rn_chat_trace_patch(patch,count,sha1,&trace_count);
+                            if(trace_patch){free(patch);patch=trace_patch;count=trace_count;__atomic_store_n(&g_rn_chat_trace_ready,true,__ATOMIC_RELEASE);}
+                        }
+#endif
                     }
                 }
             }
@@ -2325,6 +2342,9 @@ static id rn_source_data(id self, SEL command) {
         if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
         if (popup) tas_diag_log("RN_INFO_PATCH","Provider RN sheet installed in memory; native cards preserved");
         if (strip) tas_diag_log("RN_STRIP_PATCH","Scoped horizontal provider suggestions installed in memory");
+#if TAS_CHAT_TRACE_DIAGNOSTIC
+        tas_diag_log("RN_CHAT_TRACE",__atomic_load_n(&g_rn_chat_trace_ready,__ATOMIC_ACQUIRE)?"Diagnostic graft admitted; observer execution pending":"Diagnostic graft refused; existing chat preserved");
+#endif
     } else {
         PROBE_INC(g_rn_width_refused);
         tas_diag_log("RN_WIDTH_REFUSED","Source body or patch allocation not admitted; original data preserved");

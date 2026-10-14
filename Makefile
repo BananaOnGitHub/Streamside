@@ -1,4 +1,4 @@
-.PHONY: all build test test-rn-virtualization test-foundation-cache verify clean deb release ipa docs-check
+.PHONY: all build test test-rn-virtualization test-chat-trace test-foundation-cache verify clean deb release ipa docs-check
 
 all: build
 
@@ -25,6 +25,11 @@ test-rn-virtualization:
 verify: build
 	python3 tools/artifact_guard.py check build/Streamside.dylib
 	python3 tools/artifact_guard.py check build/Streamside.framework --framework
+
+# Required only for the separate RN transcript diagnostic build.
+test-chat-trace:
+	@test -n "$(TAS_RN_DONOR)" -a -n "$(ZIG)" -a -n "$(TAS_HERMESC)" -a -n "$(TAS_HERMES_SNAPSHOT_RUNNER)" -a -n "$(TAS_HERMES_SOURCE)" || (echo 'set donor, Zig and pinned Hermes inputs; chat trace gate cannot skip' >&2; exit 1)
+	python3 tools/validate_chat_trace.py --donor "$(TAS_RN_DONOR)" --zig "$(ZIG)" --hermesc "$(TAS_HERMESC)" --runner "$(TAS_HERMES_SNAPSHOT_RUNNER)" --runtime-source "$(TAS_HERMES_SOURCE)"
 
 deb: verify
 	python3 tools/build_deb.py

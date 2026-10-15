@@ -2280,7 +2280,8 @@ void ss_composer_retry_hooks(void) {
     hook("UIView","setBackgroundColor:","v24@0:8@16",(IMP)footer_background,&original_footer_background);
     hook(PALETTE,"scrollViewDidScroll:","v24@0:8@16",(IMP)palette_scrolled,&original_palette_scroll);
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
-    hook(PALETTE,"collectionView:cellForItemAtIndexPath:","@32@0:8@16@24",(IMP)palette_probe_cell,&original_palette_probe_cell);
+    if(tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))
+        hook(PALETTE,"collectionView:cellForItemAtIndexPath:","@32@0:8@16@24",(IMP)palette_probe_cell,&original_palette_probe_cell);
 #endif
     hook("UICollectionView","layoutSubviews","v16@0:8",(IMP)collection_layout,&original_collection_layout);
     hook("UICollectionViewFlowLayout","layoutAttributesForElementsInRect:","@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",(IMP)flow_elements,&original_flow_elements);

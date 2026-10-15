@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "TASDiagnosticPolicy.h"
 
 /* Temporary, opt-in build instrumentation. Normal builds compile it out. */
 #ifndef TAS_EMOTE_DIAGNOSTIC

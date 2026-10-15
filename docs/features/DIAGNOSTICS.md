@@ -4,13 +4,25 @@ Diagnostics answer which integration ran, what it admitted, and where a failure 
 
 [TASDiagnostics.c](../../src/TASDiagnostics.c) owns the settings/report UI and log. [TASPrivacy.c](../../src/TASPrivacy.c) owns temporary labels. Subsystems contribute bounded counters/status strings.
 
-## Ordinary reports and opt-in logging
+## Diagnostic configuration (3.1.0 development)
 
-Session counters remain in memory and appear even when event logging is disabled. Diagnostic Logging is off by default; enabling it writes sanitized classified events under the app's Application Support directory.
+In 3.1.0, Profile → Settings → Streamside offers independent categories and **Summary**/**Detailed** verbosity. Changes are saved immediately but collection changes only after fully closing and relaunching Twitch. The settings status row and report distinguish active configuration from pending saved changes. Existing installations start with **Minimal / Summary** rather than inheriting the old all-or-nothing logging switch. The released 3.0.0 report uses the older switch and disk log.
 
-The file rotates at 512 KiB. Clearing the log does not reset launch counters, source admission state, or provider catalogs. Restarting Twitch resets launch-local observations and labels.
+| Preset | Enabled categories | Verbosity |
+| --- | --- | --- |
+| Minimal (default) | General | Summary |
+| Ad Blocking | General, Playback / Ad Blocking | Detailed |
+| Emotes | General, Emote Rendering, Image Transport, Composer / Picker | Detailed |
+| Chat | General, Chat / Redemptions | Detailed |
+| Custom | Independent category and verbosity selections | Selected value |
 
-Initialization removes the older path-bearing `diagnostics.log` from historical builds. Current logs avoid raw request paths rather than merely stripping their query strings.
+General covers compatibility admission and essential failure counters. Playback owns HLS manifests, routing, swaps and token events. Rendering owns matching, geometry and animation probes. Image Transport owns flights/cache and compiled decoder/header-comparison probes. Composer owns input, picker, popup and compiled library-demand/palette probes. Chat owns incoming/local lifecycle and the separate experimental redemption/list trace. A preset's selections are explicit; selecting only Chat does not turn on playback or image-demand probes.
+
+Disabled categories skip event formatting, label creation, retention and diagnostic-only sampling/bridge registration. Essential operational counters remain available internally and can span disabled collection; they are not detailed event capture. Disabling diagnostics never disables interception, cache behavior, emotes, input or chat delivery. Functional hooks/algorithms are not controlled by diagnostic preferences.
+
+Ordinary events use independent, fixed **48 × 384-byte** in-memory rings per category. Playback cannot consume another category's retention. Summary collects essential/failure events and exports at most four per category; Detailed exports at most twelve. Reports state accepted, retained, overwritten, shortened and export-omitted counts; bounded output truncation is marked. Disabled collection is explicitly different from zero observed events. Reports invoke only enabled category status exporters, plus the compact version/configuration/privacy header.
+
+New reports contain no prior-launch disk event dump. Initialization removes the obsolete `diagnostics.log` and `diagnostics-r5.log`; the new session rings reset on relaunch along with temporary labels. Clear Diagnostic Log clears ordinary category rings, not launch counters, provider catalogs, source admission or the specialized rolling trace. Copy the report before restarting.
 
 The settings/report controllers are created through the Objective-C runtime. A guarded main Profile → Settings integration opens Streamside's page; the project does not replace Twitch's entire settings data source.
 
@@ -50,10 +62,13 @@ Date-less receipt counters describe staged/stored/fallback outcomes. They do not
 
 ## Compile-time probes
 
-Normal builds use `EMOTE_DIAGNOSTIC=0` and `IMAGE_DEMAND_DIAGNOSTIC=0`.
+Normal builds use `EMOTE_DIAGNOSTIC=0`, `IMAGE_DEMAND_DIAGNOSTIC=0` and `CHAT_TRACE_DIAGNOSTIC=0`. Reports state which modules were actually compiled. Runtime preferences cannot activate absent modules.
 
 - **Emote diagnostics** add bounded target-code observations for matching, image identity, native handoff, and playback.
 - **Image-demand diagnostics** add JS lifecycle/range/mask/geometry, Foundation timing, cache-header comparisons, and bounded legacy palette observations.
+- **Chat-trace diagnostics**, on the chat investigation branch, retain their separate bounded rolling observer and native collector. Chat + Detailed at launch admits the diagnostic graft and bridge; Summary or a disabled Chat category omits them without changing functional chat grafts. The existing trace's own-message priority and redemption/geometry retention remain separate from ordinary category event rings.
+
+Detailed launch selection is required for each compiled probe: Rendering for matching/animation, Image Transport for decoder/header comparison, Composer for library-demand/palette, and Chat for rolling chat. Probe absence, disabled collection, missing hook admission and unobserved stages have different meanings. Detailed still does not mean unlimited exports: emote probe output is capped at 16 KiB with a truncation marker; the specialized chat trace keeps its existing bounded exporter and retention semantics.
 
 Probe flags compile extra work in; toggling ordinary logging cannot activate code absent from a normal binary. Historical build-46/47 or RN-boundary probes live on archived branches and are not all current production hooks.
 
@@ -74,7 +89,7 @@ Do not promote one row into another. Independent reproduction can strengthen pro
 
 ## Reporting a problem
 
-Enable logging if useful, reproduce once, and copy the report from that launch. State the Twitch/iOS version, installation method, surface, expected behavior, and visible result. For playback, distinguish preroll/midroll/PiP/profile preview. For emotes, distinguish RN/legacy, incoming/sent/composer/library, and static/animated/wide cases.
+Choose the relevant preset, relaunch, reproduce once, and copy the report from that launch. Use Minimal/Summary unless event traces are needed. For local missing messages/rewards, use Chat/Detailed in a compiled chat-trace build, leaving Playback off. State the Twitch/iOS version, installation method, surface, expected behavior, and visible result. For playback, distinguish preroll/midroll/PiP/profile preview. For emotes, distinguish RN/legacy, incoming/sent/composer/library, and static/animated/wide cases.
 
 Review the report before sharing. Do not attach tokens, certificates, profiles, raw authenticated requests, or unredacted private chat.
 

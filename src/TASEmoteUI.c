@@ -204,6 +204,7 @@ static void probe_reap(id layers) {
     }
 }
 static BOOL probe_track(id layer) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return NO;
     if (!g_probe_layers) {
         g_probe_layers=objc_retain(m0((id)objc_getClass("NSHashTable"),"weakObjectsHashTable"));
         clock_gettime(CLOCK_MONOTONIC,&g_probe_started);
@@ -238,6 +239,8 @@ static BOOL probe_track(id layer) {
     return YES;
 }
 static void probe_snapshot(id layer,const char *event) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     uint64_t number=image_layer_id(m0(layer,"superlayer"));
     unsigned slot=64;
     for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==layer) { slot=i; break; }
@@ -321,6 +324,8 @@ static void probe_snapshot(id layer,const char *event) {
     snprintf(g_probe_playheads[slot].signature,sizeof(g_probe_playheads[slot].signature),"%s",signature);
 }
 static void probe_sample_all(id timer) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     if (timer && timer!=g_probe_timer) return;
     id layers=m0(g_probe_layers,"allObjects");
     struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
@@ -333,6 +338,8 @@ static void probe_sample_all(id timer) {
     }
 }
 void tas_emote_ui_probe_start(void) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     /* Selection is only a filter. Never clear history or native counters. */
     if (g_probe_timer) return;
     probe_track(nil);
@@ -366,6 +373,8 @@ static void probe_display_refresh(id self,SEL selector,id link) {
     }
 }
 static void probe_assignment(id layer,const char *event,id input,const char *branch) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     uint64_t number=image_layer_id(m0(layer,"superlayer")); unsigned ordinal=0;
     if (!number) return;
     for (unsigned i=0;i<64;i++) if (g_probe_playheads[i].layer==layer && g_probe_playheads[i].number==number) {
@@ -920,11 +929,13 @@ void tas_emote_ui_retry_hooks(void) {
 #if TAS_EMOTE_DIAGNOSTIC
     /* Native signature: void displayDidRefresh:(CADisplayLink *). */
     tas_image_probe_install();
+    if(tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {
     hook(objc_getClass("TWAnimatedImageLayer"),"displayDidRefresh:",3,(IMP)probe_display_refresh,&g_probe_refresh);
     /* Native signatures: void setStaticImage:(UIImage *), void removeFromSuperlayer. */
     hook(objc_getClass("TWAnimatedImageLayer"),"setStaticImage:",3,(IMP)probe_static_image,&g_probe_static);
     hook(objc_getClass("TWAnimatedImageLayer"),"removeFromSuperlayer",2,(IMP)probe_remove_layer,&g_probe_remove);
     hook(objc_getClass("TWAnimatedImageLayer"),"stopAnimating",2,(IMP)probe_stop_animation,&g_probe_stop);
+    }
 #endif
     hook(objc_getClass("_TtC6Twitch17MessageStringView"),"handleTapGesture:",3,(IMP)tap_gesture,&g_tap);
     /* The existing launch/foreground observer retries these hooks. It also

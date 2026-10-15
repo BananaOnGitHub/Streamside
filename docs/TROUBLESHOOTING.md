@@ -2,6 +2,14 @@
 
 Start with the affected surface. Keep the report and visible result from the same launch whenever possible; clearing the event log does not reset launch counters.
 
+## Choose a diagnostic scope (3.1.0 development)
+
+In Streamside settings, choose **Minimal**, **Ad Blocking**, **Emotes**, or **Chat**, or use the category switches and Summary/Detailed rows for a custom selection. **Minimal / Summary** is the default. All diagnostic changes require fully closing and relaunching Twitch; the status row and report show pending saved changes versus active capture. The released 3.0.0 build still uses its older logging switch.
+
+Summary favors counters and failures. Detailed enables bounded event traces and any corresponding probes compiled into that binary. A setting cannot add an unavailable experimental module. For the missing local-message/redemption investigation, select **Chat / Detailed** in its diagnostic build and keep Playback disabled. This does not change message delivery or attempt a display fix.
+
+Copy the report promptly when the symptom appears, before restarting. Only enabled category sections are exported. A disabled category, zero observations, overwritten events, omitted older events and truncated output are reported differently. Ordinary category buffers are separate, so HLS traffic cannot evict chat-category events. New reports do not append previous-launch disk logs. Clearing ordinary events does not reset the separate rolling chat trace.
+
 ## The Streamside page or emotes are missing
 
 Open the main **Profile → Settings** page, not Chat Identity or a nested preferences page. The settings entry is scoped to the main native settings screen.
@@ -58,7 +66,7 @@ Current RN geometry avoids full-catalog startup mounting; the transport retains 
 
 ## Playback ads, black previews, or PiP interference
 
-Include Twitch/iOS versions, installation method, account sign-in state, and preroll/midroll/PiP/profile-preview scope. Enable logging, reproduce, and copy the report.
+Include Twitch/iOS versions, installation method, account sign-in state, and preroll/midroll/PiP/profile-preview scope. On 3.1.0 select Ad Blocking, relaunch, reproduce, and copy the report. Disabling Playback diagnostics does not disable interception or ad blocking.
 
 Unknown media routes preserve native playback rather than borrowing another stream's backup. Zero ad-marked counters do not establish successful suppression. Historical single-global-state builds before 2.0.3 had PiP/profile-preview cross-talk.
 

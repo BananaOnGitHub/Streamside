@@ -612,11 +612,13 @@ static void protocol_complete(id self, id data, id response, id error) {
         tas_emotes_image_result_for_url(original_url, data, response, error);
     id output_data = data, output_response = response, rewritten_response = nil;
     if (original_url && is_twitch_hls_url(original_url)) {
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
         char detail[256];
         snprintf(detail, sizeof(detail), "transport=NSURLProtocol status=%ld bytes=%zu error=%s",
                  response ? (long)imsg0(response, "statusCode") : 0L,
                  data ? data_length(data) : 0, error ? "yes" : "no");
         tas_diag_log_url("HLS_RESPONSE", original_url, detail);
+        }
         if (error || !data || !response || imsg0(response, "statusCode") < 200 ||
             imsg0(response, "statusCode") >= 300) tas_diag_metric(TAS_DIAG_HLS_FAILURE, 1);
     }
@@ -717,6 +719,7 @@ static unsigned demand_flight_peak,demand_queue_peak,demand_consumer_peak;
 static uint64_t demand_header_mismatch,demand_consumer_full,demand_url_matches;
 static uint64_t demand_detached_time[4],demand_rejoin_time[4];
 static void image_demand_occupancy(void) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
     unsigned occupied=0,queued=0,consumers=0;
     for(unsigned i=0;i<IMAGE_FLIGHTS;i++)if(image_flights[i].url){occupied++;queued+=!image_flights[i].running;consumers+=image_flights[i].count;}
     if(occupied>demand_flight_peak)demand_flight_peak=occupied;
@@ -1455,12 +1458,14 @@ static bool request_access_token(const char *channel, const char *player_type,
     id error = nil;
     id data = synchronous_request(request, &response, &error);
     if (!data || error || !response || imsg0(response, "statusCode") != 200) {
+        tas_diag_metric(TAS_DIAG_TOKEN_FAILURE, 1);
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_SUMMARY)) {
         char detail[256];
         snprintf(detail, sizeof(detail), "player=%s status=%ld data=%s error=%s",
                  player_type, response ? (long)imsg0(response, "statusCode") : 0L,
                  data ? "yes" : "no", error ? "yes" : "no");
-        tas_diag_metric(TAS_DIAG_TOKEN_FAILURE, 1);
         tas_diag_log("TOKEN_FAILURE", detail);
+        }
         return false;
     }
     id json_error = nil;
@@ -1476,17 +1481,21 @@ static bool request_access_token(const char *channel, const char *player_type,
     const char *sig = utf8(json_value(access, "signature"));
     const char *tok = utf8(json_value(access, "value"));
     if (!sig || !tok) {
+        tas_diag_metric(TAS_DIAG_TOKEN_FAILURE, 1);
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_SUMMARY)) {
         char detail[160];
         snprintf(detail, sizeof(detail), "player=%s response missing signature or token", player_type);
-        tas_diag_metric(TAS_DIAG_TOKEN_FAILURE, 1);
         tas_diag_log("TOKEN_FAILURE", detail);
+        }
         return false;
     }
     copy_string(signature, signature_capacity, sig);
     copy_string(token, token_capacity, tok);
+    if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
     char detail[96];
     snprintf(detail, sizeof(detail), "player=%s", player_type);
     tas_diag_log("TOKEN_SUCCESS", detail);
+    }
     return true;
 }
 
@@ -1597,25 +1606,31 @@ static char *load_backup_master(const char *original_master, const char *channel
     id master_data = nil;
     id master_response = nil;
     if (!fetch_bytes(master_url, &master_data, &master_response)) {
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_SUMMARY)) {
         char detail[192];
         snprintf(detail, sizeof(detail), "player=%s status=%ld",
                  g_player_types[index], master_response ? (long)imsg0(master_response, "statusCode") : 0L);
         tas_diag_log_url("BACKUP_MASTER_FAILURE", master_url, detail);
+        }
         free(master_url);
         return NULL;
     }
     char *master = copy_data_text(master_data);
     if (!master) {
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_SUMMARY)) {
         char detail[128];
         snprintf(detail, sizeof(detail), "player=%s response copy failed", g_player_types[index]);
         tas_diag_log("BACKUP_MASTER_FAILURE", detail);
+        }
         free(master_url);
         return NULL;
     }
+    if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
     char detail[192];
     snprintf(detail, sizeof(detail), "player=%s bytes=%zu cached=no",
              g_player_types[index], strlen(master));
     tas_diag_log_url("BACKUP_MASTER", master_url, detail);
+    }
     if (strlen(master) < TAS_MANIFEST_CAPACITY && strlen(master_url) < TAS_URL_CAPACITY) {
         pthread_mutex_lock(&g_lock);
         if (stream_ref_matches_locked(stream_ref)) {
@@ -1657,6 +1672,7 @@ static char *fetch_vaft_variant(const char *original_master, const char *channel
             bool loaded = variant_url && fetch_bytes(variant_url, &variant_data, &variant_response);
             char *variant = loaded ? copy_data_text(variant_data) : NULL;
             bool has_ads = !variant || has_ad_markers(variant);
+            if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
             char candidate_detail[256];
             snprintf(candidate_detail, sizeof(candidate_detail),
                      "player=%s cached_master=%s loaded=%s status=%ld bytes=%zu known_ad=%s",
@@ -1666,6 +1682,7 @@ static char *fetch_vaft_variant(const char *original_master, const char *channel
                      variant ? strlen(variant) : 0,
                      has_ads ? "yes" : "no");
             tas_diag_log_url("VAFT_CANDIDATE", variant_url, candidate_detail);
+            }
 
             if (variant && player_index == 0) {
                 free(fallback);
@@ -1690,11 +1707,13 @@ static char *fetch_vaft_variant(const char *original_master, const char *channel
                     stream->last_seen = stream->backup_created;
                 }
                 pthread_mutex_unlock(&g_lock);
-                fprintf(stderr, "[TAS] VAFT switched to clean %s HLS\n", g_player_types[player_index]);
+                if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) fprintf(stderr, "[TAS] VAFT switched to clean %s HLS\n", g_player_types[player_index]);
                 tas_diag_metric(TAS_DIAG_CLEAN_ALTERNATE, 1);
+                if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
                 char detail[128];
                 snprintf(detail, sizeof(detail), "player=%s", g_player_types[player_index]);
                 tas_diag_log_url("VAFT_CLEAN_SWAP", variant_url, detail);
+                }
                 free(fallback);
                 free(fallback_url);
                 *selected_base_out = variant_url;
@@ -1709,12 +1728,14 @@ static char *fetch_vaft_variant(const char *original_master, const char *channel
     }
 
     if (fallback) {
-        fprintf(stderr, "[TAS] VAFT using %s fallback with stitched segments suppressed\n",
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) fprintf(stderr, "[TAS] VAFT using %s fallback with stitched segments suppressed\n",
                 fallback_type ?: "last-resort");
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
         char detail[160];
         snprintf(detail, sizeof(detail), "player=%s known_ad=yes action=strip",
                  fallback_type ?: "last-resort");
         tas_diag_log_url("VAFT_FALLBACK", fallback_url, detail);
+        }
         *selected_base_out = fallback_url;
         return fallback;
     }
@@ -1747,9 +1768,11 @@ static char *strip_ad_segments(const char *playlist, const char *base_url) {
     free(copy);
     if (stripped_segments) {
         tas_diag_metric(TAS_DIAG_STRIPPED_SEGMENT, stripped_segments);
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
         char detail[128];
         snprintf(detail, sizeof(detail), "segments=%zu", stripped_segments);
         tas_diag_log_url("SEGMENTS_SUPPRESSED", base_url, detail);
+        }
     }
     return result ?: strdup("#EXTM3U\n");
 }
@@ -1820,9 +1843,6 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
     char channel[512];
     channel_from_master_url(url, channel, sizeof(channel));
     if (channel[0]) {
-        TASManifestStats stats = manifest_stats(playlist);
-        char detail[768];
-        format_manifest_stats(detail, sizeof(detail), &stats, strlen(playlist), true);
         tas_diag_metric(TAS_DIAG_MASTER_MANIFEST, 1);
         pthread_mutex_lock(&g_lock);
         size_t previous_routes = active_routes_locked();
@@ -1830,12 +1850,17 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
         size_t registered_routes = register_variant_routes_locked(stream_ref, url, playlist);
         size_t active_routes = active_routes_locked();
         pthread_mutex_unlock(&g_lock);
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
+        TASManifestStats stats = manifest_stats(playlist);
+        char detail[768];
+        format_manifest_stats(detail, sizeof(detail), &stats, strlen(playlist), true);
         char route_detail[1024];
         snprintf(route_detail, sizeof(route_detail),
                  "%s stream_generation=%llu previous_routes=%zu registered_routes=%zu active_routes=%zu",
                  detail, (unsigned long long)stream_ref.generation, previous_routes,
                  registered_routes, active_routes);
         tas_diag_log_stream("MASTER_MANIFEST", channel, url, route_detail);
+        }
         return rewrite_manifest_urls(playlist, url, custom_scheme);
     }
 
@@ -1844,12 +1869,13 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
     TASStreamSnapshot stream;
     TASRouteMiss miss;
     if (!snapshot_stream_for_variant(url, &stream, &miss)) {
-        TASManifestStats stats = manifest_stats(playlist);
-        char detail[768];
-        format_manifest_stats(detail, sizeof(detail), &stats, strlen(playlist), false);
         tas_diag_metric(TAS_DIAG_VARIANT_MANIFEST, 1);
         tas_diag_metric(TAS_DIAG_UNMAPPED_VARIANT, 1);
         if (has_ad_markers(playlist)) tas_diag_metric(TAS_DIAG_AD_MANIFEST, 1);
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
+        TASManifestStats stats = manifest_stats(playlist);
+        char detail[768];
+        format_manifest_stats(detail, sizeof(detail), &stats, strlen(playlist), false);
         char route_detail[1024];
         snprintf(route_detail, sizeof(route_detail),
                  "%s matched_route=no active_streams=%zu active_routes=%zu retired_match=%s "
@@ -1859,13 +1885,15 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
                  (unsigned long long)miss.retired_generation, miss.newest_master_age);
         tas_diag_log_url(has_ad_markers(playlist) ? "VARIANT_UNMAPPED_AD" : "VARIANT_UNMAPPED_CLEAN",
                          url, route_detail);
+        }
         return rewrite_manifest_urls(playlist, url, custom_scheme);
     }
+    tas_diag_metric(TAS_DIAG_VARIANT_MANIFEST, 1);
+    if (has_ad_markers(playlist)) tas_diag_metric(TAS_DIAG_AD_MANIFEST, 1);
+    if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
     TASManifestStats stats = manifest_stats(playlist);
     char manifest_detail[768];
     format_manifest_stats(manifest_detail, sizeof(manifest_detail), &stats, strlen(playlist), true);
-    tas_diag_metric(TAS_DIAG_VARIANT_MANIFEST, 1);
-    if (has_ad_markers(playlist)) tas_diag_metric(TAS_DIAG_AD_MANIFEST, 1);
     char route_detail[1024];
     snprintf(route_detail, sizeof(route_detail),
              "%s stream_generation=%llu route_age=%lld master_age=%lld",
@@ -1873,6 +1901,7 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
              stream.route_age, stream.master_age);
     tas_diag_log_stream(has_ad_markers(playlist) ? "VARIANT_AD_MARKED" : "VARIANT_MANIFEST",
                         stream.channel, url, route_detail);
+    }
     variant_metadata(stream.master_manifest, stream.master_url, url,
                      resolution, sizeof(resolution), framerate, sizeof(framerate));
 
@@ -1900,7 +1929,7 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
         if (!selected) {
             selected = strdup(playlist);
             selected_base = strdup(url);
-            fprintf(stderr, "[TAS] VAFT alternates unavailable; suppressing stitched segments\n");
+            if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_SUMMARY)) fprintf(stderr, "[TAS] VAFT alternates unavailable; suppressing stitched segments\n");
             tas_diag_log_url("VAFT_ALTERNATES_UNAVAILABLE", url,
                              "action=use_original_and_suppress_known_ad_segments");
         }
@@ -1951,11 +1980,13 @@ static BOOL loader_handle(id self, SEL command, id loading_request) {
     }
     if (error || !data || !response) {
         tas_diag_metric(TAS_DIAG_HLS_FAILURE, 1);
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_SUMMARY)) {
         char detail[192];
         snprintf(detail, sizeof(detail), "transport=AVAssetResourceLoader status=%ld data=%s error=%s",
                  response ? (long)imsg0(response, "statusCode") : 0L,
                  data ? "yes" : "no", error ? "yes" : "no");
         tas_diag_log_url("HLS_FAILURE", url, detail);
+        }
         vmsg1(loading_request, "finishLoadingWithError:", error);
         objc_release(network_request);
         free(url);
@@ -1964,10 +1995,12 @@ static BOOL loader_handle(id self, SEL command, id loading_request) {
 
     const char *mime = utf8(msg0(response, "MIMEType"));
     if (is_twitch_hls_url(url)) {
+        if(tas_diag_wants(TAS_DIAG_PLAYBACK,TAS_DIAG_DETAILED)) {
         char detail[224];
         snprintf(detail, sizeof(detail), "transport=AVAssetResourceLoader status=%ld bytes=%zu",
                  (long)imsg0(response, "statusCode"), data_length(data));
         tas_diag_log_url("HLS_RESPONSE", url, detail);
+        }
         if (imsg0(response, "statusCode") < 200 || imsg0(response, "statusCode") >= 300) {
             tas_diag_metric(TAS_DIAG_HLS_FAILURE, 1);
         }
@@ -2102,6 +2135,7 @@ static void swizzle_method(Class cls, const char *selector, IMP replacement, IMP
 
 __attribute__((constructor))
 static void tas_initialize(void) {
+    tas_diagnostics_load_preferences();
     Class url_protocol = objc_getClass("NSURLProtocol");
     g_protocol_class = objc_allocateClassPair(url_protocol, "TASURLProtocol", 0);
     if (g_protocol_class) {

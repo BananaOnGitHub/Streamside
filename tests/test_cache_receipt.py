@@ -122,4 +122,7 @@ class CacheReceiptTests(unittest.TestCase):
         protocol_tests.ProtocolTests().run_transport(False,MAIN,PRELUDE,('-g0','-fno-builtin'))
 
     def test_receipt_diagnostics_preserve_the_same_lifecycle(self):
-        protocol_tests.ProtocolTests().run_transport(True,MAIN,PRELUDE,('-g0','-fno-builtin'))
+        # Clang 19 also crashes while emitting alignment instrumentation for
+        # the diagnostic clock/block adapter. Keep the assertions and other
+        # UBSan checks; this flag applies only to the host fixture.
+        protocol_tests.ProtocolTests().run_transport(True,MAIN,PRELUDE,('-g0','-fno-builtin','-fno-sanitize=alignment'))

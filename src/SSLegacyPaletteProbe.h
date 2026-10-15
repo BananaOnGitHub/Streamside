@@ -1,5 +1,6 @@
 /* Diagnostic-only, bounded scalar observations of the bound legacy palette.
  * No history/model/image values, object addresses or extra layout queries. */
+#include "TASDiagnosticPolicy.h"
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
 #define PALETTE_PROBE_LIMIT 16
 #define PALETTE_PROBE_SCAN_LIMIT 128
@@ -21,6 +22,7 @@ static IMP original_palette_probe_cell;
 
 static void palette_probe_open(State *s) { s->palette_probe_stages=0; }
 static void palette_probe_snapshot(State *s,id content,unsigned stage) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
     if (!s || !content || stage>5 || (s->palette_probe_stages&(1U<<stage))) return;
     s->palette_probe_stages|=1U<<stage;
     unsigned index=__atomic_load_n(&palette_probe_count,__ATOMIC_RELAXED);
@@ -66,6 +68,7 @@ static U palette_probe_zero_attributes(id array) {
     return zero;
 }
 static void palette_probe_query(State *s,Rect bounds,Rect query,id original,id returned) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
     if (!s) return;
     INC(palette_probe_queries);
     s->palette_probe_bounds=bounds;s->palette_probe_query=query;
@@ -74,6 +77,7 @@ static void palette_probe_query(State *s,Rect bounds,Rect query,id original,id r
     s->palette_probe_returned_zero=palette_probe_zero_attributes(returned);
 }
 static void palette_probe_scroll(State *s,id content,BOOL after) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
     if (!s || !content || !s->recent_menu_open || s->placing_recents || s->placing_library || s->palette_layout_settling) return;
     Insets inset=((Insets (*)(id,SEL))objc_msgSend)(content,sel_registerName("adjustedContentInset"));
     if (rect(content,"bounds").origin.y>-inset.top+1) palette_probe_snapshot(s,content,after ? 4 : 3);

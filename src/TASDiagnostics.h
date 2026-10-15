@@ -2,6 +2,7 @@
 #define TAS_DIAGNOSTICS_H
 
 #include <stdint.h>
+#include "TASDiagnosticPolicy.h"
 
 typedef enum {
     TAS_DIAG_HLS_INTERCEPTED = 0,
@@ -19,6 +20,7 @@ typedef enum {
 } TASDiagnosticMetric;
 
 void tas_diagnostics_initialize(void);
+void tas_diagnostics_load_preferences(void);
 void tas_diag_metric(TASDiagnosticMetric metric, uint64_t amount);
 void tas_diag_log(const char *event, const char *detail);
 void tas_diag_log_url(const char *event, const char *url, const char *detail);

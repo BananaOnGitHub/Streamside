@@ -39,6 +39,7 @@ static bool parse(const char *p,double out[10]){
     }return !*p;
 }
 bool tas_chat_trace_packet(const char *packet){
+    if(!tas_diag_wants(TAS_DIAG_CHAT,TAS_DIAG_DETAILED))return false;
     double v[10];bool valid=parse(packet,v);
     if(valid)for(unsigned i=0;i<10;i++)if((i<4 || i>=8) && (v[i]<0 || floor(v[i])!=v[i]))valid=false;
     if(valid && (v[0]>22 || v[1]<1 || v[3]>127))valid=false;

@@ -45,6 +45,8 @@ static unsigned response_ids_locked(BodyKey key,time_t t,uint64_t out[IDS]) {
     return 0;
 }
 void tas_image_probe_response(uint64_t number,id data) {
+    if(!tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED))return;
+
     if (number<9000000000ULL) return;
     BodyKey key=fingerprint(data); if (!key.bytes) return;
     time_t t=now(); pthread_mutex_lock(&lock);
@@ -75,6 +77,8 @@ static void put_locked(id image,Attempt a,const char *kind) {
     objc_storeWeak(&o->weak,image);
 }
 static void decoded(id data,id image,const char *kind,uint64_t frames) {
+    if(!tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED))return;
+
     BodyKey key=fingerprint(data); time_t t=now(); uint64_t ids[IDS];
     pthread_mutex_lock(&lock);
     Attempt a={++serial,frames,t,key,kind,image!=nil}; calls++;
@@ -118,6 +122,8 @@ void tas_image_probe_origin(id image,char *buffer,size_t capacity) {
     pthread_mutex_lock(&lock); describe_locked(find_locked(image,now()),buffer,capacity); pthread_mutex_unlock(&lock);
 }
 void tas_image_probe_assignment(uint64_t number,unsigned layer,id image,const char *decision) {
+    if(!tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED))return;
+
     if (number<9000000000ULL) return;
     char provenance[256],state[448]; time_t t=now();
     pthread_mutex_lock(&lock); Origin *o=find_locked(image,t); if (o) o->uses++;
@@ -146,6 +152,8 @@ static void install(Class cls,const char *name,const char *encoding,IMP replacem
     if (method && !strcmp(method_getTypeEncoding(method),encoding) && !*original) *original=method_setImplementation(method,replacement);
 }
 void tas_image_probe_install(void) {
+    if(!tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED))return;
+
     install(objc_getClass("FLAnimatedImage"),"initWithAnimatedGIFData:optimalFrameCacheSize:predrawingEnabled:","@36@0:8@16Q24B32",(IMP)hook_gif,&gif_init);
     install(objc_getClass("UIImage"),"initWithData:","@24@0:8@16",(IMP)hook_ui,&ui_init);
     install(objc_getClass("UIImage"),"initWithData:scale:","@32@0:8@16d24",(IMP)hook_ui_scale,&ui_scale);

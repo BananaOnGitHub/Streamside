@@ -70,6 +70,8 @@ static bool calculation_values(const char *text,double out[CALC_VALUES]) {
     return !*text;
 }
 bool tas_demand_snapshot(const char *text,double slot) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return false;
+
     double values[CALC_VALUES];bool valid=calculation_values(text,values),accepted=false;
     pthread_mutex_lock(&lock);
     if(!valid || !stage_current || !isfinite(slot) || slot<1 || slot>CALC_SLOTS || floor(slot)!=slot)calculation_refused++;
@@ -101,6 +103,8 @@ static Asset *asset_locked(Key k) {
     memset(a,0,sizeof(*a));a->key=k;unique_assets++;return a;
 }
 void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,double b) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     if(event>=TAS_DEMAND_EVENTS || scope>=TAS_DEMAND_SCOPES || !isfinite(a) || !isfinite(b))return;
     if(scope==0 && event>=27) {
         if(event==27){(void)tas_demand_snapshot(url,a);return;}
@@ -166,6 +170,8 @@ void tas_demand_event(unsigned event,unsigned scope,const char *url,double a,dou
     pthread_mutex_unlock(&lock);
 }
 void tas_demand_transport(unsigned active,unsigned queued,unsigned consumers,uint64_t cancelled) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     pthread_mutex_lock(&lock);Stage *s=&stages[stage];
     transport_active=active;transport_queued=queued;transport_consumers=consumers;
     if(active>s->active)s->active=active;if(queued>s->queued)s->queued=queued;if(consumers>s->consumers)s->consumers=consumers;
@@ -175,6 +181,8 @@ void tas_demand_transport(unsigned active,unsigned queued,unsigned consumers,uin
 /* Header values are inspected transiently and never copied. This is a bounded
  * order-independent signature, not a new request key or a dedup decision. */
 void tas_demand_request(void *object,unsigned scope) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     id request=(id)object;const char *url=string(m0(m0(request,"URL"),"absoluteString"));Key k=key(url);
     id headers=m0(request,"allHTTPHeaderFields"),keys=m0(headers,"allKeys");unsigned long n=integer(keys,"count");
     uint64_t signature=0;size_t bytes=0;bool valid=n<=32;
@@ -203,6 +211,8 @@ void tas_demand_request(void *object,unsigned scope) {
     pthread_mutex_unlock(&lock);
 }
 void tas_demand_mark_url(void *url,unsigned scope){
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     if(url && scope<TAS_DEMAND_SCOPES)objc_setAssociatedObject((id)url,&scope_key,
         ((id (*)(id,SEL,unsigned))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedInt:"),scope),1);
 }
@@ -210,6 +220,8 @@ unsigned tas_demand_url_scope(void *url){return (unsigned)integer(objc_getAssoci
 /* Observe Foundation's actual fetch classification. No speculative cache
  * lookup and no cache contents, addresses, request or response retained. */
 static void metrics(id self,SEL cmd,id session,id task,id report) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     (void)self;(void)cmd;(void)session;(void)task;
     id rows=m0(report,"transactionMetrics");unsigned long n=integer(rows,"count");
     pthread_mutex_lock(&lock);metrics_calls++;if(!n)metrics_missing++;if(n>16)metrics_truncated++;pthread_mutex_unlock(&lock);
@@ -224,6 +236,7 @@ static void metrics(id self,SEL cmd,id session,id task,id report) {
     }
 }
 void *tas_demand_delegate(void) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return NULL;
     Class cls=objc_getClass("TASProviderDemandMetrics");
     if(!cls) {
         cls=objc_allocateClassPair(objc_getClass("NSObject"),"TASProviderDemandMetrics",0);
@@ -244,6 +257,8 @@ static unsigned view_scope(id view) {
     return 0;
 }
 static void sample(id view,bool remove) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     unsigned scope=remove?0:view_scope(view);bool window=!remove && m0(view,"window")!=nil;
     pthread_mutex_lock(&lock);native_samples++;
     unsigned empty=VIEWS,index=VIEWS;
@@ -268,6 +283,8 @@ static void hook(Class cls,const char *name,IMP replacement,IMP *original) {
     if(!class_addMethod(cls,sel_registerName(name),replacement,"v16@0:8"))method_setImplementation(method,replacement);
 }
 void tas_demand_install(void) {
+    if(!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED))return;
+
     pthread_mutex_lock(&install_lock);
     Class cls=objc_getClass("RCTImageComponentView");
     hook(cls,"didMoveToWindow",(IMP)move,&move_original);hook(cls,"layoutSubviews",(IMP)layout,&layout_original);

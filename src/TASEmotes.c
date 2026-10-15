@@ -375,16 +375,22 @@ last_visible:
     }
 }
 void tas_emote_probe_record(uint64_t number,unsigned layer,const char *event,const char *state,bool visible) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     pthread_mutex_lock(&g_emote_lock);
     playback_record_locked(number,layer,event,state,visible);
     pthread_mutex_unlock(&g_emote_lock);
 }
 void tas_emote_probe_image(uint64_t number,unsigned layer,const char *event,const char *state) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     /* Callers supply whitelisted facts only, never native object descriptions. */
     char name[48]; snprintf(name,sizeof(name),"image-%s",event);
     tas_emote_probe_record(number,layer,name,state,false);
 }
 void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *state) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     pthread_mutex_lock(&g_emote_lock);
     if (generation && generation==probe_generation_locked(number)) playback_record_locked(number,0,"sample",state,true);
     pthread_mutex_unlock(&g_emote_lock);
@@ -392,6 +398,8 @@ void tas_emote_probe_playback(uint64_t generation,uint64_t number,const char *st
 static void probe_append_locked(const char *stage, const char *outcome,
                                 Room *room, Emote *emote, size_t bytes,
                                 size_t position) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     g_probe_events++;
     for (unsigned i=0;i<=g_probe_count_used && i<24;i++) {
         if (i==g_probe_count_used) {
@@ -428,6 +436,7 @@ static void probe_word_locked(const char *stage, const char *word, size_t bytes,
     probe_append_locked(stage,outcome,room,emote,bytes,position);
 }
 bool tas_emote_probe_set(const char *code) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return false;
     size_t bytes=code ? strnlen(code,97) : 0;
     if (!bytes || bytes>96) return false;
     for (size_t i=0;i<bytes;i++) if ((unsigned char)code[i]<=32 || (unsigned char)code[i]==127) return false;
@@ -440,6 +449,8 @@ bool tas_emote_probe_set(const char *code) {
     pthread_mutex_unlock(&g_emote_lock); return true;
 }
 void tas_emote_probe_observe(const char *stage,const char *code,const char *channel,const char *outcome) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     if (!code) return;
     pthread_mutex_lock(&g_emote_lock);
     Room *room=NULL;
@@ -451,6 +462,8 @@ void tas_emote_probe_observe(const char *stage,const char *code,const char *chan
     pthread_mutex_unlock(&g_emote_lock);
 }
 void tas_emote_probe_stage(uint64_t number, const char *stage) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     if (!number) return;
     pthread_mutex_lock(&g_emote_lock);
     bool found=false;
@@ -847,6 +860,7 @@ static void finish_provider(id room_string, uint64_t generation, unsigned char p
             else PROBE_INC(g_fetch_body_error[provider][scope]);
             if (room->failures[provider] < 5) room->failures[provider]++;
         }
+        if(tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {
         size_t entries = 0;
         for (size_t i = 0; i < room->size; i++)
             if (room->items[i].provider == provider) entries++;
@@ -857,10 +871,11 @@ static void finish_provider(id room_string, uint64_t generation, unsigned char p
         const char *providers[] = {"7TV", "BTTV", "FFZ"};
         snprintf(detail, sizeof(detail), "provider=%s scope=%s %s", providers[provider],
                  scope ? "channel" : "global", g_fetch_last[provider][scope]);
+        }
     }
     pthread_mutex_unlock(&g_emote_lock);
     /* Log after unlocking: diagnostics never sees API bodies or room IDs. */
-    if (current) tas_diag_log("EMOTE_FETCH", detail);
+    if (current && tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) tas_diag_log("EMOTE_FETCH", detail);
 }
 
 static void fetch_provider(const char *room_id, uint64_t generation, unsigned char provider) {
@@ -999,6 +1014,8 @@ static bool boundary_punctuation(unsigned char c) {
 
 #if TAS_EMOTE_DIAGNOSTIC
 void tas_emote_probe_text(const char *stage,const char *body,const char *channel,const char *outcome) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     if (!body || strnlen(body,MAX_FRAME+1)>MAX_FRAME) return;
     pthread_mutex_lock(&g_emote_lock);
     Room *room=NULL;
@@ -1021,6 +1038,8 @@ void tas_emote_probe_text(const char *stage,const char *body,const char *channel
 /* Observe a rejected IRC line only when its PRIVMSG body contains the selected
  * code. Never collect the rest of the line, or create a replacement here. */
 static void probe_gate_line(const char *line,size_t length,const char *outcome) {
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
+
     const char *command=strstr(line," PRIVMSG #"),*end=line+length;
     const char *body=command ? strstr(command," :") : NULL;
     if (!body || body+2>=end) return;
@@ -1635,12 +1654,14 @@ static void install_rn_local(void) {
                     class_addMethod(cls,sel_registerName("libraryLookup:name:"),(IMP)rn_library_lookup,"@32@0:8@16@24") &&
                     class_addMethod(cls,sel_registerName("libraryRemember:name:identifier:"),(IMP)rn_library_remember,"@40@0:8@16@24@32") &&
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
-                    class_addMethod(cls,sel_registerName("observe:scope:asset:a:b:"),(IMP)rn_demand_observe,"@56@0:8@16@24@32@40@48") &&
-                    class_addMethod(meta,sel_registerName("__rct_export__streamsideDemand"),(IMP)rn_demand_export,"^v16@0:8") &&
+                    (!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED) ||
+                     (class_addMethod(cls,sel_registerName("observe:scope:asset:a:b:"),(IMP)rn_demand_observe,"@56@0:8@16@24@32@40@48") &&
+                      class_addMethod(meta,sel_registerName("__rct_export__streamsideDemand"),(IMP)rn_demand_export,"^v16@0:8"))) &&
 #endif
 #if TAS_CHAT_TRACE_DIAGNOSTIC
-                    class_addMethod(cls,sel_registerName("trace:"),(IMP)rn_chat_trace,"@24@0:8@16") &&
-                    class_addMethod(meta,sel_registerName("__rct_export__streamsideChatTrace"),(IMP)rn_chat_trace_export,"^v16@0:8") &&
+                    (!tas_diag_wants(TAS_DIAG_CHAT,TAS_DIAG_DETAILED) ||
+                     (class_addMethod(cls,sel_registerName("trace:"),(IMP)rn_chat_trace,"@24@0:8@16") &&
+                      class_addMethod(meta,sel_registerName("__rct_export__streamsideChatTrace"),(IMP)rn_chat_trace_export,"^v16@0:8"))) &&
 #endif
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&
@@ -2034,11 +2055,13 @@ static id image_url_copy(id url) {
     pthread_mutex_unlock(&g_emote_lock);
     tas_emote_probe_stage(fake_id,image ? "image-request-mapped" : "image-request-missing");
 #if TAS_EMOTE_DIAGNOSTIC
+    if(tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {
     char mapping[96];
     snprintf(mapping,sizeof(mapping),"mapped=%s request-kind=%s asset=%s",image ? "yes" : "no",
         !strncmp(end,"/static/",8) ? "static" : !strncmp(end,"/animated/",10) ? "animated" : !strncmp(end,"/default/",9) ? "default" : "unknown",
         image && strstr(image,".gif") ? "GIF" : image && strstr(image,".webp") ? "WebP" : image && strstr(image,".png") ? "PNG" : "other");
     tas_emote_probe_image(fake_id,0,"request-map",mapping);
+    }
 #endif
     if (!image) return nil;
     PROBE_INC(g_image_rewrites);
@@ -2084,6 +2107,7 @@ static void update_image_aspect(id data, id response) {
 
 static void image_probe_url(const char *url, const char *stage, const char *outcome) {
 #if TAS_EMOTE_DIAGNOSTIC
+    if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED))return;
     if (!url) return;
     pthread_mutex_lock(&g_emote_lock);
     /* A late selection must still see earlier transport evidence. A shared
@@ -2118,6 +2142,7 @@ static void image_probe_url(const char *url, const char *stage, const char *outc
 
 #if TAS_EMOTE_DIAGNOSTIC
 static void image_probe_body(const char *url,id data) {
+    if(!tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED))return;
     if (!url || !data) return;
     uint64_t ids[PLAYBACK_EMOTES]; unsigned used=0; time_t t=time(NULL);
     pthread_mutex_lock(&g_emote_lock);
@@ -2156,6 +2181,7 @@ void tas_emotes_image_result_for_url(const char *request_url, id data, id respon
     else if (mime && strcmp(mime, "image/webp") == 0) PROBE_INC(g_image_webp);
     else PROBE_INC(g_image_other);
 #if TAS_EMOTE_DIAGNOSTIC
+    if(tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {
     NSInteger status=response && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(response,sel_registerName("respondsToSelector:"),sel_registerName("statusCode"))
         ? ((NSInteger (*)(id,SEL))objc_msgSend)(response,sel_registerName("statusCode")) : 0;
     NSInteger code=error ? ((NSInteger (*)(id,SEL))objc_msgSend)(error,sel_registerName("code")) : 0;
@@ -2163,6 +2189,7 @@ void tas_emotes_image_result_for_url(const char *request_url, id data, id respon
     snprintf(result,sizeof(result),"http=%ld error=%ld body=%lu type=%s",(long)status,(long)code,(unsigned long)length,
              mime && !strcmp(mime,"image/gif") ? "GIF" : mime && !strcmp(mime,"image/webp") ? "WebP" : "other");
     image_probe_url(request_url,"image-response",result);
+    }
     image_probe_body(request_url,data);
 #else
     (void)request_url;
@@ -2312,7 +2339,7 @@ static id rn_source_data(id self, SEL command) {
                         unsigned char *strip_patch=tas_rn_strip_patch(patch,count,sha1,&strip_count);
                         if(strip_patch){free(patch);patch=strip_patch;count=strip_count;strip=true;}
 #if TAS_CHAT_TRACE_DIAGNOSTIC
-                        if(strip) {
+                        if(strip && tas_diag_wants(TAS_DIAG_CHAT,TAS_DIAG_DETAILED)) {
                             size_t trace_count=0;
                             unsigned char *trace_patch=tas_rn_chat_trace_patch(patch,count,sha1,&trace_count);
                             if(trace_patch){free(patch);patch=trace_patch;count=trace_count;__atomic_store_n(&g_rn_chat_trace_ready,true,__ATOMIC_RELEASE);}
@@ -2483,6 +2510,51 @@ void tas_emotes_retry_hooks(void) {
         hook_own_method(objc_getClass("__NSURLSessionLocal"),
                         "dataTaskWithRequest:completionHandler:",
                         (IMP)private_task_completion, &g_private_request_completion);
+}
+
+void tas_emotes_status_category(unsigned category,char *buffer,size_t capacity) {
+    if(!buffer || !capacity)return;buffer[0]=0;
+    if(category==TAS_DIAG_GENERAL) {
+        snprintf(buffer,capacity,"Functional emotes=%s; RN source/width/local/composer/info/picker admission=%u/%u/%u/%u/%u/%u\n",
+            g_enabled?"enabled":"disabled",__atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE)!=NULL,
+            __atomic_load_n(&g_rn_width_ready,__ATOMIC_ACQUIRE),__atomic_load_n(&g_rn_local_ready,__ATOMIC_ACQUIRE),
+            __atomic_load_n(&g_rn_composer_ready,__ATOMIC_ACQUIRE),__atomic_load_n(&g_rn_popup_ready,__ATOMIC_ACQUIRE),
+            __atomic_load_n(&g_rn_strip_ready,__ATOMIC_ACQUIRE));
+    } else if(category==TAS_DIAG_RENDERING) {
+        pthread_mutex_lock(&g_emote_lock);size_t global=g_global.size,rooms=0;
+        for(size_t i=0;i<MAX_ROOMS;i++)rooms+=g_rooms[i].size;
+        pthread_mutex_unlock(&g_emote_lock);
+        snprintf(buffer,capacity,"Emotes active=%s; RN width patch=%s; patched/refused=%llu/%llu\n"
+            "Matched words/native overlaps/scanned/punctuation=%llu/%llu/%llu/%llu\n"
+            "Registry global/rooms=%zu/%zu; provider fetch failures=%llu/%llu/%llu\n",
+            g_enabled?"yes":"no",__atomic_load_n(&g_rn_width_ready,__ATOMIC_ACQUIRE)?"active":"inactive",
+            (unsigned long long)PROBE_GET(g_rn_width_patches),(unsigned long long)PROBE_GET(g_rn_width_refused),
+            (unsigned long long)PROBE_GET(g_match_words),(unsigned long long)PROBE_GET(g_native_overlaps),
+            (unsigned long long)PROBE_GET(g_words_scanned),(unsigned long long)PROBE_GET(g_punctuation_matches),global,rooms,
+            (unsigned long long)(PROBE_GET(g_fetch_failed[0][0])+PROBE_GET(g_fetch_failed[0][1])),
+            (unsigned long long)(PROBE_GET(g_fetch_failed[1][0])+PROBE_GET(g_fetch_failed[1][1])),
+            (unsigned long long)(PROBE_GET(g_fetch_failed[2][0])+PROBE_GET(g_fetch_failed[2][1])));
+    } else if(category==TAS_DIAG_CHAT) {
+        snprintf(buffer,capacity,"RN receive callbacks/IRC/rewritten/non-text=%llu/%llu/%llu/%llu; refused=%llu\n"
+            "Own-message bridge calls/changed/refused/scope misses=%llu/%llu/%llu/%llu\n",
+            (unsigned long long)PROBE_GET(g_rn_calls),(unsigned long long)PROBE_GET(g_rn_irc),
+            (unsigned long long)PROBE_GET(g_rn_rewritten),(unsigned long long)PROBE_GET(g_rn_refused),
+            (unsigned long long)PROBE_GET(g_frame_refused),(unsigned long long)PROBE_GET(g_rn_local_calls),
+            (unsigned long long)PROBE_GET(g_rn_local_changed),(unsigned long long)PROBE_GET(g_rn_local_refused),
+            (unsigned long long)PROBE_GET(g_rn_local_scope_misses));
+    } else if(category==TAS_DIAG_COMPOSER) {
+        snprintf(buffer,capacity,"RN composer patch=%s; calls/maps/entries/refused/scope misses=%llu/%llu/%llu/%llu/%llu\n"
+            "RN provider popup calls/resolved/missing/actions/refused=%llu/%llu/%llu/%llu/%llu\n"
+            "RN picker searches/entries/refused=%llu/%llu/%llu\n",
+            __atomic_load_n(&g_rn_composer_ready,__ATOMIC_ACQUIRE)?"active":"inactive",
+            (unsigned long long)PROBE_GET(g_rn_composer_calls),(unsigned long long)PROBE_GET(g_rn_composer_maps),
+            (unsigned long long)PROBE_GET(g_rn_composer_entries),(unsigned long long)PROBE_GET(g_rn_composer_refused),
+            (unsigned long long)PROBE_GET(g_rn_composer_scope_misses),(unsigned long long)PROBE_GET(g_rn_popup_calls),
+            (unsigned long long)PROBE_GET(g_rn_popup_resolved),(unsigned long long)PROBE_GET(g_rn_popup_missing),
+            (unsigned long long)PROBE_GET(g_rn_popup_actions),(unsigned long long)PROBE_GET(g_rn_popup_refused),
+            (unsigned long long)PROBE_GET(g_rn_strip_searches),(unsigned long long)PROBE_GET(g_rn_strip_entries),
+            (unsigned long long)PROBE_GET(g_rn_strip_refused));
+    }
 }
 
 void tas_emotes_status(char *buffer, size_t capacity) {

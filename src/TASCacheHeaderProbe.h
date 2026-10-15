@@ -1,5 +1,6 @@
 /* Passive, fixed-size observation only. Values and keys remain local to this
  * invocation; no fallback values enter annotation or cache freshness logic. */
+#include "TASDiagnosticPolicy.h"
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
 #define IMAGE_HEADER_FIELDS 4
 #define IMAGE_HEADER_OUTCOMES 7
@@ -39,6 +40,7 @@ static void image_header_inspect(id response,unsigned outcomes[IMAGE_HEADER_FIEL
     }
 }
 static void image_header_observe(id proposed_response,id task) {
+    if(!tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED))return;
     id task_response=msg0(task,"response");unsigned outcomes[2][IMAGE_HEADER_FIELDS];
     image_header_inspect(proposed_response,outcomes[0]);image_header_inspect(task_response,outcomes[1]);
     pthread_mutex_lock(&image_cache_metadata_lock);

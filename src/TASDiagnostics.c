@@ -7,6 +7,10 @@
 #include "TASEmoteUI.h"
 #include "SSComposer.h"
 #include "TASEmoteProbe.h"
+#include "TASEmoteImageProbe.h"
+#ifndef TAS_CHAT_TRACE_DIAGNOSTIC
+#define TAS_CHAT_TRACE_DIAGNOSTIC 0
+#endif
 
 #include <objc/objc.h>
 #include <objc/runtime.h>
@@ -39,11 +43,9 @@ typedef struct {
     TASSize size;
 } TASRect;
 
-#define TAS_DIAGNOSTICS_KEY "TASDiagnosticsEnabled"
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
-#define TAS_DIAGNOSTICS_LIMIT (512ULL * 1024ULL)
-#define TAS_REPORT_VERSION "3.1.0-build.9"
+#define TAS_REPORT_VERSION "3.1.0-build.11"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -54,8 +56,6 @@ extern id objc_getAssociatedObject(id object, const void *key);
 
 static pthread_mutex_t g_diag_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t g_metrics[TAS_DIAG_METRIC_COUNT];
-static uint64_t g_logged_events;
-static id g_diagnostics_path;
 #if TAS_EMOTE_DIAGNOSTIC
 static char g_probe_notice_key;
 #endif
@@ -135,284 +135,129 @@ static const char *utf8(id value) {
     return value ? ((const char *(*)(id, SEL))objc_msgSend)(value, sel_registerName("UTF8String")) : NULL;
 }
 
-static id data_from_bytes(const void *bytes, size_t length) {
-    return ((id (*)(id, SEL, const void *, NSUInteger))objc_msgSend)(
-        (id)objc_getClass("NSData"), sel_registerName("dataWithBytes:length:"), bytes, (NSUInteger)length);
-}
-
-static size_t data_length(id data) {
-    return data ? (size_t)((NSUInteger (*)(id, SEL))objc_msgSend)(data, sel_registerName("length")) : 0;
-}
-
 static id defaults(void) {
     return msg0((id)objc_getClass("NSUserDefaults"), "standardUserDefaults");
 }
 
-static bool diagnostics_enabled(void) {
-    return bmsg1(defaults(), "boolForKey:", nsstr(TAS_DIAGNOSTICS_KEY));
+static unsigned saved_diagnostic_config(void) {
+    id value=msg1(defaults(),"objectForKey:",nsstr(TAS_DIAG_CONFIG_KEY));
+    if(!bmsg1(value,"isKindOfClass:",(id)objc_getClass("NSNumber")))return 1U;
+    return value ? tas_diag_config_normalize((unsigned)imsg0(value,"unsignedIntValue")) : 1U;
 }
-
+void tas_diagnostics_load_preferences(void) {
+    tas_diag_policy_initialize(saved_diagnostic_config());
+}
+static void save_diagnostic_config(unsigned word) {
+    ((void (*)(id,SEL,NSInteger,id))objc_msgSend)(defaults(),sel_registerName("setInteger:forKey:"),
+        (NSInteger)tas_diag_config_normalize(word),nsstr(TAS_DIAG_CONFIG_KEY));
+}
 static bool emotes_preference(void) {
     return bmsg1(defaults(), "boolForKey:", nsstr(TAS_EMOTES_KEY));
 }
-
-static void set_diagnostics_enabled(bool enabled) {
-    ((void (*)(id, SEL, BOOL, id))objc_msgSend)(
-        defaults(), sel_registerName("setBool:forKey:"), enabled ? YES : NO, nsstr(TAS_DIAGNOSTICS_KEY));
+/* Delete obsolete logs once; never mix their labels/configuration into a new
+ * process. New category rings are fixed-size, in-memory session evidence. */
+static void remove_legacy_logs(void) {
+    id manager=msg0((id)objc_getClass("NSFileManager"),"defaultManager");
+    id urls=((id (*)(id,SEL,NSUInteger,NSUInteger))objc_msgSend)(manager,sel_registerName("URLsForDirectory:inDomains:"),14,1);
+    id path=msg1(msg0(msg0(urls,"firstObject"),"path"),"stringByAppendingPathComponent:",nsstr(TAS_DIAGNOSTICS_DIRECTORY));
+    if(!path)return;
+    const char *names[]={"diagnostics.log",TAS_DIAGNOSTICS_FILENAME};
+    for(unsigned i=0;i<2;i++) ((BOOL (*)(id,SEL,id,id *))objc_msgSend)(manager,sel_registerName("removeItemAtPath:error:"),msg1(path,"stringByAppendingPathComponent:",nsstr(names[i])),NULL);
 }
-
-static id diagnostics_path_locked(void) {
-    if (g_diagnostics_path) return g_diagnostics_path;
-
-    id manager = msg0((id)objc_getClass("NSFileManager"), "defaultManager");
-    id urls = ((id (*)(id, SEL, NSUInteger, NSUInteger))objc_msgSend)(
-        manager, sel_registerName("URLsForDirectory:inDomains:"), (NSUInteger)14, (NSUInteger)1);
-    id base_url = msg0(urls, "firstObject");
-    id base_path = msg0(base_url, "path");
-    if (!base_path) {
-        id environment = msg0(msg0((id)objc_getClass("NSProcessInfo"), "processInfo"), "environment");
-        id home = msg1(environment, "objectForKey:", nsstr("HOME"));
-        base_path = msg1(home, "stringByAppendingPathComponent:", nsstr("Library/Application Support"));
-    }
-    if (!base_path) return nil;
-
-    id directory = msg1(base_path, "stringByAppendingPathComponent:", nsstr(TAS_DIAGNOSTICS_DIRECTORY));
-    ((BOOL (*)(id, SEL, id, BOOL, id, id *))objc_msgSend)(
-        manager, sel_registerName("createDirectoryAtPath:withIntermediateDirectories:attributes:error:"),
-        directory, YES, nil, NULL);
-    /* 2.2.0 wrote URL paths. Remove that file before showing a report. */
-    id legacy_path = msg1(directory, "stringByAppendingPathComponent:", nsstr("diagnostics.log"));
-    ((BOOL (*)(id, SEL, id, id *))objc_msgSend)(
-        manager, sel_registerName("removeItemAtPath:error:"), legacy_path, NULL);
-    id path = msg1(directory, "stringByAppendingPathComponent:", nsstr(TAS_DIAGNOSTICS_FILENAME));
-    g_diagnostics_path = objc_retain(path);
-    return g_diagnostics_path;
-}
-
 void tas_diag_metric(TASDiagnosticMetric metric, uint64_t amount) {
     if (metric < 0 || metric >= TAS_DIAG_METRIC_COUNT) return;
-    pthread_mutex_lock(&g_diag_lock);
-    g_metrics[metric] += amount;
-    pthread_mutex_unlock(&g_diag_lock);
+    pthread_mutex_lock(&g_diag_lock);g_metrics[metric]+=amount;pthread_mutex_unlock(&g_diag_lock);
 }
-
-static void append_log_line_locked(const char *line) {
-    id path = diagnostics_path_locked();
-    if (!path) return;
-    id manager = msg0((id)objc_getClass("NSFileManager"), "defaultManager");
-    id handle = msg1((id)objc_getClass("NSFileHandle"), "fileHandleForWritingAtPath:", path);
-    if (!handle) {
-        ((BOOL (*)(id, SEL, id, id, id))objc_msgSend)(
-            manager, sel_registerName("createFileAtPath:contents:attributes:"),
-            path, data_from_bytes("", 0), nil);
-        handle = msg1((id)objc_getClass("NSFileHandle"), "fileHandleForWritingAtPath:", path);
-    }
-    if (!handle) return;
-
-    unsigned long long offset = ((unsigned long long (*)(id, SEL))objc_msgSend)(
-        handle, sel_registerName("seekToEndOfFile"));
-    if (offset >= TAS_DIAGNOSTICS_LIMIT) {
-        ((void (*)(id, SEL, unsigned long long))objc_msgSend)(
-            handle, sel_registerName("truncateFileAtOffset:"), 0ULL);
-        ((void (*)(id, SEL, unsigned long long))objc_msgSend)(
-            handle, sel_registerName("seekToFileOffset:"), 0ULL);
-        char rotated[160];
-        snprintf(rotated, sizeof(rotated), "[%lld] LOG_ROTATED previous log exceeded 512 KiB\n",
-                 (long long)time(NULL));
-        vmsg1(handle, "writeData:", data_from_bytes(rotated, strlen(rotated)));
-    }
-    vmsg1(handle, "writeData:", data_from_bytes(line, strlen(line)));
-    msg0(handle, "synchronizeFile");
-    msg0(handle, "closeFile");
+void tas_diag_log(const char *event,const char *detail) {
+    unsigned category,level;tas_diag_classify(event,&category,&level);
+    tas_diag_event_store(category,level,event,detail);
 }
-
-void tas_diag_log(const char *event, const char *detail) {
-    if (!diagnostics_enabled()) return;
-    char line[2048];
-    snprintf(line, sizeof(line), "[%lld] %s%s%s\n", (long long)time(NULL),
-             event ? event : "EVENT", detail && detail[0] ? " " : "", detail ? detail : "");
-    pthread_mutex_lock(&g_diag_lock);
-    g_logged_events++;
-    append_log_line_locked(line);
-    pthread_mutex_unlock(&g_diag_lock);
+void tas_diag_log_url(const char *event,const char *url,const char *detail) {
+    unsigned category,level;tas_diag_classify(event,&category,&level);
+    if(!tas_diag_wants(category,level))return;
+    char label[64],combined[384];tas_label_url(url,label,sizeof(label));
+    snprintf(combined,sizeof(combined),"resource=%s%s%s",label,detail&&*detail?" ":"",detail?detail:"");
+    tas_diag_log(event,combined);
 }
-
-void tas_diag_log_url(const char *event, const char *url, const char *detail) {
-    if (!diagnostics_enabled()) return;
-    char label[64];
-    char combined[1536];
-    tas_label_url(url, label, sizeof(label));
-    snprintf(combined, sizeof(combined), "resource=%s%s%s", label,
-             detail && detail[0] ? " " : "", detail ? detail : "");
-    tas_diag_log(event, combined);
+void tas_diag_log_stream(const char *event,const char *channel,const char *url,const char *detail) {
+    unsigned category,level;tas_diag_classify(event,&category,&level);
+    if(!tas_diag_wants(category,level))return;
+    char a[64],b[64],combined[384];tas_label_channel(channel,a,sizeof(a));tas_label_url(url,b,sizeof(b));
+    snprintf(combined,sizeof(combined),"channel=%s resource=%s%s%s",a,b,detail&&*detail?" ":"",detail?detail:"");
+    tas_diag_log(event,combined);
 }
-
-void tas_diag_log_stream(const char *event, const char *channel, const char *url,
-                         const char *detail) {
-    if (!diagnostics_enabled()) return;
-    char channel_label[64], url_label[64], combined[1536];
-    tas_label_channel(channel, channel_label, sizeof(channel_label));
-    tas_label_url(url, url_label, sizeof(url_label));
-    snprintf(combined, sizeof(combined), "channel=%s resource=%s%s%s",
-             channel_label, url_label, detail && detail[0] ? " " : "",
-             detail ? detail : "");
-    tas_diag_log(event, combined);
-}
-
-static id diagnostic_log_data_locked(void) {
-    id path = diagnostics_path_locked();
-    if (!path) return nil;
-    return msg1((id)objc_getClass("NSData"), "dataWithContentsOfFile:", path);
-}
-
+static void report_append(id report,const char *value) { vmsg1(report,"appendString:",nsstr(value)); }
 static id diagnostic_report_create(void) {
-    uint64_t metrics[TAS_DIAG_METRIC_COUNT];
-    uint64_t events;
-    id log_data;
-    pthread_mutex_lock(&g_diag_lock);
-    memcpy(metrics, g_metrics, sizeof(metrics));
-    events = g_logged_events;
-    log_data = objc_retain(diagnostic_log_data_locked());
-    pthread_mutex_unlock(&g_diag_lock);
-
-    id bundle = msg0((id)objc_getClass("NSBundle"), "mainBundle");
-    const char *app_version = utf8(msg1(bundle, "objectForInfoDictionaryKey:", nsstr("CFBundleShortVersionString")));
-    const char *app_build = utf8(msg1(bundle, "objectForInfoDictionaryKey:", nsstr("CFBundleVersion")));
-    char header[4096];
-    snprintf(header, sizeof(header),
-        "Streamside iOS diagnostic report\n"
-        "Port build: %s\n"
-        "Twitch: %s (%s)\n"
-        "Diagnostic logging: %s\n"
-        "Privacy: channel names, room IDs, chat text, full URLs and paths, query strings/fragments, headers, access tokens, and manifest contents are not stored.\n"
-        "Labels stay with the same channel or playlist until Twitch restarts; then reset.\n"
-        "Log limit: 512 KiB\n\n"
-        "Session counters\n"
-        "HLS intercepted: %llu\n"
-        "Master manifests: %llu\n"
-        "Variant manifests: %llu\n"
-        "Ad-marked manifests: %llu\n"
-        "Clean alternate swaps: %llu\n"
-        "Suppressed ad segments: %llu\n"
-        "Access-token failures: %llu\n"
-        "Unmapped variants: %llu\n"
-        "Synthetic segment responses: %llu\n"
-        "GraphQL rewrites: %llu\n"
-        "HLS failures: %llu\n"
-        "Logged events this launch: %llu\n",
-        TAS_REPORT_VERSION, app_version ? app_version : "unknown", app_build ? app_build : "unknown",
-        diagnostics_enabled() ? "enabled" : "disabled",
-        (unsigned long long)metrics[TAS_DIAG_HLS_INTERCEPTED],
-        (unsigned long long)metrics[TAS_DIAG_MASTER_MANIFEST],
-        (unsigned long long)metrics[TAS_DIAG_VARIANT_MANIFEST],
-        (unsigned long long)metrics[TAS_DIAG_AD_MANIFEST],
-        (unsigned long long)metrics[TAS_DIAG_CLEAN_ALTERNATE],
-        (unsigned long long)metrics[TAS_DIAG_STRIPPED_SEGMENT],
-        (unsigned long long)metrics[TAS_DIAG_TOKEN_FAILURE],
-        (unsigned long long)metrics[TAS_DIAG_UNMAPPED_VARIANT],
-        (unsigned long long)metrics[TAS_DIAG_SYNTHETIC_SEGMENT],
-        (unsigned long long)metrics[TAS_DIAG_GRAPHQL_REWRITE],
-        (unsigned long long)metrics[TAS_DIAG_HLS_FAILURE],
-        (unsigned long long)events);
-
-    id report = msg1((id)objc_getClass("NSMutableString"), "stringWithString:", nsstr(header));
-    char emote_status[4096], menu_status[1536];
-    char button_target[96], button_action[96], presented_class[96], appeared_class[96];
-    char navigation_top[96], navigation_visible[96];
-    pthread_mutex_lock(&g_diag_lock);
-    snprintf(button_target, sizeof(button_target), "%s", g_chat_button_target);
-    snprintf(button_action, sizeof(button_action), "%s", g_chat_button_action);
-    snprintf(presented_class, sizeof(presented_class), "%s", g_last_presented_class);
-    snprintf(appeared_class, sizeof(appeared_class), "%s", g_last_appeared_after_tap);
-    snprintf(navigation_top, sizeof(navigation_top), "%s", g_last_navigation_top);
-    snprintf(navigation_visible, sizeof(navigation_visible), "%s", g_last_navigation_visible);
-    pthread_mutex_unlock(&g_diag_lock);
-    tas_emotes_status(emote_status, sizeof(emote_status));
-    char image_transport[8192];
-    tas_image_transport_status(image_transport, sizeof(image_transport));
-    vmsg1(report, "appendString:", nsstr("\n"));
-    vmsg1(report, "appendString:", nsstr(image_transport));
-#if TAS_IMAGE_DEMAND_DIAGNOSTIC
-    char demand[32768];tas_demand_status(demand,sizeof(demand));
-    vmsg1(report,"appendString:",nsstr("\n"));vmsg1(report,"appendString:",nsstr(demand));
-#endif
-#if TAS_CHAT_TRACE_DIAGNOSTIC
-    char chat_trace[65536];tas_chat_trace_status(chat_trace,sizeof(chat_trace));
-    vmsg1(report,"appendString:",nsstr(chat_trace));
-#endif
-    snprintf(menu_status, sizeof(menu_status),
-             "Chat menu (this launch)\n"
-             "Chat Settings controller seen/presented: %llu/%llu\n"
-             "Action sheets seen/from Chat Settings/titled Chat Settings: %llu/%llu/%llu\n"
-             "Reload actions inserted: %llu\n"
-             "Native action-sheet hook/seen/reload rows/row taps: %s/%llu/%llu/%llu\n"
-             "Chat settings button taps/total presentations: %llu/%llu\n"
-             "Button target/action: %s/%s\n"
-             "Last presented/appeared after tap: %s/%s\n"
-             "Navigation presentations/top/visible: %llu/%s/%s\n\n--- Log ---\n",
-             (unsigned long long)MENU_GET(g_chat_controller_appear),
-             (unsigned long long)MENU_GET(g_chat_controller_presented),
-             (unsigned long long)MENU_GET(g_presented_sheets),
-             (unsigned long long)MENU_GET(g_chat_presenter_sheets),
-             (unsigned long long)MENU_GET(g_chat_titled_sheets),
-             (unsigned long long)MENU_GET(g_reload_actions_added),
-             g_native_action_sheet_hooked ? "installed" : "missing",
-             (unsigned long long)MENU_GET(g_native_action_sheets_seen),
-             (unsigned long long)MENU_GET(g_native_reload_buttons_added),
-             (unsigned long long)MENU_GET(g_native_reload_button_taps),
-             (unsigned long long)MENU_GET(g_chat_button_taps),
-             (unsigned long long)MENU_GET(g_presented_controllers),
-             button_target[0] ? button_target : "none",
-             button_action[0] ? button_action : "none",
-             presented_class[0] ? presented_class : "none",
-             appeared_class[0] ? appeared_class : "none",
-             (unsigned long long)MENU_GET(g_presented_navigation),
-             navigation_top[0] ? navigation_top : "none",
-             navigation_visible[0] ? navigation_visible : "none");
-    vmsg1(report, "appendString:", nsstr(emote_status));
-#if TAS_EMOTE_DIAGNOSTIC
-    char probe_status[393216];
-    tas_emote_probe_status(probe_status,sizeof(probe_status));
-    vmsg1(report,"appendString:",nsstr(probe_status));
-#endif
-    char ui_status[2048];
-    tas_emote_ui_status(ui_status, sizeof(ui_status));
-    vmsg1(report, "appendString:", nsstr(ui_status));
-    char composer_status[1024];
-    ss_composer_status(composer_status, sizeof(composer_status));
-    vmsg1(report, "appendString:", nsstr(composer_status));
-    char palette_status[8192];
-    ss_legacy_palette_status(palette_status,sizeof(palette_status));
-    vmsg1(report,"appendString:",nsstr(palette_status));
-    char rn_composer_status[1024];
-    tas_rn_composer_ui_status(rn_composer_status,sizeof(rn_composer_status));
-    vmsg1(report,"appendString:",nsstr(rn_composer_status));
-    vmsg1(report, "appendString:", nsstr(menu_status));
-    if (log_data && data_length(log_data)) {
-        id log_text = msg0((id)objc_getClass("NSString"), "alloc");
-        log_text = ((id (*)(id, SEL, id, NSUInteger))objc_msgSend)(
-            log_text, sel_registerName("initWithData:encoding:"), log_data, (NSUInteger)4);
-        if (log_text) {
-            vmsg1(report, "appendString:", log_text);
-            objc_release(log_text);
+    id bundle=msg0((id)objc_getClass("NSBundle"),"mainBundle");
+    const char *version=utf8(msg1(bundle,"objectForInfoDictionaryKey:",nsstr("CFBundleShortVersionString")));
+    const char *build=utf8(msg1(bundle,"objectForInfoDictionaryKey:",nsstr("CFBundleVersion")));
+    char header[4096],config[2048];
+    tas_diag_configuration_report(saved_diagnostic_config(),config,sizeof(config));
+    snprintf(header,sizeof(header),"Streamside iOS diagnostic report\nPort build: %s\nTwitch: %s (%s)\n%s"
+        "Privacy: no chat text, channel/room identities, full URLs/paths, headers, tokens or manifests. Labels reset each launch.\n"
+        "Experimental modules compiled: emote=%d image-demand=%d chat-trace=%d\n"
+        "All diagnostic changes apply after fully closing and relaunching Twitch. Functional interception stays enabled.\n",
+        TAS_REPORT_VERSION,version?version:"unknown",build?build:"unknown",config,TAS_EMOTE_DIAGNOSTIC,TAS_IMAGE_DEMAND_DIAGNOSTIC,TAS_CHAT_TRACE_DIAGNOSTIC);
+    id report=msg1((id)objc_getClass("NSMutableString"),"stringWithString:",nsstr(header));
+    for(unsigned category=0;category<TAS_DIAG_CATEGORIES;category++) {
+        if(!tas_diag_wants(category,TAS_DIAG_SUMMARY))continue;
+        char text[8192];snprintf(text,sizeof(text),"\n--- %s ---\n",tas_diag_category_name(category));report_append(report,text);
+        if(category==TAS_DIAG_GENERAL) {
+            tas_emotes_status_category(category,text,sizeof(text));report_append(report,text);
+            pthread_mutex_lock(&g_diag_lock);uint64_t hls=g_metrics[TAS_DIAG_HLS_FAILURE],tokens=g_metrics[TAS_DIAG_TOKEN_FAILURE];pthread_mutex_unlock(&g_diag_lock);
+            snprintf(text,sizeof(text),"Essential failure counters: HLS=%llu access-token=%llu (no playback event details)\n",(unsigned long long)hls,(unsigned long long)tokens);report_append(report,text);
         }
-    } else {
-        vmsg1(report, "appendString:", nsstr("No diagnostic entries yet.\n"));
+        if(category==TAS_DIAG_PLAYBACK) {
+            uint64_t m[TAS_DIAG_METRIC_COUNT];pthread_mutex_lock(&g_diag_lock);memcpy(m,g_metrics,sizeof(m));pthread_mutex_unlock(&g_diag_lock);
+            snprintf(text,sizeof(text),"Operational counters (whole launch, even while logging is disabled):\n"
+                "HLS intercepted: %llu\nMaster/variant/ad manifests: %llu/%llu/%llu\n"
+                "Clean swaps/suppressed segments: %llu/%llu\nToken failures/unmapped variants: %llu/%llu\n"
+                "Synthetic segments/GraphQL rewrites/HLS failures: %llu/%llu/%llu\n",
+                (unsigned long long)m[0],(unsigned long long)m[1],(unsigned long long)m[2],(unsigned long long)m[3],
+                (unsigned long long)m[4],(unsigned long long)m[5],(unsigned long long)m[6],(unsigned long long)m[7],
+                (unsigned long long)m[8],(unsigned long long)m[9],(unsigned long long)m[10]);report_append(report,text);
+        }
+        if(category==TAS_DIAG_RENDERING || category==TAS_DIAG_CHAT || category==TAS_DIAG_COMPOSER) {
+            tas_emotes_status_category(category,text,sizeof(text));report_append(report,text);
+        }
+        if(category==TAS_DIAG_IMAGES){tas_image_transport_status(text,sizeof(text));report_append(report,text);
+#if TAS_EMOTE_DIAGNOSTIC
+            if(tas_diag_wants(category,TAS_DIAG_DETAILED)){tas_image_probe_status(text,sizeof(text));report_append(report,text);}
+#endif
+        }
+        if(category==TAS_DIAG_RENDERING){tas_emote_ui_status(text,sizeof(text));report_append(report,text);}
+        if(category==TAS_DIAG_CHAT) {
+            report_append(report,TAS_CHAT_TRACE_DIAGNOSTIC?"Rolling trace compiled; Detailed required for collection.\n":"Rolling trace unavailable: not compiled into this build.\n");
+#if TAS_CHAT_TRACE_DIAGNOSTIC
+            if(tas_diag_wants(category,TAS_DIAG_DETAILED)){
+                char trace[65536];tas_chat_trace_status(trace,sizeof(trace));report_append(report,trace);
+            }
+#endif
+        }
+        if(category==TAS_DIAG_COMPOSER) {
+            ss_composer_status(text,sizeof(text));report_append(report,text);
+            tas_rn_composer_ui_status(text,sizeof(text));report_append(report,text);
+            snprintf(text,sizeof(text),"Settings integration: reload actions/row taps=%llu/%llu; native sheet hook=%s\n",(unsigned long long)MENU_GET(g_reload_actions_added),(unsigned long long)MENU_GET(g_native_reload_button_taps),g_native_action_sheet_hooked?"installed":"missing");report_append(report,text);
+#if TAS_IMAGE_DEMAND_DIAGNOSTIC
+            if(tas_diag_wants(category,TAS_DIAG_DETAILED)){
+                char demand[32768];tas_demand_status(demand,sizeof(demand));report_append(report,demand);
+                ss_legacy_palette_status(text,sizeof(text));report_append(report,text);
+            }
+#endif
+        }
+#if TAS_EMOTE_DIAGNOSTIC
+        if(category==TAS_DIAG_RENDERING && tas_diag_wants(category,TAS_DIAG_DETAILED)){
+            char probe[16384];tas_emote_probe_status(probe,sizeof(probe));report_append(report,probe);
+            if(strlen(probe)>=sizeof(probe)-1)report_append(report,"\n[emote probe export truncated: bounded buffer]\n");
+        }
+#endif
+        tas_diag_events_report(category,text,sizeof(text));report_append(report,text);
     }
-    if (log_data) objc_release(log_data);
     return objc_retain(report);
 }
-
 static void clear_diagnostic_log(void) {
-    pthread_mutex_lock(&g_diag_lock);
-    id path = diagnostics_path_locked();
-    if (path) {
-        ((BOOL (*)(id, SEL, id, BOOL))objc_msgSend)(
-            data_from_bytes("", 0), sel_registerName("writeToFile:atomically:"), path, YES);
-    }
-    g_logged_events = 0;
-    pthread_mutex_unlock(&g_diag_lock);
-    tas_diag_log("LOG_CLEARED", "The on-disk diagnostic log was cleared");
+    tas_diag_events_clear();
+    tas_diag_log("LOG_CLEARED","Session event rings cleared; operational counters and experimental traces unchanged");
 }
 
 static id make_bar_button(const char *title, id target, const char *action) {
@@ -465,17 +310,19 @@ static NSInteger settings_number_of_sections(id self, SEL command, id table) {
     (void)self;
     (void)command;
     (void)table;
-    return 4;
+    return 6;
 }
 
 static NSInteger settings_rows_in_section(id self, SEL command, id table, NSInteger section) {
     (void)self;
     (void)command;
     (void)table;
-    if (section == 0) return 1;
-    if (section == 2) return TAS_EMOTE_DIAGNOSTIC ? 2 : 1;
+    if (section == 0) return 2;
     if (section == 1) return 3;
-    if (section == 3) return 3;
+    if (section == 2) return 5;
+    if (section == 3) return TAS_DIAG_CATEGORIES;
+    if (section == 4) return TAS_EMOTE_DIAGNOSTIC ? 3 : 2;
+    if (section == 5) return 3;
     return 0;
 }
 
@@ -485,8 +332,10 @@ static id settings_header(id self, SEL command, id table, NSInteger section) {
     (void)table;
     if (section == 0) return nsstr("Status");
     if (section == 1) return nsstr("Third-Party Emotes");
-    if (section == 2) return nsstr("Diagnostics");
-    if (section == 3) return nsstr("Diagnostic Report");
+    if (section == 2) return nsstr("Diagnostic Preset");
+    if (section == 3) return nsstr("Diagnostic Categories");
+    if (section == 4) return nsstr("Diagnostic Verbosity");
+    if (section == 5) return nsstr("Diagnostic Report");
     return nil;
 }
 
@@ -497,13 +346,9 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     if (section == 1) {
         return nsstr("7TV, BTTV and FFZ emotes in chat and the text box. Horizontal suggestions include Twitch and subscriber emotes and open automatically or with a colon. Off restores Twitch's suggestions. The emote button opens the library. Changes to the enable switch take effect after relaunching Twitch.");
     }
-    if (section == 2) {
-#if TAS_EMOTE_DIAGNOSTIC
-        return nsstr("Inspect Emote traces one code you enter until Twitch restarts. That code is included in the copied report; chat messages are not stored. The trace works while Diagnostic Logging is off.");
-#else
-        return nsstr("Logging is off by default. When enabled, channel names and playlist URLs appear as temporary labels (for example, channel-a1b2). Labels reset when Twitch restarts. The log holds up to 512 KiB.");
-#endif
-    }
+    if (section == 2) return nsstr("Minimal: General/Summary. Ad Blocking: General + Playback/Detailed. Emotes: General + Rendering + Images + Composer/Detailed. Chat: General + Chat/Detailed. Custom keeps your selections.");
+    if (section == 3) return nsstr("All diagnostic changes require fully closing and relaunching Twitch. Active and saved configuration appear in the report. Disabling Playback logging never disables interception or ad blocking.");
+    if (section == 4) return nsstr("Summary: counters and bounded failures. Detailed: bounded event traces and compiled experimental probes. Experimental modules remain unavailable in ordinary builds. Inspect Emote requires Emote Rendering + Detailed at launch and includes the entered target code.");
     return nil;
 }
 
@@ -514,7 +359,10 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
     NSInteger section = imsg0(index_path, "section");
     NSInteger row = imsg0(index_path, "row");
     id cell = table_cell(1);
-    if (section == 0) {
+    if (section == 0 && row==1) {
+        set_cell_text(cell,"Diagnostic Configuration",saved_diagnostic_config()==tas_diag_policy_word()?"Active · no pending change":"Saved change · RELAUNCH REQUIRED");
+        vmsg_integer(cell,"setSelectionStyle:",0);
+    } else if (section == 0) {
         set_cell_text(cell, "Ad Blocking", "Enabled · VAFT v24");
         vmsg_integer(cell, "setSelectionStyle:", 0);
     } else if (section == 1 && row == 0) {
@@ -548,41 +396,41 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
         vmsg1(control, "setAccessibilityLabel:", nsstr("Emote suggestion mode"));
         vmsg1(cell, "setAccessoryView:", control); vmsg_integer(cell, "setSelectionStyle:", 0);
         objc_release(control);
-#if TAS_EMOTE_DIAGNOSTIC
-    } else if (section == 2 && row == 1) {
-        set_cell_text(cell,"Inspect Emote","Trace one code that remains text");
-        id notice=objc_getAssociatedObject(self,&g_probe_notice_key);
-        if (notice) vmsg1(msg0(cell,"detailTextLabel"),"setText:",notice);
-#endif
     } else if (section == 2) {
-        set_cell_text(cell, "Diagnostic Logging", diagnostics_enabled() ? "Enabled" : "Disabled");
-        id toggle = msg0(msg0((id)objc_getClass("UISwitch"), "alloc"), "init");
-        ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(
-            toggle, sel_registerName("setOn:animated:"), diagnostics_enabled() ? YES : NO, NO);
-        ((void (*)(id, SEL, id, SEL, NSUInteger))objc_msgSend)(
-            toggle, sel_registerName("addTarget:action:forControlEvents:"),
-            self, sel_registerName("tas_diagnosticsSwitchChanged:"), (NSUInteger)(1UL << 12));
-        vmsg1(toggle, "setAccessibilityIdentifier:", nsstr("TASDiagnosticsSwitch"));
-        vmsg1(cell, "setAccessoryView:", toggle);
-        vmsg_integer(cell, "setSelectionStyle:", 0);
-        objc_release(toggle);
-    } else if (section == 3 && row == 0) {
-        set_cell_text(cell, "View Diagnostic Report", "Session summary and sanitized event log");
+        unsigned saved=saved_diagnostic_config(),preset=tas_diag_preset_for(saved);
+        set_cell_text(cell,tas_diag_preset_name((unsigned)row),row==TAS_DIAG_CUSTOM?"Use category switches below":NULL);
+        vmsg_integer(cell,"setAccessoryType:",preset==(unsigned)row?3:0);
+    } else if (section == 3) {
+        unsigned saved=saved_diagnostic_config();
+        set_cell_text(cell,tas_diag_category_name((unsigned)row),"After relaunch");
+        id toggle=msg0(msg0((id)objc_getClass("UISwitch"),"alloc"),"init");
+        vmsg_integer(toggle,"setTag:",row);
+        ((void (*)(id,SEL,BOOL,BOOL))objc_msgSend)(toggle,sel_registerName("setOn:animated:"),(saved&(1U<<row))?YES:NO,NO);
+        ((void (*)(id,SEL,id,SEL,NSUInteger))objc_msgSend)(toggle,sel_registerName("addTarget:action:forControlEvents:"),self,sel_registerName("tas_diagnosticCategoryChanged:"),(NSUInteger)(1UL<<12));
+        vmsg1(toggle,"setAccessibilityLabel:",nsstr(tas_diag_category_name((unsigned)row)));
+        vmsg1(cell,"setAccessoryView:",toggle);vmsg_integer(cell,"setSelectionStyle:",0);objc_release(toggle);
+    } else if (section == 4) {
+        if(row<2) {
+            set_cell_text(cell,row?"Detailed":"Summary",row?"Bounded event traces; compiled probes":"Counters and essential failures");
+            vmsg_integer(cell,"setAccessoryType:",((saved_diagnostic_config()&TAS_DIAG_DETAIL_BIT)!=0)==(row==1)?3:0);
+        } else set_cell_text(cell,"Inspect Emote","Requires Rendering + Detailed at launch");
+    } else if (section == 5 && row == 0) {
+        set_cell_text(cell, "View Diagnostic Report", "Active categories and bounded events");
         vmsg_integer(cell, "setAccessoryType:", 1);
-    } else if (section == 3 && row == 1) {
-        set_cell_text(cell, "Copy Diagnostic Report", "Copies the complete report to the clipboard");
+    } else if (section == 5 && row == 1) {
+        set_cell_text(cell, "Copy Diagnostic Report", "Copies only active category sections");
     } else {
-        set_cell_text(cell, "Clear Diagnostic Log", "Removes stored event entries");
+        set_cell_text(cell, "Clear Diagnostic Log", "Clears event rings; keeps launch counters");
     }
     return msg0(cell, "autorelease");
 }
 
-static void settings_switch_changed(id self, SEL command, id sender) {
-    (void)command;
-    bool enabled = bmsg0(sender, "isOn");
-    set_diagnostics_enabled(enabled);
-    if (enabled) tas_diag_log("LOGGING_ENABLED", "Diagnostic logging enabled from Twitch settings");
-    msg0(msg0(self, "tableView"), "reloadData");
+static void diagnostic_category_changed(id self,SEL command,id sender) {
+    (void)command;NSInteger category=imsg0(sender,"tag");
+    if(category<0 || category>=TAS_DIAG_CATEGORIES)return;
+    unsigned word=saved_diagnostic_config()|TAS_DIAG_CUSTOM_BIT,bit=1U<<category;
+    save_diagnostic_config(bmsg0(sender,"isOn")?word|bit:word&~bit);
+    msg0(msg0(self,"tableView"),"reloadData");
 }
 
 static void emotes_switch_changed(id self, SEL command, id sender) {
@@ -657,10 +505,14 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
     ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
         table, sel_registerName("deselectRowAtIndexPath:animated:"), index_path, YES);
 #if TAS_EMOTE_DIAGNOSTIC
-    if (section==2 && row==1) {
+    if (section==4 && row==2) {
+        if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {
+            show_notice(self,"Collection disabled","Choose Emotes or enable Emote Rendering + Detailed, then fully close and relaunch Twitch before starting a trace.");
+            return;
+        }
         id alert=((id (*)(id,SEL,id,id,NSInteger))objc_msgSend)((id)objc_getClass("UIAlertController"),
             sel_registerName("alertControllerWithTitle:message:preferredStyle:"),nsstr("Inspect Emote"),
-            nsstr("Enter the exact code after you notice a failure. Recent playback is already being recorded; selecting it retrieves retained history. Copy the diagnostic report. Bounded history expires after ten minutes and resets when Twitch restarts."),(NSInteger)1);
+            nsstr("Requires Emote Rendering + Detailed at launch. Entering a code includes that target in the report, but never chat messages. Compiled history is bounded, expires after ten minutes, and resets on relaunch."),(NSInteger)1);
         ((void (*)(id,SEL,id))objc_msgSend)(alert,sel_registerName("addTextFieldWithConfigurationHandler:"),(id)^(id field) {
             vmsg1(field,"setPlaceholder:",nsstr("Emote code (case sensitive)"));
             vmsg_integer(field,"setAutocorrectionType:",1);
@@ -693,7 +545,17 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
                     "New chat messages will reload third-party emotes when you return to chat.");
         return;
     }
-    if (section != 3) return;
+    if(section==2) {
+        if(row>=0 && row<4)save_diagnostic_config(tas_diag_preset_word((unsigned)row));
+        else if(row==TAS_DIAG_CUSTOM)save_diagnostic_config(saved_diagnostic_config()|TAS_DIAG_CUSTOM_BIT);
+        msg0(table,"reloadData");return;
+    }
+    if(section==4 && row>=0 && row<2) {
+        unsigned w=saved_diagnostic_config()|TAS_DIAG_CUSTOM_BIT;
+        save_diagnostic_config(row?w|TAS_DIAG_DETAIL_BIT:w&~TAS_DIAG_DETAIL_BIT);
+        msg0(table,"reloadData");return;
+    }
+    if (section != 5) return;
     if (row == 0) {
         id controller = msg0((id)g_log_class, "new");
         ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
@@ -708,7 +570,7 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
     } else if (row == 2) {
         clear_diagnostic_log();
         msg0(table, "reloadData");
-        show_notice(self, "Cleared", "The stored diagnostic event log was cleared.");
+        show_notice(self, "Cleared", "Session event rings cleared. Launch counters and experimental traces were preserved.");
     }
 }
 
@@ -812,10 +674,12 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
     }
     if (tas_emotes_enabled_this_launch() &&
         time(NULL) - g_chat_button_last_tap <= 5 && g_chat_button_last_tap) {
+        if(tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED)) {
         pthread_mutex_lock(&g_diag_lock);
         snprintf(g_last_appeared_after_tap, sizeof(g_last_appeared_after_tap), "%s",
                  class_getName(object_getClass(self)));
         pthread_mutex_unlock(&g_diag_lock);
+        }
     }
     if (!is_main_settings(self)) return;
     Class actual_class = object_getClass(self);
@@ -828,10 +692,12 @@ static void view_controller_view_did_appear(id self, SEL command, BOOL animated)
 static void present_controller(id self, SEL command, id presented, BOOL animated, id completion) {
     MENU_INC(g_presented_controllers);
     if (presented) {
+        if(tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED)) {
         pthread_mutex_lock(&g_diag_lock);
         snprintf(g_last_presented_class, sizeof(g_last_presented_class), "%s",
                  class_getName(object_getClass(presented)));
         pthread_mutex_unlock(&g_diag_lock);
+        }
     }
     Class chat_settings = objc_getClass("_TtC6Twitch22ChatSettingsController");
     bool from_chat_settings = chat_settings && bmsg1(self, "isKindOfClass:", (id)chat_settings);
@@ -878,12 +744,14 @@ static void present_controller(id self, SEL command, id presented, BOOL animated
         id top = msg0(presented, "topViewController");
         id visible = msg0(presented, "visibleViewController");
         MENU_INC(g_presented_navigation);
+        if(tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED)) {
         pthread_mutex_lock(&g_diag_lock);
         snprintf(g_last_navigation_top, sizeof(g_last_navigation_top), "%s",
                  top ? class_getName(object_getClass(top)) : "none");
         snprintf(g_last_navigation_visible, sizeof(g_last_navigation_visible), "%s",
                  visible ? class_getName(object_getClass(visible)) : "none");
         pthread_mutex_unlock(&g_diag_lock);
+        }
     }
 }
 
@@ -895,12 +763,14 @@ static void control_send_action(id self, SEL command, SEL action, id target, id 
     if (chat_button) {
         MENU_INC(g_chat_button_taps);
         g_chat_button_last_tap = time(NULL);
+        if(tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED)) {
         pthread_mutex_lock(&g_diag_lock);
         snprintf(g_chat_button_target, sizeof(g_chat_button_target), "%s",
                  target ? class_getName(object_getClass(target)) : "none");
         snprintf(g_chat_button_action, sizeof(g_chat_button_action), "%s",
                  action ? sel_getName(action) : "none");
         pthread_mutex_unlock(&g_diag_lock);
+        }
     }
     ((void (*)(id, SEL, SEL, id, id))g_control_original_send_action)(
         self, command, action, target, event);
@@ -991,10 +861,12 @@ static void native_action_sheet_view_did_appear(id self, SEL command, BOOL anima
     MENU_INC(g_native_action_sheets_seen);
     if (tas_emotes_enabled_this_launch() && g_chat_button_last_tap &&
         time(NULL) - g_chat_button_last_tap <= 10) {
+        if(tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED)) {
         pthread_mutex_lock(&g_diag_lock);
         snprintf(g_last_appeared_after_tap, sizeof(g_last_appeared_after_tap), "%s",
                  class_getName(object_getClass(self)));
         pthread_mutex_unlock(&g_diag_lock);
+        }
         add_native_reload_row(self);
         g_chat_button_last_tap = 0;
     }
@@ -1177,7 +1049,7 @@ static bool register_settings_class(void) {
         class_addMethod(g_settings_class, sel_registerName("tableView:titleForFooterInSection:"), (IMP)settings_footer, "@@:@q");
         class_addMethod(g_settings_class, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)settings_cell, "@@:@@");
         class_addMethod(g_settings_class, sel_registerName("tableView:didSelectRowAtIndexPath:"), (IMP)settings_did_select, "v@:@@");
-        class_addMethod(g_settings_class, sel_registerName("tas_diagnosticsSwitchChanged:"), (IMP)settings_switch_changed, "v@:@");
+        class_addMethod(g_settings_class, sel_registerName("tas_diagnosticCategoryChanged:"), (IMP)diagnostic_category_changed, "v@:@");
         class_addMethod(g_settings_class, sel_registerName("ss_suggestionsChanged:"), (IMP)suggestions_changed, "v@:@");
         class_addMethod(g_settings_class, sel_registerName("tas_emotesSwitchChanged:"), (IMP)emotes_switch_changed, "v@:@");
         objc_registerClassPair(g_settings_class);
@@ -1205,9 +1077,7 @@ static bool register_log_class(void) {
 }
 
 void tas_diagnostics_initialize(void) {
-    pthread_mutex_lock(&g_diag_lock);
-    diagnostics_path_locked();
-    pthread_mutex_unlock(&g_diag_lock);
+    remove_legacy_logs();
     bool settings_registered = register_settings_class();
     bool log_registered = register_log_class();
     bool fallback = install_view_controller_fallback();

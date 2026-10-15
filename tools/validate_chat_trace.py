@@ -15,7 +15,7 @@ import tempfile
 from validate_rn_snapshot import ROOT, RUNTIME_COMMIT, DONOR_SHA, fingerprints as base_fingerprints, patch_chain, test_entry, compile_js
 INPUTS=['src/rn/ChatTrace.js','src/TASChatTrace.c','src/TASChatTrace.h','src/TASChatTraceBridge.h',
         'tools/validate_chat_trace.py','tests/test_chat_trace.py','tests/fixtures/chat_trace_exercise.js',
-        'packaging/StreamsideFramework-Info.plist','tests/fixtures/chat_trace_limits.js','tests/fixtures/chat_trace_refusal.js','tests/fixtures/chat_trace_rewards.js']
+        'packaging/StreamsideFramework-Info.plist','tests/fixtures/chat_trace_limits.js','tests/fixtures/chat_trace_refusal.js','tests/fixtures/chat_trace_rewards.js','tests/test_chat_trace_policy.py']
 def fingerprints():
     return dict(base_fingerprints(),**{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in INPUTS})
 def check_gate(path):
@@ -114,6 +114,7 @@ def validate(a):
     assert stamp['runtime_commit']==RUNTIME_COMMIT and stamp['runner_source_sha256']==hashlib.sha256((ROOT/'tests/native/hermes_snapshot_runner.cpp').read_bytes()).hexdigest() and stamp['runner_sha256']==hashlib.sha256(a.runner.read_bytes()).hexdigest()
     a.record.parent.mkdir(parents=True,exist_ok=True);a.record.unlink(missing_ok=True)
     subprocess.run(['python3','-m','unittest','discover','-s','tests','-p','test_chat_trace.py','-v'],cwd=ROOT,check=True)
+    subprocess.run(['python3','-m','unittest','discover','-s','tests','-p','test_chat_trace_policy.py','-v'],cwd=ROOT,check=True,env={**__import__('os').environ,'ZIG':str(a.zig)})
     with tempfile.TemporaryDirectory() as folder:
         tmp=Path(folder)
         generate(a.donor,a.hermesc,ROOT/'src/rn/ChatTrace.js',tmp/'payload.h',prefix='CHAT',factory_id=4900,function_base=49127)

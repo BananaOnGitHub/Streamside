@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "TASDiagnosticPolicy.h"
 #ifndef TAS_IMAGE_DEMAND_DIAGNOSTIC
 #define TAS_IMAGE_DEMAND_DIAGNOSTIC 0
 #endif

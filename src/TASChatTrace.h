@@ -1,5 +1,6 @@
 #ifndef TAS_CHAT_TRACE_H
 #define TAS_CHAT_TRACE_H
+#include "TASDiagnosticPolicy.h"
 #include <stddef.h>
 #include <stdbool.h>
 #ifndef TAS_CHAT_TRACE_DIAGNOSTIC

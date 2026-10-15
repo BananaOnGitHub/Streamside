@@ -689,3 +689,37 @@ gap, missing own message or missing redemption is observed, before restarting
 the process. State which symptom was visible. Continuous sampling has bounded
 retention, so older evidence can still age out. This candidate has not yet
 received device validation.
+
+## Build 11 category-scoped capture
+
+The diagnostic configuration from `dev/3.1.0` build 10 is cherry-picked onto
+`a9de281` and explicitly integrated as build 11. The shared implementation
+and defaults are described in [Diagnostic categories](DIAGNOSTIC_CATEGORIES.md).
+No change is made to `ChatTrace.js`, its generated payload, the diagnostic
+graft algorithm, message/store/render outcomes or the preceding evidence.
+
+Select **Chat** (General + Chat / Detailed), then fully close and relaunch
+Twitch before reproducing the display issue. Minimal / Summary is now the
+default even in this compiled trace build. Saved configuration changes do not
+alter an active capture; the report identifies pending relaunch changes.
+
+Chat / Detailed at launch admits the existing sixth diagnostic graft and
+its native trace bridge. Other launch selections omit both; the five
+functional graft stages still run. The native collector and bridge also
+refuse disabled or Summary capture before packet inspection. Ordinary
+playback logging can remain off without affecting interception. Its new
+category ring cannot consume the existing own-message priority or reward
+lifecycle/geometry retention.
+
+The compiled chat gate retains the same 112-function/20,696-byte owned
+payload and executes the original flow/reward/geometry/rolling fixtures for
+both the owned installer and donor factory join. Additional native tests
+execute real bridge registration for Minimal, playback, Chat/Summary,
+Chat/Detailed, Composer and all-category configurations; disabled collector
+tests use unreadable packet pointers to verify early refusal. The enabled
+observer retains its existing capture and export limits. Clear Diagnostic
+Log still does not reset the specialized trace.
+
+Host/compiled/package checks do not establish on-device settings appearance,
+temperature, latency, live PubSub behavior or resolution of the display bug.
+The previous build-9 IPA/HBC hashes remain attached to that candidate.

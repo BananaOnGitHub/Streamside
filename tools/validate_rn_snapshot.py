@@ -20,6 +20,7 @@ RUNTIME_COMMIT='40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c'
 DONOR_SHA='20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458'
 WINDOW_BASELINE=json.loads((ROOT/'tests/fixtures/window_baseline.json').read_text())
 INPUTS=['src/rn/ProviderEmoteStrip.js','src/TASRNStripPayload.h','src/TASDemandRNBridge.h',
+        'src/TASDiagnosticPolicy.c','src/TASDiagnosticPolicy.h','tests/test_diagnostic_config.py',
         'src/TASImageDemand.c','src/TASImageDemand.h','src/TASEmotes.c',
         'tests/native/hermes_snapshot_runner.cpp','tests/fixtures/snapshot_exercise.js','tests/fixtures/rn_settings_exercise.js','tests/fixtures/rn_settings_donor.js',
         'tests/fixtures/window_algorithm.js','tests/fixtures/window_exercise.js','tests/fixtures/window_baseline.json',

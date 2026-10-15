@@ -15,7 +15,7 @@ unsigned tas_diag_preset_word(unsigned p){
     static const unsigned words[]={1,259,285,289,513};
     return p<5?words[p]:1;
 }
-unsigned tas_diag_preset_for(unsigned w){if(w&TAS_DIAG_CUSTOM_BIT)return TAS_DIAG_CUSTOM;for(unsigned i=0;i<4;i++)if(w==tas_diag_preset_word(i))return i;return TAS_DIAG_CUSTOM;}
+unsigned tas_diag_preset_for(unsigned w){if(w&TAS_DIAG_CUSTOM_BIT)return TAS_DIAG_CUSTOM;for(unsigned i=0;i<4;i++)if((w&~TAS_DIAG_DETAIL_BIT)==(tas_diag_preset_word(i)&~TAS_DIAG_DETAIL_BIT))return i;return TAS_DIAG_CUSTOM;}
 const char *tas_diag_preset_name(unsigned p){static const char *n[]={"Minimal","Ad Blocking","Emotes","Chat","Custom"};return p<5?n[p]:"Custom";}
 const char *tas_diag_category_name(unsigned c){static const char *n[]={"General","Playback / Ad Blocking","Emote Rendering","Image Transport","Composer / Picker","Chat / Redemptions"};return c<6?n[c]:"Unknown";}
 void tas_diag_classify(const char *e,unsigned *c,unsigned *l){
@@ -52,7 +52,7 @@ void tas_diag_events_report(unsigned c,char *b,size_t cap){
 void tas_diag_configuration_report(unsigned saved,char *b,size_t cap){
     unsigned w=tas_diag_policy_word();size_t used=0;
 #define ADD(...) do{if(used<cap){int k=snprintf(b+used,cap-used,__VA_ARGS__);if(k>0)used+=(size_t)k;}}while(0)
-    ADD("Diagnostics: %s / %s; active mask=%u\nSaved: %s / %s; mask=%u; %s\n",tas_diag_preset_name(tas_diag_preset_for(w)),w&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary",w&63,tas_diag_preset_name(tas_diag_preset_for(saved)),saved&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary",saved&63,saved==w?"no pending change":"RELAUNCH REQUIRED; capture still uses active configuration");
+    ADD("Diagnostics: %s / %s; active mask=%u\nSaved: %s / %s; mask=%u; %s\n",tas_diag_preset_name(tas_diag_preset_for(w)),w&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary",w&63,tas_diag_preset_name(tas_diag_preset_for(saved)),saved&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary",saved&63,((saved^w)&~TAS_DIAG_CUSTOM_BIT)==0?"no pending change":"RELAUNCH REQUIRED; capture still uses active configuration");
     for(unsigned c=0;c<TAS_DIAG_CATEGORIES;c++)ADD("%s: %s\n",tas_diag_category_name(c),w&(1U<<c)?"enabled":"collection disabled; section omitted");
     ADD("Retention: per-category 48 x 384-byte session ring; export latest 4 Summary or 12 Detailed events/category. Operational counters may span disabled collection. No prior-launch event files exported.\n");
 #undef ADD

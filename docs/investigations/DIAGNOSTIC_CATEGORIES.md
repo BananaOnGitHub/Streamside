@@ -111,3 +111,47 @@ chat candidate, keep the existing functional third-party-emote feature enabled,
 select Chat / Detailed, and relaunch before capture. UI appearance, real-device
 temperature/latency, live ad suppression and the missing-row symptom remain
 device validation items, not inferred host-test successes.
+
+
+## Settings layout follow-up (builds 12 / 13)
+
+The device screenshot of build 11 exposed excessive configuration on the main
+Streamside page, repeated relaunch labels, and truncated category details.
+Build 12 (development) and build 13 (chat investigation) move configuration and
+report actions to a dedicated Diagnostics subpage. Preset and Detail each use
+one value row opening a native action sheet; iPad sheets anchor to that row.
+Only Custom inserts category switches. A single preset-specific sentence
+replaces the all-presets paragraph. A pending restart note appears only when
+saved category/detail bits differ from active capture, and disappears on
+revert or next launch; the Custom selection marker alone is not a collection
+change. Detail changes preserve preset identity instead of exposing Custom
+switches automatically. Preset selection still applies its recommended detail.
+
+The selector alert owns its page through an associated object for the lifetime
+of its plain-C action blocks, including cancellation. The chat trace collector,
+payload, graft and functional hooks are unchanged. Existing build 10/11
+artifact hashes above still identify those original candidates.
+
+A production-function host adapter checks preset/detail independence, Custom
+section insertion, report section mapping in ordinary and compiled-emote
+builds, launch-applied persistence and the pending/revert distinction. Native
+build checks cover the Objective-C callbacks; device layout and interaction
+remain to be checked on iOS.
+
+Validation of the compact-page source: the development suite ran 180 tests
+(179 passed, one Apple-only skip); the investigation suite ran 192 tests
+(191 passed, one Apple-only skip). The donor/Hermes settings and virtualization
+gates and the compiled rolling chat gate passed. Both ordinary native/DEB
+builds and emote+demand probe variants passed artifact verification; the
+investigation variant also enabled the compiled chat module. The final
+candidates use ordinary flags for build 12 and chat-only flags for build 13.
+No playback, emote, or chat functional algorithm was changed in this follow-up.
+
+Both finished unsigned IPAs passed independent verification against their
+final framework artifacts. These are test candidates requiring signing and
+device UI validation, with the original Twitch 31.6 donor.
+
+| Candidate | Bytes | SHA-256 |
+| --- | --- | --- |
+| `Twitch_31.6_Streamside_3.1.0-build.12_compact-diagnostics_unsigned.ipa` | 194,479,827 | `479176fc016314e331ccafa3f67895dece9783e5fef448bc2bc9400e52fd91c2` |
+| `Twitch_31.6_Streamside_3.1.0-build.13_compact-chat-diagnostics_unsigned.ipa` | 194,498,251 | `920d02270f14c0b58f44c6c065aad90afddcba5f221bfda7e0615dac98cfb884` |

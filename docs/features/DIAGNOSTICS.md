@@ -6,7 +6,7 @@ Diagnostics answer which integration ran, what it admitted, and where a failure 
 
 ## Diagnostic configuration (3.1.0 development)
 
-In 3.1.0, Profile → Settings → Streamside offers independent categories and **Summary**/**Detailed** verbosity. Changes are saved immediately but collection changes only after fully closing and relaunching Twitch. The settings status row and report distinguish active configuration from pending saved changes. Existing installations start with **Minimal / Summary** rather than inheriting the old all-or-nothing logging switch. The released 3.0.0 report uses the older switch and disk log.
+In 3.1.0, Profile → Settings → Streamside → **Diagnostics** offers a single preset selector and a **Summary**/**Detailed** selector. Category switches appear only for **Custom**, which keeps the current selections. A short contextual sentence explains the selected preset. Changing detail preserves the preset; selecting a preset restores its recommended detail. Changes are saved immediately but collection changes only after fully closing and relaunching Twitch. A single restart note appears on the Diagnostics page only while saved collection settings differ from the active configuration; reverting those changes clears it. Selecting Custom alone does not require a restart. The report distinguishes saved and active settings. Existing installations start with **Minimal / Summary** rather than inheriting the old all-or-nothing logging switch. The released 3.0.0 report uses the older switch and disk log.
 
 | Preset | Enabled categories | Verbosity |
 | --- | --- | --- |

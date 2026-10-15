@@ -32,10 +32,81 @@ class DiagnosticConfigurationTests(unittest.TestCase):
             for i,w in enumerate([1,259,285,289]):
                 self.assertEqual(p.tas_diag_preset_word(i),w)
                 self.assertEqual(p.tas_diag_preset_for(w),i)
+                self.assertEqual(p.tas_diag_preset_for(w^256),i)
             self.assertEqual(p.tas_diag_config_normalize(0xffffffff),1)
             self.assertEqual(p.tas_diag_config_normalize(256|8),264)
             self.assertEqual(p.tas_diag_preset_for(264),4)
             self.assertEqual(p.tas_diag_preset_for(513),4)
+    def test_compact_settings_custom_visibility_detail_and_reverted_restart_state(self):
+        source=(ROOT/'src/TASDiagnostics.c').read_text()
+        selected='\n'.join(function(source,n) for n in [
+            'settings_number_of_sections','settings_rows_in_section',
+            'diagnostic_custom_selected','diagnostic_restart_pending',
+            'diagnostic_settings_sections','diagnostic_settings_rows',
+            'diagnostic_settings_header','diagnostic_settings_footer','diagnostic_select_option'])
+        prelude=r'''
+#include "TASDiagnosticPolicy.h"
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+typedef void *id;typedef const char *SEL;typedef long NSInteger;
+#define nil NULL
+static unsigned saved=1;
+static unsigned saved_diagnostic_config(void){return saved;}
+static void save_diagnostic_config(unsigned w){saved=tas_diag_config_normalize(w);}
+static char strings[8][512];static unsigned next_string;
+static id nsstr(const char *s){char *b=strings[next_string++%8];snprintf(b,512,"%s",s);return b;}
+'''
+        main=r'''
+int main(void){
+ assert(settings_number_of_sections(0,0,0)==3);
+ assert(settings_rows_in_section(0,0,0,0)==1);
+ assert(settings_rows_in_section(0,0,0,2)==1);
+ assert(!diagnostic_restart_pending());
+ assert(!strstr(diagnostic_settings_footer(0,0,0,1),"relaunch"));
+ for(unsigned preset=0;preset<4;preset++){
+  diagnostic_select_option(true,preset);
+  assert(!diagnostic_custom_selected());
+  assert(diagnostic_settings_sections(0,0,0)==3);
+  assert(diagnostic_settings_rows(0,0,0,0)==1 && diagnostic_settings_rows(0,0,0,1)==1);
+  assert(!strcmp(diagnostic_settings_header(0,0,0,2),"Report"));
+  assert(diagnostic_settings_rows(0,0,0,2)==(TAS_EMOTE_DIAGNOSTIC?4:3));
+  unsigned categories=saved&63;
+  diagnostic_select_option(false,0);assert((saved&63)==categories);
+  assert(tas_diag_preset_for(saved)==preset && !diagnostic_custom_selected());
+  diagnostic_select_option(false,1);assert((saved&63)==categories);
+  assert(tas_diag_preset_for(saved)==preset && !diagnostic_custom_selected());
+ }
+ diagnostic_select_option(true,TAS_DIAG_CHAT_PRESET);
+ assert(diagnostic_restart_pending() && tas_diag_policy_word()==1);
+ assert(strstr(diagnostic_settings_footer(0,0,0,1),"relaunch"));
+ assert(!strcmp(diagnostic_settings_footer(0,0,0,0),"General and Chat diagnostics for messages and redemptions."));
+ diagnostic_select_option(true,TAS_DIAG_CUSTOM);assert(saved==(289|512));
+ assert(diagnostic_settings_sections(0,0,0)==4);
+ assert(diagnostic_settings_rows(0,0,0,2)==6);
+ assert(!strcmp(diagnostic_settings_header(0,0,0,2),"Categories"));
+ assert(!strcmp(diagnostic_settings_header(0,0,0,3),"Report"));
+ diagnostic_select_option(false,0);assert(diagnostic_custom_selected() && (saved&63)==33);
+ diagnostic_select_option(true,TAS_DIAG_MINIMAL);
+ assert(!diagnostic_restart_pending() && !diagnostic_custom_selected());
+ assert(!strstr(diagnostic_settings_footer(0,0,0,1),"relaunch"));
+ diagnostic_select_option(true,TAS_DIAG_CUSTOM);
+ assert(!diagnostic_restart_pending());
+ char report[4096];tas_diag_configuration_report(saved,report,sizeof(report));
+ assert(strstr(report,"no pending change") && !strstr(report,"RELAUNCH REQUIRED"));
+ saved^=2;assert(diagnostic_restart_pending());
+ tas_diag_policy_initialize(saved);assert(!diagnostic_restart_pending());
+ assert(!strstr(diagnostic_settings_footer(0,0,0,1),"relaunch"));
+ return 0;
+}
+'''
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'settings.c';path.write_text(prelude+selected+main)
+            for compiled in [0,1]:
+                binary=Path(folder)/('settings'+str(compiled))
+                subprocess.run(['cc','-I',str(ROOT/'src'),'-DTAS_EMOTE_DIAGNOSTIC='+str(compiled),str(path),str(ROOT/'src/TASDiagnosticPolicy.c'),'-pthread','-o',str(binary)],check=True)
+                subprocess.run([str(binary)],check=True)
+
     def test_disabled_collection_does_not_dereference_or_retain_details(self):
         with tempfile.TemporaryDirectory() as f:
             p=self.policy(f);b=ctypes.create_string_buffer(8192)

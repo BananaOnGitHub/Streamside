@@ -4,7 +4,7 @@ Start with the affected surface. Keep the report and visible result from the sam
 
 ## Choose a diagnostic scope (3.1.0 development)
 
-In Streamside settings, choose **Minimal**, **Ad Blocking**, **Emotes**, or **Chat**, or use the category switches and Summary/Detailed rows for a custom selection. **Minimal / Summary** is the default. All diagnostic changes require fully closing and relaunching Twitch; the status row and report show pending saved changes versus active capture. The released 3.0.0 build still uses its older logging switch.
+In Streamside settings, open **Diagnostics** and choose **Minimal**, **Ad Blocking**, **Emotes**, **Chat**, or **Custom**. Category switches appear only for Custom; the Detail selector is always available. **Minimal / Summary** is the default. All diagnostic changes require fully closing and relaunching Twitch; the Diagnostics page shows one restart note only for pending collection changes, and the report distinguishes saved settings from active capture. The released 3.0.0 build still uses its older logging switch.
 
 Summary favors counters and failures. Detailed enables bounded event traces and any corresponding probes compiled into that binary. A setting cannot add an unavailable experimental module. For the missing local-message/redemption investigation, select **Chat / Detailed** in its diagnostic build and keep Playback disabled. This does not change message delivery or attempt a display fix.
 

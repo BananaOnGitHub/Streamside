@@ -44,7 +44,7 @@ typedef struct {
 
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
-#define TAS_REPORT_VERSION "3.1.0-build.10"
+#define TAS_REPORT_VERSION "3.1.0-build.12"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -59,6 +59,8 @@ static uint64_t g_metrics[TAS_DIAG_METRIC_COUNT];
 static char g_probe_notice_key;
 #endif
 static Class g_settings_class;
+static Class g_diagnostic_settings_class;
+static char g_diagnostic_selector_owner_key;
 static Class g_log_class;
 static IMP g_settings_super_view_did_load;
 static IMP g_settings_super_view_will_appear;
@@ -302,19 +304,16 @@ static NSInteger settings_number_of_sections(id self, SEL command, id table) {
     (void)self;
     (void)command;
     (void)table;
-    return 6;
+    return 3;
 }
 
 static NSInteger settings_rows_in_section(id self, SEL command, id table, NSInteger section) {
     (void)self;
     (void)command;
     (void)table;
-    if (section == 0) return 2;
+    if (section == 0) return 1;
     if (section == 1) return 3;
-    if (section == 2) return 5;
-    if (section == 3) return TAS_DIAG_CATEGORIES;
-    if (section == 4) return TAS_EMOTE_DIAGNOSTIC ? 3 : 2;
-    if (section == 5) return 3;
+    if (section == 2) return 1;
     return 0;
 }
 
@@ -324,10 +323,7 @@ static id settings_header(id self, SEL command, id table, NSInteger section) {
     (void)table;
     if (section == 0) return nsstr("Status");
     if (section == 1) return nsstr("Third-Party Emotes");
-    if (section == 2) return nsstr("Diagnostic Preset");
-    if (section == 3) return nsstr("Diagnostic Categories");
-    if (section == 4) return nsstr("Diagnostic Verbosity");
-    if (section == 5) return nsstr("Diagnostic Report");
+    if (section == 2) return nsstr("Diagnostics");
     return nil;
 }
 
@@ -338,9 +334,6 @@ static id settings_footer(id self, SEL command, id table, NSInteger section) {
     if (section == 1) {
         return nsstr("7TV, BTTV and FFZ emotes in chat and the text box. Horizontal suggestions include Twitch and subscriber emotes and open automatically or with a colon. Off restores Twitch's suggestions. The emote button opens the library. Changes to the enable switch take effect after relaunching Twitch.");
     }
-    if (section == 2) return nsstr("Minimal: General/Summary. Ad Blocking: General + Playback/Detailed. Emotes: General + Rendering + Images + Composer/Detailed. Chat: General + Chat/Detailed. Custom keeps your selections.");
-    if (section == 3) return nsstr("All diagnostic changes require fully closing and relaunching Twitch. Active and saved configuration appear in the report. Disabling Playback logging never disables interception or ad blocking.");
-    if (section == 4) return nsstr("Summary: counters and bounded failures. Detailed: bounded event traces and compiled experimental probes. Experimental modules remain unavailable in ordinary builds. Inspect Emote requires Emote Rendering + Detailed at launch and includes the entered target code.");
     return nil;
 }
 
@@ -351,10 +344,7 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
     NSInteger section = imsg0(index_path, "section");
     NSInteger row = imsg0(index_path, "row");
     id cell = table_cell(1);
-    if (section == 0 && row==1) {
-        set_cell_text(cell,"Diagnostic Configuration",saved_diagnostic_config()==tas_diag_policy_word()?"Active · no pending change":"Saved change · RELAUNCH REQUIRED");
-        vmsg_integer(cell,"setSelectionStyle:",0);
-    } else if (section == 0) {
+    if (section == 0) {
         set_cell_text(cell, "Ad Blocking", "Enabled · VAFT v24");
         vmsg_integer(cell, "setSelectionStyle:", 0);
     } else if (section == 1 && row == 0) {
@@ -388,33 +378,131 @@ static id settings_cell(id self, SEL command, id table, id index_path) {
         vmsg1(control, "setAccessibilityLabel:", nsstr("Emote suggestion mode"));
         vmsg1(cell, "setAccessoryView:", control); vmsg_integer(cell, "setSelectionStyle:", 0);
         objc_release(control);
-    } else if (section == 2) {
-        unsigned saved=saved_diagnostic_config(),preset=tas_diag_preset_for(saved);
-        set_cell_text(cell,tas_diag_preset_name((unsigned)row),row==TAS_DIAG_CUSTOM?"Use category switches below":NULL);
-        vmsg_integer(cell,"setAccessoryType:",preset==(unsigned)row?3:0);
-    } else if (section == 3) {
+    } else {
         unsigned saved=saved_diagnostic_config();
-        set_cell_text(cell,tas_diag_category_name((unsigned)row),"After relaunch");
+        char detail[96];snprintf(detail,sizeof(detail),"%s · %s",tas_diag_preset_name(tas_diag_preset_for(saved)),
+            saved&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary");
+        set_cell_text(cell,"Diagnostics",detail);
+        vmsg_integer(cell,"setAccessoryType:",1);
+    }
+    return msg0(cell, "autorelease");
+}
+
+static bool diagnostic_custom_selected(void) {
+    return tas_diag_preset_for(saved_diagnostic_config())==TAS_DIAG_CUSTOM;
+}
+
+static bool diagnostic_restart_pending(void) {
+    return ((saved_diagnostic_config()^tas_diag_policy_word())&~TAS_DIAG_CUSTOM_BIT)!=0;
+}
+
+static void diagnostic_settings_view_did_load(id self,SEL command) {
+    if(g_settings_super_view_did_load)((void (*)(id,SEL))g_settings_super_view_did_load)(self,command);
+    vmsg1(self,"setTitle:",nsstr("Diagnostics"));
+}
+
+static NSInteger diagnostic_settings_sections(id self,SEL command,id table) {
+    (void)self;(void)command;(void)table;
+    return diagnostic_custom_selected()?4:3;
+}
+
+static NSInteger diagnostic_settings_rows(id self,SEL command,id table,NSInteger section) {
+    (void)self;(void)command;(void)table;
+    if(section<2)return 1;
+    if(section==2 && diagnostic_custom_selected())return TAS_DIAG_CATEGORIES;
+    return TAS_EMOTE_DIAGNOSTIC?4:3;
+}
+
+static id diagnostic_settings_header(id self,SEL command,id table,NSInteger section) {
+    (void)self;(void)command;(void)table;
+    if(section==0)return nsstr("Preset");
+    if(section==1)return nsstr("Detail");
+    if(section==2 && diagnostic_custom_selected())return nsstr("Categories");
+    return nsstr("Report");
+}
+
+static id diagnostic_settings_footer(id self,SEL command,id table,NSInteger section) {
+    (void)self;(void)command;(void)table;
+    if(section==0) {
+        const char *descriptions[]={
+            "General diagnostics with essential failures.",
+            "General and Playback diagnostics for ad blocking.",
+            "General, Rendering, Images and Composer diagnostics for emotes.",
+            "General and Chat diagnostics for messages and redemptions.",
+            "Choose individual diagnostic categories below."
+        };
+        return nsstr(descriptions[tas_diag_preset_for(saved_diagnostic_config())]);
+    }
+    if(section==1) {
+        const char *detail=saved_diagnostic_config()&TAS_DIAG_DETAIL_BIT?
+            "Bounded event traces and available experimental probes.":"Counters and essential failures.";
+        char note[256];snprintf(note,sizeof(note),"%s%s",detail,diagnostic_restart_pending()?
+            " Fully close and relaunch Twitch to apply changes.":"");
+        return nsstr(note);
+    }
+    return nil;
+}
+
+static id diagnostic_settings_cell(id self,SEL command,id table,id index_path) {
+    (void)command;(void)table;
+    NSInteger section=imsg0(index_path,"section"),row=imsg0(index_path,"row");
+    unsigned saved=saved_diagnostic_config();id cell=table_cell(1);
+    if(section==0 || section==1) {
+        set_cell_text(cell,section?"Detail":"Preset",section?(saved&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary"):
+            tas_diag_preset_name(tas_diag_preset_for(saved)));
+        vmsg_integer(cell,"setAccessoryType:",1);
+    } else if(section==2 && diagnostic_custom_selected()) {
+        set_cell_text(cell,tas_diag_category_name((unsigned)row),NULL);
+        vmsg_integer(msg0(cell,"textLabel"),"setNumberOfLines:",0);
         id toggle=msg0(msg0((id)objc_getClass("UISwitch"),"alloc"),"init");
         vmsg_integer(toggle,"setTag:",row);
         ((void (*)(id,SEL,BOOL,BOOL))objc_msgSend)(toggle,sel_registerName("setOn:animated:"),(saved&(1U<<row))?YES:NO,NO);
         ((void (*)(id,SEL,id,SEL,NSUInteger))objc_msgSend)(toggle,sel_registerName("addTarget:action:forControlEvents:"),self,sel_registerName("tas_diagnosticCategoryChanged:"),(NSUInteger)(1UL<<12));
         vmsg1(toggle,"setAccessibilityLabel:",nsstr(tas_diag_category_name((unsigned)row)));
         vmsg1(cell,"setAccessoryView:",toggle);vmsg_integer(cell,"setSelectionStyle:",0);objc_release(toggle);
-    } else if (section == 4) {
-        if(row<2) {
-            set_cell_text(cell,row?"Detailed":"Summary",row?"Bounded event traces; compiled probes":"Counters and essential failures");
-            vmsg_integer(cell,"setAccessoryType:",((saved_diagnostic_config()&TAS_DIAG_DETAIL_BIT)!=0)==(row==1)?3:0);
-        } else set_cell_text(cell,"Inspect Emote","Requires Rendering + Detailed at launch");
-    } else if (section == 5 && row == 0) {
-        set_cell_text(cell, "View Diagnostic Report", "Active categories and bounded events");
-        vmsg_integer(cell, "setAccessoryType:", 1);
-    } else if (section == 5 && row == 1) {
-        set_cell_text(cell, "Copy Diagnostic Report", "Copies only active category sections");
-    } else {
-        set_cell_text(cell, "Clear Diagnostic Log", "Clears event rings; keeps launch counters");
+    } else if(row==0) {
+        set_cell_text(cell,"View Diagnostic Report",NULL);vmsg_integer(cell,"setAccessoryType:",1);
+    } else if(row==1) set_cell_text(cell,"Copy Diagnostic Report",NULL);
+    else if(row==2) set_cell_text(cell,"Clear Diagnostic Log",NULL);
+    else set_cell_text(cell,"Inspect Emote","Rendering + Detailed required at launch");
+    return msg0(cell,"autorelease");
+}
+
+static void diagnostic_select_option(bool preset,unsigned option) {
+    unsigned word=saved_diagnostic_config();
+    if(preset)word=option==TAS_DIAG_CUSTOM?word|TAS_DIAG_CUSTOM_BIT:tas_diag_preset_word(option);
+    else word=option?word|TAS_DIAG_DETAIL_BIT:word&~TAS_DIAG_DETAIL_BIT;
+    save_diagnostic_config(word);
+}
+
+static void diagnostic_show_selector(id self,id table,id index_path,bool preset) {
+    id alert=((id (*)(id,SEL,id,id,NSInteger))objc_msgSend)((id)objc_getClass("UIAlertController"),
+        sel_registerName("alertControllerWithTitle:message:preferredStyle:"),nsstr(preset?"Preset":"Detail"),nil,(NSInteger)0);
+    /* Plain C blocks do not retain captured ObjC objects. The presented alert
+     * owns the page until selection/cancellation; handlers borrow the alert. */
+    objc_setAssociatedObject(alert,&g_diagnostic_selector_owner_key,self,1);
+    unsigned saved=saved_diagnostic_config();
+    unsigned selected=preset?tas_diag_preset_for(saved):((saved&TAS_DIAG_DETAIL_BIT)?1:0);
+    for(unsigned option=0;option<(preset?5U:2U);option++) {
+        const char *name=preset?tas_diag_preset_name(option):(option?"Detailed":"Summary");
+        char title[96];snprintf(title,sizeof(title),"%s%s",option==selected?"✓ ":"",name);
+        id action=((id (*)(id,SEL,id,NSInteger,id))objc_msgSend)((id)objc_getClass("UIAlertAction"),
+            sel_registerName("actionWithTitle:style:handler:"),nsstr(title),(NSInteger)0,(id)^(id action) {
+                (void)action;diagnostic_select_option(preset,option);
+                id owner=objc_getAssociatedObject(alert,&g_diagnostic_selector_owner_key);
+                msg0(msg0(owner,"tableView"),"reloadData");
+            });
+        vmsg1(alert,"addAction:",action);
     }
-    return msg0(cell, "autorelease");
+    id cancel=((id (*)(id,SEL,id,NSInteger,id))objc_msgSend)((id)objc_getClass("UIAlertAction"),
+        sel_registerName("actionWithTitle:style:handler:"),nsstr("Cancel"),(NSInteger)1,nil);
+    vmsg1(alert,"addAction:",cancel);
+    id anchor=msg1(table,"cellForRowAtIndexPath:",index_path);if(!anchor)anchor=table;
+    id popover=msg0(alert,"popoverPresentationController");
+    vmsg1(popover,"setSourceView:",anchor);
+    TASRect bounds=((TASRect (*)(id,SEL))objc_msgSend)(anchor,sel_registerName("bounds"));
+    ((void (*)(id,SEL,TASRect))objc_msgSend)(popover,sel_registerName("setSourceRect:"),bounds);
+    ((void (*)(id,SEL,id,BOOL,id))objc_msgSend)(self,sel_registerName("presentViewController:animated:completion:"),alert,YES,nil);
 }
 
 static void diagnostic_category_changed(id self,SEL command,id sender) {
@@ -490,14 +578,14 @@ static void log_view_will_appear(id self, SEL command, BOOL animated) {
     update_log_text(self);
 }
 
-static void settings_did_select(id self, SEL command, id table, id index_path) {
+static void diagnostic_settings_did_select(id self, SEL command, id table, id index_path) {
     (void)command;
     NSInteger section = imsg0(index_path, "section");
     NSInteger row = imsg0(index_path, "row");
     ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
         table, sel_registerName("deselectRowAtIndexPath:animated:"), index_path, YES);
 #if TAS_EMOTE_DIAGNOSTIC
-    if (section==4 && row==2) {
+    if (section>=2 && !(section==2 && diagnostic_custom_selected()) && row==3) {
         if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {
             show_notice(self,"Collection disabled","Choose Emotes or enable Emote Rendering + Detailed, then fully close and relaunch Twitch before starting a trace.");
             return;
@@ -531,23 +619,8 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
         return;
     }
 #endif
-    if (section == 1 && row == 1) {
-        tas_emotes_clear_cache();
-        show_notice(self, "Emote Cache Cleared",
-                    "New chat messages will reload third-party emotes when you return to chat.");
-        return;
-    }
-    if(section==2) {
-        if(row>=0 && row<4)save_diagnostic_config(tas_diag_preset_word((unsigned)row));
-        else if(row==TAS_DIAG_CUSTOM)save_diagnostic_config(saved_diagnostic_config()|TAS_DIAG_CUSTOM_BIT);
-        msg0(table,"reloadData");return;
-    }
-    if(section==4 && row>=0 && row<2) {
-        unsigned w=saved_diagnostic_config()|TAS_DIAG_CUSTOM_BIT;
-        save_diagnostic_config(row?w|TAS_DIAG_DETAIL_BIT:w&~TAS_DIAG_DETAIL_BIT);
-        msg0(table,"reloadData");return;
-    }
-    if (section != 5) return;
+    if(section<2) {diagnostic_show_selector(self,table,index_path,section==0);return;}
+    if(section==2 && diagnostic_custom_selected())return;
     if (row == 0) {
         id controller = msg0((id)g_log_class, "new");
         ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
@@ -563,6 +636,21 @@ static void settings_did_select(id self, SEL command, id table, id index_path) {
         clear_diagnostic_log();
         msg0(table, "reloadData");
         show_notice(self, "Cleared", "Session event rings cleared. Launch counters and experimental traces were preserved.");
+    }
+}
+
+static void settings_did_select(id self,SEL command,id table,id index_path) {
+    (void)command;
+    NSInteger section=imsg0(index_path,"section"),row=imsg0(index_path,"row");
+    ((void (*)(id,SEL,id,BOOL))objc_msgSend)(table,sel_registerName("deselectRowAtIndexPath:animated:"),index_path,YES);
+    if(section==1 && row==1) {
+        tas_emotes_clear_cache();
+        show_notice(self,"Emote Cache Cleared","New chat messages will reload third-party emotes when you return to chat.");
+    } else if(section==2 && g_diagnostic_settings_class) {
+        id controller=msg0((id)g_diagnostic_settings_class,"alloc");
+        controller=((id (*)(id,SEL,NSInteger))objc_msgSend)(controller,sel_registerName("initWithStyle:"),(NSInteger)2);
+        ((void (*)(id,SEL,id,BOOL))objc_msgSend)(msg0(self,"navigationController"),sel_registerName("pushViewController:animated:"),controller,YES);
+        objc_release(controller);
     }
 }
 
@@ -1041,10 +1129,29 @@ static bool register_settings_class(void) {
         class_addMethod(g_settings_class, sel_registerName("tableView:titleForFooterInSection:"), (IMP)settings_footer, "@@:@q");
         class_addMethod(g_settings_class, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)settings_cell, "@@:@@");
         class_addMethod(g_settings_class, sel_registerName("tableView:didSelectRowAtIndexPath:"), (IMP)settings_did_select, "v@:@@");
-        class_addMethod(g_settings_class, sel_registerName("tas_diagnosticCategoryChanged:"), (IMP)diagnostic_category_changed, "v@:@");
         class_addMethod(g_settings_class, sel_registerName("ss_suggestionsChanged:"), (IMP)suggestions_changed, "v@:@");
         class_addMethod(g_settings_class, sel_registerName("tas_emotesSwitchChanged:"), (IMP)emotes_switch_changed, "v@:@");
         objc_registerClassPair(g_settings_class);
+    }
+    return true;
+}
+
+static bool register_diagnostic_settings_class(void) {
+    Class superclass=objc_getClass("UITableViewController");if(!superclass)return false;
+    g_diagnostic_settings_class=objc_allocateClassPair(superclass,"TASDiagnosticSettingsViewController",0);
+    if(!g_diagnostic_settings_class)g_diagnostic_settings_class=objc_getClass("TASDiagnosticSettingsViewController");
+    if(!g_diagnostic_settings_class)return false;
+    if(!objc_getClass("TASDiagnosticSettingsViewController")) {
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("viewDidLoad"),(IMP)diagnostic_settings_view_did_load,"v@:");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("viewWillAppear:"),(IMP)settings_view_will_appear,"v@:B");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("numberOfSectionsInTableView:"),(IMP)diagnostic_settings_sections,"q@:@");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("tableView:numberOfRowsInSection:"),(IMP)diagnostic_settings_rows,"q@:@q");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("tableView:titleForHeaderInSection:"),(IMP)diagnostic_settings_header,"@@:@q");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("tableView:titleForFooterInSection:"),(IMP)diagnostic_settings_footer,"@@:@q");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("tableView:cellForRowAtIndexPath:"),(IMP)diagnostic_settings_cell,"@@:@@");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("tableView:didSelectRowAtIndexPath:"),(IMP)diagnostic_settings_did_select,"v@:@@");
+        class_addMethod(g_diagnostic_settings_class,sel_registerName("tas_diagnosticCategoryChanged:"),(IMP)diagnostic_category_changed,"v@:@");
+        objc_registerClassPair(g_diagnostic_settings_class);
     }
     return true;
 }
@@ -1071,6 +1178,7 @@ static bool register_log_class(void) {
 void tas_diagnostics_initialize(void) {
     remove_legacy_logs();
     bool settings_registered = register_settings_class();
+    settings_registered = register_diagnostic_settings_class() && settings_registered;
     bool log_registered = register_log_class();
     bool fallback = install_view_controller_fallback();
     bool retry_registered = register_hook_retry_observer();

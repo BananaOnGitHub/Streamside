@@ -286,3 +286,20 @@ composer clocks are tested through decode misses and a 12.5-second hold. These
 controlled worker checks do not measure real iOS ImageIO decode throughput;
 `ehehe` speed and smoothness still need device confirmation across the reported
 surfaces. Build 15's tap/picker fixes also await explicit device results.
+
+### Build 16 candidate validation
+
+Implementation checkpoint: `dd933358bb2b50d5852631af883c56549edebe89`.
+The final suite ran 193 tests: 191 passed, with the two Apple-only integration
+tests skipped on Linux. The exact donor/Hermes gate again passed with 32
+snapshots and 7,344 window calculations. Ordinary and emote+demand diagnostic
+native builds passed artifact and defined-WebP checks; both DEBs built.
+The normal `0/0/0` finished IPA passed independent verification:
+
+- Filename: `Twitch_31.6_Streamside_3.1.0-build.16_fast-webp_unsigned.ipa`
+- Bytes: 194,488,478
+- SHA-256: `47eda9ea81d849b1345d5d454e3071abee8e2dfd294eb21409cd331a1ac5c7af`
+- Donor: original Twitch 31.6 (262821841498166537).
+
+This unsigned candidate requires signing. Fast-emote timing and smoothness on
+the device remain pending; host scheduling tests are not a throughput benchmark.

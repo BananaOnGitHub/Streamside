@@ -8,6 +8,7 @@
  * this module does not keep its own image files or decoded bitmaps.
  */
 #include "TASEmotes.h"
+#include "TASAnimatedImage.h"
 #include "SSComposerModel.h"
 #include "SSComposer.h"
 #include "TASEmoteGeometry.h"
@@ -737,27 +738,26 @@ static void parse_list_locked(Room *room, id array, unsigned char provider, bool
             owner = dict(data, "owner");
             id files = dict(dict(data, "host"), "files");
             dimensions = kind(files, "NSArray") && count(files) ? at(files, 0) : nil;
-            id animated = dict(data, "animated");
-            bool gif = animated && ((BOOL (*)(id, SEL))objc_msgSend)(animated, sel_registerName("boolValue"));
-            const char *formats[] = {"2x.gif", "2x.webp", "2x.png",
-                                     "1x.gif", "1x.webp", "1x.png"};
-            const unsigned char order[] = {0, 1, 2, 3, 4, 5};
-            const unsigned char still_order[] = {1, 2, 4, 5, 0, 3};
-            const unsigned char *choices = gif ? order : still_order;
+            const char *formats[] = {"2x.webp", "1x.webp", "2x.gif", "1x.gif", "2x.png", "1x.png"};
+            const unsigned char still_order[]={0,1,4,5,2,3},animated_order[]={0,1,2,3,4,5};
+            id animated=dict(data,"animated");
+            bool moving=animated && ((BOOL (*)(id,SEL))objc_msgSend)(animated,sel_registerName("boolValue"));
+            const unsigned char *order=moving?animated_order:still_order;
             const char *chosen = NULL;
             for (size_t f = 0; f < 6; f++)
-                if (seven_tv_has_file(data, formats[choices[f]])) {
-                    chosen = formats[choices[f]];
+                if (seven_tv_has_file(data, formats[order[f]])) {
+                    chosen = formats[order[f]];
                     break;
                 }
             if (!chosen) continue;
             snprintf(url, sizeof(url), "https://cdn.7tv.app/emote/%s/%s", id_text, chosen);
         } else if (provider == 1) {
-            snprintf(url, sizeof(url), "https://cdn.betterttv.net/emote/%s/2x", id_text);
+            snprintf(url, sizeof(url), "https://cdn.betterttv.net/emote/%s/2x.webp", id_text);
         } else {
             id urls = dict(emote, "urls");
             id animation = dict(emote, "animated");
             const char *provided = json_string(dict(animation, "2"));
+            if (!provided) provided = json_string(dict(animation, "1"));
             if (!provided) provided = json_string(dict(urls, "2"));
             if (!provided) provided = json_string(dict(urls, "1"));
             if (!provided) continue;
@@ -2159,7 +2159,9 @@ void tas_emotes_image_result_for_url(const char *request_url, id data, id respon
         NSInteger status = response && ((BOOL (*)(id, SEL, SEL))objc_msgSend)(
             response, sel_registerName("respondsToSelector:"), sel_registerName("statusCode"))
             ? ((NSInteger (*)(id, SEL))objc_msgSend)(response, sel_registerName("statusCode")) : 0;
-        if (status >= 200 && status < 300) { PROBE_INC(g_image_http_ok); update_image_aspect(data, response); }
+        if (status >= 200 && status < 300) { PROBE_INC(g_image_http_ok); update_image_aspect(data, response);
+            if(tas_animated_image_prepare && tas_emotes_is_provider_image_url(request_url))tas_animated_image_prepare(data);
+        }
         else PROBE_INC(g_image_http_error);
     }
     NSUInteger length = data ? ((NSUInteger (*)(id, SEL))objc_msgSend)(
@@ -2469,6 +2471,7 @@ void tas_emotes_initialize(void) {
 
 void tas_emotes_retry_hooks(void) {
     if (!g_enabled) return;
+    if(tas_animated_image_retry_hooks)tas_animated_image_retry_hooks();
     install_rn_local();
     install_rn_width();
     install_rn_receive();

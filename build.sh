@@ -44,7 +44,7 @@ build_binary() {
       --name "$binary_name" \
       -femit-bin="$output_path" \
       -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" "-DTAS_IMAGE_DEMAND_DIAGNOSTIC=$IMAGE_DEMAND_DIAGNOSTIC" -- \
-      src/Streamside.c src/TASDiagnostics.c src/TASDiagnosticPolicy.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNComposerUI.c src/TASImageDemand.c
+      src/Streamside.c src/TASDiagnostics.c src/TASDiagnosticPolicy.c src/TASAnimatedImage.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNComposerUI.c src/TASImageDemand.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature
@@ -52,6 +52,7 @@ build_binary() {
 build_binary build/Streamside.dylib @rpath/Streamside.dylib Streamside
 python3 tools/align_macho_segments.py build/Streamside.dylib
 python3 tools/reserve_codesign_space.py build/Streamside.dylib --size 65536
+python3 tools/verify_webp_native.py build/Streamside.dylib
 python3 tools/artifact_guard.py record build/Streamside.dylib
 
 # Sideload package: clean identity, same normalized layout as the working build.
@@ -61,4 +62,5 @@ build_binary build/Streamside.framework/Streamside @rpath/Streamside.framework/S
 python3 tools/align_macho_segments.py build/Streamside.framework/Streamside
 python3 tools/shrink_adhoc_signature.py build/Streamside.framework/Streamside
 cp packaging/StreamsideFramework-Info.plist build/Streamside.framework/Info.plist
+python3 tools/verify_webp_native.py build/Streamside.framework/Streamside
 python3 tools/artifact_guard.py record build/Streamside.framework --framework

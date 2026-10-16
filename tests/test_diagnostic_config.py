@@ -139,6 +139,7 @@ int main(void){
         prelude=r'''
 #include "TASDiagnostics.h"
 #include "TASPrivacy.h"
+void tas_animated_image_status(char *,size_t) __attribute__((weak));
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

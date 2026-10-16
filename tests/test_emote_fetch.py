@@ -115,6 +115,40 @@ int main(void) {
 
 class EmoteFetchTests(unittest.TestCase):
     def test_large_sets_failure_categories_pending_state_and_privacy(self) -> None:
+        self.run_harness(HARNESS)
+
+    def test_webp_preference_independent_of_animation_and_gif_png_fallback(self):
+        source=HARNESS.split('int main(void)')[0]
+        source=source.replace('static size_t emote_count = 2183;', 'static size_t emote_count=1,file_count=1;static const char *choices[6];')
+        source=source.replace('o==&emotes ? emote_count : 1','o==&emotes ? emote_count : file_count')
+        source=source.replace('} else result=&file;', '} else {filename.value=choices[index];result=&file;}')
+        source=source.replace('!strcmp(k,"name")) result=&name;', '(!strcmp(k,"name") || !strcmp(k,"code"))) result=&name;')
+        source=source.replace('static char name_buf[32]', 'static struct Fake motion={"NSNumber","0"};\nstatic char name_buf[32]')
+        source=source.replace('if(o==&root &&', 'if(o==&data && !strcmp(k,"animated")) result=&motion;\n        else if(o==&root &&')
+        source=source.replace('if (!strcmp(sel,"isKindOfClass:"))', 'if(!strcmp(sel,"boolValue")) result=(id)(uintptr_t)(motion.value[0]==\'1\');\n    else if (!strcmp(sel,"isKindOfClass:"))')
+        source+=r'''
+int main(void){
+ Room *r=room_locked("12345",time(NULL));
+ const char *all[]={"2x.gif","1x.gif","2x.png","1x.png","1x.webp","2x.webp"};
+ for(unsigned moving=0;moving<2;moving++){
+  motion.value=moving?"1":"0";
+  for(unsigned i=0;i<6;i++)choices[i]=all[i];file_count=6;
+  complete(r,200,500,false,&root);assert(r->size==1 && strstr(r->items[0].url,"/2x.webp"));
+  uint64_t first=r->items[0].fake_id;
+  reset_room_locked(r,false,time(NULL));r=room_locked("12345",time(NULL));file_count=5;
+  complete(r,200,500,false,&root);assert(strstr(r->items[0].url,"/1x.webp") && r->items[0].fake_id!=first);
+  reset_room_locked(r,false,time(NULL));r=room_locked("12345",time(NULL));file_count=4;
+  complete(r,200,500,false,&root);assert(strstr(r->items[0].url,moving?"/2x.gif":"/2x.png"));
+  reset_room_locked(r,false,time(NULL));r=room_locked("12345",time(NULL));
+ }
+ snprintf(id_buf,sizeof(id_buf),"fixture");snprintf(name_buf,sizeof(name_buf),"Fixture");
+ parse_list_locked(r,&emotes,1,false);assert(r->size==1 && strstr(r->items[0].url,"/2x.webp"));
+ reset_room_locked(r,false,time(NULL));return 0;
+}
+'''
+        self.run_harness(source)
+
+    def run_harness(self, content):
         zig = os.environ.get("ZIG") or shutil.which("zig")
         if not zig:
             self.fail("Zig is required to test the production C block-based fetch module")
@@ -126,7 +160,7 @@ class EmoteFetchTests(unittest.TestCase):
             (root / "objc/objc.h").write_text('#include "runtime.h"\n')
             (root / "objc/message.h").write_text('#include "runtime.h"\n')
             harness, binary = root / "fetch.c", root / "fetch"
-            harness.write_text(HARNESS)
+            harness.write_text(content)
             result = subprocess.run([zig, "cc", "-std=gnu11", "-fblocks", "-Wall", "-Wextra", "-Werror",
                                      "-Wno-cast-function-type", "-ffunction-sections", "-fdata-sections",
                                      "-I", str(root), "-I", str(ROOT / "src"), str(harness),

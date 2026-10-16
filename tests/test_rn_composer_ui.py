@@ -24,7 +24,7 @@ struct Fake {
 };
 static struct Fake classes[64];static unsigned classes_count;
 static id pool[512];static unsigned pool_count;
-static BOOL enabled=YES,is_main=YES,known=YES,bridge_available=YES;
+static BOOL enabled=YES,is_main=YES,known=YES,bridge_available=YES,webp_mode=NO;
 static double aspect=3;
 static unsigned copies,invalidations,assignments,originals,deallocs,bridge_calls,layout_invalidations;
 static ptrdiff_t url_gap=16,plain_gap=16;
@@ -191,6 +191,11 @@ static void gif_gate(void) {
     response->length=200;tas_rn_composer_ui_image(900000000000001ULL,data,response,fresh("NSError"));assert(GET(images)==1);
     enabled=NO;tas_rn_composer_ui_image(900000000000001ULL,data,response,nil);assert(GET(images)==1);
 }
+id tas_animated_image_create(id data){
+    if(!webp_mode)return nil;
+    id animation=fresh("StreamsideAnimatedWebP");animation->value=data->value;animation->count=3;copies++;return animation;
+}
+void tas_animated_image_prepare(id data){(void)data;}
 static void playback(void) {
     tas_rn_composer_ui_retry_hooks();bridge_string=bridge;
     id owner=fresh(INPUT),editor=fresh("TwitchEmoteInputView"),source=fresh("NSAttributedString"),window=fresh("UIWindow");
@@ -198,7 +203,10 @@ static void playback(void) {
     source->length=3;source->units[0]=source->units[2]=0xfffc;source->units[1]='x';source->items[0]=provider();source->items[2]=provider();
     id template=fresh("Animation"),delays=fresh("NSDictionary");template->value=delays;
     for(unsigned i=0;i<3;i++){template->items[i]=fresh("UIImage");delays->items[i]=fresh("NSNumber");delays->items[i]->seconds=i==2 ? 12.5 : 0.1;}
-    cache_data=fresh("NSData");cache_data->value=template;cache_data->length=gif_bytes(cache_data->bytes,3);image_bytes=fresh("NSCache");
+    cache_data=fresh("NSData");cache_data->value=template;cache_data->length=gif_bytes(cache_data->bytes,3);
+    if(webp_mode){extern const unsigned char webp_fixture[];extern const unsigned long webp_fixture_size;
+        memcpy(cache_data->bytes,webp_fixture,webp_fixture_size);cache_data->length=webp_fixture_size;}
+    image_bytes=fresh("NSCache");
     sync(owner);id target=owner->target;State *s=state(target);assert(s && s->count==2 && s->link && copies==2);
     assert(s->frames[0].animation!=s->frames[1].animation);
     id link=s->link;link->seconds=1;animate(target,"ssTick:",link);assert(!assignments);
@@ -482,7 +490,7 @@ static void native_image_abi(void) {
 }
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else if(!strcmp(argv[1],"latenative"))late_native_cursor();else if(!strcmp(argv[1],"nativegeometry"))native_geometry();else if(!strcmp(argv[1],"nativearrival"))native_arrival();else if(!strcmp(argv[1],"nativeimageabi"))native_image_abi();else abort();
+    if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"webp")){webp_mode=YES;playback();}else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else if(!strcmp(argv[1],"latenative"))late_native_cursor();else if(!strcmp(argv[1],"nativegeometry"))native_geometry();else if(!strcmp(argv[1],"nativearrival"))native_arrival();else if(!strcmp(argv[1],"nativeimageabi"))native_image_abi();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
 '''
@@ -502,7 +510,10 @@ class RNComposerUITests(unittest.TestCase):
         source=source.replace('((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container)', 'test_rect(manager,(Range){glyph,1},container)')
         source=source.replace('((Size (*)(id,SEL))objc_msgSend)(image,sel_registerName("size"))', 'test_size(image)')
         source=source.replace('((Range (*)(id,SEL))objc_msgSend)(item,sel_registerName("range"))', 'test_range(item)')
-        (p/'composer.c').write_text(source);(p/'test.c').write_text(HARNESS);cls.binary=p/'test'
+        from test_webp_animation import animation
+        body=animation([100,100,12500])
+        fixture='const unsigned char webp_fixture[]={'+','.join(str(b) for b in body)+'};const unsigned long webp_fixture_size=sizeof(webp_fixture);\n'
+        (p/'composer.c').write_text(source);(p/'test.c').write_text(fixture+HARNESS);cls.binary=p/'test'
         zig=os.environ.get('ZIG') or shutil.which('zig');assert zig
         result=subprocess.run([zig,'cc','-fblocks','-Wall','-Wextra','-Werror','-Wno-cast-function-type-mismatch','-fsanitize=address,undefined','-ffunction-sections','-fdata-sections','-I',str(p),'-I',str(ROOT/'src'),str(p/'test.c'),'-Wl,--gc-sections','-pthread','-o',str(cls.binary)],capture_output=True,text=True)
         if result.returncode:raise AssertionError(result.stderr)
@@ -512,6 +523,7 @@ class RNComposerUITests(unittest.TestCase):
     def test_native_height_baseline_wide_narrow_identity_bridge_and_fallback(self):self.run_mode('geometry')
     def test_gif_preflight_body_budget_complete_blocks_timing_and_transport_gate(self):self.run_mode('gif')
     def test_independent_clocks_reconciliation_ime_deletion_visibility_and_teardown(self):self.run_mode('playback')
+    def test_webp_independent_clocks_long_hold_visibility_and_teardown(self):self.run_mode('webp')
     def test_exact_abi_preference_retry_and_idempotent_hooks(self):self.run_mode('install')
     def test_first_download_starts_original_attachment_without_retyping(self):self.run_mode('cold')
     def test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft(self):self.run_mode('composition')

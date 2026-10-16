@@ -106,6 +106,7 @@ static id dispatch(id o,SEL sel,...) {
     if(!o)return nil;va_list args;va_start(args,sel);id result=nil;
     if(!strcmp(sel,"new") || !strcmp(sel,"alloc"))result=create(o->cls);
     else if(!strcmp(sel,"data"))result=o->host;
+    else if(!strcmp(sel,"bytes"))result=nil;
     else if(!strcmp(sel,"initWithAnimatedGIFData:")){id data=va_arg(args,id);assert(data && !strcmp(data->cls,"FLAnimatedImage"));if(!clone_fail){memcpy(o,data,sizeof(*o));result=o;decoder_copies++;}}
     else if(!strcmp(sel,"setFrameCacheSizeMax:"))assert(va_arg(args,I)==4);
     else if(!strcmp(sel,"copy") || !strcmp(sel,"mutableCopy"))result=duplicate(o,o->cls);

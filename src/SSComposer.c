@@ -4,6 +4,8 @@
 #include "SSComposerModel.h"
 #include "TASEmotes.h"
 #include "TASEmoteGeometry.h"
+#include "TASWebPModel.h"
+#include "TASAnimatedImage.h"
 #include "TASEmoteUI.h"
 #include "TASEmoteProbe.h"
 #include <objc/runtime.h>
@@ -457,14 +459,19 @@ static id preview_placeholder_image(void) {
 }
 static void image_request(id metadata) {
     id url=key(metadata,"url"); const char *utf8=((const char *(*)(id,SEL))objc_msgSend)(url,sel_registerName("UTF8String"));
-    if (!utf8 || !(tas_emotes_is_provider_image_url(utf8) || (key(metadata,"native") && native_image_url(url))) || cached_image(metadata) || key(pending,utf8) || number(pending,"count")>=8) return;
+    BOOL provider=tas_emotes_is_provider_image_url(utf8);
+    if (!utf8 || !(provider || (key(metadata,"native") && native_image_url(url))) || cached_image(metadata) || key(pending,utf8) || number(pending,"count")>=8) return;
     id failure=m1(failed,"objectForKey:",url);
     if (failure && time(NULL)-(time_t)number(failure,"longLongValue")<60) return;
     id held=objc_retain(url);
     id task=((id (*)(id,SEL,id,id))objc_msgSend)(image_session,sel_registerName("dataTaskWithURL:completionHandler:"),m1((id)objc_getClass("NSURL"),"URLWithString:",url),(id)^(id data,id response,id error) {
         I status=((I (*)(id,SEL))objc_msgSend)(response,sel_registerName("statusCode"));
         U bytes=number(data,"length");
-        id held_data=!error && status>=200 && status<300 && bytes && bytes<=2*1024*1024 ? objc_retain(data) : nil;
+        const unsigned char *raw=bytes>=12 && bytes<=TAS_WEBP_MAX_BYTES?(const unsigned char *)m0(data,"bytes"):NULL;
+        U limit=tas_webp_header(raw,bytes)?TAS_WEBP_MAX_BYTES:2*1024*1024;
+        id held_data=!error && status>=200 && status<300 && bytes && bytes<=limit ? objc_retain(data) : nil;
+        /* Decode/validate the WebP poster on the network completion queue. */
+        id webp_animation=held_data && provider && tas_animated_image_create?tas_animated_image_create(held_data):nil;
         ((void (*)(id,SEL,id))objc_msgSend)(m0((id)objc_getClass("NSOperationQueue"),"mainQueue"),sel_registerName("addOperationWithBlock:"),(id)^{
             v1(pending,"removeObjectForKey:",held);
             id image=nil,animation=nil;
@@ -475,7 +482,8 @@ static void image_request(id metadata) {
                 if (aspect>0) image=m1((id)objc_getClass("UIImage"),"imageWithData:",held_data);
                 Size dimensions=((Size (*)(id,SEL))objc_msgSend)(image,sel_registerName("size"));
                 if (dimensions.width>1024 || dimensions.height>1024 || dimensions.width*dimensions.height>524288) image=nil;
-                if (image && bytes>=6 && !memcmp(p,"GIF8",4) && objc_getClass("FLAnimatedImage")) {
+                if(webp_animation){animation=objc_retain(webp_animation);image=m0(animation,"posterImage");}
+                if (image && !animation && bytes>=6 && !memcmp(p,"GIF8",4) && objc_getClass("FLAnimatedImage")) {
                     animation=m1(m0((id)objc_getClass("FLAnimatedImage"),"alloc"),"initWithAnimatedGIFData:",held_data);
                     if (responds(animation,"setFrameCacheSizeMax:")) vi(animation,"setFrameCacheSizeMax:",4);
                 }
@@ -496,7 +504,7 @@ static void image_request(id metadata) {
                 id now=((id (*)(id,SEL,int64_t))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithLongLong:"),(int64_t)time(NULL));
                 ((void (*)(id,SEL,id,id))objc_msgSend)(failed,sel_registerName("setObject:forKey:"),now,held);
             }
-            objc_release(held);
+            objc_release(webp_animation);objc_release(held);
             ((void (*)(id,SEL,id,id))objc_msgSend)(m0((id)objc_getClass("NSNotificationCenter"),"defaultCenter"),sel_registerName("postNotificationName:object:"),str(IMAGE_NOTICE),nil);
         });
     });
@@ -650,12 +658,15 @@ static void update_preview_frames(id delegate,id editor) {
         if (!objc_getAssociatedObject(attachment,&attachment_metadata_key) || !shared || number(shared,"frameCount")<2) continue;
         id animation=objc_getAssociatedObject(attachment,&attachment_animation_key);
         if (!animation) {
-            /* FLAnimatedImage purges its small frame cache around the most
-             * recently requested index. Independent composer/thumbnail clocks
-             * must not steer the same decoder, nor may repeated attachments.
-             * Reuse the downloaded NSData, but keep each playback cache local. */
+            /* GIF's mutable lazy decoder needs a private cache per clock.
+             * WebP's indexed decoder/cache is shareable: playback position
+             * remains in each attachment's PreviewFrame below. */
             id data=responds(shared,"data") ? m0(shared,"data") : nil;
-            if (data) animation=m1(m0((id)objc_getClass("FLAnimatedImage"),"alloc"),"initWithAnimatedGIFData:",data);
+            if(data) {
+                U length=number(data,"length");const unsigned char *p=(const unsigned char *)m0(data,"bytes");
+                animation=tas_webp_header(p,length)?(tas_animated_image_create?tas_animated_image_create(data):nil):
+                    m1(m0((id)objc_getClass("FLAnimatedImage"),"alloc"),"initWithAnimatedGIFData:",data);
+            }
             if (animation && responds(animation,"setFrameCacheSizeMax:")) vi(animation,"setFrameCacheSizeMax:",4);
             associate(attachment,&attachment_animation_key,animation); objc_release(animation);
         }

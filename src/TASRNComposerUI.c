@@ -2,6 +2,8 @@
  * marked text; Twitch keeps text storage, selection, tokenization and sending. */
 #include "TASRNComposerUI.h"
 #include "TASRNComposerModel.h"
+#include "TASWebPModel.h"
+#include "TASAnimatedImage.h"
 #include "TASEmotes.h"
 #include "TASEmoteUI.h"
 #include <objc/runtime.h>
@@ -149,9 +151,11 @@ static void sync_owners(void);
 void tas_rn_composer_ui_image(uint64_t number,id data,id response,id error) {
     if (!tas_emotes_enabled_this_launch() || error || !data || !response) return;
     U status=integer(response,"statusCode"),length=integer(data,"length");
-    if (status<200 || status>=300 || !length || length>2*1024*1024) return;
+    if (status<200 || status>=300 || !length || length>TAS_WEBP_MAX_BYTES) return;
     const unsigned char *bytes=((const unsigned char *(*)(id,SEL))objc_msgSend)(data,sel_registerName("bytes"));
-    if (!tas_rn_composer_gif(bytes,length)) return;
+    TASWebPInfo webp;
+    if (!tas_rn_composer_gif(bytes,length) && !(tas_webp_info(bytes,length,&webp) && webp.count>1)) return;
+    if(tas_animated_image_prepare)tas_animated_image_prepare(data);
     id held=objc_retain(data);
     ((void (*)(id,SEL,id))objc_msgSend)(m0((id)objc_getClass("NSOperationQueue"),"mainQueue"),sel_registerName("addOperationWithBlock:"),(id)^{
         cache_init();
@@ -315,7 +319,7 @@ static void animate(id self,SEL command,id link) {
         Frame *f=&s->frames[i];
         if(f->location>=length || attachment_at(source,f->location)!=f->attachment)continue;
         live++;f->elapsed+=delta;double delay=delay_at(f);BOOL changed=NO;U count=integer(f->animation,"frameCount");
-        if(count<2 || count>300)continue;
+        if(count<2 || count>TAS_WEBP_MAX_FRAMES)continue;
         for(unsigned step=0;f->elapsed>=delay && step<16;step++) {
             U next=(f->index+1)%count;
             id image=((id (*)(id,SEL,U))objc_msgSend)(f->animation,sel_registerName("imageLazilyCachedAtIndex:"),next);
@@ -368,19 +372,22 @@ static void sync(id owner) {
         if(s)for(U j=0;j<s->count;j++)if(s->frames[j].attachment==attachment){f=s->frames[j];f.location=i;break;}
         if(!f.animation) {
             id data=m1(image_bytes,"objectForKey:",num(number));
-            if(!data || !objc_getClass("FLAnimatedImage"))continue;
+            if(!data)continue;
             U bytes=integer(data,"length");
             const unsigned char *p=((const unsigned char *(*)(id,SEL))objc_msgSend)(data,sel_registerName("bytes"));
             if(bytes<10 || !p)continue;
-            /* Four lazily cached RGBA frames plus poster and encoded bytes.
-             * Repeated attachments have independent decoders, so bound their
-             * combined working set rather than just the shared byte cache. */
-            U width=p[6]|p[7]<<8,height=p[8]|p[9]<<8;
+            /* Four frames plus poster and encoded bytes. GIF instances are
+             * private; WebP's indexed cache is shared, but each attachment is
+             * conservatively charged against the same preview budget. */
+            TASWebPInfo webp;BOOL is_webp=tas_webp_header(p,bytes);
+            if(is_webp && !tas_webp_info(p,bytes,&webp))continue;
+            U width=is_webp?webp.width:(U)(p[6]|p[7]<<8),height=is_webp?webp.height:(U)(p[8]|p[9]<<8);
             f.cost=width*height*4*5+bytes;
             if(f.cost>16*1024*1024-total_cost){INC(refused);continue;}
-            f.animation=m1(m0((id)objc_getClass("FLAnimatedImage"),"alloc"),"initWithAnimatedGIFData:",data);
+            f.animation=is_webp?(tas_animated_image_create?tas_animated_image_create(data):nil):
+                m1(m0((id)objc_getClass("FLAnimatedImage"),"alloc"),"initWithAnimatedGIFData:",data);
             U count=integer(f.animation,"frameCount");
-            if(count<2 || count>300){objc_release(f.animation);INC(refused);continue;}
+            if(count<2 || count>(is_webp?TAS_WEBP_MAX_FRAMES:300)){objc_release(f.animation);INC(refused);continue;}
             ((void (*)(id,SEL,U))objc_msgSend)(f.animation,sel_registerName("setFrameCacheSizeMax:"),4);
             f.index=integer(f.animation,"posterImageFrameIndex");INC(decoders);
         } else {

@@ -219,3 +219,21 @@ identity for repeated/wrapped emotes, gaps and visibility; and picker/suggestion
 edits without focus changes. These checks do not replace on-device acceptance
 of the three reported legacy failures. The paused chat-gap investigation and
 its specialized instrumentation remain unchanged.
+
+### Build 15 candidate validation
+
+Implementation checkpoint: `54fe5b74bce3d8e76e30a8bf5c944c4b6964855d`.
+The full suite ran 191 tests: 189 passed, with the two Apple-only integration
+tests skipped on Linux. The exact donor/Hermes gate passed with 32 accepted
+snapshots and 7,344 window calculations. Ordinary and emote+demand diagnostic
+native variants passed artifact and defined-WebP checks; both DEBs built.
+The finished normal `0/0/0` IPA passed independent verification:
+
+- Filename: `Twitch_31.6_Streamside_3.1.0-build.15_legacy-emotes_unsigned.ipa`
+- Bytes: 194,487,632
+- SHA-256: `4fa343ae6032ad8d020410cf1f297fbd11a55738c001715acc9541bd04705a78`
+- Donor: original Twitch 31.6 (262821841498166537).
+
+This is the device-test candidate for legacy animation, repeated-emote info
+taps and picker insertion on the vertical-stream layout. Device results for
+build 15 are pending.

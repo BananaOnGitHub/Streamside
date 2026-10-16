@@ -25,3 +25,4 @@ and updating navigation.
 - [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 restores legacy animation and addresses taps/picker focus; build 16 fast-emote speeds confirmed in legacy; build 17 restores the native compact transition after extended-library selection.
 
 - [Twitch 31.6 hotfix comparison](TWITCH_31_6_HOTFIX_COMPARISON.md): read-only 31.6.1/31.6.2 donor identities, RN chat/reward behavior, patch admission and native/WebP/playback boundaries.
+- [Twitch 31.6.2 candidate](TWITCH_31_6_2_CANDIDATE.md): build 18 uses the unchanged exact-body integration; host/package checks and unsigned IPA identity, pending device validation.

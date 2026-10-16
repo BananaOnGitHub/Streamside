@@ -358,3 +358,10 @@ passed artifact and defined-WebP verification; both DEBs built. The normal
 This unsigned candidate requires signing. Extended-library selection still
 requires device confirmation; packaging and controlled tests do not establish
 that result.
+
+### Build 17 device result
+
+The tester confirmed that selecting a third-party emote in the extended legacy
+library now compacts it and brings the chat box back into view. This accepts
+the reported selection transition; the earlier build-16 animation-speed result
+remains recorded separately.

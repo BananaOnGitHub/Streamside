@@ -1,0 +1,4012 @@
+{
+  "schema": 1,
+  "scope": "Supplied decrypted IPA inventory; hashes and decoded metadata only. Not an upstream signature or runtime compatibility attestation.",
+  "donors": {
+    "31.6": {
+      "ipa_bytes": 197132043,
+      "ipa_sha256": "36d85ac4a7f0979ca392415af697a43fe7eb019f7fbfdf84dce18b7a25249cea",
+      "info": {
+        "CFBundleIdentifier": "tv.twitch",
+        "CFBundleShortVersionString": "31.6",
+        "CFBundleVersion": "262821841498166537",
+        "CFBundleExecutable": "Twitch",
+        "MinimumOSVersion": "16.4",
+        "DTSDKName": "iphoneos26.5",
+        "DTXcodeBuild": "17F42"
+      },
+      "bundle_bytes": 28682408,
+      "bundle_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+      "hbc_version": 98,
+      "hbc_sha1_footer": "d2428c8fa344f3956c89b991c4bd488b42a12db7",
+      "hbc_sha1_valid": true,
+      "frameworks": {
+        "TwitchApollo.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchApollo",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchApollo"
+        },
+        "RNSentry.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNSentry",
+          "CFBundleShortVersionString": "8.16.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNSentry"
+        },
+        "ApolloAPI.framework": {
+          "CFBundleIdentifier": "apollo-ios.ApolloAPI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ApolloAPI"
+        },
+        "Clocks_17A223499E7CA5_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-clocks.Clocks",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Clocks_17A223499E7CA5_PackageProduct"
+        },
+        "react_native_cookies.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-cookies",
+          "CFBundleShortVersionString": "6.2.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_cookies"
+        },
+        "twitch_rn_emote_input.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-emote-input",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_emote_input"
+        },
+        "ExpoModulesJSI.framework": {
+          "CFBundleIdentifier": "apple.ExpoModulesJSI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ExpoModulesJSI"
+        },
+        "hermesvm.framework": {
+          "CFBundleIdentifier": "dev.hermesengine.iphoneos",
+          "CFBundleShortVersionString": "1.0.0",
+          "CFBundleVersion": "1.0.0",
+          "CFBundleExecutable": "hermesvm"
+        },
+        "FLAnimatedImage.framework": {
+          "CFBundleIdentifier": "org.cocoapods.FLAnimatedImage",
+          "CFBundleShortVersionString": "1.0.17",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "FLAnimatedImage"
+        },
+        "Capacitor.framework": {
+          "CFBundleIdentifier": "com.capacitorjs.ios.Capacitor",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Capacitor"
+        },
+        "TwitchLogging.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchLogging",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchLogging"
+        },
+        "TwitchCore.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchCore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchCore"
+        },
+        "RNCAsyncStorage.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNCAsyncStorage",
+          "CFBundleShortVersionString": "2.2.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNCAsyncStorage"
+        },
+        "RNScreens.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNScreens",
+          "CFBundleShortVersionString": "4.25.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNScreens"
+        },
+        "twitch_rn_debug_props.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-debug-props",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_debug_props"
+        },
+        "twitch_rn_player.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-player",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_player"
+        },
+        "twitch_rn_battery.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-battery",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_battery"
+        },
+        "ReactAppDependencyProvider.framework": {
+          "CFBundleIdentifier": "org.cocoapods.ReactAppDependencyProvider",
+          "CFBundleShortVersionString": "0.86.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactAppDependencyProvider"
+        },
+        "Atomics_301F3DE065572157_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-atomics.Atomics",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Atomics_301F3DE065572157_PackageProduct"
+        },
+        "Sentry.framework": {
+          "CFBundleIdentifier": "org.cocoapods.Sentry",
+          "CFBundleShortVersionString": "9.19.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Sentry"
+        },
+        "React.framework": {
+          "CFBundleIdentifier": "react-native.React",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "React"
+        },
+        "TwitchPersistence.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchPersistence",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchPersistence"
+        },
+        "reanimated.framework": {
+          "CFBundleIdentifier": "org.cocoapods.reanimated",
+          "CFBundleShortVersionString": "4.5.5",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "reanimated"
+        },
+        "OrderedCollections_1222128174265B56_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-collections.OrderedCollections",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "OrderedCollections_1222128174265B56_PackageProduct"
+        },
+        "react_native_keyboard_controller.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-keyboard-controller",
+          "CFBundleShortVersionString": "1.22.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_keyboard_controller"
+        },
+        "UserLeapKit.framework": {
+          "CFBundleIdentifier": "com.userleap.UserLeapKit",
+          "CFBundleShortVersionString": "4.8.5",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "UserLeapKit"
+        },
+        "TwitchAnalyticsCore.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchAnalyticsCore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchAnalyticsCore"
+        },
+        "GoogleCast.framework": {
+          "CFBundleIdentifier": "com.google.cast",
+          "CFBundleShortVersionString": "4.8.3",
+          "CFBundleVersion": "4.8.3",
+          "CFBundleExecutable": "GoogleCast"
+        },
+        "twitch_rn_animated_image.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-animated-image",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_animated_image"
+        },
+        "react_native_netinfo.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-netinfo",
+          "CFBundleShortVersionString": "12.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_netinfo"
+        },
+        "Apollo_171E9C48F1D7AD_PackageProduct.framework": {
+          "CFBundleIdentifier": "apollo-ios.Apollo",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Apollo_171E9C48F1D7AD_PackageProduct"
+        },
+        "react_native_video.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-video",
+          "CFBundleShortVersionString": "6.19.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_video"
+        },
+        "DequeModule_307A0402D40AB265_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-collections.DequeModule",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "DequeModule_307A0402D40AB265_PackageProduct"
+        },
+        "TwitchGraphQLAPI.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchGraphQLAPI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchGraphQLAPI"
+        },
+        "AmazonIVSPlayer.framework": {
+          "CFBundleIdentifier": "com.amazonaws.ivs.player.AmazonIVSPlayer",
+          "CFBundleShortVersionString": "1.57.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "AmazonIVSPlayer"
+        },
+        "ReactNativeDependencies.framework": {
+          "CFBundleIdentifier": "third-party.ReactNativeDependencies",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactNativeDependencies"
+        },
+        "KMPMobileChat.framework": {
+          "CFBundleIdentifier": "tv.twitch.chat.library.KMPMobileChat",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "KMPMobileChat"
+        },
+        "TwitchCoreUIAssets.framework": {
+          "CFBundleIdentifier": "tv.twitch.TwitchCoreUIAssets",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchCoreUIAssets"
+        },
+        "MobileShieldKit.framework": {
+          "CFBundleIdentifier": "io.MobileShieldKit.MobileShieldKit",
+          "CFBundleShortVersionString": "1.18.2",
+          "CFBundleVersion": "4345",
+          "CFBundleExecutable": "MobileShieldKit"
+        },
+        "TwitchAppLaunch.framework": {
+          "CFBundleIdentifier": "org.cocoapods.TwitchAppLaunch",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchAppLaunch"
+        },
+        "IssueReporting_2041EB56849B4D1_PackageProduct.framework": {
+          "CFBundleIdentifier": "xctest-dynamic-overlay.IssueReporting",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "IssueReporting_2041EB56849B4D1_PackageProduct"
+        },
+        "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-concurrency-extras.ConcurrencyExtras",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct"
+        },
+        "twitch_rn_screen_orientation.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-screen-orientation",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_screen_orientation"
+        },
+        "AmazonIVSBroadcast.framework": {
+          "CFBundleIdentifier": "com.amazonaws.ivs.broadcast",
+          "CFBundleShortVersionString": "1.48.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "AmazonIVSBroadcast"
+        },
+        "ReactCodegen.framework": {
+          "CFBundleIdentifier": "org.cocoapods.ReactCodegen",
+          "CFBundleShortVersionString": "0.86.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactCodegen"
+        },
+        "InternalCollectionsUtilities.framework": {
+          "CFBundleIdentifier": "swift-collections.InternalCollectionsUtilities",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "InternalCollectionsUtilities"
+        },
+        "Tomorrowland.framework": {
+          "CFBundleIdentifier": "com.tildesoft.Tomorrowland",
+          "CFBundleShortVersionString": "1.4.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Tomorrowland"
+        },
+        "TwitchIdentity.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchIdentity",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchIdentity"
+        },
+        "OMSDK_Twitchtv1.framework": {
+          "CFBundleIdentifier": "com.iabtechlab.OMSDK-Twitchtv1",
+          "CFBundleShortVersionString": "1.6.1",
+          "CFBundleVersion": "1.6.1",
+          "CFBundleExecutable": "OMSDK_Twitchtv1"
+        },
+        "twitch_rn_device_model.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-device-model",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_device_model"
+        },
+        "TwitchUtilities.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchUtilities",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchUtilities"
+        },
+        "RNKeychain.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNKeychain",
+          "CFBundleShortVersionString": "10.0.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNKeychain"
+        },
+        "RNGestureHandler.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNGestureHandler",
+          "CFBundleShortVersionString": "3.1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNGestureHandler"
+        },
+        "TwitchKit.framework": {
+          "CFBundleIdentifier": "tv.twitch.TwitchKit",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchKit"
+        },
+        "Cordova.framework": {
+          "CFBundleIdentifier": "com.getcapacitor.ios.CapacitorCordova",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Cordova"
+        },
+        "HotUpdater.framework": {
+          "CFBundleIdentifier": "org.cocoapods.HotUpdater",
+          "CFBundleShortVersionString": "0.35.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "HotUpdater"
+        },
+        "GiphyUISDK.framework": {
+          "CFBundleIdentifier": "com.giphy.GiphyUISDK",
+          "CFBundleShortVersionString": "2.3.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "GiphyUISDK"
+        },
+        "PMJSON.framework": {
+          "CFBundleIdentifier": "com.postmates.PMJSON",
+          "CFBundleShortVersionString": "4.0.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "PMJSON"
+        },
+        "Lottie.framework": {
+          "CFBundleIdentifier": "com.airbnb.Lottie",
+          "CFBundleShortVersionString": "4.6.0",
+          "CFBundleVersion": "460",
+          "CFBundleExecutable": "Lottie"
+        },
+        "twitch_rn_iap.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-iap",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_iap"
+        },
+        "worklets.framework": {
+          "CFBundleIdentifier": "org.cocoapods.worklets",
+          "CFBundleShortVersionString": "0.10.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "worklets"
+        },
+        "ComScore.framework": {
+          "CFBundleIdentifier": "com.comscore.ComScore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ComScore"
+        },
+        "PMHTTP.framework": {
+          "CFBundleIdentifier": "com.postmates.PMHTTP",
+          "CFBundleShortVersionString": "4.5.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "PMHTTP"
+        },
+        "lottie_react_native.framework": {
+          "CFBundleIdentifier": "org.cocoapods.lottie-react-native",
+          "CFBundleShortVersionString": "7.3.8",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "lottie_react_native"
+        }
+      },
+      "binaries": {
+        "Frameworks/libswiftCompatibilitySpan.dylib": {
+          "size": 169536,
+          "sha256": "6f5b13f411181788ca6bfc0991a9f06ea1721264c68c17f284b5459af378d4d8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 876,
+          "text_sha256": "19f1d93afdfe68a15416a37e89898ff0f299597d43e09ffedc809ac79b678d76",
+          "uuid": "56ccb7a96e073686aa2ddab2131ef4dd"
+        },
+        "Twitch": {
+          "size": 108159824,
+          "sha256": "5d6ad498c141228cf678dcd6f4feba5d696859ba32ebce497f690e15815b0bb6",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 86015964,
+          "text_sha256": "b09e5d6b8280d678d6d098885a357ebc9d461da8d2bc984f2840d685e188ca28",
+          "uuid": "8f711ed6c2343300b541f2bd0100f1b7"
+        },
+        "Frameworks/IssueReporting_2041EB56849B4D1_PackageProduct.framework/IssueReporting_2041EB56849B4D1_PackageProduct": {
+          "size": 225152,
+          "sha256": "de9b529774024fc7469eced3c34f5db02ce112707a5ca1eb1b8b37251fb3374d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 85176,
+          "text_sha256": "e901c42a273a9721572330ab4bf68ae0001d2d8497417473e7da6fca90eb020e",
+          "uuid": "4928cc92393b37a1bbb6acae3bd4e5d5"
+        },
+        "Frameworks/ReactAppDependencyProvider.framework/ReactAppDependencyProvider": {
+          "size": 91648,
+          "sha256": "0838644626bc3e0c510fa71e8d4484f9ef4ddadae4fc65773af1a33d2c2f1f98",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 72,
+          "text_sha256": "84d57270c03fe6dba624b985f09e693c9f41b6136122296a3e798380cf9161ac",
+          "uuid": "9f2cc25dec9c3e40813845a2c098e12a"
+        },
+        "Frameworks/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct": {
+          "size": 178064,
+          "sha256": "bc3b9cb56e642abe393c8278a5bfd379e6853b918f95c472e868e6d233f670ed",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 59392,
+          "text_sha256": "592631f55fcfbb49ebc0a8939b22c36ad96ad75aeceb82e9abb1802d1cf3c63f",
+          "uuid": "4419f91e618c313787e6f5719ca3147f"
+        },
+        "Frameworks/react_native_cookies.framework/react_native_cookies": {
+          "size": 123376,
+          "sha256": "6d0bd3d6997b51212d5b90716dfcc88fe6bbe6118bef417ee96609727ea9ce49",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 9704,
+          "text_sha256": "79eb08c74a8d237591026f06d32f0cf3b43b159ed7058a6a96c3096026773999",
+          "uuid": "43925d77242b3ed0aeb268a16d2b2815"
+        },
+        "Frameworks/twitch_rn_emote_input.framework/twitch_rn_emote_input": {
+          "size": 315728,
+          "sha256": "29ba84269e7fb9b842566cb39239d3470d1f15d3b1c9de6ff380b9c0afe7aa55",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 65792,
+          "text_sha256": "46e4021a54043cd8c8efac0e1661a2f67b21a8a3efbff7ca7c82804184b88fc0",
+          "uuid": "c2b46e170b0836d090d840f2a50f4363"
+        },
+        "Frameworks/MobileShieldKit.framework/MobileShieldKit": {
+          "size": 836272,
+          "sha256": "48bc1de67d742f5641948140849dd278f736e4c77af1b5878ff76650a6d2fdf8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 409792,
+          "text_sha256": "1c66761f8faac827ee0780f2af77ffc98ef3416814f3f7b79525ad6a98fc7f91",
+          "uuid": "24611df6555232aaa1f1fd0c083960ef"
+        },
+        "Frameworks/hermesvm.framework/hermesvm": {
+          "size": 5213408,
+          "sha256": "358055d5cd5b5d6d3eb4bfe43c8b2019d381c50d66046bc0f70880e8cbf61501",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1849828,
+          "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+          "uuid": "be274a2347cc3f5a9e988474553df5a8"
+        },
+        "Frameworks/Sentry.framework/Sentry": {
+          "size": 6358896,
+          "sha256": "24aede301123daa27b5b5f7b1f7d46473c7d648ab8521fe10ef9bca8828931b9",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1639608,
+          "text_sha256": "51ebc86eca618dcfcf220af4c77cf3cff2bf29e5d26de290b0b3c2a98ae48a4a",
+          "uuid": "f5fb68e258d43166ab5fa27ecc6f1777"
+        },
+        "Frameworks/InternalCollectionsUtilities.framework/InternalCollectionsUtilities": {
+          "size": 132576,
+          "sha256": "3d60efdeeeaa2daba218af1202e02d1bc68fc9667554b8bda24612337b31d143",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 28544,
+          "text_sha256": "56cacecd835b45cf1f72eebaf88e80520147e319642c28535d4cba858a019924",
+          "uuid": "b759946df17f39be80fab2e6df55314f"
+        },
+        "Frameworks/ReactNativeDependencies.framework/ReactNativeDependencies": {
+          "size": 1285632,
+          "sha256": "762d248b8d92df8cde760938b0722d7738ea42f62e6b00da46e8ab4400b7a4c9",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 418532,
+          "text_sha256": "b22a7eeea6a77c76a7e6951b30827a8fd5b879dc243b5cb6c38bcb2a49f893d0",
+          "uuid": "db4e121670c636f08a46fdd48fcae1f2"
+        },
+        "Frameworks/FLAnimatedImage.framework/FLAnimatedImage": {
+          "size": 142352,
+          "sha256": "2ad5ca5c61d54d293886f05f6715019e87212196ffc30782ea03f8c6c6fd7d8d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 14884,
+          "text_sha256": "9d8da049fd143bbef63b2b33dbfda8a963fd62112ed0c55b174507d70ee8931e",
+          "uuid": "4083b7ac038e3e578b2c944634e92bd1"
+        },
+        "Frameworks/ReactCodegen.framework/ReactCodegen": {
+          "size": 349120,
+          "sha256": "84146b9bf3055c555a691bd7de68b4bfd881acd5525d71608b0ad6db8a52a441",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 60500,
+          "text_sha256": "1339e656264d067e29b085625a70d62f3fe740af861c3729b56343e0628a4fbf",
+          "uuid": "6b2db3fc7535357187399c13535b9fca"
+        },
+        "Frameworks/OrderedCollections_1222128174265B56_PackageProduct.framework/OrderedCollections_1222128174265B56_PackageProduct": {
+          "size": 331248,
+          "sha256": "bf6f889ed5e1f6b647f3bd0eee061f8c955b05b45b5bd61eb4c37870424db322",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 158216,
+          "text_sha256": "42ee885a7c6654e78b13e05ca399a562377e7b24e850c52d01808a5575cd3f83",
+          "uuid": "2c57ec91697a32d99122a2594b3dbc4a"
+        },
+        "Frameworks/RNGestureHandler.framework/RNGestureHandler": {
+          "size": 873440,
+          "sha256": "3841d07d021d037c41e9ab09d5f3976900ef64cc9612e195012de0f7af6fd979",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 220764,
+          "text_sha256": "d74539af5411281bb8046744d07344ddfeee3ebcc6dc4bfa8138e3593405979d",
+          "uuid": "ec0308c5fe0032feb8acdd8bbdbf824e"
+        },
+        "Frameworks/HotUpdater.framework/HotUpdater": {
+          "size": 907280,
+          "sha256": "50f1e075ac924151d2a58d2d1e1ebf8801a7038d4933fb30005ef5445fba8d73",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 329884,
+          "text_sha256": "9e36b21882557aeeb391902daa33f305b0f2c7b7b05cd43370058d460a291f82",
+          "uuid": "d998d05aea6e30e184f8edc70db60a93"
+        },
+        "Frameworks/DequeModule_307A0402D40AB265_PackageProduct.framework/DequeModule_307A0402D40AB265_PackageProduct": {
+          "size": 230576,
+          "sha256": "ec8bd9244fc25edb2ffe601124acf57cfd7f1273fd17db2791c5cb5d1f018e11",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 103980,
+          "text_sha256": "bf07ee6fa886c4afe393c8ffa37c6c8f280d15b8be02d472fe3b6200bbc6c03e",
+          "uuid": "6970fd267b67349b8d3c0a31b957a6bd"
+        },
+        "Frameworks/UserLeapKit.framework/UserLeapKit": {
+          "size": 1049360,
+          "sha256": "1a9f287f4980a3b3b2bf68e39b98a5026b9a56ed4141d19c450db3f31f8f540e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 307876,
+          "text_sha256": "7f95318335f61de71bbc511d8faba2acbaf74d7e5bfdfe59bc25d5b43545a650",
+          "uuid": "e05acc0e26ae3048a197ebac5362a1dd"
+        },
+        "Frameworks/GiphyUISDK.framework/GiphyUISDK": {
+          "size": 1969840,
+          "sha256": "230e308a0abd1c9541c56111a1b8290100180f268a0ebe8b27c435f0a004fd35",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1207364,
+          "text_sha256": "a107ef34ee7e644f688d511e29cf30a0b28b1a1ae074404cb9ff2e7cbc587d5d",
+          "uuid": "3ac5416921fb3b52b1c03e4a147aac26"
+        },
+        "Frameworks/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct": {
+          "size": 191184,
+          "sha256": "66b7d59fe7c61368e204d59224ca51787bfc88f1c421221ad21529603e7d1cc7",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 52776,
+          "text_sha256": "ae8a6318b202e9ce5a1a8bd100d2d1376d6bb1881bb66cf48b18f715d637fbcd",
+          "uuid": "63d17c6eb43c3bafa5765b896c2b69c3"
+        },
+        "Frameworks/TwitchGraphQLAPI.framework/TwitchGraphQLAPI": {
+          "size": 20526528,
+          "sha256": "8eac4f1bec295a3d435fb3755f3c3bf7f23079a20255110a1ddd2c811ae67e67",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8475600,
+          "text_sha256": "9b83aa7651c265849eef76e503c97b3133dda282c7683338017b92ace08e5649",
+          "uuid": "f4cc5263cd5d35ba9709ef5353f25388"
+        },
+        "Frameworks/twitch_rn_debug_props.framework/twitch_rn_debug_props": {
+          "size": 96992,
+          "sha256": "f252d4720118b6309686ab945eec6456e5812b6956f7bb0a18a21241c925bb16",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 492,
+          "text_sha256": "bf515e371b880a8428027523b59b88a01184a1b8123c7320267e5c3ca4a319f0",
+          "uuid": "33509f93e5f334f09093d52c9cb058d8"
+        },
+        "Frameworks/twitch_rn_player.framework/twitch_rn_player": {
+          "size": 758048,
+          "sha256": "5ed04bcbd2af51c3c1fcf3b31fb6c6711c85f937df2210c5924d5080ea6f47ac",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 215628,
+          "text_sha256": "c8a7fb7acbafaefb770cc264d3a6a12ca279efcf5e46017a91d75982e1224645",
+          "uuid": "5eb88c0363ee3983bab213d4c3a5dcda"
+        },
+        "Frameworks/twitch_rn_battery.framework/twitch_rn_battery": {
+          "size": 94928,
+          "sha256": "5d1417a25ee6286cd16649a45613a44ed56f1926b68038f0f0ab87eb02d801cc",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 992,
+          "text_sha256": "f927b0c860e7fd4f59eb9fb5f5fb12ea394afa7b0e81e06d8c999dba2e24609a",
+          "uuid": "27c965fd211430cdb6f5e9a70a975637"
+        },
+        "Frameworks/TwitchCore.framework/TwitchCore": {
+          "size": 833360,
+          "sha256": "1f74ee093677147d16e03bb061c2365d8b12c32ad015c5f6921a835f3b804d2c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 480728,
+          "text_sha256": "0cef222dce826888ff76688cf0afffbde2da46b0088008d72c067cda652786ad",
+          "uuid": "6dc705904a353d1aa43a18674ebeeb20"
+        },
+        "Frameworks/TwitchIdentity.framework/TwitchIdentity": {
+          "size": 175392,
+          "sha256": "1f20393843648ecd357986458379ef7e6a8e0f5c01c9e2e5f43245810148c866",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 64064,
+          "text_sha256": "1d7636e366038dc1e7669c3c3e277f10dcbb3f72944c94f6515142c72143aeb3",
+          "uuid": "61092a67246e3d0996e70094b6c239d3"
+        },
+        "Frameworks/AmazonIVSPlayer.framework/AmazonIVSPlayer": {
+          "size": 1796880,
+          "sha256": "cdbc6c57cdc9235755e6dfa841207d39f9de69f0a063b4852d21e44279f77887",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1298520,
+          "text_sha256": "bbf8963823f9f0f3787c641fc784038d7466d3c7ae2f3f6e2b5a9e8dfffd9cc3",
+          "uuid": "dda9162072f6361796414408f3872d85"
+        },
+        "Frameworks/TwitchAnalyticsCore.framework/TwitchAnalyticsCore": {
+          "size": 476656,
+          "sha256": "873293550bdf9922f563bdb3d8557220c56e557d26e0e2c619c6eaa14087d23c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 194936,
+          "text_sha256": "703ba3fcfbcfe8da46cd7113fb92c33b820c3a7ca5b90ac1ffe184bfd8260d73",
+          "uuid": "9834a4dfb1613eceacf3e4bdaea09322"
+        },
+        "Frameworks/RNScreens.framework/RNScreens": {
+          "size": 2228592,
+          "sha256": "3ca7b439836195541bbb289e89df908264fcb437354cabd664cb56c0dd0834df",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 509420,
+          "text_sha256": "b9954bfaa8594bd63052e3803337cbe0d07931a90d449226cf6557e5cf4be14a",
+          "uuid": "35a7e66da7013afa984f889f6ed56d03"
+        },
+        "Frameworks/Tomorrowland.framework/Tomorrowland": {
+          "size": 522256,
+          "sha256": "e93eab7aefb5bb88e1ebc9c5c36114eb3b18eb2bee3bb80b1e9792260e014b88",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 232488,
+          "text_sha256": "6356a017e85195af819dc31e5e4ab204315f189fec5d765fa29b1dc123645f9f",
+          "uuid": "36c3903668d73c4896e0aa48e5847f32"
+        },
+        "Frameworks/RNCAsyncStorage.framework/RNCAsyncStorage": {
+          "size": 133808,
+          "sha256": "22844047ec86c37ff79628cf52883d13cd77523f46b75fccd05152d279993e70",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 18520,
+          "text_sha256": "d18caf8e92854548d4376a213f3fe63841e6d12e56e221188fbaaa6c8191dc94",
+          "uuid": "a5667ea8057236a3898752cfd557b489"
+        },
+        "Frameworks/reanimated.framework/reanimated": {
+          "size": 3548768,
+          "sha256": "ff2560f670f7f01de6db790cb37e2eb78a2382a26aba0c9b6b04c16d2de87fb4",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 897264,
+          "text_sha256": "c56012682cb7eddb31eb4eff235953605436ee4dc07696c3aae0142bfbbee9c0",
+          "uuid": "2fec0766cf3933a7ad600beaec61cd7c"
+        },
+        "Frameworks/TwitchLogging.framework/TwitchLogging": {
+          "size": 223280,
+          "sha256": "277024d95824e0f34a722c0fbd8f2a1bb50af593c0d37124d0acb9f217f80f4c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 81112,
+          "text_sha256": "9bea29bdb7c2d71f1df2836481b06bb07646c7a3ddce674a649c3df73f70fdca",
+          "uuid": "96cbab272ac338b380e947ed9280a07c"
+        },
+        "Frameworks/RNKeychain.framework/RNKeychain": {
+          "size": 124544,
+          "sha256": "a641cbfa542934b24f073dd97730e5ddd093907262505c6d81bccf5c50bbd59e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 10320,
+          "text_sha256": "aeb34646efb82e85b5cb501047690581a886668b9bf47b5afb114ca0056ca0d5",
+          "uuid": "54d44dc1b8c93b66988496ddf2cd6520"
+        },
+        "Frameworks/TwitchCoreUIAssets.framework/TwitchCoreUIAssets": {
+          "size": 451056,
+          "sha256": "34a8b6103d575f826e0f22faf702fe6674a7d6a56bc3cd4059148e986cae99e3",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 219232,
+          "text_sha256": "a1dc39a5c83206b61417689d9376c8aaa7f31f6cb159d16078b9ee638f501fad",
+          "uuid": "f1ec0e9974dc3a7f8a3e860ff0a1645e"
+        },
+        "Frameworks/react_native_keyboard_controller.framework/react_native_keyboard_controller": {
+          "size": 1088000,
+          "sha256": "320009fd893fac7fc730ad5993cbd9a76a8e29535ff3b000e9a858a75d5f5a56",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 190304,
+          "text_sha256": "fd37728883a2c8054032c3e4c0dd8a8ff71936a4bc962f8592bb2c1c70867f04",
+          "uuid": "922273cd872d3ed6b00fa1d144359b54"
+        },
+        "Frameworks/AmazonIVSBroadcast.framework/AmazonIVSBroadcast": {
+          "size": 8528560,
+          "sha256": "05778def0f382649ac32f1c3d2fe75236f73c89cf3dc8255f39141dfe01305f0",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 6645440,
+          "text_sha256": "235c30ee9c51c771d2779fb8682ed1faa9eab1b84d88a5d74f433c90d06c6e6b",
+          "uuid": "2c11db93af4739b18b2b077dcb0865da"
+        },
+        "Frameworks/twitch_rn_animated_image.framework/twitch_rn_animated_image": {
+          "size": 102976,
+          "sha256": "5fa054669d2a492ed4464d439a6a79f36c2d483a3ec366f095d114cdbb2f10bc",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 2484,
+          "text_sha256": "906495c25ae99861dee61eb5802e11fabe2cf4f08210829a51288647696b3423",
+          "uuid": "ff663ebf3ed537848f29f99fb6ed3e87"
+        },
+        "Frameworks/react_native_netinfo.framework/react_native_netinfo": {
+          "size": 134224,
+          "sha256": "8957ae570f9894671053713f46cc83c3e85705a4a71f601d849568963bd8d2f5",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8424,
+          "text_sha256": "11064562799babea2a8f94b490d59677653d1b49101f35465276aa66885c69b3",
+          "uuid": "f61a581356f9320a95ea0e369f5c4219"
+        },
+        "Frameworks/react_native_video.framework/react_native_video": {
+          "size": 877936,
+          "sha256": "c3ce86c768ad2cec0060a1f526d7c374a7885c6ab45fe6b65a9f9a563cf60b55",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 253012,
+          "text_sha256": "d71e579721565bd65e8b2787f450d203aa13d885e0fe67d5cc8dca8b9695ae5d",
+          "uuid": "ff41e48fcb6034cca833a2406fb37973"
+        },
+        "Frameworks/TwitchKit.framework/TwitchKit": {
+          "size": 6337392,
+          "sha256": "1c0def0bb2121fff8e7782084d22f12ef1b1ca9ec196effe6e8e939cb7327fc4",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 4457044,
+          "text_sha256": "3d83550bc295156ec6d84e8eba7da9fdba3d7ccd652da92961f72da20792d51a",
+          "uuid": "23ce3a9ef6a535318d377ce288bc61b5"
+        },
+        "Frameworks/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct": {
+          "size": 154256,
+          "sha256": "547b5f7769e7f1215a4f389eaeb7f5aae6515ed107197c7af47917e054c0ac15",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 35732,
+          "text_sha256": "559eca280c54a6257ac42ab2861638fdc9986e83040fe634c89f556d19ab795e",
+          "uuid": "3efcdd8cfd853228af61d721a2f1a302"
+        },
+        "Frameworks/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct": {
+          "size": 676368,
+          "sha256": "4f0845f5c03b1c86f54d4af79ce6a2585dbf8b293281339558b20377e7e15f9b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 356404,
+          "text_sha256": "5410ef1de87761e8a3c44dba705220dc838c876f15adcc9572e6e4fc1725a270",
+          "uuid": "22ad18859efe3a30a16f45066584f07e"
+        },
+        "Frameworks/Cordova.framework/Cordova": {
+          "size": 132304,
+          "sha256": "9ca61ae501f0430f606f289f3eda9005b0778e6bd14d2616ecc2689f75b61a0c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 11500,
+          "text_sha256": "8608510f5aa9e1ac3ca7344f1562997c649065d7b30490dd89f0903ecccca7db",
+          "uuid": "aa81f436157d34c59de9383854eb7d94"
+        },
+        "Frameworks/OMSDK_Twitchtv1.framework/OMSDK_Twitchtv1": {
+          "size": 355776,
+          "sha256": "e9f298bd039188ffd47ee91c10f4cc5a387e872b6dd97c4554b57603fa773283",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 74944,
+          "text_sha256": "3bc78c643bd870ffd66e2cd2e327929c68fd005cd39627aa77826e89443ba464",
+          "uuid": "334731982eae3e838cda8285f5c699bb"
+        },
+        "Frameworks/ExpoModulesJSI.framework/ExpoModulesJSI": {
+          "size": 1476336,
+          "sha256": "a1466df750fcac626469238ecb109c20c0dbc9dabed79f9b7adbbd25869daa5e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 285176,
+          "text_sha256": "1072130738735f061175e7460670c9fff2bc01e9e6e63b2213a42773a97517cf",
+          "uuid": "587f8b0d29cf3756863d0a6255d9a702"
+        },
+        "Frameworks/React.framework/React": {
+          "size": 12338576,
+          "sha256": "3fb19be21a6f5c41bd71c487795bf9074f81d6eb163adb506f85b373894c24f8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 3420636,
+          "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+          "uuid": "ee15b752fb4635f2b0bba46636572385"
+        },
+        "Frameworks/GoogleCast.framework/GoogleCast": {
+          "size": 4770320,
+          "sha256": "2f06aaa6a0cdca14e6dd4838cd2d56fe189ed108cd4680869d0d5d58c32b8504",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1467264,
+          "text_sha256": "468798b7a1ec444b50da988e45bc2b93cf5ed5900ae9f5b85b8fa4e45a0ca4c8",
+          "uuid": "502630c71cef301c8b84e711d07e2e7c"
+        },
+        "Frameworks/TwitchPersistence.framework/TwitchPersistence": {
+          "size": 126224,
+          "sha256": "b15d881af97047ecb9767b45c925afa1476fa70fa17dfa70a680a8b87271b5da",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 22432,
+          "text_sha256": "91ff23f5eba7af32c12abc29c69c8b7c284cb3b808de1843d6fc2ae09bc35060",
+          "uuid": "3411ba47d1783f0d8e8bc7ce1986c6a8"
+        },
+        "Frameworks/twitch_rn_screen_orientation.framework/twitch_rn_screen_orientation": {
+          "size": 119328,
+          "sha256": "280bfefa7e854779d2b7fa72a74d943287699fb3877b1dbef229e442b969baf2",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8264,
+          "text_sha256": "0aad603d83761643a0622172388ec63d723f6281d20dbc1f2ba72fdcdb292576",
+          "uuid": "205df26152cb348b80a5159a41ee27c8"
+        },
+        "Frameworks/Lottie.framework/Lottie": {
+          "size": 2311120,
+          "sha256": "4a77a65045913230160ccded1820d4547e9acf27a70f675366edccfa1783b176",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1431292,
+          "text_sha256": "1162fd34e76b4d161d26b2cb8b5f14f43b1899f8f0acb25bf1dd180e52996db3",
+          "uuid": "98ca029a2f4631ec91a939073701c19c"
+        },
+        "Frameworks/TwitchApollo.framework/TwitchApollo": {
+          "size": 161936,
+          "sha256": "9a9ec7ecc35781fb7bca8aee351cfecb2a021e3be4d8a58ef142e8b389fad206",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 46592,
+          "text_sha256": "cdc500c1c98314e0459d4851b06cf5dc5d8913d4a1d95409e777dac3a7a78a01",
+          "uuid": "f37650b0ca3b353fbf2f5dc7b587dfb3"
+        },
+        "Frameworks/ApolloAPI.framework/ApolloAPI": {
+          "size": 316320,
+          "sha256": "7155d4cac2b08715114b63f26f4002fddb6f21f3db47ce0f566f5979d5694461",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 135296,
+          "text_sha256": "bbd94201d03bb4482b08cfe90fe5d0eabcce9d004b71594ed98009442b8eafc2",
+          "uuid": "15419544b8793927b722f772950341fd"
+        },
+        "Frameworks/twitch_rn_device_model.framework/twitch_rn_device_model": {
+          "size": 91536,
+          "sha256": "caf3d0f1bfb02c7793036bfa0e51ea90f7d5386e263a9eff9ba50a4cc7862164",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 248,
+          "text_sha256": "ee9db53bdf50740ffe2a374214ec51d8e116ebf393d92e6d87fc323c6a6333b7",
+          "uuid": "61e94e38b3743acca4e997ad9f7ebf07"
+        },
+        "Frameworks/PMJSON.framework/PMJSON": {
+          "size": 669792,
+          "sha256": "a0b60ebd00151148852e1f083f7f4fffee6504b46f1c7b2846ec14b06d11a2a0",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 409736,
+          "text_sha256": "afcea76004a57f84a7436bc838c9917ab1f4cc6d7aabdf8e25e7ac574ae914d5",
+          "uuid": "71dabe1835823f95984ff7459937361d"
+        },
+        "Frameworks/ComScore.framework/ComScore": {
+          "size": 1724560,
+          "sha256": "f7ebafaa1cba0d868a5b097339948e22e7a9f15d229023335cf31a4dd1087547",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 670760,
+          "text_sha256": "33a3d2b6bdad104f2b3e5acda385314cb40b3a0e0619b5e1bf42cb463a5eecdb",
+          "uuid": "44288c312d2e3cef97e3c44e1b6e3170"
+        },
+        "Frameworks/TwitchUtilities.framework/TwitchUtilities": {
+          "size": 538320,
+          "sha256": "5cf6d52c2f89e24b47243cae6a27b48a6a26c6b3419560790e523fe3d0b5ffe3",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 250704,
+          "text_sha256": "ff7c7cb0a061b7ac1f0e06c4d4c69b827943e30994247a37a8d004a8d3d7abe9",
+          "uuid": "964333d70bac3efcb8a5e40718182770"
+        },
+        "Frameworks/RNSentry.framework/RNSentry": {
+          "size": 369280,
+          "sha256": "c90bab56a7d4a98accf48c16b27727e57ffde7d069c9a56feb20ba8107c2f7b1",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 58864,
+          "text_sha256": "03cce240d4b0740482d0a1fc3019070c8637440ac85989da5632cfa810e17fdc",
+          "uuid": "099749add3cb300c8d3dbb7f635cdd8c"
+        },
+        "Frameworks/PMHTTP.framework/PMHTTP": {
+          "size": 867856,
+          "sha256": "42227909db8c3e46c492449e76897a319afe9a6ff7b8cc42b611af711cd080a2",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 460116,
+          "text_sha256": "f012d7c430a7e5c60e49f39b8a9e1feb082303a9aa390af1caa49a3be5f634d0",
+          "uuid": "61db3a255f05397f867d0f4e78b0e35c"
+        },
+        "Frameworks/KMPMobileChat.framework/KMPMobileChat": {
+          "size": 4290464,
+          "sha256": "92a9b788f543e305723805093d69778209722e4b7e4bb344d2efcff9f1babb00",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 2148664,
+          "text_sha256": "96219c52da9b30b6e3366b8927148eacb69b0fc82505bfba900aa09805037ac4",
+          "uuid": "0486abc882043ced837e17e1be26c5dd"
+        },
+        "Frameworks/twitch_rn_iap.framework/twitch_rn_iap": {
+          "size": 149248,
+          "sha256": "3b5e5e4f539113051c2d6b00497a32c9bb4b1c673a0cc1606890d7164f8210ec",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 20660,
+          "text_sha256": "df06b8994f62e19e7f548beb2a0660ddd92b3002e65322e8d74e21089ca924ff",
+          "uuid": "3d86014d912535188fed4781c532550b"
+        },
+        "Frameworks/worklets.framework/worklets": {
+          "size": 1400768,
+          "sha256": "87f6157ee83937f9bd0812bcf4c3370a4a6d31033c64639be2cee7a253127283",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 302024,
+          "text_sha256": "85f554d71626e422fe3481766bd2f081c0c4ff297a832703ee8ce96b2f8a956d",
+          "uuid": "671e87df75f93dae81dde36d599714f2"
+        },
+        "Frameworks/Capacitor.framework/Capacitor": {
+          "size": 868320,
+          "sha256": "3e0e7784c01bdd46c4e91eb17920b5402e0ea5ad943bf96a28bb318c1d02254d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 384784,
+          "text_sha256": "4ddf35929bbc80b198ba7f66e809cc4ce30b26f2d1d2eee17509bcd27acce49a",
+          "uuid": "757d09cc7a1e3aa7b747f34234ba5769"
+        },
+        "Frameworks/TwitchAppLaunch.framework/TwitchAppLaunch": {
+          "size": 92176,
+          "sha256": "3cc4de17b52a322a9e7921802671a5fb40014266fe53b01d536cd1c94755279a",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 336,
+          "text_sha256": "7e628c4c2e4736df935ead1dffe67b17b2004d91519b573c3e550c6f1caa1525",
+          "uuid": "01fa765a178136c58bab6b47249d2c2c"
+        },
+        "Frameworks/lottie_react_native.framework/lottie_react_native": {
+          "size": 444528,
+          "sha256": "dddf30924fe73f74a1e9881210beb2a27e2da9d321bce10ed45371ad60b4a2d9",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 102484,
+          "text_sha256": "91261b3f8ac1e98c1ff2b98631488c8c842acb1cfa989fa321882905ef773afe",
+          "uuid": "4670a9e1a1ff326d89bd664cda12ae70"
+        }
+      },
+      "framework_count": 64,
+      "binary_count": 66
+    },
+    "31.6.1": {
+      "ipa_bytes": 195178314,
+      "ipa_sha256": "1ab5c92ba56c72684fc12e9b53c9e4391215fd8beeb7b0bd29807711b7f83364",
+      "info": {
+        "CFBundleIdentifier": "tv.twitch",
+        "CFBundleShortVersionString": "31.6.1",
+        "CFBundleVersion": "262862021310949730",
+        "CFBundleExecutable": "Twitch",
+        "MinimumOSVersion": "16.4",
+        "DTSDKName": "iphoneos26.5",
+        "DTXcodeBuild": "17F42"
+      },
+      "bundle_bytes": 27786480,
+      "bundle_sha256": "422314432a66fd439fee24a62959e74678dcd9394a0b4d9ec43bbed970ffc83b",
+      "hbc_version": 98,
+      "hbc_sha1_footer": "5f22119749242717f3788797cf50a77f0edc0715",
+      "hbc_sha1_valid": true,
+      "frameworks": {
+        "TwitchApollo.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchApollo",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchApollo"
+        },
+        "RNSentry.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNSentry",
+          "CFBundleShortVersionString": "8.16.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNSentry"
+        },
+        "ApolloAPI.framework": {
+          "CFBundleIdentifier": "apollo-ios.ApolloAPI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ApolloAPI"
+        },
+        "Clocks_17A223499E7CA5_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-clocks.Clocks",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Clocks_17A223499E7CA5_PackageProduct"
+        },
+        "react_native_cookies.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-cookies",
+          "CFBundleShortVersionString": "6.2.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_cookies"
+        },
+        "twitch_rn_emote_input.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-emote-input",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_emote_input"
+        },
+        "ExpoModulesJSI.framework": {
+          "CFBundleIdentifier": "apple.ExpoModulesJSI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ExpoModulesJSI"
+        },
+        "hermesvm.framework": {
+          "CFBundleIdentifier": "dev.hermesengine.iphoneos",
+          "CFBundleShortVersionString": "1.0.0",
+          "CFBundleVersion": "1.0.0",
+          "CFBundleExecutable": "hermesvm"
+        },
+        "FLAnimatedImage.framework": {
+          "CFBundleIdentifier": "org.cocoapods.FLAnimatedImage",
+          "CFBundleShortVersionString": "1.0.17",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "FLAnimatedImage"
+        },
+        "Capacitor.framework": {
+          "CFBundleIdentifier": "com.capacitorjs.ios.Capacitor",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Capacitor"
+        },
+        "TwitchLogging.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchLogging",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchLogging"
+        },
+        "TwitchCore.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchCore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchCore"
+        },
+        "RNCAsyncStorage.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNCAsyncStorage",
+          "CFBundleShortVersionString": "2.2.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNCAsyncStorage"
+        },
+        "RNScreens.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNScreens",
+          "CFBundleShortVersionString": "4.25.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNScreens"
+        },
+        "twitch_rn_debug_props.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-debug-props",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_debug_props"
+        },
+        "twitch_rn_player.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-player",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_player"
+        },
+        "twitch_rn_battery.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-battery",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_battery"
+        },
+        "ReactAppDependencyProvider.framework": {
+          "CFBundleIdentifier": "org.cocoapods.ReactAppDependencyProvider",
+          "CFBundleShortVersionString": "0.86.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactAppDependencyProvider"
+        },
+        "Sentry.framework": {
+          "CFBundleIdentifier": "org.cocoapods.Sentry",
+          "CFBundleShortVersionString": "9.19.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Sentry"
+        },
+        "React.framework": {
+          "CFBundleIdentifier": "react-native.React",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "React"
+        },
+        "TwitchPersistence.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchPersistence",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchPersistence"
+        },
+        "reanimated.framework": {
+          "CFBundleIdentifier": "org.cocoapods.reanimated",
+          "CFBundleShortVersionString": "4.5.5",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "reanimated"
+        },
+        "OrderedCollections_1222128174265B56_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-collections.OrderedCollections",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "OrderedCollections_1222128174265B56_PackageProduct"
+        },
+        "react_native_keyboard_controller.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-keyboard-controller",
+          "CFBundleShortVersionString": "1.22.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_keyboard_controller"
+        },
+        "UserLeapKit.framework": {
+          "CFBundleIdentifier": "com.userleap.UserLeapKit",
+          "CFBundleShortVersionString": "4.8.5",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "UserLeapKit"
+        },
+        "TwitchAnalyticsCore.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchAnalyticsCore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchAnalyticsCore"
+        },
+        "GoogleCast.framework": {
+          "CFBundleIdentifier": "com.google.cast",
+          "CFBundleShortVersionString": "4.8.3",
+          "CFBundleVersion": "4.8.3",
+          "CFBundleExecutable": "GoogleCast"
+        },
+        "twitch_rn_animated_image.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-animated-image",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_animated_image"
+        },
+        "react_native_netinfo.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-netinfo",
+          "CFBundleShortVersionString": "12.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_netinfo"
+        },
+        "Apollo_171E9C48F1D7AD_PackageProduct.framework": {
+          "CFBundleIdentifier": "apollo-ios.Apollo",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Apollo_171E9C48F1D7AD_PackageProduct"
+        },
+        "react_native_video.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-video",
+          "CFBundleShortVersionString": "6.19.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_video"
+        },
+        "TwitchGraphQLAPI.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchGraphQLAPI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchGraphQLAPI"
+        },
+        "AmazonIVSPlayer.framework": {
+          "CFBundleIdentifier": "com.amazonaws.ivs.player.AmazonIVSPlayer",
+          "CFBundleShortVersionString": "1.57.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "AmazonIVSPlayer"
+        },
+        "ReactNativeDependencies.framework": {
+          "CFBundleIdentifier": "third-party.ReactNativeDependencies",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactNativeDependencies"
+        },
+        "KMPMobileChat.framework": {
+          "CFBundleIdentifier": "tv.twitch.chat.library.KMPMobileChat",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "KMPMobileChat"
+        },
+        "TwitchCoreUIAssets.framework": {
+          "CFBundleIdentifier": "tv.twitch.TwitchCoreUIAssets",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchCoreUIAssets"
+        },
+        "MobileShieldKit.framework": {
+          "CFBundleIdentifier": "io.MobileShieldKit.MobileShieldKit",
+          "CFBundleShortVersionString": "1.18.2",
+          "CFBundleVersion": "4345",
+          "CFBundleExecutable": "MobileShieldKit"
+        },
+        "TwitchAppLaunch.framework": {
+          "CFBundleIdentifier": "org.cocoapods.TwitchAppLaunch",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchAppLaunch"
+        },
+        "IssueReporting_2041EB56849B4D1_PackageProduct.framework": {
+          "CFBundleIdentifier": "xctest-dynamic-overlay.IssueReporting",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "IssueReporting_2041EB56849B4D1_PackageProduct"
+        },
+        "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-concurrency-extras.ConcurrencyExtras",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct"
+        },
+        "twitch_rn_screen_orientation.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-screen-orientation",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_screen_orientation"
+        },
+        "AmazonIVSBroadcast.framework": {
+          "CFBundleIdentifier": "com.amazonaws.ivs.broadcast",
+          "CFBundleShortVersionString": "1.48.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "AmazonIVSBroadcast"
+        },
+        "ReactCodegen.framework": {
+          "CFBundleIdentifier": "org.cocoapods.ReactCodegen",
+          "CFBundleShortVersionString": "0.86.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactCodegen"
+        },
+        "Tomorrowland.framework": {
+          "CFBundleIdentifier": "com.tildesoft.Tomorrowland",
+          "CFBundleShortVersionString": "1.4.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Tomorrowland"
+        },
+        "TwitchIdentity.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchIdentity",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchIdentity"
+        },
+        "OMSDK_Twitchtv1.framework": {
+          "CFBundleIdentifier": "com.iabtechlab.OMSDK-Twitchtv1",
+          "CFBundleShortVersionString": "1.6.1",
+          "CFBundleVersion": "1.6.1",
+          "CFBundleExecutable": "OMSDK_Twitchtv1"
+        },
+        "twitch_rn_device_model.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-device-model",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_device_model"
+        },
+        "TwitchUtilities.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchUtilities",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchUtilities"
+        },
+        "RNKeychain.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNKeychain",
+          "CFBundleShortVersionString": "10.0.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNKeychain"
+        },
+        "RNGestureHandler.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNGestureHandler",
+          "CFBundleShortVersionString": "3.1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNGestureHandler"
+        },
+        "TwitchKit.framework": {
+          "CFBundleIdentifier": "tv.twitch.TwitchKit",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchKit"
+        },
+        "Cordova.framework": {
+          "CFBundleIdentifier": "com.getcapacitor.ios.CapacitorCordova",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Cordova"
+        },
+        "HotUpdater.framework": {
+          "CFBundleIdentifier": "org.cocoapods.HotUpdater",
+          "CFBundleShortVersionString": "0.35.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "HotUpdater"
+        },
+        "GiphyUISDK.framework": {
+          "CFBundleIdentifier": "com.giphy.GiphyUISDK",
+          "CFBundleShortVersionString": "2.3.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "GiphyUISDK"
+        },
+        "PMJSON.framework": {
+          "CFBundleIdentifier": "com.postmates.PMJSON",
+          "CFBundleShortVersionString": "4.0.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "PMJSON"
+        },
+        "Lottie.framework": {
+          "CFBundleIdentifier": "com.airbnb.Lottie",
+          "CFBundleShortVersionString": "4.6.0",
+          "CFBundleVersion": "460",
+          "CFBundleExecutable": "Lottie"
+        },
+        "twitch_rn_iap.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-iap",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_iap"
+        },
+        "worklets.framework": {
+          "CFBundleIdentifier": "org.cocoapods.worklets",
+          "CFBundleShortVersionString": "0.10.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "worklets"
+        },
+        "ComScore.framework": {
+          "CFBundleIdentifier": "com.comscore.ComScore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ComScore"
+        },
+        "PMHTTP.framework": {
+          "CFBundleIdentifier": "com.postmates.PMHTTP",
+          "CFBundleShortVersionString": "4.5.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "PMHTTP"
+        },
+        "lottie_react_native.framework": {
+          "CFBundleIdentifier": "org.cocoapods.lottie-react-native",
+          "CFBundleShortVersionString": "7.3.8",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "lottie_react_native"
+        }
+      },
+      "binaries": {
+        "Frameworks/libswiftCompatibilitySpan.dylib": {
+          "size": 169536,
+          "sha256": "6f5b13f411181788ca6bfc0991a9f06ea1721264c68c17f284b5459af378d4d8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 876,
+          "text_sha256": "19f1d93afdfe68a15416a37e89898ff0f299597d43e09ffedc809ac79b678d76",
+          "uuid": "56ccb7a96e073686aa2ddab2131ef4dd"
+        },
+        "Twitch": {
+          "size": 108331392,
+          "sha256": "d5eeca54a0af3888bac2418ddabd96df782d63bf72b405a1cb173a0a6f33495c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 86200092,
+          "text_sha256": "90ba6489fe0bfd3a389a4d4c59e6d53db556da2c5a1396d2d668007a95a40f9e",
+          "uuid": "51026d7d9cf23581ab88e82b579293c3"
+        },
+        "Frameworks/IssueReporting_2041EB56849B4D1_PackageProduct.framework/IssueReporting_2041EB56849B4D1_PackageProduct": {
+          "size": 225152,
+          "sha256": "9f5a371d8234fd01e52db8033af9fdd1088e28b1ac5e3ff6381cbf1b26e0edf0",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 85176,
+          "text_sha256": "e901c42a273a9721572330ab4bf68ae0001d2d8497417473e7da6fca90eb020e",
+          "uuid": "4928cc92393b37a1bbb6acae3bd4e5d5"
+        },
+        "Frameworks/ReactAppDependencyProvider.framework/ReactAppDependencyProvider": {
+          "size": 91648,
+          "sha256": "5e3781b56d65a04d606defe4463b42d2f8d831b10c7c5adc95e16f32cfcfa47d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 72,
+          "text_sha256": "84d57270c03fe6dba624b985f09e693c9f41b6136122296a3e798380cf9161ac",
+          "uuid": "9f2cc25dec9c3e40813845a2c098e12a"
+        },
+        "Frameworks/react_native_cookies.framework/react_native_cookies": {
+          "size": 123376,
+          "sha256": "3321f6544d7c4abbcde1002bf5cb5f01746364b18c88ecf991fa4d51858aca6d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 9704,
+          "text_sha256": "79eb08c74a8d237591026f06d32f0cf3b43b159ed7058a6a96c3096026773999",
+          "uuid": "43925d77242b3ed0aeb268a16d2b2815"
+        },
+        "Frameworks/twitch_rn_emote_input.framework/twitch_rn_emote_input": {
+          "size": 315728,
+          "sha256": "e3eda94a290b3c3d1b727cb006ca2e617c2b2ed8978e040655dc13f67727b27e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 65792,
+          "text_sha256": "46e4021a54043cd8c8efac0e1661a2f67b21a8a3efbff7ca7c82804184b88fc0",
+          "uuid": "c2b46e170b0836d090d840f2a50f4363"
+        },
+        "Frameworks/MobileShieldKit.framework/MobileShieldKit": {
+          "size": 836272,
+          "sha256": "4ca75d4405b610b61c0e32289634407e7251e99102950ae0066c5d60ba306b24",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 409792,
+          "text_sha256": "1c66761f8faac827ee0780f2af77ffc98ef3416814f3f7b79525ad6a98fc7f91",
+          "uuid": "24611df6555232aaa1f1fd0c083960ef"
+        },
+        "Frameworks/hermesvm.framework/hermesvm": {
+          "size": 5213408,
+          "sha256": "112ee7d898b23208ef6da7272e1f8071feedbb61a753b194079e5dd0502a8812",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1849828,
+          "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+          "uuid": "be274a2347cc3f5a9e988474553df5a8"
+        },
+        "Frameworks/Sentry.framework/Sentry": {
+          "size": 6358896,
+          "sha256": "c31e29c96301dc3b3391644134b025b2bd7a15b6ed0eaf96e9dc58c086c68029",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1639608,
+          "text_sha256": "51ebc86eca618dcfcf220af4c77cf3cff2bf29e5d26de290b0b3c2a98ae48a4a",
+          "uuid": "e17c2f52582835e1b7969030c77441bf"
+        },
+        "Frameworks/ReactNativeDependencies.framework/ReactNativeDependencies": {
+          "size": 1285632,
+          "sha256": "d8b84a4f68e42da692850163f44b85f488f0c06ba6c70ae4e13457d13800fb6d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 418532,
+          "text_sha256": "b22a7eeea6a77c76a7e6951b30827a8fd5b879dc243b5cb6c38bcb2a49f893d0",
+          "uuid": "db4e121670c636f08a46fdd48fcae1f2"
+        },
+        "Frameworks/FLAnimatedImage.framework/FLAnimatedImage": {
+          "size": 142352,
+          "sha256": "0778f2893f6284016144acf3e8da6c26260cb9ed0328763e712036627b968fac",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 14884,
+          "text_sha256": "9d8da049fd143bbef63b2b33dbfda8a963fd62112ed0c55b174507d70ee8931e",
+          "uuid": "4083b7ac038e3e578b2c944634e92bd1"
+        },
+        "Frameworks/ReactCodegen.framework/ReactCodegen": {
+          "size": 349120,
+          "sha256": "dacab6d4899f924e09affd27eeaf5adc77d1672b933c18adfb7d76418f873dc5",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 60500,
+          "text_sha256": "1339e656264d067e29b085625a70d62f3fe740af861c3729b56343e0628a4fbf",
+          "uuid": "6b2db3fc7535357187399c13535b9fca"
+        },
+        "Frameworks/OrderedCollections_1222128174265B56_PackageProduct.framework/OrderedCollections_1222128174265B56_PackageProduct": {
+          "size": 359936,
+          "sha256": "7fe12f177dcddb82863d9751f5a2b7532008a907ff638942473e434e9c6b4ab9",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 177136,
+          "text_sha256": "f7d02904dc37a97b3be5f7b441754c1f46f21a68193fcd2f56afa2c7417a6384",
+          "uuid": "cb9cc0ccff59363599c2f2f139568941"
+        },
+        "Frameworks/RNGestureHandler.framework/RNGestureHandler": {
+          "size": 873440,
+          "sha256": "83236161b209d802d875ec8df775ca57d33476bb6d6e5ccaa8e8d3cba34d7e58",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 220764,
+          "text_sha256": "d74539af5411281bb8046744d07344ddfeee3ebcc6dc4bfa8138e3593405979d",
+          "uuid": "ec0308c5fe0032feb8acdd8bbdbf824e"
+        },
+        "Frameworks/HotUpdater.framework/HotUpdater": {
+          "size": 907280,
+          "sha256": "4c1c10612528e449fe33f8abef61928e7cc37000f4c8f93018053610f111b314",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 329884,
+          "text_sha256": "9e36b21882557aeeb391902daa33f305b0f2c7b7b05cd43370058d460a291f82",
+          "uuid": "c3dfd32eea7b3080a797f6186280a168"
+        },
+        "Frameworks/UserLeapKit.framework/UserLeapKit": {
+          "size": 1049360,
+          "sha256": "30be30b9ec74d79f8fe6097869f25b9b2494e613f82fcf300e9364535c12fd90",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 307876,
+          "text_sha256": "7f95318335f61de71bbc511d8faba2acbaf74d7e5bfdfe59bc25d5b43545a650",
+          "uuid": "e05acc0e26ae3048a197ebac5362a1dd"
+        },
+        "Frameworks/GiphyUISDK.framework/GiphyUISDK": {
+          "size": 1969840,
+          "sha256": "fe6934f9ecbaa1ca6f2c4338b87d921884dcde9e4eb1afa56580d233f7af7f4b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1207364,
+          "text_sha256": "a107ef34ee7e644f688d511e29cf30a0b28b1a1ae074404cb9ff2e7cbc587d5d",
+          "uuid": "3ac5416921fb3b52b1c03e4a147aac26"
+        },
+        "Frameworks/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct": {
+          "size": 191184,
+          "sha256": "ddf8bfe1dca3e20a469a2914a040650b84232dcf5829153557ee11dbb8ee1958",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 52776,
+          "text_sha256": "ae8a6318b202e9ce5a1a8bd100d2d1376d6bb1881bb66cf48b18f715d637fbcd",
+          "uuid": "63d17c6eb43c3bafa5765b896c2b69c3"
+        },
+        "Frameworks/TwitchGraphQLAPI.framework/TwitchGraphQLAPI": {
+          "size": 20506016,
+          "sha256": "c3c10255dce7353cf3d322c955f2663a51a60221c5718fb8063bcef05c93bad0",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8470952,
+          "text_sha256": "bb9dff4d532be3fcb6d375b49ce24c75642ace00b4007cec15d91b353d309628",
+          "uuid": "c7f146b0921d3caab29ac7c4235da2d1"
+        },
+        "Frameworks/twitch_rn_debug_props.framework/twitch_rn_debug_props": {
+          "size": 96544,
+          "sha256": "49abcd3903a7e1f3db9ce4ea52e1a7825fbee3650abf17129034b5187ee78095",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 344,
+          "text_sha256": "27b6f96900a3887cc9b4a6e3ad7227e8cdefdba88191b2ecce7cd78fe781c3fe",
+          "uuid": "8b75afd92b60302fa49a70d42d4952b9"
+        },
+        "Frameworks/twitch_rn_player.framework/twitch_rn_player": {
+          "size": 723648,
+          "sha256": "e69a4dcde79a7f3ef2b106110a6cee3328a7c1da0942de4a2fa5114cb15479c7",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 208904,
+          "text_sha256": "52f43ab5e03a4125299b4397e41c92541067bcce7aa3f9bf2523fe5416f38b9d",
+          "uuid": "c8b6771238203736a49425e8d1b62166"
+        },
+        "Frameworks/twitch_rn_battery.framework/twitch_rn_battery": {
+          "size": 94928,
+          "sha256": "ed7f322b3969acd4f94a9fbda1b49ecde492d8ce7040216e2d17b81a7561295c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 992,
+          "text_sha256": "f927b0c860e7fd4f59eb9fb5f5fb12ea394afa7b0e81e06d8c999dba2e24609a",
+          "uuid": "27c965fd211430cdb6f5e9a70a975637"
+        },
+        "Frameworks/TwitchCore.framework/TwitchCore": {
+          "size": 833360,
+          "sha256": "33f5948de043b7d3f48bf79cd5fbae16b0450375363033febd29de76d9251b9d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 480720,
+          "text_sha256": "ede673ec0036fa1471872c4d7461b59162e5fefeaaf8eca8ebd28db9dc4d8ee6",
+          "uuid": "91e169502dee3e018b49ed8bb48c506e"
+        },
+        "Frameworks/TwitchIdentity.framework/TwitchIdentity": {
+          "size": 175392,
+          "sha256": "0767a3a280c4f5f99a6d2d5fdbd8a3f23db69fa46b073087c18cc3b808294c06",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 64064,
+          "text_sha256": "1d7636e366038dc1e7669c3c3e277f10dcbb3f72944c94f6515142c72143aeb3",
+          "uuid": "5b0873da93113826828379e3d0857fbe"
+        },
+        "Frameworks/AmazonIVSPlayer.framework/AmazonIVSPlayer": {
+          "size": 1796880,
+          "sha256": "a48ac08caa79ebe6d891e48f5afa80804cc1d9165ced9f752673fdbb167cd061",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1298520,
+          "text_sha256": "bbf8963823f9f0f3787c641fc784038d7466d3c7ae2f3f6e2b5a9e8dfffd9cc3",
+          "uuid": "dda9162072f6361796414408f3872d85"
+        },
+        "Frameworks/TwitchAnalyticsCore.framework/TwitchAnalyticsCore": {
+          "size": 476656,
+          "sha256": "4a92f622a5a8eea5934f38a144877485c112aaab10304ef9d253c9f96a925cfe",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 194936,
+          "text_sha256": "703ba3fcfbcfe8da46cd7113fb92c33b820c3a7ca5b90ac1ffe184bfd8260d73",
+          "uuid": "34045a7fc6e738c3b37be98168242f5c"
+        },
+        "Frameworks/RNScreens.framework/RNScreens": {
+          "size": 2228592,
+          "sha256": "1c004b404b8ed437771b60c932b36f1f46ca8320f55844c43d8164a609eb1bef",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 509420,
+          "text_sha256": "b9954bfaa8594bd63052e3803337cbe0d07931a90d449226cf6557e5cf4be14a",
+          "uuid": "35a7e66da7013afa984f889f6ed56d03"
+        },
+        "Frameworks/Tomorrowland.framework/Tomorrowland": {
+          "size": 522256,
+          "sha256": "69e7363ef602a44a8f22d3f4db1c3ce6025db029c0a635d8646f9eddfe8ae4bd",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 232488,
+          "text_sha256": "6356a017e85195af819dc31e5e4ab204315f189fec5d765fa29b1dc123645f9f",
+          "uuid": "36c3903668d73c4896e0aa48e5847f32"
+        },
+        "Frameworks/RNCAsyncStorage.framework/RNCAsyncStorage": {
+          "size": 133808,
+          "sha256": "6dd194c64e32b8b7febe35f0587f4f3efa44db5a57b46d1edc96679cff60d41c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 18520,
+          "text_sha256": "d18caf8e92854548d4376a213f3fe63841e6d12e56e221188fbaaa6c8191dc94",
+          "uuid": "a5667ea8057236a3898752cfd557b489"
+        },
+        "Frameworks/reanimated.framework/reanimated": {
+          "size": 3548768,
+          "sha256": "bfe5688bba917b300bfae4c7a36096fdb1d3c11b6e1b5e43411a3ff64f5be4fd",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 897264,
+          "text_sha256": "c56012682cb7eddb31eb4eff235953605436ee4dc07696c3aae0142bfbbee9c0",
+          "uuid": "2fec0766cf3933a7ad600beaec61cd7c"
+        },
+        "Frameworks/TwitchLogging.framework/TwitchLogging": {
+          "size": 223280,
+          "sha256": "80d941d799d7298e6671480e57fc35200ba4218fb5db30e5f43617fbd989473a",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 81112,
+          "text_sha256": "9bea29bdb7c2d71f1df2836481b06bb07646c7a3ddce674a649c3df73f70fdca",
+          "uuid": "0b36ee8e76cb3b5e888004565cd398eb"
+        },
+        "Frameworks/RNKeychain.framework/RNKeychain": {
+          "size": 124544,
+          "sha256": "8c40dd942a736a7040e6bc98ec4d49395bdb0dd5ce3b6e022305f89dd5c2231f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 10320,
+          "text_sha256": "aeb34646efb82e85b5cb501047690581a886668b9bf47b5afb114ca0056ca0d5",
+          "uuid": "54d44dc1b8c93b66988496ddf2cd6520"
+        },
+        "Frameworks/TwitchCoreUIAssets.framework/TwitchCoreUIAssets": {
+          "size": 451056,
+          "sha256": "641e1ca1100eaf6c8bc3be7d2d358d333479fed706f868940c0a63ba2d742cbd",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 219232,
+          "text_sha256": "a1dc39a5c83206b61417689d9376c8aaa7f31f6cb159d16078b9ee638f501fad",
+          "uuid": "f1ec0e9974dc3a7f8a3e860ff0a1645e"
+        },
+        "Frameworks/react_native_keyboard_controller.framework/react_native_keyboard_controller": {
+          "size": 1088000,
+          "sha256": "eedd1da5ca91868b5bcd32c7610cfd53210059e2c34f899a1bf3b60646abb1be",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 190304,
+          "text_sha256": "fd37728883a2c8054032c3e4c0dd8a8ff71936a4bc962f8592bb2c1c70867f04",
+          "uuid": "922273cd872d3ed6b00fa1d144359b54"
+        },
+        "Frameworks/AmazonIVSBroadcast.framework/AmazonIVSBroadcast": {
+          "size": 8528560,
+          "sha256": "e6751fe6ecfe8e9deb726d7703bac286ba56bb380509945ad1c6328298367beb",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 6645440,
+          "text_sha256": "235c30ee9c51c771d2779fb8682ed1faa9eab1b84d88a5d74f433c90d06c6e6b",
+          "uuid": "2c11db93af4739b18b2b077dcb0865da"
+        },
+        "Frameworks/twitch_rn_animated_image.framework/twitch_rn_animated_image": {
+          "size": 102976,
+          "sha256": "f0c8b58e77d7ce8a8e50a2c4cc13fb158c113da409d56d4d30597362c4f7ea72",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 2484,
+          "text_sha256": "906495c25ae99861dee61eb5802e11fabe2cf4f08210829a51288647696b3423",
+          "uuid": "ff663ebf3ed537848f29f99fb6ed3e87"
+        },
+        "Frameworks/react_native_netinfo.framework/react_native_netinfo": {
+          "size": 134224,
+          "sha256": "ed1c04b42bea61463d650e0a90090d77227403c029279ed09422a6bed97219bf",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8424,
+          "text_sha256": "11064562799babea2a8f94b490d59677653d1b49101f35465276aa66885c69b3",
+          "uuid": "f61a581356f9320a95ea0e369f5c4219"
+        },
+        "Frameworks/react_native_video.framework/react_native_video": {
+          "size": 877936,
+          "sha256": "987d344bfe5aeebf5883fb231a05d0f081b4d008d003751c3c2ab6ed5d2aa6a8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 253012,
+          "text_sha256": "d71e579721565bd65e8b2787f450d203aa13d885e0fe67d5cc8dca8b9695ae5d",
+          "uuid": "ff41e48fcb6034cca833a2406fb37973"
+        },
+        "Frameworks/TwitchKit.framework/TwitchKit": {
+          "size": 6338048,
+          "sha256": "ec86d0a44c1db2a6a6d2a66cdf9c7a94004c292ef49a7dde3ede78069a50c7d0",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 4453556,
+          "text_sha256": "400d3ccf26b66699996935cd634c47e0ea3f1d2984cfb63c715f64d9b6703280",
+          "uuid": "e59223422341315ba8bf744d7246fe9e"
+        },
+        "Frameworks/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct": {
+          "size": 154256,
+          "sha256": "33febbf9ea221a7f1c356b2ca5af4f77e847dd6a7dbdde9adf3e0a1087eeafdf",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 35732,
+          "text_sha256": "559eca280c54a6257ac42ab2861638fdc9986e83040fe634c89f556d19ab795e",
+          "uuid": "3efcdd8cfd853228af61d721a2f1a302"
+        },
+        "Frameworks/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct": {
+          "size": 676368,
+          "sha256": "b8f993c6555cfba1be6cf481c5b0727f66088d7cb0d46b11113f9317bfbf6c2b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 356404,
+          "text_sha256": "5410ef1de87761e8a3c44dba705220dc838c876f15adcc9572e6e4fc1725a270",
+          "uuid": "22ad18859efe3a30a16f45066584f07e"
+        },
+        "Frameworks/Cordova.framework/Cordova": {
+          "size": 132304,
+          "sha256": "42a1fc430da1c14892532dbc230d55061d42dce624e0298db2a3836689666e48",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 11500,
+          "text_sha256": "8608510f5aa9e1ac3ca7344f1562997c649065d7b30490dd89f0903ecccca7db",
+          "uuid": "aa81f436157d34c59de9383854eb7d94"
+        },
+        "Frameworks/OMSDK_Twitchtv1.framework/OMSDK_Twitchtv1": {
+          "size": 355776,
+          "sha256": "c7a91c42ed0d90c5698d20a1075ea1be8652e2bc82320911ed6b66490611d083",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 74944,
+          "text_sha256": "3bc78c643bd870ffd66e2cd2e327929c68fd005cd39627aa77826e89443ba464",
+          "uuid": "334731982eae3e838cda8285f5c699bb"
+        },
+        "Frameworks/ExpoModulesJSI.framework/ExpoModulesJSI": {
+          "size": 1476336,
+          "sha256": "56464578cce6ef0893f6bd4fb17dfedeee735e30bf3a73741c6cd2182a34617d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 285176,
+          "text_sha256": "1072130738735f061175e7460670c9fff2bc01e9e6e63b2213a42773a97517cf",
+          "uuid": "587f8b0d29cf3756863d0a6255d9a702"
+        },
+        "Frameworks/React.framework/React": {
+          "size": 12338576,
+          "sha256": "82f8e4664fcda3b5604f22112587a0f5a2d008d197902154e27f2eb265c0ab86",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 3420636,
+          "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+          "uuid": "ee15b752fb4635f2b0bba46636572385"
+        },
+        "Frameworks/GoogleCast.framework/GoogleCast": {
+          "size": 4770320,
+          "sha256": "e05261f0976bb0d2f21e1aa0ab7a731f426ee69aceab77e47520892ee9f93d24",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1467264,
+          "text_sha256": "468798b7a1ec444b50da988e45bc2b93cf5ed5900ae9f5b85b8fa4e45a0ca4c8",
+          "uuid": "502630c71cef301c8b84e711d07e2e7c"
+        },
+        "Frameworks/TwitchPersistence.framework/TwitchPersistence": {
+          "size": 126224,
+          "sha256": "2e82d8757662c0c4673183ca65d849ee4276f9b043944a77e6a45e68dc2e0547",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 22432,
+          "text_sha256": "91ff23f5eba7af32c12abc29c69c8b7c284cb3b808de1843d6fc2ae09bc35060",
+          "uuid": "af636ceec99333728d4f8f9e8871b5ed"
+        },
+        "Frameworks/twitch_rn_screen_orientation.framework/twitch_rn_screen_orientation": {
+          "size": 119328,
+          "sha256": "f8592c5cac424c863931e0c6f69dbec9e817e93af67bf3626e89ea100c2e86f0",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8264,
+          "text_sha256": "0aad603d83761643a0622172388ec63d723f6281d20dbc1f2ba72fdcdb292576",
+          "uuid": "205df26152cb348b80a5159a41ee27c8"
+        },
+        "Frameworks/Lottie.framework/Lottie": {
+          "size": 2311120,
+          "sha256": "980650f7355ab56eff8aae083d105f74369b6cb84eddeedbab80a4d9bd809e45",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1431292,
+          "text_sha256": "1162fd34e76b4d161d26b2cb8b5f14f43b1899f8f0acb25bf1dd180e52996db3",
+          "uuid": "98ca029a2f4631ec91a939073701c19c"
+        },
+        "Frameworks/TwitchApollo.framework/TwitchApollo": {
+          "size": 161936,
+          "sha256": "a286cb44a3a8784db9dbb3092382599722875048f69c18164a2ed285f4ebb12a",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 46592,
+          "text_sha256": "cdc500c1c98314e0459d4851b06cf5dc5d8913d4a1d95409e777dac3a7a78a01",
+          "uuid": "12927353a84e3b9fbcb83a4d3c1831c7"
+        },
+        "Frameworks/ApolloAPI.framework/ApolloAPI": {
+          "size": 316320,
+          "sha256": "f0e032219af4adc8a240915fab796acf7a1155a3b31fdebff66c473ba04a5c9d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 135296,
+          "text_sha256": "bbd94201d03bb4482b08cfe90fe5d0eabcce9d004b71594ed98009442b8eafc2",
+          "uuid": "15419544b8793927b722f772950341fd"
+        },
+        "Frameworks/twitch_rn_device_model.framework/twitch_rn_device_model": {
+          "size": 91536,
+          "sha256": "ba836cd60956b0e1d3eafa6a17b04abfe532ae1964d57dba87700b70d5a45d65",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 248,
+          "text_sha256": "ee9db53bdf50740ffe2a374214ec51d8e116ebf393d92e6d87fc323c6a6333b7",
+          "uuid": "61e94e38b3743acca4e997ad9f7ebf07"
+        },
+        "Frameworks/PMJSON.framework/PMJSON": {
+          "size": 669792,
+          "sha256": "77763bbfc3683a99a67ac7a7b882c1e5fd10e508d411e0bb5fe0e11f976ed384",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 409736,
+          "text_sha256": "afcea76004a57f84a7436bc838c9917ab1f4cc6d7aabdf8e25e7ac574ae914d5",
+          "uuid": "71dabe1835823f95984ff7459937361d"
+        },
+        "Frameworks/ComScore.framework/ComScore": {
+          "size": 1724560,
+          "sha256": "b5fc38429ed7faf7d60b4f641c9d415bd22a68045171fbec55e4f55544279186",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 670760,
+          "text_sha256": "33a3d2b6bdad104f2b3e5acda385314cb40b3a0e0619b5e1bf42cb463a5eecdb",
+          "uuid": "44288c312d2e3cef97e3c44e1b6e3170"
+        },
+        "Frameworks/TwitchUtilities.framework/TwitchUtilities": {
+          "size": 536704,
+          "sha256": "828db7219bfc5f435368f71b03a19da13e3a3fc3f8dfc0b18e0310e6358e1289",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 249104,
+          "text_sha256": "0b441c7a0b87a30d3c063d823bf615f61e191c92dfab7665b9d9401976ddc007",
+          "uuid": "6cafda700bf73229beb0382c9b7d2a8e"
+        },
+        "Frameworks/RNSentry.framework/RNSentry": {
+          "size": 369280,
+          "sha256": "70c9bc4604cf0a5eedd28cce0eb9eaaa4583c622587a15364d5f8d9c4f744638",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 58864,
+          "text_sha256": "03cce240d4b0740482d0a1fc3019070c8637440ac85989da5632cfa810e17fdc",
+          "uuid": "099749add3cb300c8d3dbb7f635cdd8c"
+        },
+        "Frameworks/PMHTTP.framework/PMHTTP": {
+          "size": 867856,
+          "sha256": "e277330c224a911fb7a39014496cfc794eda57f40e3475db1a77914e63569ecd",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 460116,
+          "text_sha256": "f012d7c430a7e5c60e49f39b8a9e1feb082303a9aa390af1caa49a3be5f634d0",
+          "uuid": "61db3a255f05397f867d0f4e78b0e35c"
+        },
+        "Frameworks/KMPMobileChat.framework/KMPMobileChat": {
+          "size": 4290464,
+          "sha256": "9e5d43ce7e7eb59eb0db1cf8511f7b661fa42002a980ffa14d3b5f52e2296fca",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 2148664,
+          "text_sha256": "b92dfa97e921f9d43b50b8ea54b0865f86f5a34063d38d035d8677e351382046",
+          "uuid": "f68276064fc43b35850a7f78f63af976"
+        },
+        "Frameworks/twitch_rn_iap.framework/twitch_rn_iap": {
+          "size": 149248,
+          "sha256": "399068ddaf841a6bb00a0f74a69dc0b6c8d045c74db558d2cc8c50979bd98c5b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 20660,
+          "text_sha256": "df06b8994f62e19e7f548beb2a0660ddd92b3002e65322e8d74e21089ca924ff",
+          "uuid": "3d86014d912535188fed4781c532550b"
+        },
+        "Frameworks/worklets.framework/worklets": {
+          "size": 1400768,
+          "sha256": "03593d6198288861fe8830a8124f87fec94fc9c74ab70252bdce4f2ac2957ece",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 302024,
+          "text_sha256": "85f554d71626e422fe3481766bd2f081c0c4ff297a832703ee8ce96b2f8a956d",
+          "uuid": "671e87df75f93dae81dde36d599714f2"
+        },
+        "Frameworks/Capacitor.framework/Capacitor": {
+          "size": 868320,
+          "sha256": "261ab433b8f1f17ff48e67a214faf1ae4917ec8a1f1eae4763a56c46dd83377b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 384784,
+          "text_sha256": "4ddf35929bbc80b198ba7f66e809cc4ce30b26f2d1d2eee17509bcd27acce49a",
+          "uuid": "757d09cc7a1e3aa7b747f34234ba5769"
+        },
+        "Frameworks/TwitchAppLaunch.framework/TwitchAppLaunch": {
+          "size": 92176,
+          "sha256": "30143f04f32984930bc069ce7e6f70827587db5caa6a60db32aa0b9b83d5f277",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 336,
+          "text_sha256": "7e628c4c2e4736df935ead1dffe67b17b2004d91519b573c3e550c6f1caa1525",
+          "uuid": "01fa765a178136c58bab6b47249d2c2c"
+        },
+        "Frameworks/lottie_react_native.framework/lottie_react_native": {
+          "size": 444528,
+          "sha256": "507fcf13d84b722aa34cc605b558f8e7f2e8ad3b5b2cf0f873a749c2762c7723",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 102484,
+          "text_sha256": "91261b3f8ac1e98c1ff2b98631488c8c842acb1cfa989fa321882905ef773afe",
+          "uuid": "4670a9e1a1ff326d89bd664cda12ae70"
+        }
+      },
+      "framework_count": 61,
+      "binary_count": 63
+    },
+    "31.6.2": {
+      "ipa_bytes": 197132394,
+      "ipa_sha256": "8cf72803d0e0b1aeb7c062af2d0cbac1e20f78e9f3c73fc590ac5ae9d1d29186",
+      "info": {
+        "CFBundleIdentifier": "tv.twitch",
+        "CFBundleShortVersionString": "31.6.2",
+        "CFBundleVersion": "262872150334984303",
+        "CFBundleExecutable": "Twitch",
+        "MinimumOSVersion": "16.4",
+        "DTSDKName": "iphoneos26.5",
+        "DTXcodeBuild": "17F42"
+      },
+      "bundle_bytes": 28682408,
+      "bundle_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+      "hbc_version": 98,
+      "hbc_sha1_footer": "d2428c8fa344f3956c89b991c4bd488b42a12db7",
+      "hbc_sha1_valid": true,
+      "frameworks": {
+        "TwitchApollo.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchApollo",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchApollo"
+        },
+        "RNSentry.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNSentry",
+          "CFBundleShortVersionString": "8.16.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNSentry"
+        },
+        "ApolloAPI.framework": {
+          "CFBundleIdentifier": "apollo-ios.ApolloAPI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ApolloAPI"
+        },
+        "Clocks_17A223499E7CA5_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-clocks.Clocks",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Clocks_17A223499E7CA5_PackageProduct"
+        },
+        "react_native_cookies.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-cookies",
+          "CFBundleShortVersionString": "6.2.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_cookies"
+        },
+        "twitch_rn_emote_input.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-emote-input",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_emote_input"
+        },
+        "ExpoModulesJSI.framework": {
+          "CFBundleIdentifier": "apple.ExpoModulesJSI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ExpoModulesJSI"
+        },
+        "hermesvm.framework": {
+          "CFBundleIdentifier": "dev.hermesengine.iphoneos",
+          "CFBundleShortVersionString": "1.0.0",
+          "CFBundleVersion": "1.0.0",
+          "CFBundleExecutable": "hermesvm"
+        },
+        "FLAnimatedImage.framework": {
+          "CFBundleIdentifier": "org.cocoapods.FLAnimatedImage",
+          "CFBundleShortVersionString": "1.0.17",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "FLAnimatedImage"
+        },
+        "Capacitor.framework": {
+          "CFBundleIdentifier": "com.capacitorjs.ios.Capacitor",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Capacitor"
+        },
+        "TwitchLogging.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchLogging",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchLogging"
+        },
+        "TwitchCore.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchCore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchCore"
+        },
+        "RNCAsyncStorage.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNCAsyncStorage",
+          "CFBundleShortVersionString": "2.2.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNCAsyncStorage"
+        },
+        "RNScreens.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNScreens",
+          "CFBundleShortVersionString": "4.25.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNScreens"
+        },
+        "twitch_rn_debug_props.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-debug-props",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_debug_props"
+        },
+        "twitch_rn_player.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-player",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_player"
+        },
+        "twitch_rn_battery.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-battery",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_battery"
+        },
+        "ReactAppDependencyProvider.framework": {
+          "CFBundleIdentifier": "org.cocoapods.ReactAppDependencyProvider",
+          "CFBundleShortVersionString": "0.86.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactAppDependencyProvider"
+        },
+        "Atomics_301F3DE065572157_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-atomics.Atomics",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Atomics_301F3DE065572157_PackageProduct"
+        },
+        "Sentry.framework": {
+          "CFBundleIdentifier": "org.cocoapods.Sentry",
+          "CFBundleShortVersionString": "9.19.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Sentry"
+        },
+        "React.framework": {
+          "CFBundleIdentifier": "react-native.React",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "React"
+        },
+        "TwitchPersistence.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchPersistence",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchPersistence"
+        },
+        "reanimated.framework": {
+          "CFBundleIdentifier": "org.cocoapods.reanimated",
+          "CFBundleShortVersionString": "4.5.5",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "reanimated"
+        },
+        "OrderedCollections_1222128174265B56_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-collections.OrderedCollections",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "OrderedCollections_1222128174265B56_PackageProduct"
+        },
+        "react_native_keyboard_controller.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-keyboard-controller",
+          "CFBundleShortVersionString": "1.22.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_keyboard_controller"
+        },
+        "UserLeapKit.framework": {
+          "CFBundleIdentifier": "com.userleap.UserLeapKit",
+          "CFBundleShortVersionString": "4.8.5",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "UserLeapKit"
+        },
+        "TwitchAnalyticsCore.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchAnalyticsCore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchAnalyticsCore"
+        },
+        "GoogleCast.framework": {
+          "CFBundleIdentifier": "com.google.cast",
+          "CFBundleShortVersionString": "4.8.3",
+          "CFBundleVersion": "4.8.3",
+          "CFBundleExecutable": "GoogleCast"
+        },
+        "twitch_rn_animated_image.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-animated-image",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_animated_image"
+        },
+        "react_native_netinfo.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-netinfo",
+          "CFBundleShortVersionString": "12.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_netinfo"
+        },
+        "Apollo_171E9C48F1D7AD_PackageProduct.framework": {
+          "CFBundleIdentifier": "apollo-ios.Apollo",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Apollo_171E9C48F1D7AD_PackageProduct"
+        },
+        "react_native_video.framework": {
+          "CFBundleIdentifier": "org.cocoapods.react-native-video",
+          "CFBundleShortVersionString": "6.19.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "react_native_video"
+        },
+        "DequeModule_307A0402D40AB265_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-collections.DequeModule",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "DequeModule_307A0402D40AB265_PackageProduct"
+        },
+        "TwitchGraphQLAPI.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchGraphQLAPI",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchGraphQLAPI"
+        },
+        "AmazonIVSPlayer.framework": {
+          "CFBundleIdentifier": "com.amazonaws.ivs.player.AmazonIVSPlayer",
+          "CFBundleShortVersionString": "1.57.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "AmazonIVSPlayer"
+        },
+        "ReactNativeDependencies.framework": {
+          "CFBundleIdentifier": "third-party.ReactNativeDependencies",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactNativeDependencies"
+        },
+        "KMPMobileChat.framework": {
+          "CFBundleIdentifier": "tv.twitch.chat.library.KMPMobileChat",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "KMPMobileChat"
+        },
+        "TwitchCoreUIAssets.framework": {
+          "CFBundleIdentifier": "tv.twitch.TwitchCoreUIAssets",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchCoreUIAssets"
+        },
+        "MobileShieldKit.framework": {
+          "CFBundleIdentifier": "io.MobileShieldKit.MobileShieldKit",
+          "CFBundleShortVersionString": "1.18.2",
+          "CFBundleVersion": "4345",
+          "CFBundleExecutable": "MobileShieldKit"
+        },
+        "TwitchAppLaunch.framework": {
+          "CFBundleIdentifier": "org.cocoapods.TwitchAppLaunch",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchAppLaunch"
+        },
+        "IssueReporting_2041EB56849B4D1_PackageProduct.framework": {
+          "CFBundleIdentifier": "xctest-dynamic-overlay.IssueReporting",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "IssueReporting_2041EB56849B4D1_PackageProduct"
+        },
+        "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework": {
+          "CFBundleIdentifier": "swift-concurrency-extras.ConcurrencyExtras",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct"
+        },
+        "twitch_rn_screen_orientation.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-screen-orientation",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_screen_orientation"
+        },
+        "AmazonIVSBroadcast.framework": {
+          "CFBundleIdentifier": "com.amazonaws.ivs.broadcast",
+          "CFBundleShortVersionString": "1.48.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "AmazonIVSBroadcast"
+        },
+        "ReactCodegen.framework": {
+          "CFBundleIdentifier": "org.cocoapods.ReactCodegen",
+          "CFBundleShortVersionString": "0.86.3",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ReactCodegen"
+        },
+        "InternalCollectionsUtilities.framework": {
+          "CFBundleIdentifier": "swift-collections.InternalCollectionsUtilities",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "InternalCollectionsUtilities"
+        },
+        "Tomorrowland.framework": {
+          "CFBundleIdentifier": "com.tildesoft.Tomorrowland",
+          "CFBundleShortVersionString": "1.4.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Tomorrowland"
+        },
+        "TwitchIdentity.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchIdentity",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchIdentity"
+        },
+        "OMSDK_Twitchtv1.framework": {
+          "CFBundleIdentifier": "com.iabtechlab.OMSDK-Twitchtv1",
+          "CFBundleShortVersionString": "1.6.1",
+          "CFBundleVersion": "1.6.1",
+          "CFBundleExecutable": "OMSDK_Twitchtv1"
+        },
+        "twitch_rn_device_model.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-device-model",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_device_model"
+        },
+        "TwitchUtilities.framework": {
+          "CFBundleIdentifier": "twitchdependencies.TwitchUtilities",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchUtilities"
+        },
+        "RNKeychain.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNKeychain",
+          "CFBundleShortVersionString": "10.0.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNKeychain"
+        },
+        "RNGestureHandler.framework": {
+          "CFBundleIdentifier": "org.cocoapods.RNGestureHandler",
+          "CFBundleShortVersionString": "3.1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "RNGestureHandler"
+        },
+        "TwitchKit.framework": {
+          "CFBundleIdentifier": "tv.twitch.TwitchKit",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "TwitchKit"
+        },
+        "Cordova.framework": {
+          "CFBundleIdentifier": "com.getcapacitor.ios.CapacitorCordova",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "Cordova"
+        },
+        "HotUpdater.framework": {
+          "CFBundleIdentifier": "org.cocoapods.HotUpdater",
+          "CFBundleShortVersionString": "0.35.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "HotUpdater"
+        },
+        "GiphyUISDK.framework": {
+          "CFBundleIdentifier": "com.giphy.GiphyUISDK",
+          "CFBundleShortVersionString": "2.3.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "GiphyUISDK"
+        },
+        "PMJSON.framework": {
+          "CFBundleIdentifier": "com.postmates.PMJSON",
+          "CFBundleShortVersionString": "4.0.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "PMJSON"
+        },
+        "Lottie.framework": {
+          "CFBundleIdentifier": "com.airbnb.Lottie",
+          "CFBundleShortVersionString": "4.6.0",
+          "CFBundleVersion": "460",
+          "CFBundleExecutable": "Lottie"
+        },
+        "twitch_rn_iap.framework": {
+          "CFBundleIdentifier": "org.cocoapods.twitch-rn-iap",
+          "CFBundleShortVersionString": "0.0.1",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "twitch_rn_iap"
+        },
+        "worklets.framework": {
+          "CFBundleIdentifier": "org.cocoapods.worklets",
+          "CFBundleShortVersionString": "0.10.2",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "worklets"
+        },
+        "ComScore.framework": {
+          "CFBundleIdentifier": "com.comscore.ComScore",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "ComScore"
+        },
+        "PMHTTP.framework": {
+          "CFBundleIdentifier": "com.postmates.PMHTTP",
+          "CFBundleShortVersionString": "4.5.0",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "PMHTTP"
+        },
+        "lottie_react_native.framework": {
+          "CFBundleIdentifier": "org.cocoapods.lottie-react-native",
+          "CFBundleShortVersionString": "7.3.8",
+          "CFBundleVersion": "1",
+          "CFBundleExecutable": "lottie_react_native"
+        }
+      },
+      "binaries": {
+        "Frameworks/libswiftCompatibilitySpan.dylib": {
+          "size": 169536,
+          "sha256": "6f5b13f411181788ca6bfc0991a9f06ea1721264c68c17f284b5459af378d4d8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 876,
+          "text_sha256": "19f1d93afdfe68a15416a37e89898ff0f299597d43e09ffedc809ac79b678d76",
+          "uuid": "56ccb7a96e073686aa2ddab2131ef4dd"
+        },
+        "Twitch": {
+          "size": 108159824,
+          "sha256": "bcec3102c572afb82f9eed213517d0a6532dc15e8e2de222428058c6599e50da",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 86015964,
+          "text_sha256": "890c6daabeeeb69be3308337ef61d63deba489e396824d4774c1a8ebd84576f5",
+          "uuid": "34613ae5d1e03658876de5e4d1cec6a6"
+        },
+        "Frameworks/IssueReporting_2041EB56849B4D1_PackageProduct.framework/IssueReporting_2041EB56849B4D1_PackageProduct": {
+          "size": 225152,
+          "sha256": "6f6ae8d87b617792211a3c2cf78133b9c38d1d844bf9893f9d433bc2cc5a26bb",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 85176,
+          "text_sha256": "e901c42a273a9721572330ab4bf68ae0001d2d8497417473e7da6fca90eb020e",
+          "uuid": "4928cc92393b37a1bbb6acae3bd4e5d5"
+        },
+        "Frameworks/ReactAppDependencyProvider.framework/ReactAppDependencyProvider": {
+          "size": 91648,
+          "sha256": "6d3112680524240fc7a6a8adb32a87e21726d0beebaa1d7141a81b5da914e0c3",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 72,
+          "text_sha256": "84d57270c03fe6dba624b985f09e693c9f41b6136122296a3e798380cf9161ac",
+          "uuid": "9f2cc25dec9c3e40813845a2c098e12a"
+        },
+        "Frameworks/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct": {
+          "size": 178064,
+          "sha256": "53dfa39a9fef882c69b13a364beba284ccf730380fcfce9a373ed9ead86b153f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 59392,
+          "text_sha256": "592631f55fcfbb49ebc0a8939b22c36ad96ad75aeceb82e9abb1802d1cf3c63f",
+          "uuid": "4419f91e618c313787e6f5719ca3147f"
+        },
+        "Frameworks/react_native_cookies.framework/react_native_cookies": {
+          "size": 123376,
+          "sha256": "5f443fddbadc41e6eb594595cf5d4d9e9c0dd04fdc43af7adbdcb141411f2ad4",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 9704,
+          "text_sha256": "79eb08c74a8d237591026f06d32f0cf3b43b159ed7058a6a96c3096026773999",
+          "uuid": "43925d77242b3ed0aeb268a16d2b2815"
+        },
+        "Frameworks/twitch_rn_emote_input.framework/twitch_rn_emote_input": {
+          "size": 315728,
+          "sha256": "c5a551e8bdb1aed57c8ca901f6d15313e44a10c3c7307298b9fb4c84cb78b87b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 65792,
+          "text_sha256": "46e4021a54043cd8c8efac0e1661a2f67b21a8a3efbff7ca7c82804184b88fc0",
+          "uuid": "c2b46e170b0836d090d840f2a50f4363"
+        },
+        "Frameworks/MobileShieldKit.framework/MobileShieldKit": {
+          "size": 836272,
+          "sha256": "8d48409c17666160591b6ac09a2edbfc4b5a2e7a0388fc974db6f228af18cee6",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 409792,
+          "text_sha256": "1c66761f8faac827ee0780f2af77ffc98ef3416814f3f7b79525ad6a98fc7f91",
+          "uuid": "24611df6555232aaa1f1fd0c083960ef"
+        },
+        "Frameworks/hermesvm.framework/hermesvm": {
+          "size": 5213408,
+          "sha256": "a6f9f9ce5d993669c7990c141973bc13cf26240ea2dda7c082eadecabe3fd72b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1849828,
+          "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+          "uuid": "be274a2347cc3f5a9e988474553df5a8"
+        },
+        "Frameworks/Sentry.framework/Sentry": {
+          "size": 6358896,
+          "sha256": "efdef784801876f37596d8b54cf4e20cbee6d08b8ec62b935583b17e49a263c3",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1639608,
+          "text_sha256": "51ebc86eca618dcfcf220af4c77cf3cff2bf29e5d26de290b0b3c2a98ae48a4a",
+          "uuid": "f5fb68e258d43166ab5fa27ecc6f1777"
+        },
+        "Frameworks/InternalCollectionsUtilities.framework/InternalCollectionsUtilities": {
+          "size": 132576,
+          "sha256": "27087cfb58d31bc0d2fdd8d972c6a020c61aa570344c093fb0a380654f6ad800",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 28544,
+          "text_sha256": "56cacecd835b45cf1f72eebaf88e80520147e319642c28535d4cba858a019924",
+          "uuid": "b759946df17f39be80fab2e6df55314f"
+        },
+        "Frameworks/ReactNativeDependencies.framework/ReactNativeDependencies": {
+          "size": 1285632,
+          "sha256": "ee66318d1152168d3fcdbe33ac0ebda010ac589aea6c69ae00c69904c911fac8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 418532,
+          "text_sha256": "b22a7eeea6a77c76a7e6951b30827a8fd5b879dc243b5cb6c38bcb2a49f893d0",
+          "uuid": "db4e121670c636f08a46fdd48fcae1f2"
+        },
+        "Frameworks/FLAnimatedImage.framework/FLAnimatedImage": {
+          "size": 142352,
+          "sha256": "cf3631bf5c7d33ebcfce59f4963b91d54f9bd56a5a76abe85303db576d465c82",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 14884,
+          "text_sha256": "9d8da049fd143bbef63b2b33dbfda8a963fd62112ed0c55b174507d70ee8931e",
+          "uuid": "4083b7ac038e3e578b2c944634e92bd1"
+        },
+        "Frameworks/ReactCodegen.framework/ReactCodegen": {
+          "size": 349120,
+          "sha256": "bda7b169d9818b1b7b560bf10c356b9f68855e1ec4198acad11482964e692bf4",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 60500,
+          "text_sha256": "1339e656264d067e29b085625a70d62f3fe740af861c3729b56343e0628a4fbf",
+          "uuid": "6b2db3fc7535357187399c13535b9fca"
+        },
+        "Frameworks/OrderedCollections_1222128174265B56_PackageProduct.framework/OrderedCollections_1222128174265B56_PackageProduct": {
+          "size": 331248,
+          "sha256": "d0030343079df11ec3fbfb5285cf551ff2c09296e19bfac60851603889f622a6",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 158216,
+          "text_sha256": "42ee885a7c6654e78b13e05ca399a562377e7b24e850c52d01808a5575cd3f83",
+          "uuid": "2c57ec91697a32d99122a2594b3dbc4a"
+        },
+        "Frameworks/RNGestureHandler.framework/RNGestureHandler": {
+          "size": 873440,
+          "sha256": "db081aee29f1ce4e9f29392f31c4c93a0aa6611d1125b3e76134597b96e10268",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 220764,
+          "text_sha256": "d74539af5411281bb8046744d07344ddfeee3ebcc6dc4bfa8138e3593405979d",
+          "uuid": "ec0308c5fe0032feb8acdd8bbdbf824e"
+        },
+        "Frameworks/HotUpdater.framework/HotUpdater": {
+          "size": 907280,
+          "sha256": "6473c7de04d0234d3f7bf49096474304e778060b1d38597104717081231d4e21",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 329884,
+          "text_sha256": "9e36b21882557aeeb391902daa33f305b0f2c7b7b05cd43370058d460a291f82",
+          "uuid": "6d52d4d38a0d3bdca2721f760d77a4b6"
+        },
+        "Frameworks/DequeModule_307A0402D40AB265_PackageProduct.framework/DequeModule_307A0402D40AB265_PackageProduct": {
+          "size": 230576,
+          "sha256": "d309f971138f712475673f65a2d892214ba928b834425ad6e4178f1947ec90bf",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 103980,
+          "text_sha256": "bf07ee6fa886c4afe393c8ffa37c6c8f280d15b8be02d472fe3b6200bbc6c03e",
+          "uuid": "6970fd267b67349b8d3c0a31b957a6bd"
+        },
+        "Frameworks/UserLeapKit.framework/UserLeapKit": {
+          "size": 1049360,
+          "sha256": "64a48ad581a2c7cdeac30c19065a8334f7e8e788102d0c6f64aeccb2164b5512",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 307876,
+          "text_sha256": "7f95318335f61de71bbc511d8faba2acbaf74d7e5bfdfe59bc25d5b43545a650",
+          "uuid": "e05acc0e26ae3048a197ebac5362a1dd"
+        },
+        "Frameworks/GiphyUISDK.framework/GiphyUISDK": {
+          "size": 1969840,
+          "sha256": "a95ff711a6690200c888ee0f6c23479aa5126d64ff7fb13f3948c9113f5a1942",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1207364,
+          "text_sha256": "a107ef34ee7e644f688d511e29cf30a0b28b1a1ae074404cb9ff2e7cbc587d5d",
+          "uuid": "3ac5416921fb3b52b1c03e4a147aac26"
+        },
+        "Frameworks/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct": {
+          "size": 191184,
+          "sha256": "9959ee97259fc145632e04eec49db573615fcbb6c9cedd4000892323a95783a1",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 52776,
+          "text_sha256": "ae8a6318b202e9ce5a1a8bd100d2d1376d6bb1881bb66cf48b18f715d637fbcd",
+          "uuid": "63d17c6eb43c3bafa5765b896c2b69c3"
+        },
+        "Frameworks/TwitchGraphQLAPI.framework/TwitchGraphQLAPI": {
+          "size": 20526528,
+          "sha256": "febcfa151c37cc07d6607096bd5061d715fc588cfaafbb7c3057607ea0d93c14",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8475600,
+          "text_sha256": "9b83aa7651c265849eef76e503c97b3133dda282c7683338017b92ace08e5649",
+          "uuid": "f4cc5263cd5d35ba9709ef5353f25388"
+        },
+        "Frameworks/twitch_rn_debug_props.framework/twitch_rn_debug_props": {
+          "size": 96992,
+          "sha256": "8f4d0d469e494759bb2e3eda91338e2bf3efe8ccbe3947c70d2a1b391a5e32af",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 492,
+          "text_sha256": "bf515e371b880a8428027523b59b88a01184a1b8123c7320267e5c3ca4a319f0",
+          "uuid": "33509f93e5f334f09093d52c9cb058d8"
+        },
+        "Frameworks/twitch_rn_player.framework/twitch_rn_player": {
+          "size": 758048,
+          "sha256": "035c512ae3137b1d265871bf8e1f7b413468d527f8f083d8cdb74d90da7c403f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 215628,
+          "text_sha256": "c8a7fb7acbafaefb770cc264d3a6a12ca279efcf5e46017a91d75982e1224645",
+          "uuid": "5eb88c0363ee3983bab213d4c3a5dcda"
+        },
+        "Frameworks/twitch_rn_battery.framework/twitch_rn_battery": {
+          "size": 94928,
+          "sha256": "65a1aee20212c3b468228dfadc29e6ad5068adb79d5c5a66dbde5f37f67f4701",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 992,
+          "text_sha256": "f927b0c860e7fd4f59eb9fb5f5fb12ea394afa7b0e81e06d8c999dba2e24609a",
+          "uuid": "27c965fd211430cdb6f5e9a70a975637"
+        },
+        "Frameworks/TwitchCore.framework/TwitchCore": {
+          "size": 833360,
+          "sha256": "c5931306bd64a136fb16c0ab8ff3a1bf74ea657127cf44d38d157b2e0f902775",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 480728,
+          "text_sha256": "0cef222dce826888ff76688cf0afffbde2da46b0088008d72c067cda652786ad",
+          "uuid": "6dc705904a353d1aa43a18674ebeeb20"
+        },
+        "Frameworks/TwitchIdentity.framework/TwitchIdentity": {
+          "size": 175392,
+          "sha256": "e7fdea4a0d066f493a150db678c21de7c223dfb8f7c7aaba61ea588d999d2ba9",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 64064,
+          "text_sha256": "1d7636e366038dc1e7669c3c3e277f10dcbb3f72944c94f6515142c72143aeb3",
+          "uuid": "61092a67246e3d0996e70094b6c239d3"
+        },
+        "Frameworks/AmazonIVSPlayer.framework/AmazonIVSPlayer": {
+          "size": 1796880,
+          "sha256": "8b455b674391d9edcf6a0ffae0a1768c023bfe4d6810d988b0ca7f211044c3d1",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1298520,
+          "text_sha256": "bbf8963823f9f0f3787c641fc784038d7466d3c7ae2f3f6e2b5a9e8dfffd9cc3",
+          "uuid": "dda9162072f6361796414408f3872d85"
+        },
+        "Frameworks/TwitchAnalyticsCore.framework/TwitchAnalyticsCore": {
+          "size": 476656,
+          "sha256": "80245b6d44cba97e3cfdfddddf52e262e46893eccf3bef911d173a187070ca5a",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 194936,
+          "text_sha256": "703ba3fcfbcfe8da46cd7113fb92c33b820c3a7ca5b90ac1ffe184bfd8260d73",
+          "uuid": "9834a4dfb1613eceacf3e4bdaea09322"
+        },
+        "Frameworks/RNScreens.framework/RNScreens": {
+          "size": 2228592,
+          "sha256": "dbc87c985fa0eabe70b48ab593db8d0a148cbfb855bdeebc57875067ab98623d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 509420,
+          "text_sha256": "b9954bfaa8594bd63052e3803337cbe0d07931a90d449226cf6557e5cf4be14a",
+          "uuid": "35a7e66da7013afa984f889f6ed56d03"
+        },
+        "Frameworks/Tomorrowland.framework/Tomorrowland": {
+          "size": 522256,
+          "sha256": "2180087b2794f23312d210815c36839161bda556ebe00b90c58aaf3462c7e34f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 232488,
+          "text_sha256": "6356a017e85195af819dc31e5e4ab204315f189fec5d765fa29b1dc123645f9f",
+          "uuid": "36c3903668d73c4896e0aa48e5847f32"
+        },
+        "Frameworks/RNCAsyncStorage.framework/RNCAsyncStorage": {
+          "size": 133808,
+          "sha256": "5ffb2a6a48d21fd92258cff0c71eb706f1b7df48713b6427f1f68cdb2772e507",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 18520,
+          "text_sha256": "d18caf8e92854548d4376a213f3fe63841e6d12e56e221188fbaaa6c8191dc94",
+          "uuid": "a5667ea8057236a3898752cfd557b489"
+        },
+        "Frameworks/reanimated.framework/reanimated": {
+          "size": 3548768,
+          "sha256": "cb479dcea938c0c59b24671c61159f688c9eb82bac91d9211d2ce5a282c760d7",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 897264,
+          "text_sha256": "c56012682cb7eddb31eb4eff235953605436ee4dc07696c3aae0142bfbbee9c0",
+          "uuid": "2fec0766cf3933a7ad600beaec61cd7c"
+        },
+        "Frameworks/TwitchLogging.framework/TwitchLogging": {
+          "size": 223280,
+          "sha256": "04b59b07239ea4d9a0e3f2f3e04ae2153f39ac2a798124268d7f2d70c823d812",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 81112,
+          "text_sha256": "9bea29bdb7c2d71f1df2836481b06bb07646c7a3ddce674a649c3df73f70fdca",
+          "uuid": "96cbab272ac338b380e947ed9280a07c"
+        },
+        "Frameworks/RNKeychain.framework/RNKeychain": {
+          "size": 124544,
+          "sha256": "75924fce0981e295550601ab334fb8e93a6970b0674bb71af4d8e07467cf5d8e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 10320,
+          "text_sha256": "aeb34646efb82e85b5cb501047690581a886668b9bf47b5afb114ca0056ca0d5",
+          "uuid": "54d44dc1b8c93b66988496ddf2cd6520"
+        },
+        "Frameworks/TwitchCoreUIAssets.framework/TwitchCoreUIAssets": {
+          "size": 451056,
+          "sha256": "96f299abbf3c8d1ff1c2d0a80aad0f608591a02f77f390b2bbf94a22f809d3b1",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 219232,
+          "text_sha256": "a1dc39a5c83206b61417689d9376c8aaa7f31f6cb159d16078b9ee638f501fad",
+          "uuid": "f1ec0e9974dc3a7f8a3e860ff0a1645e"
+        },
+        "Frameworks/react_native_keyboard_controller.framework/react_native_keyboard_controller": {
+          "size": 1088000,
+          "sha256": "b15834166cdc657fc9b27c2551ef2b3af2c9157df2b930922f7a0a269f55623c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 190304,
+          "text_sha256": "fd37728883a2c8054032c3e4c0dd8a8ff71936a4bc962f8592bb2c1c70867f04",
+          "uuid": "922273cd872d3ed6b00fa1d144359b54"
+        },
+        "Frameworks/AmazonIVSBroadcast.framework/AmazonIVSBroadcast": {
+          "size": 8528560,
+          "sha256": "1ab0cb5dcfdd359e07b9d65e2e3cacb6035fbc82c9b3e4fb497d86f66c755267",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 6645440,
+          "text_sha256": "235c30ee9c51c771d2779fb8682ed1faa9eab1b84d88a5d74f433c90d06c6e6b",
+          "uuid": "2c11db93af4739b18b2b077dcb0865da"
+        },
+        "Frameworks/twitch_rn_animated_image.framework/twitch_rn_animated_image": {
+          "size": 102976,
+          "sha256": "91c6ee6b04cc67fe0c531c739b644eb948abcf380f98e2631f7cb290d81d4348",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 2484,
+          "text_sha256": "906495c25ae99861dee61eb5802e11fabe2cf4f08210829a51288647696b3423",
+          "uuid": "ff663ebf3ed537848f29f99fb6ed3e87"
+        },
+        "Frameworks/react_native_netinfo.framework/react_native_netinfo": {
+          "size": 134224,
+          "sha256": "f9fecbb170e295cfa13e14b3aa3ec23ceae931bcdffc02801d40b37df3206f47",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8424,
+          "text_sha256": "11064562799babea2a8f94b490d59677653d1b49101f35465276aa66885c69b3",
+          "uuid": "f61a581356f9320a95ea0e369f5c4219"
+        },
+        "Frameworks/react_native_video.framework/react_native_video": {
+          "size": 877936,
+          "sha256": "a0fd76e26aee35d88adb841e42679b137fd13afc90c1020343e2d8fc4fc057dd",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 253012,
+          "text_sha256": "d71e579721565bd65e8b2787f450d203aa13d885e0fe67d5cc8dca8b9695ae5d",
+          "uuid": "ff41e48fcb6034cca833a2406fb37973"
+        },
+        "Frameworks/TwitchKit.framework/TwitchKit": {
+          "size": 6337392,
+          "sha256": "61665c44d57e942568dda2d2da66cacb29ab777e9abbe76119196eea8a1ea982",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 4457044,
+          "text_sha256": "3d83550bc295156ec6d84e8eba7da9fdba3d7ccd652da92961f72da20792d51a",
+          "uuid": "23ce3a9ef6a535318d377ce288bc61b5"
+        },
+        "Frameworks/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct": {
+          "size": 154256,
+          "sha256": "882095fdeb7198bc8819fbb28a5b3c5dfcee0a7539aeb131f58d55c191a51fda",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 35732,
+          "text_sha256": "559eca280c54a6257ac42ab2861638fdc9986e83040fe634c89f556d19ab795e",
+          "uuid": "3efcdd8cfd853228af61d721a2f1a302"
+        },
+        "Frameworks/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct": {
+          "size": 676368,
+          "sha256": "22301154bb3958baefd2996d7bed766701ba4e06f73ff6fd4d7990b41c3d542c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 356404,
+          "text_sha256": "5410ef1de87761e8a3c44dba705220dc838c876f15adcc9572e6e4fc1725a270",
+          "uuid": "22ad18859efe3a30a16f45066584f07e"
+        },
+        "Frameworks/Cordova.framework/Cordova": {
+          "size": 132304,
+          "sha256": "a936058841e305d48a97543cd6662f26f4380bb8c8e4617e518d078182d3214b",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 11500,
+          "text_sha256": "8608510f5aa9e1ac3ca7344f1562997c649065d7b30490dd89f0903ecccca7db",
+          "uuid": "aa81f436157d34c59de9383854eb7d94"
+        },
+        "Frameworks/OMSDK_Twitchtv1.framework/OMSDK_Twitchtv1": {
+          "size": 355776,
+          "sha256": "6554e24c4abc1aa97b37efe0dfd0015c4d22b36b7267e408167149ccbc2ee5ac",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 74944,
+          "text_sha256": "3bc78c643bd870ffd66e2cd2e327929c68fd005cd39627aa77826e89443ba464",
+          "uuid": "334731982eae3e838cda8285f5c699bb"
+        },
+        "Frameworks/ExpoModulesJSI.framework/ExpoModulesJSI": {
+          "size": 1476336,
+          "sha256": "2b22594385b0948256b46d8eb42fc5dc1da53a4ea48a6e255d7ee4d77b8e748c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 285176,
+          "text_sha256": "1072130738735f061175e7460670c9fff2bc01e9e6e63b2213a42773a97517cf",
+          "uuid": "587f8b0d29cf3756863d0a6255d9a702"
+        },
+        "Frameworks/React.framework/React": {
+          "size": 12338576,
+          "sha256": "7d8182670d42fcf521470b5e6221b21f7c3cfb23a3bfe1461ff464a6f9cc3f38",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 3420636,
+          "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+          "uuid": "ee15b752fb4635f2b0bba46636572385"
+        },
+        "Frameworks/GoogleCast.framework/GoogleCast": {
+          "size": 4770320,
+          "sha256": "3851b8e04a92115ff4f26c0aefda2f3addf4b54caffa21ad4b7b990595faf90c",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1467264,
+          "text_sha256": "468798b7a1ec444b50da988e45bc2b93cf5ed5900ae9f5b85b8fa4e45a0ca4c8",
+          "uuid": "502630c71cef301c8b84e711d07e2e7c"
+        },
+        "Frameworks/TwitchPersistence.framework/TwitchPersistence": {
+          "size": 126224,
+          "sha256": "5551fb10c97b8e914edfc4fe9fc40a7a935610765240f925a4b27fc749465529",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 22432,
+          "text_sha256": "91ff23f5eba7af32c12abc29c69c8b7c284cb3b808de1843d6fc2ae09bc35060",
+          "uuid": "3411ba47d1783f0d8e8bc7ce1986c6a8"
+        },
+        "Frameworks/twitch_rn_screen_orientation.framework/twitch_rn_screen_orientation": {
+          "size": 119328,
+          "sha256": "b6ccc4da277227abde7b71818a0f13d210404938fee56956d01949ffb12c7e6f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 8264,
+          "text_sha256": "0aad603d83761643a0622172388ec63d723f6281d20dbc1f2ba72fdcdb292576",
+          "uuid": "205df26152cb348b80a5159a41ee27c8"
+        },
+        "Frameworks/Lottie.framework/Lottie": {
+          "size": 2311120,
+          "sha256": "154584606c9622029197bf3c19cfbfda9cefd3552eb3e49eb960a5cd142c6e9e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 1431292,
+          "text_sha256": "1162fd34e76b4d161d26b2cb8b5f14f43b1899f8f0acb25bf1dd180e52996db3",
+          "uuid": "98ca029a2f4631ec91a939073701c19c"
+        },
+        "Frameworks/TwitchApollo.framework/TwitchApollo": {
+          "size": 161936,
+          "sha256": "5c1a59136da38b41918eaef454ab817bce75c63fbea513177325e6293015f811",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 46592,
+          "text_sha256": "cdc500c1c98314e0459d4851b06cf5dc5d8913d4a1d95409e777dac3a7a78a01",
+          "uuid": "f37650b0ca3b353fbf2f5dc7b587dfb3"
+        },
+        "Frameworks/ApolloAPI.framework/ApolloAPI": {
+          "size": 316320,
+          "sha256": "a662e49525d3f171bbb040a6af1fa186b74a71a2d0fa40dd3116211b83128455",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 135296,
+          "text_sha256": "bbd94201d03bb4482b08cfe90fe5d0eabcce9d004b71594ed98009442b8eafc2",
+          "uuid": "15419544b8793927b722f772950341fd"
+        },
+        "Frameworks/twitch_rn_device_model.framework/twitch_rn_device_model": {
+          "size": 91536,
+          "sha256": "5f2719a29ad55f79ed0f2f3876503b471b83cb5fa6a4b494cd073bf3e788c01e",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 248,
+          "text_sha256": "ee9db53bdf50740ffe2a374214ec51d8e116ebf393d92e6d87fc323c6a6333b7",
+          "uuid": "61e94e38b3743acca4e997ad9f7ebf07"
+        },
+        "Frameworks/PMJSON.framework/PMJSON": {
+          "size": 669792,
+          "sha256": "637a47995c7c650cb12a60f77df38885dbaafc515d52c08342bd9715fea1f8b8",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 409736,
+          "text_sha256": "afcea76004a57f84a7436bc838c9917ab1f4cc6d7aabdf8e25e7ac574ae914d5",
+          "uuid": "71dabe1835823f95984ff7459937361d"
+        },
+        "Frameworks/ComScore.framework/ComScore": {
+          "size": 1724560,
+          "sha256": "791d5ce87484c8919d9ca42e3fa93a686e96787dd0c6773c0d6464a861f5147f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 670760,
+          "text_sha256": "33a3d2b6bdad104f2b3e5acda385314cb40b3a0e0619b5e1bf42cb463a5eecdb",
+          "uuid": "44288c312d2e3cef97e3c44e1b6e3170"
+        },
+        "Frameworks/TwitchUtilities.framework/TwitchUtilities": {
+          "size": 538320,
+          "sha256": "8cebf5cf97bc81288addbfab7c5bb8097a43acfc674a9bb69e77b6be1dab208f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 250704,
+          "text_sha256": "ff7c7cb0a061b7ac1f0e06c4d4c69b827943e30994247a37a8d004a8d3d7abe9",
+          "uuid": "964333d70bac3efcb8a5e40718182770"
+        },
+        "Frameworks/RNSentry.framework/RNSentry": {
+          "size": 369280,
+          "sha256": "5f6fabaabc2c047abd1055360b87e8405a1fa5be6a5a4c5512991aaacae94c95",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 58864,
+          "text_sha256": "03cce240d4b0740482d0a1fc3019070c8637440ac85989da5632cfa810e17fdc",
+          "uuid": "099749add3cb300c8d3dbb7f635cdd8c"
+        },
+        "Frameworks/PMHTTP.framework/PMHTTP": {
+          "size": 867856,
+          "sha256": "9497af54423a1ec243bc6fb166ba2eb61228994102f1ef44992c5c57801a2ee9",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 460116,
+          "text_sha256": "f012d7c430a7e5c60e49f39b8a9e1feb082303a9aa390af1caa49a3be5f634d0",
+          "uuid": "61db3a255f05397f867d0f4e78b0e35c"
+        },
+        "Frameworks/KMPMobileChat.framework/KMPMobileChat": {
+          "size": 4290464,
+          "sha256": "a6149d8c1e02802fd8c5ee0f7f180dca4fd58fa628083a47441d43a40b1b9293",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 2148664,
+          "text_sha256": "96219c52da9b30b6e3366b8927148eacb69b0fc82505bfba900aa09805037ac4",
+          "uuid": "0486abc882043ced837e17e1be26c5dd"
+        },
+        "Frameworks/twitch_rn_iap.framework/twitch_rn_iap": {
+          "size": 149248,
+          "sha256": "ebb7c4a2404c69be27f0d2cdedc2231a314f5d2f297efa0eb5393bc4aaa546d3",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 20660,
+          "text_sha256": "df06b8994f62e19e7f548beb2a0660ddd92b3002e65322e8d74e21089ca924ff",
+          "uuid": "3d86014d912535188fed4781c532550b"
+        },
+        "Frameworks/worklets.framework/worklets": {
+          "size": 1400768,
+          "sha256": "5555f07f2bc78090d4d947653271431c8bf1369b91478eb969f5872f47ac774f",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 302024,
+          "text_sha256": "85f554d71626e422fe3481766bd2f081c0c4ff297a832703ee8ce96b2f8a956d",
+          "uuid": "671e87df75f93dae81dde36d599714f2"
+        },
+        "Frameworks/Capacitor.framework/Capacitor": {
+          "size": 868320,
+          "sha256": "270cb076e9898001c0ef26576b46cefbc0a28938f7887c8fac24f292afefc2cb",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 384784,
+          "text_sha256": "4ddf35929bbc80b198ba7f66e809cc4ce30b26f2d1d2eee17509bcd27acce49a",
+          "uuid": "757d09cc7a1e3aa7b747f34234ba5769"
+        },
+        "Frameworks/TwitchAppLaunch.framework/TwitchAppLaunch": {
+          "size": 92176,
+          "sha256": "83a5ca2f4e7290b02520d74de633c4d98a36e90455c166b64eeb9cc20c46ec2d",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 336,
+          "text_sha256": "7e628c4c2e4736df935ead1dffe67b17b2004d91519b573c3e550c6f1caa1525",
+          "uuid": "01fa765a178136c58bab6b47249d2c2c"
+        },
+        "Frameworks/lottie_react_native.framework/lottie_react_native": {
+          "size": 444528,
+          "sha256": "1b4da67c26199274b876b1285600f5e46f11312e6ea7f4052cb7aa59639adc53",
+          "cpu": "0x100000c",
+          "subtype": "0x0",
+          "cryptid": [
+            0
+          ],
+          "text_size": 102484,
+          "text_sha256": "91261b3f8ac1e98c1ff2b98631488c8c842acb1cfa989fa321882905ef773afe",
+          "uuid": "4670a9e1a1ff326d89bd664cda12ae70"
+        }
+      },
+      "framework_count": 64,
+      "binary_count": 66
+    }
+  },
+  "native_boundaries": {
+    "classes": 74,
+    "declared_methods_per_donor": 730,
+    "method_sets_and_encodings_match": true,
+    "runtime_initialized_zero_offsets_are_unresolved": true
+  },
+  "semantic_comparison": {
+    "pairs": [
+      {
+        "31.6": 22388,
+        "31.6.1": 21955,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 22392,
+        "31.6.1": 21959,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 22418,
+        "31.6.1": 21985,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35388,
+        "31.6.1": 34307,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35303,
+        "31.6.1": 34222,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 22089,
+        "31.6.1": 21638,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            38590,
+            37478
+          ],
+          [
+            38591,
+            37479
+          ],
+          [
+            38592,
+            37480
+          ]
+        ]
+      },
+      {
+        "31.6": 22060,
+        "31.6.1": 21624,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            38552,
+            37456
+          ],
+          [
+            38553,
+            37457
+          ]
+        ]
+      },
+      {
+        "31.6": 38552,
+        "31.6.1": 37456,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 38553,
+        "31.6.1": 37457,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 45065,
+        "31.6.1": 43531,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 45030,
+        "31.6.1": 43496,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            48163,
+            46527
+          ],
+          [
+            48164,
+            46528
+          ]
+        ]
+      },
+      {
+        "31.6": 48173,
+        "31.6.1": 46537,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35389,
+        "31.6.1": 34308,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35392,
+        "31.6.1": 34311,
+        "equivalent_encoding": false,
+        "child_refs": [
+          [
+            45163,
+            43624
+          ],
+          [
+            45164,
+            43625
+          ]
+        ]
+      },
+      {
+        "31.6": 35931,
+        "31.6.1": 34845,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            45222,
+            43682
+          ],
+          [
+            45223,
+            43683
+          ],
+          [
+            45224,
+            43684
+          ]
+        ]
+      },
+      {
+        "31.6": 20059,
+        "31.6.1": 18646,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 3694,
+        "31.6.1": 3801,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            19074,
+            19165
+          ],
+          [
+            19075,
+            19166
+          ],
+          [
+            19076,
+            19167
+          ],
+          [
+            19077,
+            19168
+          ],
+          [
+            19078,
+            19169
+          ],
+          [
+            19079,
+            19170
+          ],
+          [
+            19080,
+            19171
+          ],
+          [
+            19081,
+            19172
+          ],
+          [
+            19082,
+            19173
+          ],
+          [
+            19083,
+            19174
+          ],
+          [
+            19084,
+            19175
+          ],
+          [
+            19085,
+            19176
+          ]
+        ]
+      },
+      {
+        "31.6": 18563,
+        "31.6.1": 19127,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 42517,
+        "31.6.1": 41058,
+        "equivalent_encoding": false,
+        "child_refs": []
+      },
+      {
+        "31.6": 42536,
+        "31.6.1": 41077,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 44229,
+        "31.6.1": 42749,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 47812,
+        "31.6.1": 46185,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 8642,
+        "31.6.1": 8422,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 20052,
+        "31.6.1": 18639,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            36713,
+            34951
+          ],
+          [
+            36712,
+            34950
+          ],
+          [
+            36711,
+            34949
+          ],
+          [
+            36710,
+            34948
+          ]
+        ]
+      },
+      {
+        "31.6": 18707,
+        "31.6.1": 18172,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 18708,
+        "31.6.1": 18173,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            35314,
+            34233
+          ],
+          [
+            35315,
+            34234
+          ]
+        ]
+      },
+      {
+        "31.6": 18709,
+        "31.6.1": 18174,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            35317,
+            34236
+          ]
+        ]
+      },
+      {
+        "31.6": 18714,
+        "31.6.1": 18179,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            35314,
+            34233
+          ],
+          [
+            35315,
+            34234
+          ]
+        ]
+      },
+      {
+        "31.6": 18716,
+        "31.6.1": 18181,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            35318,
+            34237
+          ],
+          [
+            35319,
+            34238
+          ],
+          [
+            35320,
+            34239
+          ]
+        ]
+      },
+      {
+        "31.6": 21732,
+        "31.6.1": 21343,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            38243,
+            37179
+          ],
+          [
+            38244,
+            37180
+          ]
+        ]
+      },
+      {
+        "31.6": 21735,
+        "31.6.1": 21346,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            38246,
+            37182
+          ]
+        ]
+      },
+      {
+        "31.6": 35278,
+        "31.6.1": 34197,
+        "equivalent_encoding": true,
+        "child_refs": [
+          [
+            45014,
+            43480
+          ],
+          [
+            45015,
+            43481
+          ],
+          [
+            45016,
+            43482
+          ],
+          [
+            45017,
+            43483
+          ]
+        ]
+      },
+      {
+        "31.6": 35286,
+        "31.6.1": 34205,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35336,
+        "31.6.1": 34255,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35337,
+        "31.6.1": 34256,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 35338,
+        "31.6.1": 34257,
+        "equivalent_encoding": true,
+        "child_refs": []
+      },
+      {
+        "31.6": 45053,
+        "31.6.1": 43519,
+        "equivalent_encoding": true,
+        "child_refs": []
+      }
+    ],
+    "legendlist_graph_functions": 401,
+    "legendlist_mismatches": []
+  },
+  "paused_investigation": {
+    "branch": "fix/rn-chat-gaps",
+    "commit": "e26a4e2f166872a970f35d81e8bc0c41236f326d",
+    "path": "docs/investigations/RN_CHAT_ROW_GAPS.md",
+    "sha256": "d8626cac5e735716eecdcde02f0458bb3e2959538afc218885bd27496d0a8a2e"
+  },
+  "production_chain_admission": {
+    "31.6": [
+      28683611,
+      28683956,
+      28690600,
+      28693212,
+      28723880
+    ],
+    "31.6.1": "Width refused, zero result length and unchanged input; later stages not reached",
+    "31.6.2": [
+      28683611,
+      28683956,
+      28690600,
+      28693212,
+      28723880
+    ]
+  },
+  "native_player_interface_changes": {
+    "31.6_to_31.6.1": {
+      "TwitchIVSPlayerView_size": [
+        480,
+        440
+      ],
+      "removed_properties": [
+        "lowLatencyInitialBufferMs",
+        "onSeekCompleted",
+        "onWarmPreloadLatency"
+      ],
+      "removed_callback": "player:didSeekToTime:",
+      "pip_delegate_and_entry_methods": 8,
+      "pip_method_encodings_and_lengths_match": true
+    },
+    "31.6_to_31.6.2": "Exact framework text restored"
+  }
+}

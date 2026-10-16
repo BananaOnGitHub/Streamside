@@ -131,3 +131,32 @@ composer, suggestions, library and info; static/wide/transparent emotes;
 scroll/reuse, channel switches, foreground/background, deletion, native Twitch
 emotes and mixed provider formats. ImageIO alpha/blend/disposal and visible
 performance remain device acceptance items.
+
+
+## Candidate validation record
+
+Implementation checkpoint: `862f354797430ea6fcf81e61241302f8ba835b84` on `dev/3.1.0` (build 14).
+The final source suite ran 189 tests: 187 passed; Apple Foundation-cache and
+Apple ImageIO-pixel tests skipped on Linux. Both ordinary and emote+demand
+probe native variants passed layout/signature/fingerprint and defined-WebP-
+implementation checks. Both DEB packages built. The exact donor settings and
+compiled virtualization gate passed (32 snapshots and 7,344 layout calculations).
+The Hermes graft chain is unchanged; these checks are regression evidence,
+not on-device animated WebP acceptance.
+
+The normal `0/0/0` candidate passed independent finished-IPA verification:
+
+- Filename: `Twitch_31.6_Streamside_3.1.0-build.14_webp-animation_unsigned.ipa`
+- Bytes: 194,487,453
+- SHA-256: `565118e65769960e8099d1c872bcd76d4fb71ef9e479161dbfb2fb9e9fa630f3`
+- Donor: original Twitch 31.6 (262821841498166537), supplied privately.
+
+The source parser also admitted the four downloaded mhm/ono WebP variants
+with matching frame counts/canvases and final 600/2,170 ms delays. No provider
+artwork or private donor binaries are checked into the repository. Test pixel
+fixtures are generated solid colors and transparent subrectangles.
+
+This unsigned candidate needs signing. Check incoming/sent chat, text-box,
+suggestions/library/info, long holds, native Twitch emotes, transparency,
+foreground/background, reuse and memory/performance on iOS before acceptance.
+The paused diagnostic branch has not received this renderer trial.

@@ -644,7 +644,7 @@ static void sync_preview_clock(id delegate,id editor) {
     id link=((id (*)(id,SEL,id,SEL))objc_msgSend)((id)clock,sel_registerName("displayLinkWithTarget:selector:"),delegate,sel_registerName("ssAnimate:"));
     if (!link) return;
     s->animation_link=objc_retain(link); s->animation_timestamp=0;
-    vi(link,"setPreferredFramesPerSecond:",30);
+    vi(link,"setPreferredFramesPerSecond:",60);
     ((void (*)(id,SEL,id,id))objc_msgSend)(link,sel_registerName("addToRunLoop:forMode:"),m0((id)objc_getClass("NSRunLoop"),"mainRunLoop"),str("kCFRunLoopCommonModes"));
 }
 static void update_preview_frames(id delegate,id editor) {
@@ -721,12 +721,23 @@ static void animate_preview(id self,SEL sel,id link) {
         frame->elapsed+=delta; double delay=preview_frame_delay(frame->animation,frame->index);
         U count=number(frame->animation,"frameCount"); if (count<2) continue;
         BOOL changed=NO;
+        if(kind(frame->animation,"StreamsideAnimatedWebP")){
+            /* A late decode keeps the previous pixels, not the previous time.
+             * Retry the current timeline frame on every display tick. */
+            for(unsigned step=0;frame->elapsed>=delay && step<16;step++){
+                frame->elapsed-=delay;frame->index=(frame->index+1)%count;
+                delay=preview_frame_delay(frame->animation,frame->index);
+            }
+            id image=((id (*)(id,SEL,U))objc_msgSend)(frame->animation,sel_registerName("imageLazilyCachedAtIndex:"),frame->index);
+            if(image && image!=m0(frame->attachment,"image")){v1(frame->attachment,"setImage:",image);changed=YES;}
+        }else{
         for (unsigned step=0;frame->elapsed>=delay && step<16;step++) {
             U next=(frame->index+1)%count;
             id image=((id (*)(id,SEL,U))objc_msgSend)(frame->animation,sel_registerName("imageLazilyCachedAtIndex:"),next);
             if (!image) { frame->elapsed=delay; break; } /* lazy decode is still pending */
             frame->elapsed-=delay; frame->index=next; v1(frame->attachment,"setImage:",image); changed=YES;
             delay=preview_frame_delay(frame->animation,frame->index);
+        }
         }
         if (changed) ((void (*)(id,SEL,Range))objc_msgSend)(manager,sel_registerName("invalidateDisplayForCharacterRange:"),(Range){frame->location,1});
     }

@@ -33,7 +33,7 @@ class WebPAnimationTests(unittest.TestCase):
         info=Info();return self.lib.parse(body,len(body),ctypes.byref(info)),info
     def test_real_asset_timing_shapes_and_arbitrary_holds(self):
         # Measured public 7TV WebP timings; no provider artwork in the fixture.
-        for delays in [[200]*8+[600],[300]+[30]*46+[2170],[20,12500,30,60000]]:
+        for delays in [[200]*8+[600],[300]+[30]*46+[2170],[20]*277,[20,12500,30,60000]]:
             ok,info=self.parse(animation(delays));self.assertEqual(ok,1)
             self.assertEqual(list(info.delays)[:info.count],delays)
     def test_short_frame_browser_normalization_and_static_webp(self):

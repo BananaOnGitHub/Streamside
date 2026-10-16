@@ -173,7 +173,7 @@ static id dispatch(id o,SEL sel,...) {
         result=decoder_pending || miss ? nil : o->children[index];
     }
     else if(!strcmp(sel,"displayLinkWithTarget:selector:")){result=create("CADisplayLink");result->value=va_arg(args,id);assert(!strcmp(va_arg(args,SEL),"ssAnimate:"));clocks++;}
-    else if(!strcmp(sel,"setPreferredFramesPerSecond:"))assert(va_arg(args,I)==30);
+    else if(!strcmp(sel,"setPreferredFramesPerSecond:"))assert(va_arg(args,I)==60);
     else if(!strcmp(sel,"mainRunLoop"))result=o;
     else if(!strcmp(sel,"addToRunLoop:forMode:")){assert(va_arg(args,id));assert(matches(va_arg(args,id),"kCFRunLoopCommonModes"));}
     else if(!strcmp(sel,"invalidate")){assert(!o->invalidated);o->invalidated=YES;stopped++;}
@@ -384,7 +384,28 @@ ISOLATION = ANIMATION[:ANIMATION.index('    struct Fake animation=')] + r'''
 '''
 
 
+FAST_WEBP = ANIMATION[:ANIMATION.index('    struct Fake animation=')] + r'''
+    (void)menu;(void)ready;
+    struct Fake animation={.cls="FLAnimatedImage",.length=20},delays={.cls="FrameDelays"},short_delay={.seconds=0.02},hold={.seconds=12.5};
+    animation.value=&delays;animation.host=&animation;
+    for(U i=0;i<20;i++){delays.children[i]=i==6?&hold:&short_delay;animation.children[i]=create("UIImage");}
+    cache.animation=&animation;reset("Wide",4,YES);available=YES;render(&delegate);
+    id attachment=source.attachments[0];context.animation_frames[0].animation->cls="StreamsideAnimatedWebP";
+    pulse(100);decoder_pending=YES;pulse(100.100001);
+    assert(context.animation_frames[0].index==5); /* missed pixels do not slow the loop */
+    decoder_pending=NO;pulse(100.101);
+    assert(attachment->bitmap==animation.children[5]); /* retry within this frame's hold */
+    pulse(100.121);assert(context.animation_frames[0].index==6 && attachment->bitmap==animation.children[6]);
+    for(unsigned i=1;i<=49;i++){pulse(100.121+i*0.25);assert(context.animation_frames[0].index==6);}
+    pulse(112.621);assert(context.animation_frames[0].index==7);
+    clear_preview_frames(&context);return 0;
+}
+'''
+
 class PreviewTests(unittest.TestCase):
+    def test_fast_webp_keeps_timeline_during_decode_miss_and_preserves_long_hold(self):
+        self.run_preview(FAST_WEBP)
+
     def test_loading_placeholder_is_a_fully_transparent_rgba_pixel(self):
         source = (composer.ROOT / "src/SSComposer.c").read_text()
         body = source.split("static const unsigned char png[]={", 1)[1].split("};", 1)[0]

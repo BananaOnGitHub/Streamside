@@ -151,20 +151,42 @@ int main(void){
     assert(legacy_image_init(allocation,0,gif)==allocation && legacy_calls==3);
     unsigned cached=templates->count;templates->count=0;
     assert(legacy_image_init(allocation,0,bridged)==allocation && legacy_calls==4);templates->count=cached;
-    assert(frame_at(image,0,0)==state(image)->poster && !queued);
+    assert(frame_at(image,0,0)==state(image)->poster && queued && jobs==1);
+    invoke_job();assert(decoded==3 && !jobs && frame_at(image,0,1) && frame_at(image,0,2));
+    pthread_mutex_lock(&cache_lock);for(unsigned i=0;i<FRAME_SLOTS;i++)if(frames[i].identity==state(image)->identity && frames[i].image)forget_frame(i);pthread_mutex_unlock(&cache_lock);
     assert(!frame_at(image,0,1) && queued && jobs==1);assert(!frame_at(image,0,1) && jobs==1);
-    invoke_job();assert(jobs==0 && !state(image)->pending && decoded==2);
-    assert(frame_at(image,0,1) && decoded==2);
+    invoke_job();assert(jobs==0 && !state(image)->pending && decoded==5);
+    assert(frame_at(image,0,1) && decoded==5);
     assert(!frame_at(image,0,999) && !queued);
+    pthread_mutex_lock(&cache_lock);for(unsigned i=0;i<FRAME_SLOTS;i++)if(frames[i].identity==state(image)->identity && frames[i].index==2 && frames[i].image)forget_frame(i);pthread_mutex_unlock(&cache_lock);
     is_main=NO;bad_canvas=YES;assert(!frame_at(image,0,2));unsigned before=decoded;assert(!frame_at(image,0,2) && decoded==before);state(image)->retry_after=0;bad_canvas=NO;decode_fails=YES;assert(!frame_at(image,0,2));state(image)->retry_after=0;decode_fails=NO;
     assert(frame_at(image,0,2));
     /* Our frame cache stays hard bounded even with many active animation objects. */
     Animation big={.info={.width=512,.height=512}};id pixel=fresh("UIImage");
     for(unsigned a=0;a<40;a++){
-        big.identity=100+a;for(U index=0;index<8;index++)store_frame(&big,index,pixel);
+        big.identity=100+a;for(U index=0;index<24;index++)store_frame(&big,index,pixel);
         unsigned own=0;for(unsigned i=0;i<FRAME_SLOTS;i++)own+=frames[i].image && frames[i].identity==big.identity;
-        assert(own==4 && frame_bytes<=FRAME_BYTES);
+        assert(own==16 && frame_bytes<=FRAME_BYTES);
     }
+    /* A 50-fps asset with four independently phased consumers. Worker work
+     * runs between deadlines: every requested frame must already be ready,
+     * including loop wrap, rather than one nil/decode/tick penalty per frame. */
+    id rapid=fresh("StreamsideAnimatedWebP");rapid->cls=animation_class;rapid->context=calloc(1,sizeof(Animation));
+    Animation *fast=state(rapid);fast->identity=1000;fast->info.width=4;fast->info.height=3;fast->info.count=64;fast->source=&source_fixture;fast->poster=pixel;
+    is_main=YES;
+    unsigned fast_start=decoded;
+    for(U phase=0;phase<4;phase++)frame_at(rapid,0,phase*16);
+    assert(queued && jobs==1);invoke_job();
+    for(U tick=1;tick<=200;tick++){
+        for(U phase=0;phase<4;phase++)assert(frame_at(rapid,0,(tick+phase*16)%64));
+        if(queued)invoke_job();
+        unsigned own=0;for(unsigned i=0;i<FRAME_SLOTS;i++)own+=frames[i].image && frames[i].identity==fast->identity;
+        assert(own<=16 && frame_bytes<=FRAME_BYTES && !jobs);
+    }
+    assert(!queued && decoded-fast_start<=16+4*200);
+    jobs=JOBS;assert(!frame_at(rapid,0,12) && !queued);jobs=0;
+    assert(!frame_at(rapid,0,12) && queued);invoke_job();assert(frame_at(rapid,0,12));
+    animation_dealloc(rapid,0);rapid->context=NULL;
     /* Native HTTP request/progress/cancellation ownership and response identity. */
     load_original=(IMP)original_load;buffer_original=(IMP)original_buffer;expected_progress=fresh("progress");id response=fresh("response"),error=fresh("error");
     expected_request=fresh("synthetic-provider");

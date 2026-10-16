@@ -5,7 +5,9 @@ Development branch: `dev/3.1.0`, based on `5ab9e56`. The paused
 selection and presentation, not HLS, chat delivery, redemption handling, or
 Hermes message/list instrumentation. **Build 14 passed the RN device checks.**
 Legacy chat was subsequently tested on a vertical stream and exposed three
-issues. Build 15 addresses those legacy paths; device confirmation is pending.
+issues. Build 15 restored animation, but fast animations lag across native
+surfaces. Build 16 adds read-ahead and composer timeline corrections; device
+confirmation of the speed improvement is pending.
 
 ## Evidence and format selection
 
@@ -58,7 +60,7 @@ attachments retain independent index/elapsed state; the GIF compatibility
 path keeps its existing independent FLAnimatedImage instances. There is no
 conversion to GIF and no eager array of all decoded WebP frames.
 
-Bounds:
+Build 14 bounds (build 16 changes are recorded below):
 
 - Encoded WebP: 8 MiB, at most 2,048 frames, dimensions at most 4,096 and
   at most 524,288 canvas pixels. Existing GIF preflight limits remain.
@@ -237,3 +239,50 @@ The finished normal `0/0/0` IPA passed independent verification:
 This is the device-test candidate for legacy animation, repeated-emote info
 taps and picker insertion on the vertical-stream layout. Device results for
 build 15 are pending.
+
+## Fast-animation follow-up — build 16, 2026-10-16
+
+The tester confirmed that build 15 restored legacy chat animation, but fast
+emotes such as `ehehe` ran slowly and lagged in chat, the composer, suggestions
+and library. The info popup played correctly. That popup uses an image-only
+WKWebView, independently of the shared native adapter.
+
+The popular 7TV `ehehe` variant `01H5ECBJ080004C067KYDBPSQ2` has 277 frames,
+each 20 ms, for a 5,540 ms loop (178,746 encoded bytes at 2x). Its parsed delays
+already match the file. This identifies a representative fast asset, not the
+exact channel variant observed on the tester's device.
+
+The build-15 adapter only queued the requested frame on a main-thread cache
+miss. Sequential players therefore paid a decode/display-tick wait at frame
+boundaries. The owned composer clocks additionally discarded elapsed time
+while waiting for decoded pixels, stretching the animation loop. The shared
+four-frame cache also provided too little space for independently phased
+consumers of the same asset.
+
+Build 16 changes:
+
+- Poster and cache hits trigger background preparation of three upcoming
+  frames, before their display deadlines. Four moving demand windows can
+  coexist per asset, without sharing playback positions.
+- The hard frame cache remains 32 MiB globally, with at most 1,024 entries
+  and 16 frames per asset. Eviction within an asset prefers frames outside
+  its active windows, rather than repeatedly evicting another consumer's
+  next frame. RN view buffering remains four frames.
+- There is still at most one queued/running operation per asset, 64 globally,
+  two workers and serialized ImageIO rasterization. Each operation makes at
+  most 16 decode attempts and rechecks demand between attempts. An asset-wide
+  one-second backoff prevents failed read-ahead from repeatedly retrying
+  different frames in a broken source.
+- The owned legacy/RN composer display links request 60 Hz. Their indexed
+  WebP clocks preserve elapsed time through cache misses, retain the previous
+  pixels until the current timeline frame is ready, and retry that frame on
+  subsequent ticks. Encoded per-frame delays and long holds remain unchanged.
+  Existing GIF cache-miss behavior and native chat/thumbnail players are retained.
+
+Regression coverage includes 200 steps of four independently phased consumers
+with every upcoming frame ready after the scheduled worker interval, bounded
+decode counts, cache/job limits, loop wrap and failure backoff. The production
+composer clocks are tested through decode misses and a 12.5-second hold. These
+controlled worker checks do not measure real iOS ImageIO decode throughput;
+`ehehe` speed and smoothness still need device confirmation across the reported
+surfaces. Build 15's tap/picker fixes also await explicit device results.

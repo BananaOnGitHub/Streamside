@@ -30,7 +30,7 @@ static unsigned copies,invalidations,assignments,originals,deallocs,bridge_calls
 static ptrdiff_t url_gap=16,plain_gap=16;
 static struct Fake app={.cls="UIApplication"},mainqueue={.cls="NSOperationQueue"},runloop={.cls="NSRunLoop"},metadata={.cls="NSDictionary"};
 static id cache_data,clock_link,queued,shown;
-static BOOL modal=NO,present_ok=YES;
+static BOOL modal=NO,present_ok=YES,frame_pending=NO;
 static unsigned presentations,haptics,scheduled,added,removed;
 BOOL tas_emote_ui_modal_visible(id view){(void)view;return modal;}
 BOOL tas_emote_ui_present_details(id view,id data){assert(data==&metadata);presentations++;shown=view;return present_ok;}
@@ -89,10 +89,10 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"objectForKey:")){id key=va_arg(ap,id);result=!strcmp(o->cls,"NSCache") ? cache_data : o->items[key->index];}
     else if(!strcmp(sel,"initWithAnimatedGIFData:")){id data=va_arg(ap,id);assert(data==cache_data);o->value=data->value;o->count=3;copies++;result=o;}
     else if(!strcmp(sel,"setFrameCacheSizeMax:"))assert(va_arg(ap,U)==4);
-    else if(!strcmp(sel,"imageLazilyCachedAtIndex:"))result=o->value->items[va_arg(ap,U)];
+    else if(!strcmp(sel,"imageLazilyCachedAtIndex:")){U index=va_arg(ap,U);result=frame_pending?nil:o->value->items[index];}
     else if(!strcmp(sel,"delayTimesForIndexes"))result=o->value->value;
     else if(!strcmp(sel,"displayLinkWithTarget:selector:")){result=fresh("CADisplayLink");result->target=va_arg(ap,id);assert(!strcmp(va_arg(ap,SEL),"ssTick:"));clock_link=result;}
-    else if(!strcmp(sel,"setPreferredFramesPerSecond:"))assert(va_arg(ap,U)==30);
+    else if(!strcmp(sel,"setPreferredFramesPerSecond:"))assert(va_arg(ap,U)==60);
     else if(!strcmp(sel,"addToRunLoop:forMode:")){assert(va_arg(ap,id)==&runloop);assert(!strcmp((const char *)va_arg(ap,id)->value,"kCFRunLoopCommonModes"));}
     else if(!strcmp(sel,"mainRunLoop"))result=&runloop;
     else if(!strcmp(sel,"sharedApplication"))result=&app;
@@ -210,6 +210,13 @@ static void playback(void) {
     sync(owner);id target=owner->target;State *s=state(target);assert(s && s->count==2 && s->link && copies==2);
     assert(s->frames[0].animation!=s->frames[1].animation);
     id link=s->link;link->seconds=1;animate(target,"ssTick:",link);assert(!assignments);
+    if(frame_pending){
+        link->seconds=1.250001;animate(target,"ssTick:",link); /* delta caps to .25 */
+        assert(s->frames[0].index==2 && !assignments);
+        frame_pending=NO;link->seconds=1.251;animate(target,"ssTick:",link);
+        assert(assignments==2 && source->items[0]->image==template->items[2]);
+        owner_dealloc(owner,"dealloc");clock_dealloc(target,"dealloc");return;
+    }
     link->seconds=1.11;animate(target,"ssTick:",link);assert(assignments==2 && invalidations==2 && s->frames[0].index==1);
     sync(owner);assert(copies==2 && s->frames[0].index==1); /* no rebuild/reset */
     link->seconds=1.22;animate(target,"ssTick:",link);assert(assignments==4 && s->frames[0].index==2);
@@ -490,6 +497,10 @@ static void native_image_abi(void) {
 }
 int main(int argc,char **argv) {
     assert(argc==2);
+    if(!strcmp(argv[1],"webpmiss")){
+        webp_mode=YES;frame_pending=YES;playback();
+        for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
+    }
     if(!strcmp(argv[1],"geometry"))geometry();else if(!strcmp(argv[1],"gif"))gif_gate();else if(!strcmp(argv[1],"playback"))playback();else if(!strcmp(argv[1],"webp")){webp_mode=YES;playback();}else if(!strcmp(argv[1],"install"))installation();else if(!strcmp(argv[1],"cold"))cold_start();else if(!strcmp(argv[1],"composition"))composition();else if(!strcmp(argv[1],"hits"))detail_hits();else if(!strcmp(argv[1],"safety"))detail_safety();else if(!strcmp(argv[1],"menus"))detail_menus();else if(!strcmp(argv[1],"abi"))detail_abi();else if(!strcmp(argv[1],"cursor"))cursor_race();else if(!strcmp(argv[1],"cursorabi"))cursor_abi();else if(!strcmp(argv[1],"latecursor"))late_cursor_prop();else if(!strcmp(argv[1],"latenative"))late_native_cursor();else if(!strcmp(argv[1],"nativegeometry"))native_geometry();else if(!strcmp(argv[1],"nativearrival"))native_arrival();else if(!strcmp(argv[1],"nativeimageabi"))native_image_abi();else abort();
     for(unsigned i=0;i<pool_count;i++)free(pool[i]);return 0;
 }
@@ -524,6 +535,7 @@ class RNComposerUITests(unittest.TestCase):
     def test_gif_preflight_body_budget_complete_blocks_timing_and_transport_gate(self):self.run_mode('gif')
     def test_independent_clocks_reconciliation_ime_deletion_visibility_and_teardown(self):self.run_mode('playback')
     def test_webp_independent_clocks_long_hold_visibility_and_teardown(self):self.run_mode('webp')
+    def test_webp_decode_miss_keeps_clock_and_retries_current_frame(self):self.run_mode('webpmiss')
     def test_exact_abi_preference_retry_and_idempotent_hooks(self):self.run_mode('install')
     def test_first_download_starts_original_attachment_without_retyping(self):self.run_mode('cold')
     def test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft(self):self.run_mode('composition')

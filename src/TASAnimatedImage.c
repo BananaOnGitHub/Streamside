@@ -34,12 +34,14 @@ typedef struct {
     uint64_t identity;
     BOOL legacy_admitted;
     BOOL pending;
+    struct {U index;uint64_t age;} windows[4];
+    uint64_t request_age;
     U failed_index;uint64_t retry_after;
 } Animation;
 typedef struct { uint64_t identity,age;U index,cost;id image; } CachedFrame;
 /* Hard limits for our decoded-frame retention. UIKit/RN may independently own
  * displayed images. ImageIO's private working memory is not this cache. */
-enum { FRAME_SLOTS=256, FRAME_BYTES=32*1024*1024, FRAMES_PER_ASSET=4, JOBS=64 };
+enum { FRAME_SLOTS=1024, FRAME_BYTES=32*1024*1024, FRAMES_PER_ASSET=16, JOBS=64, LOOKAHEAD=3 };
 static CachedFrame frames[FRAME_SLOTS];
 static U frame_bytes,jobs;
 static uint64_t serial,age,created,refused,decoded_frames,frame_failures;
@@ -69,6 +71,11 @@ static id cached_frame(uint64_t identity,U index){
     }
     pthread_mutex_unlock(&cache_lock);return result;
 }
+static BOOL in_window(Animation *s,U index){
+    for(unsigned w=0;w<4;w++)if(s->windows[w].age &&
+        (index+s->info.count-s->windows[w].index)%s->info.count<=LOOKAHEAD)return YES;
+    return NO;
+}
 static void store_frame(Animation *s,U index,id image){
     U cost=(U)s->info.width*s->info.height*4;
     pthread_mutex_lock(&cache_lock);unsigned slot=FRAME_SLOTS,owned=0,oldest=FRAME_SLOTS;
@@ -76,7 +83,9 @@ static void store_frame(Animation *s,U index,id image){
         if(!frames[i].image){slot=i;continue;}
         if(frames[i].identity==s->identity){
             if(frames[i].index==index){pthread_mutex_unlock(&cache_lock);return;}
-            owned++;if(oldest==FRAME_SLOTS || frames[i].age<frames[oldest].age)oldest=i;
+            owned++;
+            if(oldest==FRAME_SLOTS || (in_window(s,frames[oldest].index) && !in_window(s,frames[i].index)) ||
+               (in_window(s,frames[oldest].index)==in_window(s,frames[i].index) && frames[i].age<frames[oldest].age))oldest=i;
         }
     }
     if(owned>=FRAMES_PER_ASSET){forget_frame(oldest);slot=oldest;}
@@ -108,7 +117,7 @@ static const void *render_frame(const void *source,U index,const TASWebPInfo *in
 }
 static uint64_t monotonic_millis(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000+(uint64_t)t.tv_nsec/1000000;}
 static BOOL may_retry(Animation *s,U index){
-    pthread_mutex_lock(&cache_lock);BOOL ready=s->failed_index!=index || !s->retry_after || monotonic_millis()>=s->retry_after;pthread_mutex_unlock(&cache_lock);return ready;
+    (void)index;pthread_mutex_lock(&cache_lock);BOOL ready=!s->retry_after || monotonic_millis()>=s->retry_after;pthread_mutex_unlock(&cache_lock);return ready;
 }
 static id decode_frame(id self,U index){
     Animation *s=state(self);if(!s || index>=s->info.count)return nil;
@@ -129,24 +138,58 @@ static id decode_frame(id self,U index){
     }
     pthread_mutex_unlock(&decode_lock);return image;
 }
-static id frame_at(id self,SEL cmd,U index){
-    (void)cmd;Animation *s=state(self);if(!s || index>=s->info.count)return nil;
-    if(index==0)return s->poster;
-    id image=cached_frame(s->identity,index);
-    if(image)return m0(image,"autorelease");
-    if(!may_retry(s,index))return nil;
-    if(!main_thread())return m0(decode_frame(self,index),"autorelease");
-    pthread_mutex_lock(&cache_lock);BOOL schedule=!s->pending && jobs<JOBS;
+/* Called under cache_lock. Prefer each consumer's requested frame before
+ * look-ahead. Four moving windows support independently phased chat/input/
+ * thumbnail clocks without making their decoded caches fight over four slots. */
+static U needed_frame(Animation *s){
+    if(s->retry_after && monotonic_millis()<s->retry_after)return s->info.count;
+    U candidates[16],n=0;unsigned present=0;
+    for(U ahead=0;ahead<=LOOKAHEAD;ahead++)for(unsigned w=0;w<4;w++)if(s->windows[w].age){
+        U index=(s->windows[w].index+ahead)%s->info.count;
+        if(!index)continue;
+        candidates[n++]=index;
+    }
+    /* One cache scan per query, not one full scan per look-ahead candidate. */
+    for(unsigned i=0;i<FRAME_SLOTS;i++)if(frames[i].image && frames[i].identity==s->identity)
+        for(U k=0;k<n;k++)if(frames[i].index==candidates[k])present|=1U<<k;
+    for(U k=0;k<n;k++)if(!(present&(1U<<k)))return candidates[k];
+    return s->info.count;
+}
+static void prepare_window(id self,U index){
+    Animation *s=state(self);
+    pthread_mutex_lock(&cache_lock);
+    unsigned slot=0;
+    for(unsigned w=0;w<4;w++){
+        U forward=(index+s->info.count-s->windows[w].index)%s->info.count;
+        if(s->windows[w].age && forward<=LOOKAHEAD){slot=w;break;}
+        if(s->windows[w].age<s->windows[slot].age)slot=w;
+    }
+    s->windows[slot].index=index;s->windows[slot].age=++s->request_age;
+    BOOL schedule=!s->pending && jobs<JOBS && needed_frame(s)<s->info.count;
     if(schedule){s->pending=YES;jobs++;}pthread_mutex_unlock(&cache_lock);
     if(schedule){
         id held=objc_retain(self);
         v1(queue,"addOperationWithBlock:",(id)^{
-            id decoded=decode_frame(held,index);objc_release(decoded);
+            /* Bounded work per operation. Re-read demand after each decode so
+             * a new clock position is not stuck behind an obsolete window. */
+            for(unsigned step=0;step<FRAMES_PER_ASSET;step++){
+                pthread_mutex_lock(&cache_lock);U next=needed_frame(state(held));pthread_mutex_unlock(&cache_lock);
+                if(next>=state(held)->info.count)break;
+                id decoded=decode_frame(held,next);objc_release(decoded);
+            }
             pthread_mutex_lock(&cache_lock);state(held)->pending=NO;jobs--;pthread_mutex_unlock(&cache_lock);
             objc_release(held);
         });
     }
-    return nil;
+}
+static id frame_at(id self,SEL cmd,U index){
+    (void)cmd;Animation *s=state(self);if(!s || index>=s->info.count)return nil;
+    id image=index?cached_frame(s->identity,index):objc_retain(s->poster);
+    if(!image && !main_thread() && may_retry(s,index))image=decode_frame(self,index);
+    /* Hits and the poster must trigger read-ahead too: waiting until a miss
+     * makes every fast frame pay an extra display-link interval. */
+    prepare_window(self,index);
+    return m0(image,"autorelease");
 }
 static U frame_count(id self,SEL cmd){(void)cmd;Animation *s=state(self);return s?s->info.count:0;}
 static U zero(id self,SEL cmd){(void)self;(void)cmd;return 0;}
@@ -324,7 +367,7 @@ void tas_animated_image_status(char *buffer,size_t capacity){
     pthread_mutex_lock(&init_lock);BOOL loader=load_original!=NULL,limit=buffer_original!=NULL,legacy=legacy_original!=NULL,backend=animation_class!=NULL;pthread_mutex_unlock(&init_lock);
     snprintf(buffer,capacity,"Provider WebP loader/buffer hooks: %s/%s; legacy factory=%s; ImageIO adapter=%s\n"
         "WebP assets created/refused; frames decoded/failed: %llu/%llu; %llu/%llu\n"
-        "WebP owned frame cache: %lu/33554432 bytes; background jobs=%lu/64; per-asset/RN-view frames=4/4\n",
+        "WebP owned frame cache: %lu/33554432 bytes; background jobs=%lu/64; per-asset/RN-view frames=16/4; read-ahead=3, windows=4\n",
         loader?"installed":"missing",limit?"installed":"missing",legacy?"installed":"missing",backend?"ready":"not initialized",
         (unsigned long long)__atomic_load_n(&created,__ATOMIC_RELAXED),(unsigned long long)__atomic_load_n(&refused,__ATOMIC_RELAXED),
         (unsigned long long)__atomic_load_n(&decoded_frames,__ATOMIC_RELAXED),(unsigned long long)__atomic_load_n(&frame_failures,__ATOMIC_RELAXED),bytes,pending);

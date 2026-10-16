@@ -22,4 +22,4 @@ original scope, outcomes, and artifact identities. Follow
 [Documentation maintenance](../development/DOCUMENTATION.md) when moving records
 and updating navigation.
 
-- [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 addresses legacy chat animation, emote taps and picker focus after vertical-stream testing.
+- [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 restores legacy animation and addresses taps/picker focus; build 16 adds bounded read-ahead and clock corrections for fast emotes.

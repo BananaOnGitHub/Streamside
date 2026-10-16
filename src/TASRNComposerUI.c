@@ -320,11 +320,19 @@ static void animate(id self,SEL command,id link) {
         if(f->location>=length || attachment_at(source,f->location)!=f->attachment)continue;
         live++;f->elapsed+=delta;double delay=delay_at(f);BOOL changed=NO;U count=integer(f->animation,"frameCount");
         if(count<2 || count>TAS_WEBP_MAX_FRAMES)continue;
+        if(kind(f->animation,"StreamsideAnimatedWebP")){
+            for(unsigned step=0;f->elapsed>=delay && step<16;step++){
+                f->elapsed-=delay;f->index=(f->index+1)%count;delay=delay_at(f);
+            }
+            id image=((id (*)(id,SEL,U))objc_msgSend)(f->animation,sel_registerName("imageLazilyCachedAtIndex:"),f->index);
+            if(image && image!=m0(f->attachment,"image")){v1(f->attachment,"setImage:",image);changed=YES;INC(advances);}
+        }else{
         for(unsigned step=0;f->elapsed>=delay && step<16;step++) {
             U next=(f->index+1)%count;
             id image=((id (*)(id,SEL,U))objc_msgSend)(f->animation,sel_registerName("imageLazilyCachedAtIndex:"),next);
             if(!image){f->elapsed=delay;break;}
             f->elapsed-=delay;f->index=next;v1(f->attachment,"setImage:",image);changed=YES;INC(advances);delay=delay_at(f);
+        }
         }
         if(changed)((void (*)(id,SEL,Range))objc_msgSend)(manager,sel_registerName("invalidateDisplayForCharacterRange:"),(Range){f->location,1});
     }
@@ -403,7 +411,7 @@ static void sync(id owner) {
     if(!s->link) {
         id link=((id (*)(id,SEL,id,SEL))objc_msgSend)((id)objc_getClass("CADisplayLink"),sel_registerName("displayLinkWithTarget:selector:"),target,sel_registerName("ssTick:"));
         s->link=objc_retain(link);s->timestamp=0;
-        ((void (*)(id,SEL,U))objc_msgSend)(link,sel_registerName("setPreferredFramesPerSecond:"),30);
+        ((void (*)(id,SEL,U))objc_msgSend)(link,sel_registerName("setPreferredFramesPerSecond:"),60);
         ((void (*)(id,SEL,id,id))objc_msgSend)(link,sel_registerName("addToRunLoop:forMode:"),m0((id)objc_getClass("NSRunLoop"),"mainRunLoop"),str("kCFRunLoopCommonModes"));
     }
 }

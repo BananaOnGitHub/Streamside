@@ -76,6 +76,10 @@ static CacheClient *overflow_integration(const char *base) {
 int main(int argc,char **argv) {
     assert(argc==2);
     @autoreleasepool {
+        /* The fixture links the real policy engine, whose default is Minimal.
+         * Enable the image header observations asserted by this integration. */
+        tas_diag_policy_initialize((1U<<TAS_DIAG_GENERAL)|(1U<<TAS_DIAG_IMAGES)|TAS_DIAG_DETAIL_BIT);
+        assert(tas_diag_wants(TAS_DIAG_IMAGES,TAS_DIAG_DETAILED));
         fputs("Fixture stage: warm\n",stderr);
         CacheClient *warm;begin(argv[1],"/hot.gif",&warm);wait_finished(warm,10);
         annotation_matrix(argv[1]);

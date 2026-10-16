@@ -79,9 +79,14 @@ int main(void){
 PICK = r'''
 #include <assert.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <string.h>
 #include <stdarg.h>
 typedef struct Fake *id;
+typedef id Class;
+typedef const char *SEL;
+typedef const char *Method;
+typedef ptrdiff_t *Ivar;
 typedef unsigned long U;
 typedef int BOOL;
 #define YES 1
@@ -90,9 +95,12 @@ typedef int BOOL;
 typedef struct {U location,length;} Range;
 typedef struct {size_t start,length;} SSSpan;
 #define MAX_TOKENS 512
-struct Fake {const char *text;id name,native;};
+struct Fake {const char *text;id name,native;unsigned char detent,dismissing;char padding[6];id host;};
 typedef struct {id owner;Range completion;} State;
 static struct Fake editor,owner,delegate,room,name={.text="YAY"},metadata={.name=&name},code={.text="YAY "};
+static struct Fake controller,coordinator,window,controller_class,coordinator_class;
+static BOOL available=YES,visible=YES,closing=NO,allowed=YES,found=YES,layout=YES,abi=YES;
+static unsigned transitions;
 static State context={.owner=&owner,.completion={1,3}};
 static unsigned focus,edits,remembers,insertions,selection_missing,lookup_misses,native_insertions;
 #define INC(v) (++(v))
@@ -103,23 +111,63 @@ static id objc_retain(id o){return o;}
 static id editor_for(id o){assert(o==&owner);return &editor;}
 static id room_for(id o){assert(o==&owner);return &room;}
 static id key(id o,const char *s){return !strcmp(s,"name")?o->name:!strcmp(s,"native")?o->native:nil;}
-static id native_named(State *s,id n){(void)s;(void)n;return nil;}
-static id tas_emotes_named_copy(id r,id n){assert(r==&room && n==&name);return &metadata;}
+static id native_named(State *s,id n){(void)s;(void)n;return found?&metadata:nil;}
+static id tas_emotes_named_copy(id r,id n){assert(r==&room && n==&name);return found?&metadata:nil;}
 static void refresh(id d){assert(d==&delegate);}
 static BOOL equal(id a,id b){return a==b;}
-static id m0(id o,const char *s){assert(o==&editor && !strcmp(s,"becomeFirstResponder"));focus++;return o;}
+static id m0(id o,const char *s){
+ if(o==&controller && !strcmp(s,"viewIfLoaded"))return visible?&controller:nil;
+ if(o==&controller && !strcmp(s,"window"))return &window;
+ if(!o)return nil;
+ assert(o==&editor && !strcmp(s,"becomeFirstResponder"));focus++;return o;
+}
+static BOOL yes(id o,const char *s){assert(o==&controller && !strcmp(s,"isBeingDismissed"));return closing;}
+static id object_field(id o,const char *n,const char *cls){
+ (void)cls;
+ if(o==&owner && !strcmp(n,"presentedEmoticonPaletteVC"))return available?&controller:nil;
+ assert(o==&controller && !strcmp(n,"paletteCoordinator"));return &coordinator;
+}
+static Class object_getClass(id o){return o==&coordinator?&coordinator_class:&controller_class;}
+static Class objc_getClass(const char *s){assert(!strcmp(s,"_TtC6Twitch23EmotePaletteCoordinator"));return &coordinator_class;}
+static Ivar class_getInstanceVariable(Class c,const char *s){
+ assert(c==&coordinator_class);
+ static ptrdiff_t d=offsetof(struct Fake,detent),x=offsetof(struct Fake,dismissing),h=offsetof(struct Fake,host);
+ if(!layout)return NULL;
+ return !strcmp(s,"detent")?&d:!strcmp(s,"isDismissing")?&x:&h;
+}
+static ptrdiff_t ivar_getOffset(Ivar i){return *i;}
+static size_t class_getInstanceSize(Class c){assert(c==&coordinator_class);return sizeof(coordinator);}
+static SEL sel_registerName(const char *s){return s;}
+static Method class_getInstanceMethod(Class c,SEL s){assert(c==&controller_class && !strcmp(s,"grabberTapped"));return abi?"v16@0:8":"v24@0:8@16";}
+static const char *method_getTypeEncoding(Method m){return m;}
+static void objc_msgSend(id o,SEL s){assert(o==&controller && !strcmp(s,"grabberTapped"));assert(coordinator.detent==1 && !coordinator.dismissing);coordinator.detent=0;transitions++;}
 static id str(const char *s){assert(!strcmp(s," "));return &code;}
 static id m1(id o,const char *s,id a){assert(o==&name && !strcmp(s,"stringByAppendingString:") && a==&code);return &code;}
 static Range selection(id e){assert(e==&editor);return (Range){7,0};}
 static id expanded_copy(id e,Range *r,SSSpan *s,size_t *n){assert(e==&editor && r && s);*n=0;return nil;}
-static BOOL replace_plain(id d,Range r,id text){assert(d==&delegate && text==&code);assert((r.location==7 && !r.length)||(r.location==1 && r.length==3));edits++;return YES;}
+static BOOL replace_plain(id d,Range r,id text){assert(d==&delegate && text==&code);assert((r.location==7 && !r.length)||(r.location==1 && r.length==3));edits++;return allowed;}
 static void remember(id n){assert(n==&name);remembers++;}
 #include "choose.c"
 int main(void){
- choose(&delegate,&metadata,NO); /* palette owns responder; remains open */
- assert(!focus && edits==1 && remembers==1 && insertions==1);
- choose(&delegate,&metadata,YES); /* suggestions use the existing editor */
- assert(!focus && edits==2 && remembers==2 && insertions==2);
+ coordinator.detent=1;
+ choose(&delegate,&metadata,NO); /* same transition as native selection */
+ assert(!focus && edits==1 && remembers==1 && insertions==1 && transitions==1 && !coordinator.detent);
+ choose(&delegate,&metadata,NO);assert(transitions==1); /* compact stays compact */
+ coordinator.detent=1;
+ choose(&delegate,&metadata,YES); /* suggestions preserve the expanded state */
+ assert(!focus && edits==3 && remembers==3 && insertions==3 && transitions==1 && coordinator.detent==1);
+ allowed=NO;choose(&delegate,&metadata,NO);assert(transitions==1);allowed=YES;
+ found=NO;choose(&delegate,&metadata,NO);assert(transitions==1 && edits==4);found=YES;
+ available=NO;choose(&delegate,&metadata,NO);assert(transitions==1);available=YES;
+ visible=NO;choose(&delegate,&metadata,NO);assert(transitions==1);visible=YES;
+ closing=YES;choose(&delegate,&metadata,NO);assert(transitions==1);closing=NO;
+ coordinator.dismissing=1;choose(&delegate,&metadata,NO);assert(transitions==1);coordinator.dismissing=0;
+ layout=NO;choose(&delegate,&metadata,NO);assert(transitions==1);layout=YES;
+ abi=NO;choose(&delegate,&metadata,NO);assert(transitions==1);abi=YES;
+ coordinator.detent=2;choose(&delegate,&metadata,NO);assert(transitions==1);
+ coordinator.detent=1;metadata.native=&name;
+ choose(&delegate,&metadata,NO);assert(transitions==2 && native_insertions==1 && !focus);
+
  return 0;
 }
 '''
@@ -127,7 +175,7 @@ int main(void){
 class LegacyChatTests(unittest.TestCase):
     def test_picker_insertion_preserves_twitch_responder_and_completion_range(self):
         source = (ROOT/'src/SSComposer.c').read_text()
-        choose = source[source.index('static void choose('):source.index('\nstatic void target(')]
+        choose = source[source.index('static void reveal_library_input('):source.index('\nstatic void target(')]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
             (path/'choose.c').write_text(choose)

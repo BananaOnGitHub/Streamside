@@ -6,8 +6,9 @@ selection and presentation, not HLS, chat delivery, redemption handling, or
 Hermes message/list instrumentation. **Build 14 passed the RN device checks.**
 Legacy chat was subsequently tested on a vertical stream and exposed three
 issues. Build 15 restored animation, but fast animations lag across native
-surfaces. Build 16 adds read-ahead and composer timeline corrections; device
-confirmation of the speed improvement is pending.
+surfaces. Build 16 adds read-ahead and composer timeline corrections. The tester
+confirmed intended animation speeds everywhere in legacy. Build 17 addresses
+the remaining extended-library selection transition.
 
 ## Evidence and format selection
 
@@ -284,8 +285,9 @@ with every upcoming frame ready after the scheduled worker interval, bounded
 decode counts, cache/job limits, loop wrap and failure backoff. The production
 composer clocks are tested through decode misses and a 12.5-second hold. These
 controlled worker checks do not measure real iOS ImageIO decode throughput;
-`ehehe` speed and smoothness still need device confirmation across the reported
-surfaces. Build 15's tap/picker fixes also await explicit device results.
+`ehehe` speed and smoothness required device confirmation across the reported
+surfaces. The subsequent build-16 device result is recorded below. Build 15's
+repeated-emote tap fix still awaits an explicit device result.
 
 ### Build 16 candidate validation
 
@@ -301,5 +303,58 @@ The normal `0/0/0` finished IPA passed independent verification:
 - SHA-256: `47eda9ea81d849b1345d5d454e3071abee8e2dfd294eb21409cd331a1ac5c7af`
 - Donor: original Twitch 31.6 (262821841498166537).
 
-This unsigned candidate requires signing. Fast-emote timing and smoothness on
-the device remain pending; host scheduling tests are not a throughput benchmark.
+This unsigned candidate requires signing. Host scheduling tests are not a
+throughput benchmark.
+
+### Build 16 device result
+
+The tester confirmed: “Emotes play at their intended speeds everywhere in
+legacy now.” This closes the reported fast-animation slowdown across legacy
+surfaces. RN checks from build 14 remain recorded in their original scope.
+
+## Extended legacy library selection — build 17, 2026-10-16
+
+After confirming animation speed, the tester reported that selecting a provider
+emote in the extended legacy library leaves the input out of view. Native Twitch
+selection compacts the palette and reveals the input.
+
+Read-only Twitch 31.6 inspection traced native `EmoticonPaletteView` selection
+(`0x10336da00`) through input insertion to the presented palette coordinator's
+animated compact-detent transition (`0x10367f140`, arguments `0, 1`). The existing
+`EmoticonPaletteViewController.grabberTapped` action (`0x10367e560`, encoding
+`v16@0:8`) uses the same transition, toggling its coordinator's current detent.
+The inspected `EmotePaletteCoordinator` stores `detent` at 80, `isDismissing` at
+81 and `host` at 88; expanded is 1 and compact is 0. These addresses describe
+this donor only and are not production lookup addresses.
+
+After a successful library/recent-row insertion, Streamside now invokes this
+native action only for a visible, non-dismissing presented legacy palette with
+a verified expanded detent. Named object ivars, exact coordinator class, field
+spacing/instance bounds and the action encoding are checked at runtime. Unknown
+layouts or states leave native presentation alone. Suggestions and vetoed,
+stale or unchanged edits do not change the palette. The native transition owns
+animation and occupied-height notifications; editor focus and collection scroll
+positions are preserved.
+
+The controlled production selection test covers successful provider/native
+choices, compact and unknown detents, suggestion completion ranges, rejected and
+stale choices, hidden/dismissing presentations, missing layout metadata and an
+incompatible action encoding. It also asserts no editor focus request. Device
+confirmation of the extended-library reveal remains pending.
+
+### Build 17 candidate validation
+
+The suite ran 193 tests: 191 passed, with the two Apple-only integration tests
+skipped on Linux. The exact donor/Hermes gate passed with 32 bounded snapshots
+and 7,344 window calculations. Normal and emote+demand diagnostic native builds
+passed artifact and defined-WebP verification; both DEBs built. The normal
+`0/0/0` finished IPA passed independent verification:
+
+- Filename: `Twitch_31.6_Streamside_3.1.0-build.17_legacy-library_unsigned.ipa`
+- Bytes: 194,488,922
+- SHA-256: `27535a4b10254b7bd9627bd12b2e3615c88cc408c69dedd881285547cfb0e00f`
+- Donor: original Twitch 31.6 (262821841498166537).
+
+This unsigned candidate requires signing. Extended-library selection still
+requires device confirmation; packaging and controlled tests do not establish
+that result.

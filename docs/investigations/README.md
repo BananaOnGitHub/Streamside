@@ -22,4 +22,4 @@ original scope, outcomes, and artifact identities. Follow
 [Documentation maintenance](../development/DOCUMENTATION.md) when moving records
 and updating navigation.
 
-- [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 restores legacy animation and addresses taps/picker focus; build 16 adds bounded read-ahead and clock corrections for fast emotes.
+- [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 restores legacy animation and addresses taps/picker focus; build 16 fast-emote speeds confirmed in legacy; build 17 restores the native compact transition after extended-library selection.

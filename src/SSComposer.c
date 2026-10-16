@@ -897,6 +897,31 @@ static BOOL replace_plain(id delegate,Range range,id replacement) {
     } else INC(validation_vetoes);
     render(delegate); refresh(delegate); objc_release(owner); return allowed;
 }
+/* Native selection compacts the presented legacy palette through its
+ * coordinator before notifying the input delegate. The grabber action uses
+ * that same animated transition, including occupied-height notifications.
+ * Toggle only a verified expanded detent; compact/unknown layouts are no-ops.
+ * No keyboard focus, palette-content scrolling, or manual frame changes. */
+static void reveal_library_input(id owner) {
+    const char *controller_name="_TtC6Twitch29EmoticonPaletteViewController";
+    const char *coordinator_name="_TtC6Twitch23EmotePaletteCoordinator";
+    id controller=object_field(owner,"presentedEmoticonPaletteVC",controller_name);
+    if (!controller || !m0(m0(controller,"viewIfLoaded"),"window") || yes(controller,"isBeingDismissed")) return;
+    id coordinator=object_field(controller,"paletteCoordinator",coordinator_name);
+    if (!coordinator || object_getClass(coordinator)!=objc_getClass(coordinator_name)) return;
+    Class cls=object_getClass(coordinator);
+    Ivar detent=class_getInstanceVariable(cls,"detent"),dismissing=class_getInstanceVariable(cls,"isDismissing"),host=class_getInstanceVariable(cls,"host");
+    if (!detent || !dismissing || !host) return;
+    ptrdiff_t offset=ivar_getOffset(detent); size_t size=class_getInstanceSize(cls);
+    if (offset<0 || (size_t)offset>=size || ivar_getOffset(dismissing)!=offset+1 ||
+        ivar_getOffset(host)!=offset+8 || size-(size_t)offset<8) return;
+    unsigned char values[2]; memcpy(values,(char *)coordinator+offset,sizeof(values));
+    if (values[0]!=1 || values[1]) return;
+    SEL action=sel_registerName("grabberTapped");
+    Method method=class_getInstanceMethod(object_getClass(controller),action);
+    if (!method || strcmp(method_getTypeEncoding(method),"v16@0:8")) return;
+    ((void (*)(id,SEL))objc_msgSend)(controller,action);
+}
 static void choose(id delegate,id metadata,BOOL suggestion) {
     State *s=state(delegate); id owner=objc_loadWeakRetained(&s->owner),editor=editor_for(owner);
     if (!editor || !metadata) { INC(selection_missing); objc_release(owner); return; }
@@ -921,7 +946,10 @@ static void choose(id delegate,id metadata,BOOL suggestion) {
     /* The same validated UITextInput edit + native didChange path as Twitch's
      * own completion. Its formatter/history/send tokenization owns native IDs.
      * Only provider choices enter Streamside's third-party recent row. */
-    if (replace_plain(delegate,r,code)) { if (native) INC(native_insertions); else remember(key(metadata,"name")); INC(insertions); }
+    if (replace_plain(delegate,r,code)) {
+        if (native) INC(native_insertions); else remember(key(metadata,"name")); INC(insertions);
+        if (!suggestion) reveal_library_input(owner);
+    }
     objc_release(current); objc_release(owner);
 }
 

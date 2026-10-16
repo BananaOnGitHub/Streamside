@@ -3,9 +3,9 @@
 Development branch: `dev/3.1.0`, based on `5ab9e56`. The paused
 `fix/rn-chat-gaps` investigation is unchanged. This trial changes image format
 selection and presentation, not HLS, chat delivery, redemption handling, or
-Hermes message/list instrumentation. **Build 14 passed device acceptance for
-the WebP renderer.** Timing and normal rendering behavior are confirmed across
-chat, composer, suggestions, library and info.
+Hermes message/list instrumentation. **Build 14 passed the RN device checks.**
+Legacy chat was subsequently tested on a vertical stream and exposed three
+issues. Build 15 addresses those legacy paths; device confirmation is pending.
 
 ## Evidence and format selection
 
@@ -108,7 +108,7 @@ animate the format can therefore show a static fallback; this is not animation
 acceptance. Runtime Render diagnostics report hook availability, created/refused
 assets, decoded/failed frames and owned cache/job counts without URLs or text.
 
-The current RN chat and RN library/info surfaces use this loader boundary.
+In build 14, the RN chat and RN library/info surfaces use this loader boundary.
 Native composer previews and the UIKit suggestion/library thumbnails use the
 shared adapter directly. Archived legacy native chat delivery has not been
 reworked or device-validated by this trial.
@@ -160,7 +160,7 @@ The distributed IPA is unsigned and needs signing for installation. Build 14
 subsequently passed device acceptance as recorded below.
 The paused diagnostic branch has not received this renderer trial.
 
-## Device acceptance — passed, 2026-10-15
+## Initial device acceptance — 2026-10-15
 
 The tester accepted build 14 as working generally. Confirmed behavior:
 
@@ -170,4 +170,52 @@ The tester accepted build 14 as working generally. Confirmed behavior:
 - Scrolling, view reuse and channel switches work correctly.
 - Returning from picture-in-picture to the main playback page works correctly.
 
-The WebP renderer trial passed; no rendering issue was reported in these checks.
+The initial report accepted the WebP renderer. The later legacy checks below
+established that this acceptance covered the RN paths, not legacy chat.
+
+## Legacy follow-up — build 15, 2026-10-16
+
+Testing a vertical stream exposed three legacy issues in build 14:
+
+- Animated provider emotes remained still in chat, despite working elsewhere.
+- Tapping an emote in a message such as `mhm ono YAY mhm ono YAY` could open
+  another emote's details.
+- Selecting a picker emote brought up the keyboard and displaced chat/input
+  behind the player, making the input unreachable.
+
+The donor's TwitchKit network image factories call
+`FLAnimatedImage.initWithAnimatedGIFData:` (`@24@0:8@16`) for animated bodies.
+The legacy `TWAnimatedImageLayer` consumes `posterImage`, `frameCount`,
+`delayTimesForIndexes`, `loopCount` and `imageLazilyCachedAtIndex:`. Build 14
+supplied these interfaces but only connected the new adapter to RN loading
+and owned composer/thumbnail paths.
+
+Build 15 connects the legacy factory to the shared ImageIO WebP template.
+Only an already validated template admitted by a successful provider HTTP
+response can replace the GIF factory's result. The check uses the immutable
+encoded value because Swift's Data/NSData bridge can recreate the NSData
+object; it does not claim URL provenance from a byte match. Admission expires
+with the bounded template cache. GIF, unknown data, missing templates,
+disabled emotes and incompatible method encodings retain the original factory.
+The replacement follows initializer ownership: release the unused allocation
+and return the retained adapter. There is no GIF conversion or additional
+network path. Twitch's existing legacy display link, per-layer playhead,
+visibility checks and loop recovery remain in charge of playback.
+
+Legacy emote taps now inspect the displayed attachment layers' geometry and
+synthetic identities. This avoids rebuilding a separate TextKit layout whose
+positions can diverge after wide attachments or wrapping. Traversal respects
+hidden/transparent/clipped ancestors and is bounded to 1,024 layers and depth
+16. Unmatched/native taps continue to Twitch's original handler.
+
+Picker insertion keeps Twitch's existing palette/hidden responder active.
+The validated UITextInput edit and native change notification remain; the
+unconditional `becomeFirstResponder` call is removed so selecting an emote
+does not independently open the system keyboard during the palette session.
+
+Host regressions exercise the production legacy factory's admission, bridged
+data, initializer ownership, fallback and ABI checks; actual displayed layer
+identity for repeated/wrapped emotes, gaps and visibility; and picker/suggestion
+edits without focus changes. These checks do not replace on-device acceptance
+of the three reported legacy failures. The paused chat-gap investigation and
+its specialized instrumentation remain unchanged.

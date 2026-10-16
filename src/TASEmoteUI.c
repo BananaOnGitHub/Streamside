@@ -51,7 +51,7 @@ static Class g_details_class;
 static char g_metadata_key, g_snapshot_message_key, g_details_dismissing_key;
 static char g_animation_key;
 static id g_animation_layers, g_animation_timer; /* weak members; one idle-stopping timer */
-static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_snapshots, g_tap_hits;
+static uint64_t g_receive_calls, g_sent_calls, g_sent_matches, g_sized, g_details, g_tap_calls, g_layer_hit_checks, g_tap_hits;
 static uint64_t g_size_calls, g_bounds_calls, g_textkit_calls, g_resolved_ids;
 static uint64_t g_layer_calls, g_layer_ids, g_layer_resizes, g_layer_layouts;
 static uint64_t g_animation_loops, g_animation_resumes;
@@ -566,7 +566,7 @@ static void attachment_set_bounds(id self, SEL sel, Rect rect) {
 }
 /* Swift calls its sizing routines directly, bypassing their ObjC bridges.
  * TextKit dispatches this attachment callback through Objective-C. Scope the
- * fallback to Twitch's layout manager (and our independent tap snapshot). */
+ * fallback to Twitch's layout manager. */
 static Rect textkit_bounds_with(IMP original, id self, SEL sel, id container, Rect fragment, Point position, NSUInteger index) {
     Rect rect = ((Rect (*)(id,SEL,id,Rect,Point,NSUInteger))original)(self,sel,container,fragment,position,index);
     id manager = responds(container,"layoutManager") ? m0(container,"layoutManager") : nil;
@@ -863,37 +863,35 @@ static BOOL show_details(id view, uint64_t number) {
     objc_release(metadata); return shown;
 }
 
-/* Hit-test an independent TextKit snapshot so the tap does not mutate Twitch's
- * actor-owned layout engine. Use its text layer frame and container padding. */
-static uint64_t tapped_emote(id self, id gesture) {
-    id layer = object_ivar(self,"messageStringLayer"), message = object_ivar(layer,"messageString");
-    id text_layer = object_ivar(layer,"textLayer");
-    if (!kind(text_layer,"CALayer") || !responds(message,"attributedString")) return 0;
-    id attributed = m0(message,"attributedString");
-    INC(g_snapshots);
-    if (!kind(attributed,"NSAttributedString")) return 0;
-    Point point = ((Point (*)(id,SEL,id))objc_msgSend)(gesture,sel_registerName("locationInView:"),self);
-    point = ((Point (*)(id,SEL,Point,id))objc_msgSend)(text_layer,sel_registerName("convertPoint:fromLayer:"),point,m0(self,"layer"));
-    Rect bounds = ((Rect (*)(id,SEL))objc_msgSend)(text_layer,sel_registerName("bounds"));
-    point.x -= bounds.origin.x; point.y -= bounds.origin.y;
-    if (point.x < 0 || point.y < 0 || point.x >= bounds.size.width || point.y >= bounds.size.height) return 0;
-    id storage = m1(m0((id)objc_getClass("NSTextStorage"),"alloc"),"initWithAttributedString:",attributed);
-    id manager = m0((id)objc_getClass("NSLayoutManager"),"new");
-    objc_setAssociatedObject(manager,&g_snapshot_message_key,message,1);
-    id container = ((id (*)(id,SEL,Size))objc_msgSend)(m0((id)objc_getClass("NSTextContainer"),"alloc"),sel_registerName("initWithSize:"),bounds.size);
-    ((void (*)(id,SEL,CGFloat))objc_msgSend)(container,sel_registerName("setLineFragmentPadding:"),(CGFloat)0);
-    v1(manager,"addTextContainer:",container); v1(storage,"addLayoutManager:",manager);
-    NSUInteger glyph = ((NSUInteger (*)(id,SEL,Point,id,CGFloat *))objc_msgSend)(manager,sel_registerName("glyphIndexForPoint:inTextContainer:fractionOfDistanceThroughGlyph:"),point,container,NULL);
-    uint64_t number = 0;
-    NSUInteger total = ((NSUInteger (*)(id,SEL))objc_msgSend)(manager,sel_registerName("numberOfGlyphs"));
-    if (glyph < total) {
-        Rect rect = ((Rect (*)(id,SEL,Range,id))objc_msgSend)(manager,sel_registerName("boundingRectForGlyphRange:inTextContainer:"),(Range){glyph,1},container);
-        if (point.x >= rect.origin.x && point.y >= rect.origin.y && point.x < rect.origin.x+rect.size.width && point.y < rect.origin.y+rect.size.height) {
-            NSUInteger index = ((NSUInteger (*)(id,SEL,NSUInteger))objc_msgSend)(manager,sel_registerName("characterIndexForGlyphAtIndex:"),glyph);
-            number = message_id_at(message,(NSInteger)index);
-        }
+/* Read the displayed attachment geometry and identity. Re-laying out a copy
+ * of the attributed string can disagree with Twitch's actor-owned layout,
+ * especially after several variable-width attachments or line wrapping. */
+static uint64_t emote_layer_at_point(id layer,id source,Point point,unsigned depth,unsigned *remaining) {
+    if(!layer || depth>16 || !*remaining)return 0;
+    --*remaining;
+    if(((BOOL (*)(id,SEL))objc_msgSend)(layer,sel_registerName("isHidden")) ||
+       !(((float (*)(id,SEL))objc_msgSend)(layer,sel_registerName("opacity"))>0))return 0;
+    Point local=((Point (*)(id,SEL,Point,id))objc_msgSend)(layer,sel_registerName("convertPoint:fromLayer:"),point,source);
+    Rect bounds=((Rect (*)(id,SEL))objc_msgSend)(layer,sel_registerName("bounds"));
+    BOOL inside=local.x>=bounds.origin.x && local.y>=bounds.origin.y &&
+        local.x<bounds.origin.x+bounds.size.width && local.y<bounds.origin.y+bounds.size.height;
+    if(!inside && ((BOOL (*)(id,SEL))objc_msgSend)(layer,sel_registerName("masksToBounds")))return 0;
+    uint64_t number=image_layer_id(layer);
+    if(number)return inside?number:0;
+    id children=m0(layer,"sublayers");
+    for(NSUInteger i=count(children);i && *remaining;i--){
+        number=emote_layer_at_point(at(children,i-1),source,point,depth+1,remaining);
+        if(number)return number;
     }
-    objc_release(container); objc_release(manager); objc_release(storage); return number;
+    return 0;
+}
+static uint64_t tapped_emote(id self,id gesture) {
+    id root=object_ivar(self,"messageStringLayer"),source=m0(self,"layer");
+    if(!kind(root,"CALayer") || !source)return 0;
+    INC(g_layer_hit_checks);
+    Point point=((Point (*)(id,SEL,id))objc_msgSend)(gesture,sel_registerName("locationInView:"),self);
+    unsigned remaining=1024;
+    return emote_layer_at_point(root,source,point,0,&remaining);
 }
 static void tap_gesture(id self, SEL sel, id gesture) {
     INC(g_tap_calls);
@@ -950,14 +948,14 @@ void tas_emote_ui_status(char *buffer, size_t capacity) {
         "Native delivery callbacks/local messages/matched emotes: %llu/%llu/%llu\n"
         "Sizing calls (message/attachment/TextKit)/resolved IDs: %llu/%llu/%llu/%llu\n"
         "Proportional sizes/taps/provider sheets: %llu/%llu/%llu\n"
-        "Tap snapshots/provider hits: %llu/%llu\n"
+        "Tap layer checks/provider hits: %llu/%llu\n"
         "Image layer hooks (frame/layout): %s/%s\n"
         "Image layer frame calls/layouts/provider IDs/resizes: %llu/%llu/%llu/%llu\n"
         "Provider animation hook/loop bindings/resumes/checks: %s/%llu/%llu/%llu\n",
         g_receive ? "installed" : "missing",g_size ? "installed" : "missing",g_base_size ? "installed" : "missing",g_bounds && g_set_bounds ? "installed" : "missing",g_textkit_bounds && g_chat_textkit_bounds ? "installed" : "missing",g_tap ? "installed" : "missing",
         (unsigned long long)GET(g_receive_calls),(unsigned long long)GET(g_sent_calls),(unsigned long long)GET(g_sent_matches),
         (unsigned long long)GET(g_size_calls),(unsigned long long)GET(g_bounds_calls),(unsigned long long)GET(g_textkit_calls),(unsigned long long)GET(g_resolved_ids),
-        (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_snapshots),(unsigned long long)GET(g_tap_hits),
+        (unsigned long long)GET(g_sized),(unsigned long long)GET(g_tap_calls),(unsigned long long)GET(g_details),(unsigned long long)GET(g_layer_hit_checks),(unsigned long long)GET(g_tap_hits),
         g_layer_frame ? "installed" : "missing",g_layer_layout ? "installed" : "missing",
         (unsigned long long)GET(g_layer_calls),(unsigned long long)GET(g_layer_layouts),(unsigned long long)GET(g_layer_ids),(unsigned long long)GET(g_layer_resizes),
         g_animated_image ? "installed" : "missing",(unsigned long long)GET(g_animation_loops),(unsigned long long)GET(g_animation_resumes),(unsigned long long)GET(g_animation_checks));

@@ -32,6 +32,7 @@ typedef struct {
     id data,poster,delays;
     const void *source;
     uint64_t identity;
+    BOOL legacy_admitted;
     BOOL pending;
     U failed_index;uint64_t retry_after;
 } Animation;
@@ -47,7 +48,7 @@ static pthread_mutex_t init_lock=PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t decode_lock=PTHREAD_MUTEX_INITIALIZER;
 static Class animation_class;
 static ptrdiff_t state_offset;
-static IMP super_dealloc,load_original,buffer_original;
+static IMP super_dealloc,load_original,buffer_original,legacy_original;
 static id templates,queue,source_options;
 static const void *(*source_create)(id,id);
 static U (*source_count)(const void *);
@@ -234,7 +235,32 @@ id tas_animated_image_create(id encoded){
     ((void (*)(id,SEL,id,id,U))objc_msgSend)(templates,sel_registerName("setObject:forKey:cost:"),image,snapshot,length+(U)info.width*info.height*4);
     __atomic_add_fetch(&created,1,__ATOMIC_RELAXED);return image;
 }
-void tas_animated_image_prepare(id encoded){id image=tas_animated_image_create(encoded);objc_release(image);}
+void tas_animated_image_prepare(id encoded){
+    /* Called only after a successful admitted provider HTTP response. Swift's
+     * Data/NSData bridge may recreate the object before the legacy factory;
+     * NSCache compares the immutable encoded value, not transient pointers.
+     * Admission lives only as long as this bounded decoded template. */
+    id image=tas_animated_image_create(encoded);
+    Animation *s=state(image);if(s)__atomic_store_n(&s->legacy_admitted,YES,__ATOMIC_RELEASE);
+    objc_release(image);
+}
+
+static id legacy_image_init(id self,SEL cmd,id encoded){
+    id image=nil;
+    if(encoded && tas_emotes_enabled_this_launch() && integer(encoded,"length")<=TAS_WEBP_MAX_BYTES &&
+       tas_webp_header((const unsigned char *)m0(encoded,"bytes"),integer(encoded,"length"))){
+        pthread_mutex_lock(&init_lock);id cache=objc_retain(templates);pthread_mutex_unlock(&init_lock);
+        id candidate=objc_retain(m1(cache,"objectForKey:",encoded));objc_release(cache);
+        Animation *s=candidate && animation_class && object_getClass(candidate)==animation_class?state(candidate):NULL;
+        if(s && __atomic_load_n(&s->legacy_admitted,__ATOMIC_ACQUIRE))image=candidate;
+        else objc_release(candidate);
+    }
+    /* An ObjC initializer may return a replacement object. Preserve its +1
+     * ownership, release the unused allocation, and supply the same indexed
+     * interface to TWAnimatedImageLayer without invoking a GIF decoder. */
+    if(image){objc_release(self);return image;}
+    return ((id (*)(id,SEL,id))legacy_original)(self,cmd,encoded);
+}
 
 static id load_provider(id self,SEL cmd,id request,id progress,id completion){
     if(!tas_emotes_enabled_this_launch())return ((id (*)(id,SEL,id,id,id))load_original)(self,cmd,request,progress,completion);
@@ -262,6 +288,14 @@ static void provider_buffer_limit(id self,SEL cmd){
 void tas_animated_image_retry_hooks(void){
     if(!tas_emotes_enabled_this_launch())return;
     pthread_mutex_lock(&init_lock);
+    if(!legacy_original){
+        Class cls=objc_getClass("FLAnimatedImage");SEL sel=sel_registerName("initWithAnimatedGIFData:");
+        Method method=cls?class_getInstanceMethod(cls,sel):NULL;
+        if(method && !strcmp(method_getTypeEncoding(method),"@24@0:8@16")){
+            legacy_original=method_getImplementation(method);
+            if(!class_addMethod(cls,sel,(IMP)legacy_image_init,method_getTypeEncoding(method)))method_setImplementation(method,(IMP)legacy_image_init);
+        }
+    }
     if(!load_original){
         Class cls=objc_getClass("RCTImageLoader");SEL sel=sel_registerName("_loadURLRequest:progressBlock:completionBlock:");
         Method method=cls?class_getInstanceMethod(cls,sel):NULL;
@@ -287,11 +321,11 @@ void tas_animated_image_retry_hooks(void){
 
 void tas_animated_image_status(char *buffer,size_t capacity){
     pthread_mutex_lock(&cache_lock);U bytes=frame_bytes,pending=jobs;pthread_mutex_unlock(&cache_lock);
-    pthread_mutex_lock(&init_lock);BOOL loader=load_original!=NULL,limit=buffer_original!=NULL,backend=animation_class!=NULL;pthread_mutex_unlock(&init_lock);
-    snprintf(buffer,capacity,"Provider WebP loader/buffer hooks: %s/%s; ImageIO adapter=%s\n"
+    pthread_mutex_lock(&init_lock);BOOL loader=load_original!=NULL,limit=buffer_original!=NULL,legacy=legacy_original!=NULL,backend=animation_class!=NULL;pthread_mutex_unlock(&init_lock);
+    snprintf(buffer,capacity,"Provider WebP loader/buffer hooks: %s/%s; legacy factory=%s; ImageIO adapter=%s\n"
         "WebP assets created/refused; frames decoded/failed: %llu/%llu; %llu/%llu\n"
         "WebP owned frame cache: %lu/33554432 bytes; background jobs=%lu/64; per-asset/RN-view frames=4/4\n",
-        loader?"installed":"missing",limit?"installed":"missing",backend?"ready":"not initialized",
+        loader?"installed":"missing",limit?"installed":"missing",legacy?"installed":"missing",backend?"ready":"not initialized",
         (unsigned long long)__atomic_load_n(&created,__ATOMIC_RELAXED),(unsigned long long)__atomic_load_n(&refused,__ATOMIC_RELAXED),
         (unsigned long long)__atomic_load_n(&decoded_frames,__ATOMIC_RELAXED),(unsigned long long)__atomic_load_n(&frame_failures,__ATOMIC_RELAXED),bytes,pending);
 }

@@ -13,7 +13,7 @@ struct Fake {
 static struct Fake objects[4096],classes[32];static unsigned used,class_count;
 static BOOL is_main,enabled=YES,broken_source,bad_canvas,decode_fails;
 static BOOL abi_ready;static unsigned hook_installs;
-static unsigned source_creates,decoded,source_releases,original_calls,callback_calls,native_buffers,limited_buffers;
+static unsigned source_creates,decoded,source_releases,original_calls,callback_calls,native_buffers,limited_buffers,legacy_calls;
 static id received_error,received_value,received_response,expected_request,expected_progress;
 static void *queued,*pending_reply;static int block_allocs,block_frees;
 static struct Fake class_animation={.name="StreamsideAnimatedWebP"};
@@ -102,6 +102,7 @@ static struct Desc callback_desc={0,sizeof(struct Block),NULL,NULL};
 static struct Block callback_block={_NSConcreteStackBlock,0,0,(void (*)(void *,...))callback,&callback_desc};
 static void deliver(id e,id v,id r){struct Block *b=pending_reply;pending_reply=NULL;b->invoke(b,e,v,r);_Block_release(b);}
 static void original_buffer(id o,SEL cmd){(void)o;(void)cmd;native_buffers++;}
+static id original_legacy(id o,SEL cmd,id data){(void)cmd;(void)data;legacy_calls++;return o;}
 Class objc_allocateClassPair(Class c,const char *n,size_t z){(void)c;(void)n;(void)z;return nil;}
 BOOL class_addIvar(Class c,const char *n,size_t z,uint8_t a,const char *t){(void)c;(void)n;(void)z;(void)a;(void)t;return NO;}
 BOOL class_addMethod(Class c,SEL s,IMP i,const char *t){(void)c;(void)s;(void)i;(void)t;return NO;}
@@ -111,8 +112,9 @@ Ivar class_getInstanceVariable(Class c,const char *s){(void)c;(void)s;return NUL
 ptrdiff_t ivar_getOffset(Ivar v){(void)v;return 0;}
 IMP class_getMethodImplementation(Class c,SEL s){(void)c;(void)s;return NULL;}
 struct MockMethod {const char *encoding;IMP original;};
-static struct MockMethod load_method={"@?40@0:8@16@?24@?32",(IMP)original_load},buffer_method={"v16@0:8",(IMP)original_buffer},getter_method={"@16@0:8",NULL},setter_method={"v24@0:8Q16",NULL};
+static struct MockMethod load_method={"@?40@0:8@16@?24@?32",(IMP)original_load},buffer_method={"v16@0:8",(IMP)original_buffer},getter_method={"@16@0:8",NULL},setter_method={"v24@0:8Q16",NULL},legacy_method={"@24@0:8@16",(IMP)original_legacy};
 Method class_getInstanceMethod(Class c,SEL s){
+ if(c==objc_getClass("FLAnimatedImage") && !strcmp(s,"initWithAnimatedGIFData:"))return &legacy_method;
  if(c==objc_getClass("RCTImageLoader") && !strcmp(s,"_loadURLRequest:progressBlock:completionBlock:"))return &load_method;
  if(c==objc_getClass("RCTUIImageViewAnimated")){
   if(!strcmp(s,"calculateMaxBufferCount"))return &buffer_method;
@@ -136,6 +138,19 @@ int main(void){
     assert(frame_count(image,0)==3 && duration(image,0,1)==12.5 && duration(image,0,2)==0.6 && !duration(image,0,3));
     assert(state(image)->data==encoded && zero(image,0)==0 && bytes_per_frame(image,0)==48);
     is_main=YES;id same=tas_animated_image_create(encoded);assert(same==image && source_creates==1);objc_release(same);
+    /* Legacy GIF-named factory substitutes only a provider-admitted template.
+     * The Swift Data bridge can hand back a new, equal NSData object. */
+    legacy_original=(IMP)original_legacy;id allocation=fresh("FLAnimatedImage");
+    assert(legacy_image_init(allocation,0,encoded)==allocation && legacy_calls==1 && allocation->refs==1);
+    tas_animated_image_prepare(encoded);assert(state(image)->legacy_admitted);
+    id bridged=fresh("NSData");bridged->bytes=fixture;bridged->length=sizeof(fixture);
+    assert(legacy_image_init(allocation,0,bridged)==image && !allocation->refs && legacy_calls==1);objc_release(image);
+    allocation=fresh("FLAnimatedImage");enabled=NO;
+    assert(legacy_image_init(allocation,0,bridged)==allocation && legacy_calls==2);enabled=YES;
+    id gif=fresh("NSData");gif->bytes=(unsigned char *)"GIF89a";gif->length=6;
+    assert(legacy_image_init(allocation,0,gif)==allocation && legacy_calls==3);
+    unsigned cached=templates->count;templates->count=0;
+    assert(legacy_image_init(allocation,0,bridged)==allocation && legacy_calls==4);templates->count=cached;
     assert(frame_at(image,0,0)==state(image)->poster && !queued);
     assert(!frame_at(image,0,1) && queued && jobs==1);assert(!frame_at(image,0,1) && jobs==1);
     invoke_job();assert(jobs==0 && !state(image)->pending && decoded==2);
@@ -164,9 +179,9 @@ int main(void){
     assert(block_allocs==block_frees);
     buffer_original=(IMP)original_buffer;id view=fresh("RCTUIImageViewAnimated");view->value=image;provider_buffer_limit(view,0);assert(limited_buffers==1 && !native_buffers);
     view->value=state(image)->poster;provider_buffer_limit(view,0);assert(native_buffers==1);
-    load_original=NULL;buffer_original=NULL;tas_animated_image_retry_hooks();assert(!load_original && !buffer_original && !hook_installs);
-    abi_ready=YES;tas_animated_image_retry_hooks();assert(load_original==(IMP)original_load && buffer_original==(IMP)original_buffer && hook_installs==2);
-    tas_animated_image_retry_hooks();assert(hook_installs==2);
+    load_original=NULL;buffer_original=NULL;legacy_original=NULL;tas_animated_image_retry_hooks();assert(!load_original && !buffer_original && !legacy_original && !hook_installs);
+    abi_ready=YES;tas_animated_image_retry_hooks();assert(load_original==(IMP)original_load && buffer_original==(IMP)original_buffer && legacy_original==(IMP)original_legacy && hook_installs==3);
+    tas_animated_image_retry_hooks();assert(hook_installs==3);
     /* Source and all retained state are released without queued jobs. */
     animation_dealloc(image,0);image->context=NULL;
     assert(source_releases && !jobs);

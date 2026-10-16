@@ -22,4 +22,4 @@ original scope, outcomes, and artifact identities. Follow
 [Documentation maintenance](../development/DOCUMENTATION.md) when moving records
 and updating navigation.
 
-- [Provider WebP animation trial (build 14)](WEBP_ANIMATION_TRIAL.md) — WebP-first selection, shared indexed decoder and bounds; device acceptance passed across chat, composer, suggestions, library and info.
+- [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 addresses legacy chat animation, emote taps and picker focus after vertical-stream testing.

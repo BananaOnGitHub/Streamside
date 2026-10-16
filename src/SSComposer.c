@@ -900,9 +900,9 @@ static void choose(id delegate,id metadata,BOOL suggestion) {
             INC(lookup_misses); objc_release(current); objc_release(owner); return;
         }
     }
-    /* The native palette can leave the editor unfocused. Make it the active
-     * text input before asking Twitch to validate and apply the edit. */
-    m0(editor,"becomeFirstResponder");
+    /* Preserve Twitch's active palette/hidden responder. UITextInput edits
+     * work while this editor is unfocused; focusing it here opens the system
+     * keyboard without Twitch's palette transition and displaces legacy chat. */
     Range r=selection(editor); SSSpan spans[MAX_TOKENS]; size_t n;
     id plain=expanded_copy(editor,&r,spans,&n); objc_release(plain);
     if (suggestion) r=s->completion;

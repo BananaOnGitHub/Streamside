@@ -3,7 +3,9 @@
 Development branch: `dev/3.1.0`, based on `5ab9e56`. The paused
 `fix/rn-chat-gaps` investigation is unchanged. This trial changes image format
 selection and presentation, not HLS, chat delivery, redemption handling, or
-Hermes message/list instrumentation. Device acceptance is pending.
+Hermes message/list instrumentation. **Build 14 passed device acceptance for
+the WebP renderer.** Timing and normal rendering behavior are confirmed across
+chat, composer, suggestions, library and info.
 
 ## Evidence and format selection
 
@@ -126,11 +128,9 @@ passing decoder-pixel test. Native artifact validation additionally requires
 the four WebP implementation symbols to be defined, rather than unresolved
 weak host-fixture fallbacks.
 
-Device checks must include mhm/ono loop timing in incoming/sent RN chat,
-composer, suggestions, library and info; static/wide/transparent emotes;
-scroll/reuse, channel switches, foreground/background, deletion, native Twitch
-emotes and mixed provider formats. ImageIO alpha/blend/disposal and visible
-performance remain device acceptance items.
+Device acceptance is recorded below. Host tests establish the implementation's
+allocation and lifecycle bounds; the device report establishes normal rendering
+and interaction behavior on the tested installation.
 
 
 ## Candidate validation record
@@ -156,7 +156,18 @@ with matching frame counts/canvases and final 600/2,170 ms delays. No provider
 artwork or private donor binaries are checked into the repository. Test pixel
 fixtures are generated solid colors and transparent subrectangles.
 
-This unsigned candidate needs signing. Check incoming/sent chat, text-box,
-suggestions/library/info, long holds, native Twitch emotes, transparency,
-foreground/background, reuse and memory/performance on iOS before acceptance.
+The distributed IPA is unsigned and needs signing for installation. Build 14
+subsequently passed device acceptance as recorded below.
 The paused diagnostic branch has not received this renderer trial.
+
+## Device acceptance — passed, 2026-10-15
+
+The tester accepted build 14 as working generally. Confirmed behavior:
+
+- Correct animation pauses in incoming RN chat, own sent messages and the composer.
+- Suggestions, library and emote info render correctly.
+- Static, wide and transparent emotes render correctly.
+- Scrolling, view reuse and channel switches work correctly.
+- Returning from picture-in-picture to the main playback page works correctly.
+
+The WebP renderer trial passed; no rendering issue was reported in these checks.

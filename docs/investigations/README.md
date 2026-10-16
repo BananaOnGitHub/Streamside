@@ -22,4 +22,4 @@ original scope, outcomes, and artifact identities. Follow
 [Documentation maintenance](../development/DOCUMENTATION.md) when moving records
 and updating navigation.
 
-- [Provider WebP animation trial (build 14)](WEBP_ANIMATION_TRIAL.md) — WebP-first selection, shared indexed decoder, bounds and pending device acceptance.
+- [Provider WebP animation trial (build 14)](WEBP_ANIMATION_TRIAL.md) — WebP-first selection, shared indexed decoder and bounds; device acceptance passed across chat, composer, suggestions, library and info.

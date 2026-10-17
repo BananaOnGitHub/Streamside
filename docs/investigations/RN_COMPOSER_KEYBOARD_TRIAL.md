@@ -127,3 +127,11 @@ Artifact:
 The candidate requires the usual signing route before installation. This trial
 keeps the current diagnostic configuration and makes no live ad-suppression
 claim. The small-black-text report still needs a separate device capture.
+
+## Device follow-up
+
+Build 20 was accepted on device: the hold/details sequence works, and automatic
+suggestions continue working afterward. This supports the scoped editing-session
+correction; it does not identify the underlying Twitch keyboard-state defect.
+The intermittent small-black-text symptom was not reproduced again and remains
+unresolved. No additional instrumentation was added for that symptom.

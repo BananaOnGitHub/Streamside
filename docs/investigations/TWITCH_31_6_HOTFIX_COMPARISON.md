@@ -109,6 +109,12 @@ address check has the same target. No changed chat/player instruction was
 found in that main text comparison. Matching text does not assert identical
 mutable data, remote flags, cached state or runtime scheduling.
 
+Follow-up: the [splash activation investigation](TWITCH_31_6_2_SPLASH_ACTIVATION.md)
+traces a native Eppo-controlled startup animation and confirms different bundled
+production snapshots in 31.6 and 31.6.2, including 17 added/changed flag records.
+The splash and RN eligibility rules themselves match. Executable equivalence
+does not establish configuration equivalence or actual device assignments.
+
 ## Paused RN investigation is preserved
 
 The starting evidence was read from

@@ -20,7 +20,7 @@ struct Fake {
     id editor,next,identity,target,pending,value,window,parent,marked,image,items[8];
     unsigned char bytes[2048];uint16_t units[8];U length,count,index;
     double seconds,alpha;BOOL hidden,invalidated;int releases;
-    id prop_selection,native_identity;uint64_t plain[2];id plain_cache;uint64_t generation,queued_generation;BOOL accept_edit;Size image_size;void *context;Point point;Rect rect;Insets insets;Range range;
+    id prop_selection,native_identity;uint64_t plain[2];id plain_cache;uint64_t generation,queued_generation;BOOL accept_edit;Size image_size;void *context;Point point;Rect rect;Insets insets;Range range;BOOL first,refuse_resign;
 };
 static struct Fake classes[64];static unsigned classes_count;
 static id pool[512];static unsigned pool_count;
@@ -31,9 +31,9 @@ static ptrdiff_t url_gap=16,plain_gap=16;
 static struct Fake app={.cls="UIApplication"},mainqueue={.cls="NSOperationQueue"},runloop={.cls="NSRunLoop"},metadata={.cls="NSDictionary"};
 static id cache_data,clock_link,queued,shown;
 static BOOL modal=NO,present_ok=YES,frame_pending=NO;
-static unsigned presentations,haptics,scheduled,added,removed;
+static unsigned presentations,haptics,scheduled,added,removed,resignations;
 BOOL tas_emote_ui_modal_visible(id view){(void)view;return modal;}
-BOOL tas_emote_ui_present_details(id view,id data){assert(data==&metadata);presentations++;shown=view;return present_ok;}
+BOOL tas_emote_ui_present_details(id view,id data){assert(data==&metadata && !view->editor->first);presentations++;shown=view;return present_ok;}
 static Size __attribute__((unused)) test_size(id o){return o->image_size;}
 static Point test_point(id o,id editor){assert(editor);return o->point;}
 static Rect test_rect(id o,Range range,id container){assert(range.length==1 && container);return o->rect;}
@@ -118,6 +118,8 @@ static id dispatch(id o,SEL sel,...) {
     else if(!strcmp(sel,"window"))result=o->window;
     else if(!strcmp(sel,"superview"))result=o->parent;
     else if(!strcmp(sel,"isHidden"))result=(id)(uintptr_t)o->hidden;
+    else if(!strcmp(sel,"isFirstResponder"))result=(id)(uintptr_t)o->first;
+    else if(!strcmp(sel,"resignFirstResponder")){resignations++;if(!o->refuse_resign){o->first=NO;result=(id)(uintptr_t)YES;}}
     else if(!strcmp(sel,"markedTextRange"))result=o->marked;
     else if(!strcmp(sel,"attributedText") || !strcmp(sel,"layoutManager"))result=o->value;
     else if(!strcmp(sel,"string"))result=o;
@@ -337,10 +339,12 @@ static void detail_hits(void) {
 }
 static void detail_safety(void) {
     setup_details();
+    detail_editor->first=YES;
     detail_gesture->index=2;hold(detail_target,"hold",detail_gesture);assert(!scheduled);
     detail_gesture->index=1;hold(detail_target,"hold",detail_gesture);hold(detail_target,"hold",detail_gesture);
     assert(scheduled==1 && queued==detail_target && !presentations);
     details(queued,"details",nil);assert(presentations==1 && shown==detail_owner && haptics==1 && GET(details_holds)==1 && !state(queued)->details_attachment);
+    assert(resignations==1 && GET(details_blurs)==1 && !detail_editor->first);
     details(queued,"details",nil);assert(presentations==1 && haptics==1);
     hold(detail_target,"hold",detail_gesture);id original=detail_source->items[0];detail_source->items[0]=provider();
     details(queued,"details",nil);assert(presentations==1); /* same ID, replaced native attachment */
@@ -354,6 +358,23 @@ static void detail_safety(void) {
     assert(!state(detail_target)->hold && !state(detail_target)->details_attachment && removed==1 && !detail_gesture->target);
     details(queued,"details",nil);assert(presentations==2);clock_dealloc(detail_target,"dealloc");
     assert(detail_source->length==3 && detail_source->units[1]=='x');
+}
+static void detail_keyboard(void) {
+    setup_details();id text=detail_editor->value;id attachment=detail_source->items[0];
+    detail_editor->first=YES;detail_editor->refuse_resign=YES;
+    hold(detail_target,"hold",detail_gesture);details(queued,"details",nil);
+    assert(resignations==1 && GET(details_blur_refused)==1 && !presentations && !haptics && detail_editor->first);
+    assert(detail_editor->value==text && detail_source->items[0]==attachment && !state(detail_target)->details_attachment);
+    detail_editor->refuse_resign=NO;
+    hold(detail_target,"hold",detail_gesture);details(queued,"details",nil);
+    assert(resignations==2 && presentations==1 && haptics==1 && !detail_editor->first);
+    assert(detail_editor->value==text && detail_source->items[0]==attachment);
+    /* A closed/hardware-keyboard-free editor opens details without a redundant
+     * resignation. Invalid metadata/competing sheets never blur the input. */
+    hold(detail_target,"hold",detail_gesture);details(queued,"details",nil);assert(resignations==2 && presentations==2);
+    detail_editor->first=YES;known=NO;
+    hold(detail_target,"hold",detail_gesture);details(queued,"details",nil);assert(resignations==2 && detail_editor->first);
+    known=YES;hold(detail_target,"hold",detail_gesture);modal=YES;details(queued,"details",nil);assert(resignations==2 && detail_editor->first);
 }
 static id original_menu(id owner,SEL command,id editor,id item,id menu){(void)owner;(void)command;(void)editor;(void)item;originals++;return menu;}
 static BOOL original_interaction(id owner,SEL command,id editor,id attachment,Range range,long interaction){(void)owner;(void)command;(void)editor;(void)attachment;assert(range.length==1 && interaction==2);originals++;return NO;}
@@ -496,6 +517,7 @@ static void native_image_abi(void) {
     tas_rn_composer_ui_retry_hooks();assert(installed==count+1);
 }
 int main(int argc,char **argv) {
+    if(argc==2 && !strcmp(argv[1],"detailkeyboard")){detail_keyboard();return 0;}
     assert(argc==2);
     if(!strcmp(argv[1],"webpmiss")){
         webp_mode=YES;frame_pending=YES;playback();
@@ -541,6 +563,7 @@ class RNComposerUITests(unittest.TestCase):
     def test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft(self):self.run_mode('composition')
 
     def test_hold_admission_hit_bounds_native_text_ime_modal_and_priority(self):self.run_mode('hits')
+    def test_info_sheet_ends_editing_before_presentation_and_preserves_vetoed_or_stale_inputs(self):self.run_mode('detailkeyboard')
     def test_deferred_details_live_identity_metadata_teardown_and_one_haptic(self):self.run_mode('safety')
     def test_provider_menu_suppression_and_original_native_fallback(self):self.run_mode('menus')
 

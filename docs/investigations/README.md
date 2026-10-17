@@ -12,6 +12,7 @@ not here.
 - [App-icon trial](APP_ICON_TRIAL.md): flat Streamside icon packaging and automatic Liquid Glass appearance observations, build 1.
 - [RN composer emote holds](RN_COMPOSER_HOLDS.md): provider attachment holds, native menu fallback, host checks, and device observations, build 2.
 - [RN composer diagnostics](RN_COMPOSER_DIAGNOSTICS.md): build-19 capture for input disappearance after details/suggestions and intermittent small black text; setup, numeric trace legend, bounded collection and validation.
+- [RN composer keyboard trial](RN_COMPOSER_KEYBOARD_TRIAL.md): build-19 device evidence confirms keyboard occlusion; build 20 ends editing before presenting owned input-emote information, with diagnostics retained.
 - [RN composer cursor requests](RN_COMPOSER_CURSOR.md): build-3 queued-selection guard and build-6 follow-up for late native requests on 31.6.
 - [Native emoticon proportions](NATIVE_EMOTICON_PROPORTIONS.md): image-aspect sizing and cold-load layout refresh for classic Twitch emoticons, build 4.
 - [Twitch 31.6 compatibility](TWITCH_31_6_COMPATIBILITY.md): build-4 donor inspection, build-5 Hermes port, native ABI comparison, packaging, and pending 31.6 device acceptance.

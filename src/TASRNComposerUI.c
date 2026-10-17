@@ -44,6 +44,7 @@ static char identity_key,native_image_key,state_key,pending_map_key;
 static pthread_mutex_t install_lock=PTHREAD_MUTEX_INITIALIZER;
 static uint64_t bounds_calls,sized,syncs,decoders,advances,ticks,refused,images,provisional;
 static uint64_t details_holds;
+static uint64_t details_blurs,details_blur_refused;
 static uint64_t selection_invalidations;
 static uint64_t stale_selections;
 static uint64_t native_sized;
@@ -253,6 +254,22 @@ static BOOL hold_priority(id self,SEL command,id gesture,id other) {
     for(U depth=0;editor && view && depth<12;depth++,view=m0(view,"superview"))if(view==editor)return YES;
     return NO;
 }
+/* The owned RN sheet used to leave the editor as first responder while UIKit
+ * presented/dismissed it. The build-19 device capture shows the live input
+ * subsequently below the keyboard. End this editing session through UIKit so
+ * Twitch receives its normal blur/hide lifecycle; a later tap starts a new
+ * focus/show cycle. Do not manufacture keyboard events or restore focus. */
+static BOOL present_input_details(id owner,id editor,id metadata) {
+    if(!metadata)return NO;
+    if(yes(editor,"isFirstResponder")) {
+        if(!yes(editor,"resignFirstResponder") || yes(editor,"isFirstResponder")) {
+            INC(details_blur_refused);return NO;
+        }
+        INC(details_blurs);
+    }
+    TAS_CT_CAPTURE(owner,editor,TAS_CT_SHEET_READY);
+    return tas_emote_ui_present_details(owner,metadata);
+}
 static void details(id self,SEL command,id object) {
     (void)command;(void)object;State *s=state(self);if(!s)return;
     id attachment=s->details_attachment;s->details_attachment=nil;
@@ -264,7 +281,7 @@ static void details(id self,SEL command,id object) {
         if(!owned_attachment_at(owner,editor,attachment,(Range){i,1}))continue;
         id metadata=tas_emotes_metadata_copy(attachment_number(attachment));
         TAS_CT_CAPTURE(owner,editor,TAS_CT_SHEET_OPEN);
-        if(metadata && tas_emote_ui_present_details(owner,metadata)) {
+        if(present_input_details(owner,editor,metadata)) {
             INC(details_holds);
             id feedback=((id (*)(id,SEL,long))objc_msgSend)(m0((id)objc_getClass("UIImpactFeedbackGenerator"),"alloc"),sel_registerName("initWithStyle:"),0);
             m0(feedback,"impactOccurred");objc_release(feedback);
@@ -554,6 +571,7 @@ void tas_rn_composer_ui_status(char *buffer,size_t capacity) {
         "Hooks (bounds/layout/change/selection/window/value/map/dealloc)/String bridge: %s/%s/%s/%s/%s/%s/%s/%s/%s\n"
         "Provisional callbacks/props held: %llu\n"
         "Provider hold hooks (item menu/attachment)/details shown: %s/%s/%llu\n"
+        "RN details keyboard resignations/refused: %llu/%llu\n"
         "Cursor edit/selection hooks/props invalidated/stale props refused: %s/%s/%llu/%llu\n"
         "Native numeric-emote image hook/aspect corrections/layout refreshes: %s/%llu/%llu\n"
         "Bounds/sizes/syncs/GIF bodies/decoders/ticks/advances/refused: %llu/%llu/%llu/%llu/%llu/%llu/%llu/%llu\n",
@@ -561,6 +579,7 @@ void tas_rn_composer_ui_status(char *buffer,size_t capacity) {
         selection_original ? "installed":"missing",move_original ? "installed":"missing",value_original ? "installed":"missing",
         map_original ? "installed":"missing",dealloc_original ? "installed":"missing",bridge_string ? "available":"missing",(unsigned long long)GET(provisional),
         item_menu_installed ? "installed":"missing",interaction_installed ? "installed":"missing",(unsigned long long)GET(details_holds),
+        (unsigned long long)GET(details_blurs),(unsigned long long)GET(details_blur_refused),
         edit_original ? "installed":"missing",selection_setter ? "installed":"missing",(unsigned long long)GET(selection_invalidations),(unsigned long long)GET(stale_selections),
         image_original ? "installed":"missing",(unsigned long long)GET(native_sized),(unsigned long long)GET(native_layouts),
         (unsigned long long)GET(bounds_calls),(unsigned long long)GET(sized),(unsigned long long)GET(syncs),(unsigned long long)GET(images),

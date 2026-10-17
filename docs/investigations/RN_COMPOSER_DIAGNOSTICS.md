@@ -15,6 +15,11 @@ These are separate observations. A shared cause, an upstream hotfix regression,
 and any relationship to transcript row gaps have not been established.
 The existing `fix/rn-chat-gaps` branch remains paused and untouched.
 
+Follow-up: the [device capture and build-20 trial](RN_COMPOSER_KEYBOARD_TRIAL.md)
+confirm the input is covered by the keyboard in the reproduced case. The
+build-19 implementation, validation and artifact identity below remain attached
+to the original diagnostic candidate.
+
 ## Capture instructions
 
 1. Install/sign this diagnostic candidate as usual.

@@ -695,7 +695,15 @@ static void receive_messages(id self, SEL sel, id manager, id messages, uint32_t
     if (rewritten) objc_release(rewritten);
 }
 
+#include "TASComposerTrace.h"
 static IMP g_details_load;
+#if TAS_RN_COMPOSER_DIAGNOSTIC
+static IMP g_details_disappear;
+static void details_disappear(id self,SEL sel,BOOL animated){
+    ((void (*)(id,SEL,BOOL))g_details_disappear)(self,sel,animated);
+    tas_composer_trace_sheet_closed();
+}
+#endif
 static void bool_value(id o, const char *s, BOOL value) {
     ((void (*)(id,SEL,BOOL))objc_msgSend)(o,sel_registerName(s),value);
 }
@@ -821,6 +829,13 @@ static BOOL register_details(void) {
     g_details_class = objc_allocateClassPair(base,"TASProviderEmoteController",0);
     if (!g_details_class) return NO;
     g_details_load = class_getMethodImplementation(base,sel_registerName("viewDidLoad"));
+#if TAS_RN_COMPOSER_DIAGNOSTIC
+    Method disappear=class_getInstanceMethod(base,sel_registerName("viewDidDisappear:"));
+    if(disappear&&!strcmp(method_getTypeEncoding(disappear),"v20@0:8B16")){
+        g_details_disappear=method_getImplementation(disappear);
+        class_addMethod(g_details_class,sel_registerName("viewDidDisappear:"),(IMP)details_disappear,"v20@0:8B16");
+    }
+#endif
     class_addMethod(g_details_class,sel_registerName("viewDidLoad"),(IMP)details_load,"v@:");
     class_addMethod(g_details_class,sel_registerName("tas_close:"),(IMP)details_close,"v@:@");
     class_addMethod(g_details_class,sel_registerName("tableView:numberOfRowsInSection:"),(IMP)details_rows,"q@:@q");

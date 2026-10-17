@@ -157,6 +157,20 @@ config={...config,mode:0,enabled:0};slots.delete(suggestions.ChatAutocompleteTra
 assert.strictEqual(autocomplete.useAutocomplete(':Su',setter,providers,complete),nativeResult);assert.strictEqual(hookCalls.at(-1)[2],providers);
 assert.strictEqual(trays.EmotePickerTray,'native-tray');assert.strictEqual(render(suggestions.ChatAutocompleteTray,matchProps).props,matchProps);
 composer();assert.strictEqual(buttons.IconButton,'native-button');
+// Diagnostic packets are numeric; input callbacks and styling survive.
+const packets=[];bridge.onLayout=(...args)=>packets.push(args);
+config={...config,enabled:1,mode:0};p={...p,channelID:'42',draft:'WideEmote ',emoteMap:{},remaining:500};
+composer();input().props.onFocus();composer();
+input().props.onChangeText('WideEmote W');p={...p,draft:'WideEmote W'};assert.strictEqual(composer(),null);
+input().props.onChangeText('WideEmote Wi');p={...p,draft:'WideEmote Wi'};strip=composer();assert(strip);
+const layoutEvent={nativeEvent:{layout:{x:0,y:10,width:390,height:60}}};strip.props.onLayout(layoutEvent);
+let root=render(Composer,p);context=root.props.value;root.children[0].props.onLayout(layoutEvent);
+let forwarded=0;const style=Object.freeze({fontSize:18,color:'#fafafa'});
+const nativeInput=render(Input,{value:p.draft,style,onLayout:event=>{assert.strictEqual(event,layoutEvent);forwarded++;}});
+nativeInput.props.onLayout(layoutEvent);assert.strictEqual(forwarded,1);assert.strictEqual(nativeInput.props.style,style);
+assert(packets.some(p=>p[0]===20&&p[3]===1));assert(packets.some(p=>p[0]===21));assert(packets.some(p=>p[0]===22));assert(packets.some(p=>p[0]===23));
+for(const packet of packets){assert.strictEqual(packet.length,6);assert(packet.every(Number.isFinite),'no text or object crosses the diagnostic bridge');}
+input().props.onBlur();assert.strictEqual(composer(),null);
 '''
         ran=subprocess.run(['node','-e',script,str(ROOT/'src/rn/ProviderEmoteStrip.js')],capture_output=True,text=True)
         self.assertEqual(ran.returncode,0,ran.stderr)

@@ -2,7 +2,8 @@
 
 Prepared on `dev/3.1.0` from `0bf7a61`, following the
 [read-only hotfix comparison](TWITCH_31_6_HOTFIX_COMPARISON.md).
-This is a test candidate, not on-device acceptance or a published release.
+At preparation this was a test candidate without on-device acceptance. The
+subsequent device observation appears below; this is not a published release.
 Report identity is `3.1.0-build.18`; framework bundle build is `3.1.0.18`.
 
 ## Scope and input
@@ -64,3 +65,15 @@ legacy chat, own messages, emote surfaces, library/input transitions, stream
 reopen/PiP, token renewal, HLS playback and an ad-bearing case still require
 device validation for this package. Successful host checks and packaging do
 not establish those outcomes or extend the released compatibility matrix.
+
+## Device follow-up
+
+Build 18 launches, with features reported working as before. This confirms the
+observed migration; individual ad-bearing playback and lifecycle cases were
+not separately recorded. Device/iOS and signing details were not supplied.
+
+Two RN composer symptoms were subsequently reported: input disappearance when
+suggestions open after dismissing input-emote information, and intermittent
+small black text after an emote. They do not establish a hotfix regression or
+relate these symptoms to the paused transcript-row investigation. The separate
+[build-19 diagnostic branch](RN_COMPOSER_DIAGNOSTICS.md) records the next capture.

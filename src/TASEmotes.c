@@ -1620,6 +1620,7 @@ static const TASRNMethodInfo *rn_local_export(id self, SEL command) {
 }
 static id rn_local_module_name(id self, SEL command) { (void)self; (void)command; return str("buildLocalEcho"); }
 static BOOL rn_local_main_queue(id self, SEL command) { (void)self; (void)command; return NO; }
+#include "TASComposerRNBridge.h"
 
 /* Standard RCTBridgeModule registration/export ABI, a separate NSObject module.
  * Install before JS/source evaluation; no existing native module is modified.
@@ -1651,6 +1652,11 @@ static void install_rn_local(void) {
                     (!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED) ||
                      (class_addMethod(cls,sel_registerName("observe:scope:asset:a:b:"),(IMP)rn_demand_observe,"@56@0:8@16@24@32@40@48") &&
                       class_addMethod(meta,sel_registerName("__rct_export__streamsideDemand"),(IMP)rn_demand_export,"^v16@0:8"))) &&
+#endif
+#if TAS_RN_COMPOSER_DIAGNOSTIC
+                    (!tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED) ||
+                     (class_addMethod(cls,sel_registerName("composerTrace:session:x:y:width:height:"),(IMP)rn_composer_trace,"@64@0:8@16@24@32@40@48@56") &&
+                      class_addMethod(meta,sel_registerName("__rct_export__streamsideComposerTrace"),(IMP)rn_composer_trace_export,"^v16@0:8"))) &&
 #endif
                     class_addMethod(meta,sel_registerName("moduleName"),(IMP)rn_local_module_name,"@16@0:8") &&
                     class_addMethod(meta,sel_registerName("requiresMainQueueSetup"),(IMP)rn_local_main_queue,"B16@0:8") &&

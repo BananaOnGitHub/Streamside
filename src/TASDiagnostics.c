@@ -5,6 +5,7 @@
 #include "TASEmotes.h"
 #include "TASImageTransport.h"
 #include "TASRNComposerUI.h"
+#include "TASComposerTrace.h"
 #include "TASEmoteUI.h"
 #include "SSComposer.h"
 #include "TASEmoteProbe.h"
@@ -45,7 +46,7 @@ typedef struct {
 
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
-#define TAS_REPORT_VERSION "3.1.0-build.18"
+#define TAS_REPORT_VERSION "3.1.0-build.19"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -197,9 +198,9 @@ static id diagnostic_report_create(void) {
     tas_diag_configuration_report(saved_diagnostic_config(),config,sizeof(config));
     snprintf(header,sizeof(header),"Streamside iOS diagnostic report\nPort build: %s\nTwitch: %s (%s)\n%s"
         "Privacy: no chat text, channel/room identities, full URLs/paths, headers, tokens or manifests. Labels reset each launch.\n"
-        "Experimental modules compiled: emote=%d image-demand=%d chat-trace=%d\n"
+        "Experimental modules compiled: emote=%d image-demand=%d chat-trace=%d rn-composer=%d\n"
         "All diagnostic changes apply after fully closing and relaunching Twitch. Functional interception stays enabled.\n",
-        TAS_REPORT_VERSION,version?version:"unknown",build?build:"unknown",config,TAS_EMOTE_DIAGNOSTIC,TAS_IMAGE_DEMAND_DIAGNOSTIC,TAS_CHAT_TRACE_DIAGNOSTIC);
+        TAS_REPORT_VERSION,version?version:"unknown",build?build:"unknown",config,TAS_EMOTE_DIAGNOSTIC,TAS_IMAGE_DEMAND_DIAGNOSTIC,TAS_CHAT_TRACE_DIAGNOSTIC,TAS_RN_COMPOSER_DIAGNOSTIC);
     id report=msg1((id)objc_getClass("NSMutableString"),"stringWithString:",nsstr(header));
     for(unsigned category=0;category<TAS_DIAG_CATEGORIES;category++) {
         if(!tas_diag_wants(category,TAS_DIAG_SUMMARY))continue;
@@ -234,6 +235,9 @@ static id diagnostic_report_create(void) {
         if(category==TAS_DIAG_COMPOSER) {
             ss_composer_status(text,sizeof(text));report_append(report,text);
             tas_rn_composer_ui_status(text,sizeof(text));report_append(report,text);
+#if TAS_RN_COMPOSER_DIAGNOSTIC
+            char composer_trace[32768];tas_composer_trace_report(composer_trace,sizeof(composer_trace));report_append(report,composer_trace);
+#endif
             snprintf(text,sizeof(text),"Settings integration: reload actions/row taps=%llu/%llu; native sheet hook=%s\n",(unsigned long long)MENU_GET(g_reload_actions_added),(unsigned long long)MENU_GET(g_native_reload_button_taps),g_native_action_sheet_hooked?"installed":"missing");report_append(report,text);
 #if TAS_IMAGE_DEMAND_DIAGNOSTIC
             if(tas_diag_wants(category,TAS_DIAG_DETAILED)){
@@ -253,8 +257,9 @@ static id diagnostic_report_create(void) {
     return objc_retain(report);
 }
 static void clear_diagnostic_log(void) {
+    tas_composer_trace_clear();
     tas_diag_events_clear();
-    tas_diag_log("LOG_CLEARED","Session event rings cleared; operational counters and experimental traces unchanged");
+    tas_diag_log("LOG_CLEARED","Session event rings and RN composer history cleared; operational counters and other experimental traces unchanged");
 }
 
 static id make_bar_button(const char *title, id target, const char *action) {

@@ -176,6 +176,7 @@ static void tas_image_transport_status(char *b,size_t n){called[3]++;snprintf(b,
 static void tas_emote_ui_status(char *b,size_t n){snprintf(b,n,"render-summary\n");}
 static void ss_composer_status(char *b,size_t n){snprintf(b,n,"composer-summary\n");}
 static void tas_rn_composer_ui_status(char *b,size_t n){snprintf(b,n,"rn-composer-summary\n");}
+static void tas_composer_trace_report(char *b,size_t n){snprintf(b,n,tas_diag_wants(TAS_DIAG_COMPOSER,TAS_DIAG_DETAILED)?"rn-composer-trace-detail\n":"composer collection disabled\n");}
 static void ss_legacy_palette_status(char *b,size_t n){snprintf(b,n,"palette-detail\n");}
 static void tas_demand_status(char *b,size_t n){snprintf(b,n,"demand-detail\n");}
 static void tas_emote_probe_status(char *b,size_t n){snprintf(b,n,"emote-detail\n");}
@@ -194,12 +195,14 @@ int main(void){
  r=diagnostic_report_create();assert(strstr(r,"--- Chat / Redemptions ---"));
  assert(!strstr(r,"--- Playback") && !strstr(r,"--- Image Transport"));
  assert(called[3]==0 && called[2]==0 && called[4]==0);
+ assert(!strstr(r,"rn-composer-trace-detail"));
  assert(!strstr(r,"privateStreamer") && !strstr(r,"secret"));
  save_diagnostic_config(259);tas_diagnostics_load_preferences();r=diagnostic_report_create();
  assert(strstr(r,"HLS intercepted:") && !strstr(r,"HLS_REQUEST"));
  for(unsigned c=0;c<6;c++){
   save_diagnostic_config(256|(1U<<c));tas_diagnostics_load_preferences();memset(called,0,sizeof(called));
   r=diagnostic_report_create();for(unsigned j=0;j<6;j++)if(j!=c)assert(called[j]==0);
+  assert(!!strstr(r,"rn-composer-trace-detail")==!!(TAS_RN_COMPOSER_DIAGNOSTIC&&c==TAS_DIAG_COMPOSER));
  }
  return 0;
 }
@@ -208,7 +211,7 @@ int main(void){
             path=Path(f)/'export.c';path.write_text(prelude+selected+main)
             for compiled in [0,1]:
                 binary=Path(f)/('export'+str(compiled))
-                subprocess.run(['cc','-I',str(ROOT/'src'),'-DTAS_EMOTE_DIAGNOSTIC='+str(compiled),'-DTAS_IMAGE_DEMAND_DIAGNOSTIC='+str(compiled),'-DTAS_CHAT_TRACE_DIAGNOSTIC=0',str(path),str(ROOT/'src/TASDiagnosticPolicy.c'),str(ROOT/'src/TASPrivacy.c'),'-pthread','-o',str(binary)],check=True)
+                subprocess.run(['cc','-I',str(ROOT/'src'),'-DTAS_EMOTE_DIAGNOSTIC='+str(compiled),'-DTAS_IMAGE_DEMAND_DIAGNOSTIC='+str(compiled),'-DTAS_RN_COMPOSER_DIAGNOSTIC='+str(compiled),'-DTAS_CHAT_TRACE_DIAGNOSTIC=0',str(path),str(ROOT/'src/TASDiagnosticPolicy.c'),str(ROOT/'src/TASPrivacy.c'),'-pthread','-o',str(binary)],check=True)
                 subprocess.run([str(binary)],check=True)
     def test_playback_protocol_still_intercepts_and_completes_with_logging_disabled(self):
         import test_protocol

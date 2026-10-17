@@ -1,6 +1,7 @@
 /* Inspected Twitch 31.5/31.6 RN input presentation, composition and cursor admission. UIKit owns
  * marked text; Twitch keeps text storage, selection, tokenization and sending. */
 #include "TASRNComposerUI.h"
+#include "TASComposerTrace.h"
 #include "TASRNComposerModel.h"
 #include "TASWebPModel.h"
 #include "TASAnimatedImage.h"
@@ -262,6 +263,7 @@ static void details(id self,SEL command,id object) {
     if(attachment && length<=4096 && !tas_emote_ui_modal_visible(owner))for(U i=0;i<length;i++) {
         if(!owned_attachment_at(owner,editor,attachment,(Range){i,1}))continue;
         id metadata=tas_emotes_metadata_copy(attachment_number(attachment));
+        TAS_CT_CAPTURE(owner,editor,TAS_CT_SHEET_OPEN);
         if(metadata && tas_emote_ui_present_details(owner,metadata)) {
             INC(details_holds);
             id feedback=((id (*)(id,SEL,long))objc_msgSend)(m0((id)objc_getClass("UIImpactFeedbackGenerator"),"alloc"),sel_registerName("initWithStyle:"),0);
@@ -425,7 +427,7 @@ static void sync_owners(void) {
         sync(owner);
     }
 }
-static void layout(id self,SEL command){((void (*)(id,SEL))layout_original)(self,command);sync(self);}
+static void layout(id self,SEL command){((void (*)(id,SEL))layout_original)(self,command);sync(self);TAS_CT_CAPTURE(self,editor_for(self),TAS_CT_LAYOUT);}
 static BOOL composing(id owner) {
     id editor=editor_for(owner);
     return tas_emotes_enabled_this_launch() && editor && m0(editor,"markedTextRange");
@@ -444,10 +446,10 @@ static void flush_map(id owner) {
  * Discard provisional values rather than replaying a cancelled prediction.
  * Keep only the latest recognition map; apply it after the native delegate
  * has reconstructed committed text, including when composition is cancelled. */
-static void changed(id self,SEL command,id editor){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))change_original)(self,command,editor);flush_map(self);sync(self);}
-static void selection(id self,SEL command,id editor){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))selection_original)(self,command,editor);flush_map(self);sync(self);}
-static void moved(id self,SEL command){((void (*)(id,SEL))move_original)(self,command);sync(self);}
-static void value(id self,SEL command,id text){if(composing(self)){INC(provisional);return;}((void (*)(id,SEL,id))value_original)(self,command,text);flush_map(self);sync(self);}
+static void changed(id self,SEL command,id editor){if(composing(self)){INC(provisional);return;}TAS_CT_CAPTURE(self,editor,TAS_CT_CHANGE_PRE);((void (*)(id,SEL,id))change_original)(self,command,editor);flush_map(self);sync(self);TAS_CT_CAPTURE(self,editor,TAS_CT_CHANGE_POST);}
+static void selection(id self,SEL command,id editor){if(composing(self)){INC(provisional);return;}TAS_CT_CAPTURE(self,editor,TAS_CT_SELECT_PRE);((void (*)(id,SEL,id))selection_original)(self,command,editor);flush_map(self);sync(self);TAS_CT_CAPTURE(self,editor,TAS_CT_SELECT_POST);}
+static void moved(id self,SEL command){((void (*)(id,SEL))move_original)(self,command);sync(self);TAS_CT_CAPTURE(self,editor_for(self),TAS_CT_WINDOW);}
+static void value(id self,SEL command,id text){if(composing(self)){INC(provisional);return;}TAS_CT_CAPTURE(self,editor_for(self),TAS_CT_VALUE_PRE);((void (*)(id,SEL,id))value_original)(self,command,text);flush_map(self);sync(self);TAS_CT_CAPTURE(self,editor_for(self),TAS_CT_VALUE_POST);}
 static void emote_map(id self,SEL command,id map){if(composing(self)){associate(self,&pending_map_key,map ? map : m0((id)objc_getClass("NSNull"),"null"));INC(provisional);return;}associate(self,&pending_map_key,nil);((void (*)(id,SEL,id))map_original)(self,command,map);sync(self);}
 static id current_plain_copy(id owner) {
     if(!main_thread() || !kind(owner,INPUT) || !bridge_string)return nil;
@@ -476,6 +478,7 @@ static void selection_prop(id self,SEL command,id request) {
     ((void (*)(id,SEL,id))selection_setter)(self,command,request);
 }
 static BOOL should_change(id self,SEL command,id editor,Range range,id text) {
+    TAS_CT_CAPTURE(self,editor,TAS_CT_EDIT_PRE);
     BOOL accepted=((BOOL (*)(id,SEL,id,Range,id))edit_original)(self,command,editor,range,text);
     /* The donor applies selection props asynchronously, checking only its
      * selectionGeneration. An accepted edit supersedes those old offsets.
@@ -487,6 +490,7 @@ static BOOL should_change(id self,SEL command,id editor,Range range,id text) {
         ((void (*)(id,SEL,id))selection_setter)(self,sel_registerName("setSelection:"),nil);
         INC(selection_invalidations);
     }
+    TAS_CT_CAPTURE(self,editor,TAS_CT_EDIT_POST);
     return accepted;
 }
 static void owner_dealloc(id self,SEL command){id target=objc_getAssociatedObject(self,&state_key);if(target){State *s=state(target);if(s){stop(s);clear_frames(s);clear_hold(s);}}((void (*)(id,SEL))dealloc_original)(self,command);}

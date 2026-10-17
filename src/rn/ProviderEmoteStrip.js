@@ -16,6 +16,14 @@ function install(original) {
       !autocomplete.EMOTE_URL_TEMPLATE || !autocomplete.EMOTE_URL_TEMPLATE_STATIC ||
       !bridge || !bridge.getState || !bridge.search) return original;
   var Context = React.createContext(null);
+  var composerSequence = 0;
+  function composerTrace(event, session, x, y, width, height) {
+    if (bridge.onLayout) try { bridge.onLayout(event, session, x, y, width, height); } catch (error) {}
+  }
+  function traceLayout(event, session, value) {
+    var layout = value && value.nativeEvent && value.nativeEvent.layout;
+    if (layout) composerTrace(event, session, layout.x, layout.y, layout.width, layout.height);
+  }
   // Metro module 4937 registers donor factory function 4941; these IDs differ.
   var settings = __r(4937) || {}, NativeSettings = settings.ChatSettingsSheet;
   var SettingsContext = React.createContext(null);
@@ -202,10 +210,15 @@ function install(original) {
     };
     copy.onFocus = function (event) { context.onFocus(); if (p.onFocus) p.onFocus(event); };
     copy.onBlur = function (event) { context.onBlur(); if (p.onBlur) p.onBlur(event); };
+    if (bridge.onLayout) copy.onLayout = function (event) {
+      traceLayout(23, context.index, event); if (p.onLayout) p.onLayout(event);
+    };
     if (context.selection && context.selection.text === p.value) copy.selection = context.selection;
     return React.createElement(NativeInput, copy);
   }
   function Composer(p) {
+    var trace = React.useRef(null);
+    if (bridge.onLayout && !trace.current) { trace.current = {}; trace.current.index = ++composerSequence; }
     var theme = ui.useTheme();
     var configState = React.useState(state), config = configState[0], setConfig = configState[1];
     var focusState = React.useState(!!p.inputFocused), focused = focusState[0], setFocused = focusState[1];
@@ -269,6 +282,7 @@ function install(original) {
       if (!item.native && bridge.remember) try { bridge.remember(data.channelID, item.name, item.id); } catch (error) {}
     }
     var context = {};
+    context.index = trace.current && trace.current.index;
     context.selection = pending && pending.channelID === p.channelID && pending.text === p.draft ? pending : null;
     context.onSelectionChange = function (text, value) {
       // A text change may precede the parent value prop update. Selection is
@@ -307,14 +321,21 @@ function install(original) {
       if (children.length) {
         var style = {}; style.height = 60; style.flexGrow = 0; style.backgroundColor = theme.colors.backgroundBase;
         var sp = properties(style); sp.horizontal = true; sp.showsHorizontalScrollIndicator = false;
+        if (trace.current) sp.onLayout = function (event) { traceLayout(22, trace.current.index, event); };
         sp.keyboardShouldPersistTaps = "always"; sp.ref = scroll;
         strip = React.createElement(RN.ScrollView, sp, children);
       }
     }
     var provider = {}; provider.value = context;
     var surface = {}; surface.minWidth = 0; surface.alignSelf = "stretch";
+    var surfaceProps = properties(surface);
+    if (trace.current) surfaceProps.onLayout = function (event) { traceLayout(21, trace.current.index, event); };
+    React.useEffect(function () {
+      if (trace.current) composerTrace(20, trace.current.index, focused ? 1 : 0, strip ? 1 : 0, entries ? entries.length : 0, typeof p.draft === "string" ? p.draft.length : 0);
+    }, [focused, !!strip, entries && entries.length, p.draft.length]);
+    React.useEffect(function () { return function () { if (trace.current) composerTrace(24, trace.current.index, 0, 0, 0, 0); }; }, []);
     return React.createElement(Context.Provider, provider,
-      React.createElement(RN.View, properties(surface), strip, React.createElement(original, p)));
+      React.createElement(RN.View, surfaceProps, strip, React.createElement(original, p)));
   }
   /* The donor's library leaf uses JSX runtime 245 for exactly two verified
    * surfaces. Route those elements through context; other JSX calls retain

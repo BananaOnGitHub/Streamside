@@ -16,12 +16,14 @@ LOCAL_CACHE="${ZIG_LOCAL_CACHE_DIR:-$PWD/build/cache}"
 GLOBAL_CACHE="${ZIG_GLOBAL_CACHE_DIR:-$PWD/build/global-cache}"
 EMOTE_DIAGNOSTIC="${EMOTE_DIAGNOSTIC:-0}"
 IMAGE_DEMAND_DIAGNOSTIC="${IMAGE_DEMAND_DIAGNOSTIC:-0}"
+RN_COMPOSER_DIAGNOSTIC="${RN_COMPOSER_DIAGNOSTIC:-0}"
+case "$RN_COMPOSER_DIAGNOSTIC" in 0|1) ;; *) echo 'RN_COMPOSER_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
 case "$IMAGE_DEMAND_DIAGNOSTIC" in 0|1) ;; *) echo 'IMAGE_DEMAND_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
 case "$EMOTE_DIAGNOSTIC" in 0|1) ;; *) echo 'EMOTE_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
 
 # A diagnostic build cannot precede its own compiled snapshot validation.
 # This gate is independent of any request for device reports or scrolling tests.
-if [ "$IMAGE_DEMAND_DIAGNOSTIC" = 1 ]; then
+if [ "$IMAGE_DEMAND_DIAGNOSTIC" = 1 ] || [ "$RN_COMPOSER_DIAGNOSTIC" = 1 ]; then
     python3 tools/validate_rn_snapshot.py --check "${RN_SNAPSHOT_VALIDATION:-$PWD/build/snapshot-validation.json}"
 fi
 
@@ -43,8 +45,8 @@ build_binary() {
       --entitlements entitlements.plist \
       --name "$binary_name" \
       -femit-bin="$output_path" \
-      -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" "-DTAS_IMAGE_DEMAND_DIAGNOSTIC=$IMAGE_DEMAND_DIAGNOSTIC" -- \
-      src/Streamside.c src/TASDiagnostics.c src/TASDiagnosticPolicy.c src/TASAnimatedImage.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNComposerUI.c src/TASImageDemand.c
+      -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" "-DTAS_IMAGE_DEMAND_DIAGNOSTIC=$IMAGE_DEMAND_DIAGNOSTIC" "-DTAS_RN_COMPOSER_DIAGNOSTIC=$RN_COMPOSER_DIAGNOSTIC" -- \
+      src/Streamside.c src/TASDiagnostics.c src/TASDiagnosticPolicy.c src/TASAnimatedImage.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNComposerUI.c src/TASImageDemand.c src/TASComposerTrace.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature

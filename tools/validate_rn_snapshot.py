@@ -28,6 +28,7 @@ INPUTS=['src/rn/ProviderEmoteStrip.js','src/TASRNStripPayload.h','src/TASDemandR
         'tests/test_image_demand.py','tests/test_rn_library.py','tools/validate_rn_snapshot.py',
         'tools/rn_graft.py','tools/build_snapshot_runtime.py','tests/test_rn_snapshot_runtime.py','src/TASDiagnostics.c','build.sh']
 INPUTS += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'src').glob('TASRN*Patch.h'))]
+INPUTS += ['src/TASComposerTrace.c','src/TASComposerTrace.h','src/TASComposerTraceModel.h','src/TASComposerRNBridge.h','tests/test_composer_trace.py']
 INPUTS += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'src').glob('TASRN*Payload.h')) if str(p.relative_to(ROOT)) not in INPUTS]
 def fingerprints():
     return {p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in INPUTS}

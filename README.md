@@ -45,7 +45,7 @@ Start with a [compatible release](https://github.com/BananaOnGitHub/Streamside/r
 2. Download the attached IPA. GitHub's automatically generated source archives are not installable apps.
 3. Sign and install it with your sideloading tool. Released IPAs are unsigned; certificate, provisioning, and container requirements belong to the chosen installation tool.
 4. Open **Twitch Streamside**. Older releases may use the previous **Twitch VAFT** display name.
-5. Open **Profile → Settings → Streamside**. Enable third-party emotes, then fully quit and reopen Twitch. Emotes are off by default.
+5. Third-party emotes are off by default. If you want to enable them: Open **Profile → Settings → Streamside**, enable third-party emotes, then fully quit and reopen Twitch. 
 
 To build Streamside yourself, follow [Building](docs/BUILDING.md). You'll need a compatible decrypted Twitch IPA for a source build; installing a published release does not require one.
 

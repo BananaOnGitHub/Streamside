@@ -7,6 +7,8 @@ not here.
 
 ## 3.1.0 trials
 
+- [Local diagnostic runtime baseline](LOCAL_DIAGNOSTIC_RUNTIME_BASELINE.md): WSL checkout recovery audit, verified build/test baseline, artifact identities, and missing implementation inputs.
+
 - [Diagnostic categories](DIAGNOSTIC_CATEGORIES.md): launch-applied presets, verbosity, category collection/retention/export, and branch integration.
 
 - [App-icon trial](APP_ICON_TRIAL.md): flat Streamside icon packaging and automatic Liquid Glass appearance observations, build 1.

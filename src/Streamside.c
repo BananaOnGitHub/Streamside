@@ -1,3 +1,4 @@
+#include "TASInvestigationHost.h"
 /*
  * Streamside for Twitch iOS
  *
@@ -2136,6 +2137,8 @@ static void swizzle_method(Class cls, const char *selector, IMP replacement, IMP
 __attribute__((constructor))
 static void tas_initialize(void) {
     tas_diagnostics_load_preferences();
+    if(tas_inv_host_initialize)tas_inv_host_initialize();
+    tas_emotes_install_investigation_bootstrap();
     Class url_protocol = objc_getClass("NSURLProtocol");
     g_protocol_class = objc_allocateClassPair(url_protocol, "TASURLProtocol", 0);
     if (g_protocol_class) {

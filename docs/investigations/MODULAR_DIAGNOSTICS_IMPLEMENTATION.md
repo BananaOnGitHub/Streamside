@@ -58,3 +58,58 @@ The original donor bundle and React framework are extracted once under the
 workspace donor directory. The native-to-JS seam, dormant list attachment,
 original callback preservation and real donor accessors still require admission
 and executable validation before claiming a working runtime.
+
+
+## Checkpoint B: dormant scoped seam and callable commands
+
+Checkpoint A is committed as `642adce`. The scoped Hermes graft supports two
+exact predecessors: the unchanged original donor when functional emotes are off,
+and the complete existing five-stage chain when they are on. SHA-256 and footer
+admission reject modified, partial or duplicate predecessors.
+
+Factory 4900 receives one additional environment slot for an owned list-creation
+adapter. Its original memoized `ChatMessageList` export remains identical. The
+original list JSX call in function 22318 supplies its store as the adapter's
+execution context; the adapter preserves the original component type and props,
+forwards callback/object refs and cleanup/error identity, and retains at most
+two mounted handles. It adds no React hooks or components and does not modify
+shared JSX exports. Existing short branches in that function are widened and
+relocated; other function bodies and original literal/string storage remain
+unchanged. No donor function body is generated into repository headers.
+
+The native donor audit finds `RCTBridgeModuleDecorator.attachInteropAPIsToModule:`
+calling `setCallableJSModules:` conditionally. The injected callable object has
+`invokeModule:method:withArgs:onComplete:` encoding
+`v48@0:8@16@24@32@?40`; its actual donor body invokes the retained bridgeless
+scheduler block. This is the native counterpart to React Native's documented
+[callable-module API](https://github.com/react/react-native/blob/main/packages/react-native/React/Base/RCTBridgeModule.h).
+The original candidate `RCTInstance._attachBridgelessAPIsToModule:` does not
+inject that property in this donor; the module decorator is the verified seam.
+Native evidence is in local `build/investigation-native-channel.json`.
+
+The native host verifies Twitch/main, React and Hermes UUID/text fingerprints,
+version/build and actual callable-method ABI before registering its independent
+module. It uses weak module/callable handles and a startup ping/ack through the
+normal RN scheduler. Actual activation requires the round trip, not merely
+setter availability. There is no arbitrary source evaluation, unchecked JSI
+entry or command polling. One coalesced main-queue update owns at most one
+command/probe deadline timer; it is removed while no command is pending.
+
+The compiled Hermes gate passed both original and functional predecessors:
+owned bootstrap, actual donor factory/export join, late callable command with
+no intervening render, callback/object-ref forwarding, cleanup return/context,
+original exception identity and 100 registration/teardown cycles. Structural
+checks cover 206 relocated branches, handler boundaries, imported closures,
+original string/literal storage and all unrelated function bodies. Native
+artifacts passed verification; the suite ran 205 tests: 201 passed, four skipped.
+The earlier existing Hermes library gate also passed 32 native-accepted snapshots
+and 7,344 window calculations before the host integration changed its inputs.
+
+Checkpoint B deliberately advertises zero ready observation capabilities.
+The UI remains Unsupported until the recorder and snapshot adapters are added.
+Live iOS scheduling, native weak lifetimes and dormant overhead still need device
+acceptance. Linux's callable facade proves owned command handling and bytecode
+execution; it does not execute RCT/UIKit or establish device performance.
+
+The native invocation IMP must also belong to the admitted React image at its
+verified offset; a later foreign method replacement disables delivery.

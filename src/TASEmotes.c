@@ -1,3 +1,5 @@
+#include "TASInvestigationHost.h"
+#include "TASRNInvestigationPatch.h"
 /*
  * Optional third-party chat emotes. No emote hooks or requests are installed
  * unless the saved preference was enabled before this app launch.
@@ -2299,7 +2301,8 @@ static void hook_own_method(Class cls, const char *selector, IMP replacement, IM
 static id rn_source_data(id self, SEL command) {
     IMP original=__atomic_load_n(&g_rn_source_data,__ATOMIC_ACQUIRE);
     id data=((id (*)(id,SEL))original)(self,command);
-    if (!g_enabled) return data;
+    bool investigation=tas_inv_host_supported && tas_inv_host_supported();
+    if (!g_enabled && !investigation) return data;
     pthread_mutex_lock(&g_rn_width_lock);
     id cached=objc_getAssociatedObject(self,&g_rn_width_data_key);
     if (cached || objc_getAssociatedObject(self,&g_rn_width_checked_key)) {
@@ -2308,12 +2311,13 @@ static id rn_source_data(id self, SEL command) {
     }
     size_t count=0;
     unsigned char *patch=NULL;
-    bool local=false, composer=false, popup=false,strip=false;
+    bool width=false, local=false, composer=false, popup=false,strip=false,inv=false;
     if (kind(data,"NSData")) {
         size_t length=(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(data,sel_registerName("length"));
         TASRNSHA1 sha1=(TASRNSHA1)dlsym(RTLD_DEFAULT,"CC_SHA1");
-        if (length==TAS_RN_BODY_SIZE && sha1) {
+        if (g_enabled && length==TAS_RN_BODY_SIZE && sha1) {
             patch=tas_rn_width_patch((const unsigned char *)call0(data,"bytes"),length,sha1,&count);
+            width=patch!=NULL;
             if (patch && __atomic_load_n(&g_rn_local_registered,__ATOMIC_ACQUIRE)) {
                 size_t local_count=0;
                 unsigned char *local_patch=tas_rn_local_patch(patch,count,sha1,&local_count);
@@ -2333,6 +2337,12 @@ static id rn_source_data(id self, SEL command) {
                 }
             }
         }
+        if (investigation && sha1 && tas_inv_host_sha256) {
+            const unsigned char *input=patch ? patch : (const unsigned char *)call0(data,"bytes");
+            size_t input_length=patch ? count : length,inv_count=0;
+            unsigned char *inv_patch=tas_rn_investigation_patch(input,input_length,sha1,tas_inv_host_sha256,&inv_count);
+            if(inv_patch){free(patch);patch=inv_patch;count=inv_count;inv=true;}
+        }
     }
     if (patch) {
         cached=((id (*)(id,SEL,const void *,NSUInteger))objc_msgSend)(
@@ -2341,14 +2351,15 @@ static id rn_source_data(id self, SEL command) {
     }
     objc_setAssociatedObject(self,&g_rn_width_checked_key,str("checked"),1);
     if (cached) {
+        if(inv && tas_inv_host_source_admitted)tas_inv_host_source_admitted();
         objc_setAssociatedObject(self,&g_rn_width_data_key,cached,1);
-        __atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
+        if(width)__atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);
         if (composer) __atomic_store_n(&g_rn_composer_ready,true,__ATOMIC_RELEASE);
         if (popup) __atomic_store_n(&g_rn_popup_ready,true,__ATOMIC_RELEASE);
         if (strip) __atomic_store_n(&g_rn_strip_ready,true,__ATOMIC_RELEASE);
-        PROBE_INC(g_rn_width_patches);
-        tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.6 body admitted; wrapper/image styles patched in memory");
+        if(width){PROBE_INC(g_rn_width_patches);
+        tas_diag_log("RN_WIDTH_PATCH","Exact Twitch 31.6 body admitted; wrapper/image styles patched in memory");}
         if (local) tas_diag_log("RN_LOCAL_PATCH","Completed own preview NativeModules lookup patched in memory; execution pending");
         if (composer) tas_diag_log("RN_COMPOSER_PATCH","Scoped input preview map patched in memory; native editing preserved");
         if (popup) tas_diag_log("RN_INFO_PATCH","Provider RN sheet installed in memory; native cards preserved");
@@ -2382,6 +2393,8 @@ static void install_rn_width(void) {
     }
     pthread_mutex_unlock(&g_rn_install_lock);
 }
+
+void tas_emotes_install_investigation_bootstrap(void){if(tas_inv_host_supported && tas_inv_host_supported())install_rn_width();}
 
 static void install_rn_receive(void) {
     pthread_mutex_lock(&g_rn_install_lock);

@@ -149,3 +149,34 @@ cycles. Native cross-build/receipt verification passed. These are host tests,
 not on-device timing/CPU/keyboard acceptance. Snapshot code is present for
 fixture coverage, but snapshot capability remains unadvertised until the donor
 getter audit and mutation traps pass in checkpoint D.
+
+## Checkpoint D — exact donor getter audit and safe current-state capture
+
+Snapshot capability is enabled after executing donor getter 38870, content-size
+helper 22335, its content-inset dependency 22334, velocity helper 22458, and
+positionAtIndex 46258 in pinned compiled Hermes. Eight horizontal/RTL/inset
+combinations ran behind deep Proxy mutation traps, including original data,
+positions, idCache, props, scroll history and sizes. No donor state changed.
+The inset helper copies into a new object; it does not mutate source props.
+The velocity helper reads history; donor updateScroll 22370 trims that history
+to five elements (0xf9–0x10b). Neither elementAtIndex nor sizeAtIndex is called.
+The validation receipt fingerprints these exact donor bodies.
+
+The snapshot correlates bounded store and committed list membership using arm
+labels, and includes safe known sizes, positions and viewport values. Unknown
+sizes remain -1; unavailable geometry, renderer/catalog, estimated sizes and
+confirmed reconciliation are explicit. Store revision is read before/after;
+changed, unavailable, budget-limited and transfer-truncated flags are distinct.
+No functional store/list setter, renderer or layout operation is invoked.
+Per-entry deadline checks bound current reads to the smaller of 2 ms callback
+work and the total JS budget; fixed donor getters themselves cannot be
+preempted. First frozen-history transfer precedes these current reads.
+
+The deeper donor audit found and corrected checkpoint B's r39 store assumption:
+ChatMessageListInner reuses r39 for an onScroll callback before the JSX seam.
+The adapter now reloads the original store from its existing environment
+(r41, slot 0) into dead scratch r37. A compiled test executes the actual patched
+seam bytes with poisoned r39, proving the retained store binding, one original
+JSX call, and correct dormant fallback. Registers 36/37/41 are unused after
+the seam; branch relocation and all unaffected functions remain verified.
+This correction is preserved here rather than rewriting checkpoint B history.

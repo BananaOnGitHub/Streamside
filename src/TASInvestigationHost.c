@@ -39,7 +39,7 @@ static char fingerprints[8][65];
 static const char *const module_name = "StreamsideInvestigation";
 /* Compiled snapshot, lifecycle and reward-route adapters. Per-field coverage
  * remains explicit when a mounted donor handle is unavailable. */
-#define TAS_INV_HOST_CAPABILITIES 6U
+#define TAS_INV_HOST_CAPABILITIES 7U
 static id m0(id o, const char *s) { return ((id(*)(id, SEL))objc_msgSend)(o, sel_registerName(s)); }
 static id m1(id o, const char *s, id a) {
     return ((id(*)(id, SEL, id))objc_msgSend)(o, sel_registerName(s), a);

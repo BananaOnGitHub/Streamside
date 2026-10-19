@@ -151,7 +151,7 @@ size_t tas_inv_report_format(char *out, size_t cap) {
         "Estimated row sizes unavailable. Non-atomic JS snapshot; viewport values are donor state. "
         "Coverage flags are the actually installed family mask; header a/b/c are ordinary "
         "drops/priority drops/alias evictions. Snapshot flags: 1 store unavailable,2 list "
-        "unavailable,4 work budget,8 changed,16 transfer truncated.\n");
+        "unavailable,4 work budget,8 changed,16 transfer truncated,32 membership sample truncated.\n");
     for (unsigned i = 0; i < count; i++)
         ADD("%d,%d,%d,%d,%d,%d,%d,%d,%d\n", frozen[i][0], frozen[i][1], frozen[i][2], frozen[i][3],
             frozen[i][4], frozen[i][5], frozen[i][6], frozen[i][7], frozen[i][8]);

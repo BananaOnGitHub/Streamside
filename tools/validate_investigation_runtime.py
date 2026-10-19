@@ -11,9 +11,10 @@ from pathlib import Path
 import subprocess
 import tempfile
 from rn_graft import read,parse_hbc_bytecode,generate
+from validate_investigation_getters import run_getter_gate,run_seam_gate
 from validate_rn_snapshot import ROOT,RUNTIME_COMMIT,DONOR_SHA,patch_chain,test_entry,compile_js
 
-INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h']
+INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js']
 def fingerprints():return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in INPUTS}
 def graft(body,tmp):
     source=tmp/'inv_patch.c';source.write_text('#include "TASRNInvestigationPatch.h"\nvoid *patch(const void *p,size_t n,TASRNSHA1 s,TASInvSHA256 h,size_t *out){return tas_rn_investigation_patch(p,n,s,h,out);}\nvoid dispose(void *p){free(p);}\n')
@@ -65,11 +66,13 @@ def validate(a):
     with tempfile.TemporaryDirectory() as directory:
         tmp=Path(directory);original=a.donor.read_bytes();functional=patch_chain(a.zig,original,tmp);native=adapter(tmp)
         fixture=(ROOT/'tests/fixtures/investigation_bootstrap.js').read_text();outputs=[]
+        getter_facts=run_getter_gate(original,a.hermesc,a.runner,native,tmp)
         for label,body in [('Original',original),('Functional',functional)]:
             base=read(body).header.functionCount;generated=tmp/'generated.h'
             generate(a.donor,a.hermesc,ROOT/'src/rn/Investigation.js',generated,prefix='INV_'+label.upper(),factory_id=4900,function_base=base)
             assert generated.read_bytes()==(ROOT/('src/TASRNInvestigation'+label+'Payload.h')).read_bytes(),'Stale payload'
             patched=graft(body,tmp);structure(body,patched)
+            run_seam_gate(patched,a.hermesc,a.runner,native,tmp)
             (tmp/'entry.hbc').write_bytes(test_entry(patched,a.hermesc,tmp,base))
             (tmp/'exercise.js').write_text(fixture+'\nexerciseBootstrap(buildLocalEcho());\n');compile_js(a.hermesc,tmp/'exercise.js',tmp/'exercise.hbc')
             result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'exercise.hbc')],capture_output=True,text=True)
@@ -88,7 +91,7 @@ def validate(a):
             assert result.returncode==0,result.stderr
             outputs.append({'profile':label,'bytes':len(patched),'sha256':hashlib.sha256(patched).hexdigest()})
             print(label+': actual donor factory, memo export and guarded installer passed')
-    a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'inputs':fingerprints(),'profiles':outputs,'live_rct_delivery_verified':False},indent=2)+'\n')
+    a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'inputs':fingerprints(),'profiles':outputs,'donor_getters':getter_facts,'live_rct_delivery_verified':False},indent=2)+'\n')
 if __name__=='__main__':
     p=argparse.ArgumentParser()
     for name in ['donor','hermesc','runner','runtime-source','zig']:p.add_argument('--'+name,type=Path,required=True)

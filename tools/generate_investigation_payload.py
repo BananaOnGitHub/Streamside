@@ -29,12 +29,14 @@ def parts(h):
         if wide.operands[0].operand_type.name!='Addr32':raise ValueError('Unsupported branch width')
         changes.append((x,wide))
     before=lambda pos:sum(w.binary_size-x.inst.binary_size for x,w in changes if x.original_pos<pos)
-    extra=encode('LoadFromEnvironment',36,16,19)+encode('JmpFalseLong',0,36)+encode('Call3',13,36,39,34,13)+encode('JmpLong',0)
+    extra=encode('LoadFromEnvironment',36,16,19)+encode('JmpFalseLong',0,36)+encode('LoadFromEnvironment',37,41,0)+encode('Call3',13,36,37,34,13)+encode('JmpLong',0)
     mapping=lambda pos:pos+before(pos)+(len(extra) if pos>JOIN else 0)
     join=mapping(JOIN)
-    extra=encode('LoadFromEnvironment',36,16,19)+encode('JmpFalseLong',len(extra)-4,36)+encode('Call3',13,36,39,34,13)+encode('JmpLong',11)
+    extra=encode('LoadFromEnvironment',36,16,19)+encode('JmpFalseLong',len(extra)-4,36)+encode('LoadFromEnvironment',37,41,0)+encode('Call3',13,36,37,34,13)+encode('JmpLong',11)
     # Conditional target is original Call3; successful hook skips that call.
-    assert len(extra)==21
+    assert len(extra)==25
+    assert any(x.inst.name=="StoreToEnvironment" and (x.arg1,x.arg2,x.arg3)==(41,0,39) for x in ops[:20])
+    assert all(not any(o.operand_type.name.startswith("Reg") and getattr(x,"arg"+str(i+1)) in [36,37,41] for i,o in enumerate(x.inst.operands)) for x in ops if x.original_pos>JOIN)
     rows=[(x.original_pos,mapping(x.original_pos),x.inst.binary_size,1 if x.inst.operands[0].operand_type.name=='Addr8' else 4,w.opcode,mapping(x.original_pos+x.arg1)) for x,w in changes]
     return rows,extra,f.bytecodeSizeInBytes+before(f.bytecodeSizeInBytes)+len(extra),join
 def generate_all(a):

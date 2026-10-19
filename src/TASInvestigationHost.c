@@ -1,5 +1,6 @@
 #include "TASInvestigationHost.h"
 #include "TASInvestigationReport.h"
+#include "TASInvestigationUI.h"
 #include <dispatch/dispatch.h>
 #include <dlfcn.h>
 #include <mach-o/loader.h>
@@ -31,6 +32,7 @@ static IMP parent_init, parent_dealloc, admitted_callable;
 static const void *react_image;
 static unsigned source_epoch, ready_caps;
 static bool supported, pong, started;
+static bool is_supported(void) { return __atomic_load_n(&supported, __ATOMIC_ACQUIRE); }
 static unsigned timer_queued;
 static uint64_t probe_deadline, last_capture;
 static char module_epoch_key;
@@ -223,7 +225,7 @@ static void emergency_stop(void) {
     TASInvStatus s = tas_inv_status();
     tas_inv_report_interrupt();
     if (s.generation < UINT32_MAX && s.sequence < UINT32_MAX)
-        invoke(TAS_INV_STOP, s.generation + 1, s.sequence + 1, NULL);
+        invoke(TAS_INV_STOP, s.generation, s.sequence + 1, NULL);
 }
 
 static void schedule_timer(void) {
@@ -264,6 +266,8 @@ static void update_timer(void) {
     if (!deadline)
         deadline = probe_deadline;
     pthread_mutex_unlock(&host_lock);
+    if (tas_inv_ui_changed)
+        tas_inv_ui_changed();
     if (!deadline || !target)
         return;
     uint64_t now = now_ms();
@@ -332,7 +336,7 @@ static id ready(id self, SEL cmd, id abi_value, id caps_value) {
     objc_release(callable);
     pthread_mutex_lock(&host_lock);
     unsigned epoch = source_epoch, previous = bound_epoch(self);
-    if (!supported || !epoch || (previous && previous != epoch)) {
+    if (!is_supported() || !epoch || previous) {
         pthread_mutex_unlock(&host_lock);
         return box(0);
     }
@@ -358,7 +362,8 @@ static void ack(id self, SEL cmd, id epoch_value, id generation_value, id sequen
     bool valid = current == self && epoch == source_epoch && bound_epoch(self) == epoch;
     if (current)
         objc_release(current);
-    if (valid && operation == 0 && generation == 0 && sequence == 0 && success) {
+    if (valid && !pong && probe_deadline && now_ms() < probe_deadline && operation == 0 &&
+        generation == 0 && sequence == 0 && success) {
         pong = true;
         probe_deadline = 0;
         unsigned caps = ready_caps;
@@ -369,6 +374,11 @@ static void ack(id self, SEL cmd, id epoch_value, id generation_value, id sequen
     }
     pthread_mutex_unlock(&host_lock);
     if (valid) {
+        if (tas_inv_expire(now_ms())) {
+            emergency_stop();
+            schedule_timer();
+            return;
+        }
         if (operation == TAS_INV_CAPTURE && success &&
             !tas_inv_report_complete(generation, sequence))
             success = 0;
@@ -397,11 +407,13 @@ static id report(id self, SEL cmd, id epoch_value, id generation_value, id seque
     TASInvStatus status = tas_inv_status();
     bool valid = current == self && epoch == source_epoch && bound_epoch(self) == epoch &&
                  status.state == TAS_INV_CAPTURING && status.pending == TAS_INV_CAPTURE &&
-                 status.generation == g && status.sequence == s;
+                 status.generation == g && status.sequence == s && now_ms() < status.deadline_ms;
     if (current)
         objc_release(current);
     bool ok = valid && tas_inv_report_accept(g, s, bytes, n, now_ms());
     pthread_mutex_unlock(&host_lock);
+    if (ok)
+        schedule_timer();
     return box(ok ? 1 : 0);
 }
 static const MethodInfo *report_export(id self, SEL cmd) {
@@ -421,14 +433,20 @@ static void invalidate(id self, SEL cmd) {
     if (current)
         objc_release(current);
     if (owned) {
-        objc_storeWeak(&module_weak, nil);
         pong = false;
         probe_deadline = 0;
     }
     pthread_mutex_unlock(&host_lock);
     if (owned) {
-        tas_inv_report_interrupt();
         tas_inv_invalidate(TAS_INV_NO_RUNTIME);
+        emergency_stop();
+        pthread_mutex_lock(&host_lock);
+        current = objc_loadWeakRetained(&module_weak);
+        if (current == self)
+            objc_storeWeak(&module_weak, nil);
+        if (current)
+            objc_release(current);
+        pthread_mutex_unlock(&host_lock);
         schedule_timer();
     }
 }
@@ -528,7 +546,7 @@ void tas_inv_host_initialize(void) {
     callable_offset = ivar_getOffset(class_getInstanceVariable(cls, "_tasCallable"));
     target = m0(m0((id)clock, "alloc"), "init");
     register_module(cls);
-    supported = true;
+    __atomic_store_n(&supported, true, __ATOMIC_RELEASE);
 }
 bool tas_inv_host_supported(void) { return __atomic_load_n(&supported, __ATOMIC_ACQUIRE); }
 void tas_inv_host_source_admitted(void) {
@@ -536,7 +554,7 @@ void tas_inv_host_source_admitted(void) {
     if (source_epoch < 10000000)
         source_epoch++;
     else
-        supported = false;
+        __atomic_store_n(&supported, false, __ATOMIC_RELEASE);
     objc_storeWeak(&module_weak, nil);
     pong = false;
     probe_deadline = 0;
@@ -548,7 +566,7 @@ void tas_inv_host_source_admitted(void) {
 bool tas_inv_host_request(unsigned operation) {
     pthread_mutex_lock(&host_lock);
     uint64_t now = now_ms();
-    bool available = supported && pong &&
+    bool available = is_supported() && pong &&
                      (operation != TAS_INV_CAPTURE || !last_capture || now >= last_capture + 3000);
     TASInvCommand command;
     bool begun = available && tas_inv_begin(operation, now, &command);
@@ -569,7 +587,7 @@ void tas_inv_host_status(char *buffer, size_t capacity) {
     TASInvStatus s = tas_inv_status();
     pthread_mutex_lock(&host_lock);
     snprintf(buffer, capacity, "%s: %s; native=%u source=%u channel=%u; generation=%u pending=%u",
-             tas_inv_state_name(s.state), tas_inv_reason_name(s.reason), supported ? 1 : 0,
+             tas_inv_state_name(s.state), tas_inv_reason_name(s.reason), is_supported() ? 1 : 0,
              source_epoch, pong ? 1 : 0, s.generation, s.pending);
     pthread_mutex_unlock(&host_lock);
 }

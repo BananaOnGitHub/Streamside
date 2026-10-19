@@ -41,3 +41,8 @@ clean:
 
 release: verify test deb
 	python3 tools/package_release.py
+
+# Mandatory startup graft validation; builds fail if its receipt is stale.
+test-investigation-runtime:
+	@test -n "$(TAS_RN_DONOR)" -a -n "$(ZIG)" -a -n "$(TAS_HERMESC)" -a -n "$(TAS_HERMES_SNAPSHOT_RUNNER)" -a -n "$(TAS_HERMES_SOURCE)" || (echo 'set the pinned donor/Hermes toolchain inputs' >&2; exit 1)
+	python3 tools/validate_investigation_runtime.py --donor "$(TAS_RN_DONOR)" --zig "$(ZIG)" --hermesc "$(TAS_HERMESC)" --runner "$(TAS_HERMES_SNAPSHOT_RUNNER)" --runtime-source "$(TAS_HERMES_SOURCE)"

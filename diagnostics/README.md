@@ -20,3 +20,18 @@ Regenerate the checked-in byte array with
 The native parser is the admission authority. The JSON Schema is an authoring
 aid; integer spelling, UTF-8 byte budgets and cross-field capability/resource
 checks are additionally enforced by the native parser.
+
+Registry revision 2 selects the implemented translation, emission/local-echo,
+aggregate store, IRC reward, reward-store and list-lifecycle adapters. Revision 1
+is preserved as an earlier schema fixture, not an accepted cached replacement.
+Filtering/deduplication, confirmed reconciliation, renderer/catalog and row
+geometry are reported unavailable. The observer never infers server receipt.
+
+Every ordinary build checks the committed, fingerprinted compiled-Hermes
+validation receipt in `diagnostics/validation/hermes-v1.json`. A clean build
+does not need copyrighted donor contents; replaying or refreshing that proof
+requires the exact donor and the pinned Hermes toolchain. Run
+`make test-investigation-runtime` with the same input variables as
+`make test-rn-virtualization`. Changed runtime/graft/fixture inputs invalidate
+the recorded proof and stop the build. This receipt records host validation,
+not independent CI replay or device acceptance.

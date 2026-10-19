@@ -5,7 +5,7 @@ function exerciseRecorder(render){
   global.setTimeout=function(fn,delay){var t={fn:fn,delay:delay,cancelled:false};timers.push(t);return t;};
   global.clearTimeout=function(t){t.cancelled=true;};
   function flush(){var count=0;while(timers.length){var t=timers.shift();if(!t.cancelled){check(++count<20,"bounded capture timers");time+=t.delay;t.fn();}}}
-  bridge.report=function(e,g,s,payload){check(e===1 && payload.length<=8192,"bounded packet");check(payload.indexOf("PRIVATE")<0,"privacy sentinel absent");packets.push(JSON.parse(payload));sent++;return 1;};
+  bridge.report=function(e,g,s,payload){check(e===1 && payload.length<=8192,"bounded packet");check(payload.indexOf("PRIVATE")<0,"privacy sentinel absent");packets.push(JSON.parse(payload));sent++;return _observeNative(g,s,payload,time,0);};
   var failure={PRIVATE:1},client={};
   client.translateChatMessage=function(event){nativeCalls++;check(this===client,"translation this");if(event.failed)throw failure;return event.line;};
   client.emitLine=function(line){nativeCalls++;check(this===client,"emission this");if(line.failed)throw failure;return 73;};
@@ -24,13 +24,15 @@ function exerciseRecorder(render){
   check(client.onChannelPointsRewardEvent()===74 && state.pushRewardRedemption(privateLine)===75,"reward original return");
   check(sent===0 && timers.length===0,"zero per-message bridge and timer traffic");
   // More than an hour armed and a saturated ordinary stream. Priority remains independent.
-  for(var i=0;i<400;i++){time+=1000;client.translateChatMessage({line:{id:"PRIVATE-"+i,clientNonce:"PRIVATE-n"+i}});client.emitLine({id:"PRIVATE-"+i});}
+  for(var i=0;i<400;i++){time+=1000;client.translateChatMessage({line:{id:"PRIVATE-"+i,clientNonce:"PRIVATE-n"+i}});client.emitLine({id:"PRIVATE-"+i});client.onChannelPointsRewardEvent();}
+  while(state.lines.length<128)state.lines.push({line:privateLine});while(data.length<128)data.push({line:privateLine,key:"PRIVATE-key"});
   time+=7200000;client.emitLine(privateLine);cmd(2,2,2,config);
   check(sent===1,"history transferred before snapshot");flush();
   var rows=[];packets.forEach(function(p){check(p[0]===1,"wire version");rows=rows.concat(p[3]);});
+  check(packets.length===8 && !packets[7][3].some(function(r){return r[0]===6 && (r[5]&16);}),"full final batch is not falsely truncated");
   check(packets[packets.length-1][2]===1 && calls[calls.length-1][4]===true,"complete capture acknowledged");
   var normal=0,urgent=0,member=0,listed=0,firstLabel=0;
-  rows.forEach(function(r){check(r.length===9 && r.every(function(n){return Number.isInteger(n) && n>=-1 && n<=10000000;}),"numeric-only fixed rows");if(r[0]===1)normal++;if(r[0]===2)urgent++;if(r[0]===8){member=r[4];}if(r[0]===9){listed=r[4];check(r[7]===42 && r[8]===0,"known size and position");}if(r[0]===2 && r[2]===0 && r[5]===1)firstLabel=r[4];});
+  rows.forEach(function(r){check(r.length===9 && r.every(function(n){return Number.isInteger(n) && n>=-1 && n<=10000000;}),"numeric-only fixed rows");if(r[0]===1)normal++;if(r[0]===2)urgent++;if(r[0]===8){member=r[4];}if(r[0]===9){listed=r[4];check(r[7]===42 && r[8]===r[6]*40,"known size and position");}if(r[0]===2 && r[2]===0 && r[5]===1)firstLabel=r[4];});
   check(normal<=256 && urgent<=64 && normal>200 && urgent>0,"bounded separate rings");check(member>0 && member===listed,"store/list identity association");
   check(listener!==null && timers.length===0,"capture returns armed without timer");
   // A failed read must leave already transferred frozen history intact.

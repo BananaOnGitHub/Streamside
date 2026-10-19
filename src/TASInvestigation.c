@@ -17,8 +17,8 @@ static const char *const family_names[] = {
     "irc_reward",  "pubsub_reward", "reward_render", "list",           "layout"};
 static const TASInvCapability capabilities[] = {
     {"rn.chat.snapshot", 1, TAS_INV_SNAPSHOT, 0, true},
-    {"rn.chat.lifecycle", 1, TAS_INV_LIFECYCLE, 0x31f, true},
-    {"rn.rewards.observation", 1, TAS_INV_REWARDS, 0xe0, true}};
+    {"rn.chat.lifecycle", 1, TAS_INV_LIFECYCLE, 0x117, true},
+    {"rn.rewards.observation", 1, TAS_INV_REWARDS, 0x60, true}};
 const TASInvCapability *tas_inv_capability(unsigned i) {
     return i < TAS_INV_CAPABILITIES ? &capabilities[i] : NULL;
 }

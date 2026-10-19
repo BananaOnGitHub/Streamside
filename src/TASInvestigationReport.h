@@ -8,5 +8,7 @@ bool tas_inv_report_accept(uint32_t generation, uint32_t sequence, const void *,
                            uint64_t now_ms);
 bool tas_inv_report_complete(uint32_t generation, uint32_t sequence);
 void tas_inv_report_interrupt(void);
+bool tas_inv_report_available(void);
+bool tas_inv_report_started(uint32_t, uint32_t);
 size_t tas_inv_report_format(char *, size_t);
 #endif

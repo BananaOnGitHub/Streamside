@@ -1,4 +1,5 @@
 #include "TASDiagnostics.h"
+#include "TASInvestigationUI.h"
 #include "TASAnimatedImage.h"
 #include "TASImageDemand.h"
 #include "TASPrivacy.h"
@@ -45,7 +46,7 @@ typedef struct {
 
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
-#define TAS_REPORT_VERSION "3.1.0-build.18"
+#define TAS_REPORT_VERSION "3.1.0-build.19"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -406,11 +407,12 @@ static void diagnostic_settings_view_did_load(id self,SEL command) {
 
 static NSInteger diagnostic_settings_sections(id self,SEL command,id table) {
     (void)self;(void)command;(void)table;
-    return diagnostic_custom_selected()?4:3;
+    return diagnostic_custom_selected()?5:4;
 }
 
 static NSInteger diagnostic_settings_rows(id self,SEL command,id table,NSInteger section) {
     (void)self;(void)command;(void)table;
+    if(section==(diagnostic_custom_selected()?4:3))return 1;
     if(section<2)return 1;
     if(section==2 && diagnostic_custom_selected())return TAS_DIAG_CATEGORIES;
     return TAS_EMOTE_DIAGNOSTIC?4:3;
@@ -418,6 +420,7 @@ static NSInteger diagnostic_settings_rows(id self,SEL command,id table,NSInteger
 
 static id diagnostic_settings_header(id self,SEL command,id table,NSInteger section) {
     (void)self;(void)command;(void)table;
+    if(section==(diagnostic_custom_selected()?4:3))return nsstr("Investigations");
     if(section==0)return nsstr("Preset");
     if(section==1)return nsstr("Detail");
     if(section==2 && diagnostic_custom_selected())return nsstr("Categories");
@@ -450,7 +453,8 @@ static id diagnostic_settings_cell(id self,SEL command,id table,id index_path) {
     (void)command;(void)table;
     NSInteger section=imsg0(index_path,"section"),row=imsg0(index_path,"row");
     unsigned saved=saved_diagnostic_config();id cell=table_cell(1);
-    if(section==0 || section==1) {
+    if(section==(diagnostic_custom_selected()?4:3)){set_cell_text(cell,"Investigations","Arm and capture without restarting");vmsg_integer(cell,"setAccessoryType:",1);}
+    else if(section==0 || section==1) {
         set_cell_text(cell,section?"Detail":"Preset",section?(saved&TAS_DIAG_DETAIL_BIT?"Detailed":"Summary"):
             tas_diag_preset_name(tas_diag_preset_for(saved)));
         vmsg_integer(cell,"setAccessoryType:",1);
@@ -587,6 +591,7 @@ static void diagnostic_settings_did_select(id self, SEL command, id table, id in
     NSInteger row = imsg0(index_path, "row");
     ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
         table, sel_registerName("deselectRowAtIndexPath:animated:"), index_path, YES);
+    if(section==(diagnostic_custom_selected()?4:3)){if(tas_inv_ui_open)tas_inv_ui_open(self);return;}
 #if TAS_EMOTE_DIAGNOSTIC
     if (section>=2 && !(section==2 && diagnostic_custom_selected()) && row==3) {
         if(!tas_diag_wants(TAS_DIAG_RENDERING,TAS_DIAG_DETAILED)) {

@@ -29,4 +29,8 @@ function exerciseBootstrap(render){
   try{item.props.ref.call(nativeStore,node);throw new Error("missing ref exception");}catch(error){check(error===failure,"original exception identity");}
   for(var i=0;i<100;i++){var r={current:null},e=render.call(nativeStore,type,{ref:r});e.props.ref(node);check(r.current===node,"object ref forwarded");e.props.ref(null);check(r.current===null,"object ref cleared");}
   check(reads===0,"no speculative reads");
+  var reused=render.call(nativeStore,type,{ref:sourceRef}).props.ref;
+  var oldCleanup=reused.call(nativeStore,{}),newCleanup=reused.call(nativeStore,{});
+  oldCleanup.call(nativeStore);newCleanup.call(nativeStore);
+
 }

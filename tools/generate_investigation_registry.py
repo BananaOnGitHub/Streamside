@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
-SOURCE=ROOT/'diagnostics/investigations/rn-chat-gaps/1.json'
+SOURCE=ROOT/'diagnostics/investigations/rn-chat-gaps/2.json'
 OUTPUT=ROOT/'src/TASInvestigationRegistry.h'
 INDEX=ROOT/'diagnostics/registry/v1/index.json'
 def pairs(items):
@@ -24,7 +24,7 @@ def generated():
     return '\n'.join(rows)
 def main():
     p=argparse.ArgumentParser();p.add_argument('--check',action='store_true');a=p.parse_args();text=generated()
-    index=json.dumps({'schema_version':1,'registry_version':1,'entries':[{'id':'rn-chat-gaps','manifest_version':1,'path':'diagnostics/investigations/rn-chat-gaps/1.json','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest()}]},indent=2)+'\n'
+    index=json.dumps({'schema_version':1,'registry_version':2,'entries':[{'id':'rn-chat-gaps','manifest_version':2,'path':'diagnostics/investigations/rn-chat-gaps/2.json','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest()}]},indent=2)+'\n'
     if a.check:
         if not OUTPUT.exists() or OUTPUT.read_text()!=text:raise SystemExit('Stale bundled investigation registry')
         if not INDEX.exists() or INDEX.read_text()!=index:raise SystemExit('Stale bundled registry index')

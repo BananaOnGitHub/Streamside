@@ -10,12 +10,22 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
-from rn_graft import read,parse_hbc_bytecode,generate
-from validate_investigation_getters import run_getter_gate,run_seam_gate
-from validate_rn_snapshot import ROOT,RUNTIME_COMMIT,DONOR_SHA,patch_chain,test_entry,compile_js
+ROOT=Path(__file__).resolve().parent.parent
+RUNTIME_COMMIT="40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c"
+DONOR_SHA="20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458"
+import sys
+if '--check' not in sys.argv:
+    from rn_graft import read,parse_hbc_bytecode,generate
+    from validate_investigation_getters import run_getter_gate,run_seam_gate
+    from validate_rn_snapshot import patch_chain,test_entry,compile_js
 
-INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js']
-def fingerprints():return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in INPUTS}
+INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js','src/TASInvestigationUI.c','src/TASInvestigationUI.h','src/TASInvestigation.c','src/TASInvestigation.h','src/TASInvestigationRegistry.h']
+def fingerprints():
+    names=set(INPUTS)
+    for pattern in ['src/TASRN*Patch.h','src/TASRN*Payload.h','src/TASRN*Layout.h']:
+        names.update(str(p.relative_to(ROOT)) for p in ROOT.glob(pattern))
+    names.update(['tools/rn_graft.py','tools/validate_rn_snapshot.py','tools/generate_investigation_registry.py','diagnostics/investigations/rn-chat-gaps/2.json','tests/native/hermes_snapshot_runner.cpp'])
+    return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(names)}
 def graft(body,tmp):
     source=tmp/'inv_patch.c';source.write_text('#include "TASRNInvestigationPatch.h"\nvoid *patch(const void *p,size_t n,TASRNSHA1 s,TASInvSHA256 h,size_t *out){return tas_rn_investigation_patch(p,n,s,h,out);}\nvoid dispose(void *p){free(p);}\n')
     libpath=tmp/'inv_patch.so';subprocess.run(['cc','-shared','-fPIC','-Wall','-Wextra','-Werror','-I',str(ROOT/'src'),str(source),'-o',str(libpath)],check=True)
@@ -56,8 +66,8 @@ def structure(before,after):
     assert len(new.function_id_to_exc_handlers[4900])==1
     return old.header.functionCount
 def adapter(tmp):
-    path=tmp/'adapter.c';path.write_text('double ss_observe(double a,double b,const char *c,double d,double e){(void)a;(void)b;(void)c;(void)d;(void)e;return 1;}\nconst char *ss_report(void){return "Compiled dormant bootstrap passed\\n";}\n')
-    out=tmp/'adapter.so';subprocess.run(['cc','-shared','-fPIC',str(path),'-o',str(out)],check=True);return out
+    path=tmp/'adapter.c';path.write_text('#include "TASInvestigationReport.h"\n#include <stdint.h>\ndouble ss_observe(double g,double s,const char *p,double t,double unused){(void)unused;return tas_inv_report_accept((uint32_t)g,(uint32_t)s,p,__builtin_strlen(p),(uint64_t)t)?1:0;}\nconst char *ss_report(void){static char out[65536];tas_inv_report_format(out,sizeof(out));return out;}\n')
+    out=tmp/'adapter.so';subprocess.run(['cc','-shared','-fPIC','-Wall','-Wextra','-Werror','-pthread','-I',str(ROOT/'src'),str(ROOT/'src/TASInvestigationReport.c'),str(path),'-o',str(out)],check=True);return out
 def validate(a):
     assert subprocess.check_output(['git','-C',str(a.runtime_source),'rev-parse','HEAD'],text=True).strip()==RUNTIME_COMMIT
     stamp=json.loads(a.runner.with_suffix('.build.json').read_text());assert stamp['runtime_commit']==RUNTIME_COMMIT and stamp['runner_source_sha256']==hashlib.sha256((ROOT/'tests/native/hermes_snapshot_runner.cpp').read_bytes()).hexdigest() and stamp['runner_sha256']==hashlib.sha256(a.runner.read_bytes()).hexdigest()
@@ -91,8 +101,16 @@ def validate(a):
             assert result.returncode==0,result.stderr
             outputs.append({'profile':label,'bytes':len(patched),'sha256':hashlib.sha256(patched).hexdigest()})
             print(label+': actual donor factory, memo export and guarded installer passed')
-    a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'donor_sha256':DONOR_SHA,'inputs':fingerprints(),'profiles':outputs,'donor_getters':getter_facts,'live_rct_delivery_verified':False},indent=2)+'\n')
+    a.record.write_text(json.dumps({'passed':True,'runtime_commit':RUNTIME_COMMIT,'runner_sha256':hashlib.sha256(a.runner.read_bytes()).hexdigest(),'donor_sha256':DONOR_SHA,'inputs':fingerprints(),'profiles':outputs,'donor_getters':getter_facts,'live_rct_delivery_verified':False},indent=2)+'\n')
+def check_record(path):
+    try:record=json.loads(path.read_text())
+    except (OSError,ValueError) as error:raise SystemExit('Investigation validation receipt is missing/invalid; run the pinned Hermes gate: '+str(error))
+    if record.get('passed') is not True or record.get('runtime_commit')!=RUNTIME_COMMIT or record.get('donor_sha256')!=DONOR_SHA or record.get('inputs')!=fingerprints() or set(record.get('donor_getters',{}))!={'38870','22334','22335','22458','46258'} or {p.get('profile') for p in record.get('profiles',[])}!={'Original','Functional'} or len(record.get('runner_sha256',''))!=64:
+        raise SystemExit('Stale investigation validation receipt; rerun the compiled Hermes gate')
+    print('Investigation compiled runtime validation is current')
 if __name__=='__main__':
+    import sys
+    if len(sys.argv)>1 and sys.argv[1]=='--check':check_record(Path(sys.argv[2]) if len(sys.argv)>2 else ROOT/'diagnostics/validation/hermes-v1.json');raise SystemExit(0)
     p=argparse.ArgumentParser()
     for name in ['donor','hermesc','runner','runtime-source','zig']:p.add_argument('--'+name,type=Path,required=True)
-    p.add_argument('--record',type=Path,default=ROOT/'build/investigation-validation.json');validate(p.parse_args())
+    p.add_argument('--record',type=Path,default=ROOT/'diagnostics/validation/hermes-v1.json');validate(p.parse_args())

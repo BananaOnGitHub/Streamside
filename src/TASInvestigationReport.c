@@ -67,9 +67,9 @@ bool tas_inv_report_accept(uint32_t g, uint32_t s, const void *input, size_t siz
                     return false;
             if (!symbol(&r, ']'))
                 return false;
-            if (rows[n][0] < 0 || rows[n][0] > 9 || (rows[n][0] == 0 && (p || n)) || rows[n][1] < 0 ||
-                rows[n][2] < 0 || rows[n][2] > 9 || rows[n][3] < 0 || rows[n][4] < 0 ||
-                rows[n][5] < 0 || rows[n][5] > 1023)
+            if (rows[n][0] < 0 || rows[n][0] > 9 || (rows[n][0] == 0 && (p || n)) ||
+                rows[n][1] < 0 || rows[n][2] < 0 || rows[n][2] > 9 || rows[n][3] < 0 ||
+                rows[n][4] < 0 || rows[n][5] < 0 || rows[n][5] > 1023)
                 return false;
             n++;
             space(&r);
@@ -123,6 +123,18 @@ void tas_inv_report_interrupt(void) {
         interrupted = true;
     pthread_mutex_unlock(&lock);
 }
+bool tas_inv_report_started(uint32_t g, uint32_t s) {
+    pthread_mutex_lock(&lock);
+    bool begun = count && generation == g && sequence == s;
+    pthread_mutex_unlock(&lock);
+    return begun;
+}
+bool tas_inv_report_available(void) {
+    pthread_mutex_lock(&lock);
+    bool available = count > 0;
+    pthread_mutex_unlock(&lock);
+    return available;
+}
 size_t tas_inv_report_format(char *out, size_t cap) {
     if (!out || cap < 1024)
         return 0;
@@ -138,20 +150,24 @@ size_t tas_inv_report_format(char *out, size_t cap) {
         }                                                                                          \
         used += (size_t)z;                                                                         \
     } while (0)
-    ADD("Streamside modular investigation / numeric-chat-v1\nManifest SHA256: %s\nCapture "
+    ADD("Streamside 3.1.0-build.19 development / numeric-chat-v1\nDonor Twitch 31.6.2 "
+        "(262872150334984303), HBC98, runtime ABI1\nManifest SHA256: %s\nCapture "
         "generation=%u sequence=%u rows=%u wire_bytes=%u complete=%u interrupted=%u\n",
         TAS_INV_MANIFEST_SHA256, generation, sequence, count, wire, complete, interrupted);
     ADD("No contents or raw identities. Labels are ephemeral per arm. Missing observations do not "
         "prove dropped messages.\nKinds: 0 frozen header; 1 ordinary; 2 priority; 3 store; 4 list; "
         "5 coverage; 6 snapshot status; 7 viewport; 8 store member; 9 list member.\nColumns: "
         "kind,elapsed_ms,family,scope,label,flags,a,b,c. Families: 0 translation,1 emission,2 "
-        "local_echo,3 reconciliation,4 store,5 IRC_reward,6 PubSub_store,7 reward_render,8 list,9 "
+        "local_echo,3 reconciliation,4 store,5 IRC_reward,6 reward_store_route,7 reward_render,8 "
+        "list,9 "
         "layout.\nUnobserved: per-message filtering/deduplication, server acknowledgments, "
         "confirmed nonce reconciliation, reward renderer/catalog, row layout/native geometry. "
-        "Estimated row sizes unavailable. Non-atomic JS snapshot; viewport values are donor state. "
+        "Estimated row sizes unavailable; direct store reward observations do not independently "
+        "establish PubSub provenance. Non-atomic JS snapshot; viewport values are donor state. "
         "Coverage flags are the actually installed family mask; header a/b/c are ordinary "
         "drops/priority drops/alias evictions. Snapshot flags: 1 store unavailable,2 list "
-        "unavailable,4 work budget,8 changed,16 transfer truncated,32 membership sample truncated.\n");
+        "unavailable,4 work budget,8 changed,16 transfer truncated,32 membership sample "
+        "truncated.\n");
     for (unsigned i = 0; i < count; i++)
         ADD("%d,%d,%d,%d,%d,%d,%d,%d,%d\n", frozen[i][0], frozen[i][1], frozen[i][2], frozen[i][3],
             frozen[i][4], frozen[i][5], frozen[i][6], frozen[i][7], frozen[i][8]);

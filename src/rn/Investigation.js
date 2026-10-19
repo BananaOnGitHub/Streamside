@@ -37,7 +37,7 @@ function install() {
     return value || 0;
   }
   function method(target,key,family,specific){
-    safe(function(){var descriptor=null,depth=0;while(target && depth++<4){descriptor=Object.getOwnPropertyDescriptor(target,key);if(descriptor)break;target=Object.getPrototypeOf(target);}if(!descriptor || !descriptor.writable || typeof descriptor.value!=="function" || hooks.length>=16)return;
+    safe(function(){var descriptor=null,depth=0;while(target && depth++<4){descriptor=Object.getOwnPropertyDescriptor(target,key);if(descriptor)break;target=Object.getPrototypeOf(target);}if(!descriptor || !descriptor.writable || typeof descriptor.value!=="function" || hooks.length>=16 || !(config[0]&((1<<family)|(family===1?4:0))))return;
       for(var i=0;i<hooks.length;i++)if(hooks[i][0]===target && hooks[i][1]===key)return;
       var original=descriptor.value,copy=Object.assign({},descriptor);
       copy.value=function(){var s=specific || clients.get(this);if(!active || !s || !s[13])return original.apply(this,arguments);
@@ -48,27 +48,27 @@ function install() {
             if(family===1 && own)observe(2,s,line,1,failed?3:2,0,0,true);
           });
         }
-      };Object.defineProperty(target,key,copy);var item=[];item.push(target,key,original,copy.value,descriptor,specific);hooks.push(item);coverage|=1<<family;
+      };Object.defineProperty(target,key,copy);var item=[];item.push(target,key,original,copy.value,descriptor,specific);hooks.push(item);coverage|=1<<family;if(family===1)coverage|=4;
     });
   }
   function attach(s){
     if(!active || !s[3] || s[13])return;s[13]=true;s[9]=new Map();s[10]=new Map();s[11]=new WeakMap();s[12]=0;
     safe(function(){var state=s[1].getState(),client=state._tmiClient;s[6]=client;if(client){clients.set(client,clients.has(client) && clients.get(client)!==s?null:s);method(client,"translateChatMessage",0,null);method(client,"emitLine",1,null);method(client,"onChannelPointsRewardEvent",5,null);}method(state,"pushRewardRedemption",6,s);
       if(typeof s[1].subscribe==="function")s[5]=s[1].subscribe(function(state){if(!active || !s[13])return;s[7]=Math.min(10000000,s[7]+1);safe(function(){var client=state && state._tmiClient;if(client!==s[6]){if(s[6])clients.delete(s[6]);s[6]=client;if(client)clients.set(client,clients.has(client) && clients.get(client)!==s?null:s);method(client,"translateChatMessage",0,null);method(client,"emitLine",1,null);method(client,"onChannelPointsRewardEvent",5,null);}observe(4,s,null,0,Array.isArray(state && state.lines)?state.lines.length:-1,0,0,false);});});
-    });observe(8,s,null,0,1,0,0,true);
+    });coverage|=256;if(typeof s[5]==="function")coverage|=16;observe(8,s,null,0,1,0,0,true);
   }
   function detach(s){s[13]=false;for(var i=hooks.length-1;i>=0;i--)if(hooks[i][5]===s){var h=hooks.splice(i,1)[0];safe(function(){var d=Object.getOwnPropertyDescriptor(h[0],h[1]);if(d && d.value===h[3])Object.defineProperty(h[0],h[1],h[4]);});}if(typeof s[5]==="function")safe(s[5]);s[5]=null;if(s[6])clients.delete(s[6]);s[6]=null;s[8]=null;s[9]=null;s[10]=null;s[11]=null;s[12]=0;}
   function stop(){active=false;capturing=false;if(captureTimer!==null)global.clearTimeout(captureTimer);captureTimer=null;captureRows=null;lists.forEach(detach);for(var i=hooks.length-1;i>=0;i--){var h=hooks[i];safe(function(){var d=Object.getOwnPropertyDescriptor(h[0],h[1]);if(d && d.value===h[3])Object.defineProperty(h[0],h[1],h[4]);});}hooks=[];clients=new WeakMap();aliases=[];aliasBytes=0;ordinary=[];priority=[];ordinaryAt=0;priorityAt=0;}
-  function forget(record){if(active)observe(8,record,null,0,0,0,0,true);detach(record);var at=lists.indexOf(record);if(at>=0)lists.splice(at,1);if(record[2] && refs.get(record[2])===record)refs.delete(record[2]);record[1]=null;record[3]=null;}
+  function forget(record){record[14]++;if(active)observe(8,record,null,0,0,0,0,true);detach(record);var at=lists.indexOf(record);if(at>=0)lists.splice(at,1);if(record[2] && refs.get(record[2])===record)refs.delete(record[2]);record[1]=null;record[3]=null;}
   function forward(ref,context,args){if(typeof ref==="function")return ref.apply(context,args);if(ref)ref.current=args[0];}
-  function register(record,node){if(!node){forget(record);return;}if(lists.indexOf(record)<0){if(lists.length>=2){forget(record);return;}lists.push(record);}record[3]=node;if(active)attach(record);}
+  function register(record,node){if(!node){forget(record);return;}if(lists.indexOf(record)<0){if(lists.length>=2){forget(record);return;}lists.push(record);}record[14]++;record[3]=node;if(active)attach(record);}
   function renderList(type,props){var store=this,copy=props;safe(function(){var ref=props && props.ref;if(!store || typeof store.getState!=="function" || !ref || (typeof ref!=="object" && typeof ref!=="function"))return;
-    var record=refs.get(ref);if(!record || record[1]!==store){if(next>=10000000)return;record=[];record.push(++next,store,ref,null,null,null,null,0,null,null,null,null,0,false);
-      record[4]=function(node){var value=forward(record[2],this,arguments);safe(function(){register(record,node);});if(typeof value==="function")return function(){try{return value.apply(this,arguments);}finally{safe(function(){forget(record);});}};return value;};refs.set(ref,record);}
+    var record=refs.get(ref);if(!record || record[1]!==store){if(next>=10000000)return;record=[];record.push(++next,store,ref,null,null,null,null,0,null,null,null,null,0,false,0);
+      record[4]=function(node){var value=forward(record[2],this,arguments);safe(function(){register(record,node);});var mounted=record[14];if(typeof value==="function")return function(){try{return value.apply(this,arguments);}finally{safe(function(){if(record[14]===mounted)forget(record);});}};return value;};refs.set(ref,record);}
     copy=Object.assign({},props);copy.ref=record[4];});return nativeJSX(type,copy);}
   function ordered(buffer,at){return buffer.slice(at).concat(buffer.slice(0,at));}
   function snapshot(rows){
-    var began=clock(),count=0,total=0,budget=Math.min(config[6],config[7]);for(var j=0;j<lists.length && j<config[2];j++){
+    var began=clock(),count=0,total=0,budget=Math.min(config[6],config[7]);if(!lists.length)rows.push(row(6,elapsed(),8,0,0,2,0,0,0));for(var j=0;j<lists.length && j<config[2];j++){
       if((clock()-began)*1000>=budget){rows.push(row(6,elapsed(),0,0,0,4,count,total,0));break;}
       var s=lists[j],revision=s[7],state=null,list=null,lines=null,data=null,status=0;
       safe(function(){state=s[1].getState();lines=state.lines;});
@@ -92,10 +92,10 @@ function install() {
     capturing=true;var rows=ordered(ordinary,ordinaryAt).concat(ordered(priority,priorityAt));
     // First transfer contains frozen history before any current-state read.
     var header=row(0,elapsed(),0,0,0,0,skipped,urgentSkipped,evicted);rows.unshift(header);
-    var part=0,wire=0,began=clock(),snapshotDone=false,maxParts=Math.max(1,Math.floor((config[5]-100)*config[10]/1000));
+    var part=0,wire=0,began=clock(),snapshotDone=false,maxParts=Math.max(1,1+Math.floor((config[5]-100)*config[10]/1000));
     function send(){captureTimer=null;if(g!==generation || seq!==sequence || !capturing)return;
       var remaining=rows.length,chunk=rows.splice(0,64),final=snapshotDone && rows.length===0;
-      if(part+1>=maxParts || clock()-began>=config[5]-100){final=true;rows=[];chunk.push(row(6,elapsed(),0,0,0,16,remaining,0,0));}
+      if(!final && (part+1>=maxParts || clock()-began>=config[5]-100)){final=true;rows=[];chunk.push(row(6,elapsed(),0,0,0,16,remaining,0,0));}
       var packet=[];packet.push(1,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
       var accepted=payload.length<=8192 && wire<=config[15] && safe(function(){return bridge.report(epoch,g,seq,payload);});
       part++;

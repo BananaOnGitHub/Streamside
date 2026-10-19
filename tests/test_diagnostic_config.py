@@ -67,7 +67,9 @@ int main(void){
  for(unsigned preset=0;preset<4;preset++){
   diagnostic_select_option(true,preset);
   assert(!diagnostic_custom_selected());
-  assert(diagnostic_settings_sections(0,0,0)==3);
+  assert(diagnostic_settings_sections(0,0,0)==4);
+  assert(!strcmp(diagnostic_settings_header(0,0,0,3),"Investigations"));
+  assert(diagnostic_settings_rows(0,0,0,3)==1);
   assert(diagnostic_settings_rows(0,0,0,0)==1 && diagnostic_settings_rows(0,0,0,1)==1);
   assert(!strcmp(diagnostic_settings_header(0,0,0,2),"Report"));
   assert(diagnostic_settings_rows(0,0,0,2)==(TAS_EMOTE_DIAGNOSTIC?4:3));
@@ -82,7 +84,9 @@ int main(void){
  assert(strstr(diagnostic_settings_footer(0,0,0,1),"relaunch"));
  assert(!strcmp(diagnostic_settings_footer(0,0,0,0),"General and Chat diagnostics for messages and redemptions."));
  diagnostic_select_option(true,TAS_DIAG_CUSTOM);assert(saved==(289|512));
- assert(diagnostic_settings_sections(0,0,0)==4);
+ assert(diagnostic_settings_sections(0,0,0)==5);
+ assert(!strcmp(diagnostic_settings_header(0,0,0,4),"Investigations"));
+ assert(diagnostic_settings_rows(0,0,0,4)==1);
  assert(diagnostic_settings_rows(0,0,0,2)==6);
  assert(!strcmp(diagnostic_settings_header(0,0,0,2),"Categories"));
  assert(!strcmp(diagnostic_settings_header(0,0,0,3),"Report"));

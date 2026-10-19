@@ -180,3 +180,59 @@ seam bytes with poisoned r39, proving the retained store binding, one original
 JSX call, and correct dormant fallback. Registers 36/37/41 are unused after
 the seam; branch relocation and all unaffected functions remain verified.
 This correction is preserved here rather than rewriting checkpoint B history.
+
+## Checkpoint E — native controls and development candidate
+
+The independent Diagnostics → Investigations page exposes actual state,
+Arm, Capture Snapshot, Stop, an optional in-chat Capture button, and explicit
+copy/share of the one retained numeric report. No preset change or chat reopen
+is requested. The button is a fixed native control added to the page's existing
+app window: no new key window, safe-area change, focus command, React insertion
+or transcript layout operation. It requests capture before changing its own
+title and never opens reporting UI automatically. Only the button's rectangle
+accepts its touches. Orientation positioning uses the native autoresizing mask.
+Background notification requests Stop and removes the button. Commands and
+acks update the page through the main queue, without an armed polling timer.
+Keyboard, accessibility, hit testing and rotation still require device checks.
+
+Registry revision 2 narrows the selected event families to actual compiled
+adapters; revision 1 stays historical. The shipped report names remaining
+coverage gaps, partial sampling and unknown sizes. A direct reward-store call
+does not independently prove PubSub provenance. Native export retains only
+numeric columns, not the wire string. Copy/share is explicitly user triggered;
+there is no upload or persistent automatic report file.
+
+The ordinary build now refuses stale/missing compiled runtime evidence. The
+committed receipt fingerprints production native/JS/graft inputs, patch-chain
+payloads, registry, runner source and executable fixtures. It records actual
+pinned donor/Hermes replay, while allowing a clean CI build to check that
+recorded proof without distributing the donor. A receipt is not a signature or
+device attestation. Refreshing it requires the exact donor and toolchain.
+
+Candidate identity is 3.1.0-build.19, separate from the historical build.18
+baseline. Public feature/release documentation remains at its maintained
+release scope until feature freeze; these development findings own the trial.
+
+### Final local validation
+
+The full suite ran 210 tests: 208 passed and the two Apple-only integration
+checks (Foundation and ImageIO) skipped on WSL. Exact donor settings binding
+and the compiled Hermes virtualization pipeline ran with all required inputs.
+The new investigation gate passed both original and functional predecessors,
+including deep donor getter mutation traps and the actual scoped JSX seam.
+The production native report parser receives the compiled recorder's packets
+through the host fixture, including a fully occupied eight-batch capture with
+both ordinary and priority rings saturated. A full final batch is distinguished
+from actual transfer truncation. Missing, stale and incomplete build receipts
+are rejected. Both parsers survived 20,000 malformed inputs each under Address
+and Undefined Behavior sanitizers. Native Mach-O, framework receipts and
+documentation/version checks passed.
+
+This is a device-test development candidate, not device acceptance. Still
+required: install/sign on the intended iOS device; establish the real RCT
+startup round-trip; arm after chat has already mounted; remain armed during
+a normal long session; capture without leaving the stream or dismissing the
+keyboard; check focus, scrolling, accessibility, overlay hit testing and
+rotation; reproduce ordinary/own/reward scenarios; repeat capture/Stop and
+background/foreground cycles; inspect the exported numeric report. No
+Apple/device performance or compatibility pass is claimed from host results.

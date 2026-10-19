@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "registry_version": 1,
+  "registry_version": 2,
   "entries": [
     {
       "id": "rn-chat-gaps",
-      "manifest_version": 1,
-      "path": "diagnostics/investigations/rn-chat-gaps/1.json",
-      "sha256": "5cece99c2572ee359b33f06231425ac71054f2b297bc8f9b835b71c9da88a173"
+      "manifest_version": 2,
+      "path": "diagnostics/investigations/rn-chat-gaps/2.json",
+      "sha256": "96836cc5491c68d475c436caff9a4862db402f74cb3d35342c8dc88c184fbb28"
     }
   ]
 }

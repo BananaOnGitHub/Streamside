@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 ROOT=Path(__file__).resolve().parent.parent
-MANIFEST=ROOT/'diagnostics/investigations/rn-chat-gaps/1.json'
+MANIFEST=ROOT/'diagnostics/investigations/rn-chat-gaps/2.json'
 class Manifest(C.Structure):
     _fields_=[('version',C.c_uint32),('capabilities',C.c_uint32),('events',C.c_uint32),('limits',C.c_uint32*14),('return_armed',C.c_bool),('title',C.c_char*65),('description',C.c_char*257)]
 class Donor(C.Structure):
@@ -60,7 +60,7 @@ class InvestigationTests(unittest.TestCase):
         cmd=Command();self.assertTrue(self.lib.tas_inv_begin(op,now,C.byref(cmd)));return cmd
     def ack(self,cmd,ok=True):self.assertTrue(self.lib.tas_inv_ack(cmd.generation,cmd.sequence,cmd.operation,ok))
     def test_valid_manifest_and_narrower_limits_event_selection(self):
-        ok,m=self.parse(self.raw);self.assertTrue(ok);self.assertEqual((m.capabilities,m.events),(7,1023));self.assertTrue(m.return_armed)
+        ok,m=self.parse(self.raw);self.assertTrue(ok);self.assertEqual((m.capabilities,m.events),(7,375));self.assertTrue(m.return_armed)
         smaller=copy.deepcopy(self.default);smaller['capabilities'].pop();smaller['sampling']['events']=['emission','list'];smaller['activation']['after_capture']='dormant'
         smaller['limits']={k:1 for k in smaller['limits']};smaller['report']['max_bytes']=1
         ok,m=self.parse(smaller);self.assertTrue(ok);self.assertEqual((m.capabilities,m.events),(3,258));self.assertFalse(m.return_armed)

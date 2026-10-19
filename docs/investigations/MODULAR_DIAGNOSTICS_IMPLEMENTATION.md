@@ -316,3 +316,16 @@ predecessors, including startup failure masks, getter mutation traps, the scoped
 list seam, saturated recorder/capture transport and teardown. Native artifacts,
 receipt freshness and documentation/version checks passed. Live iOS scheduling
 and resolution of the reported failure still require the next device run.
+
+Build-20 candidate source: `5d8f165293ff14f45d0bb072a0177c2fdf9b4336`.
+The unsigned IPA passed package verification; its framework bytes match the
+verified receipt, its original donor HBC is unchanged, and all three donor
+UUID/text identities still match the admission profile.
+
+- IPA SHA-256: `17693badb7685abca0435356ef9e5f95b873103bea322f1d13058f815c544378`.
+- Framework binary SHA-256: `1bca6ed167ad16cc849fca1f65b834ab7e0b4b165829e60569b8d5c92aa229f5`.
+
+The workspace artifacts directory contains the IPA, checksum,
+`build20-validation.json` and `BUILD20_TESTING.md`. Build 19 remains intact.
+The next device result should include Copy Runtime Status if Unsupported
+persists; no claim of resolved device startup is made before that test.

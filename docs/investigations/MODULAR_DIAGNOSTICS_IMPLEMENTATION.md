@@ -256,3 +256,63 @@ The candidate requires signing before installation. No device run, release,
 push, merge or publication was performed. Coverage masks record adapters
 installed during an arm session, not proof of complete observation of every
 scope; missing observations remain inconclusive.
+
+## Build 20 — startup ordering and device failure evidence
+
+Device feedback for build 19 confirms ordinary Twitch chat works while the
+Investigations controls remain Unsupported after Refresh Status and stream
+changes. The copied report identifies exact Twitch 31.6.2 build
+262872150334984303 and all six existing functional RN admission flags are 1.
+This excludes a simple failure of the existing source/functional patch chain;
+it does not prove the separate investigation graft or native admission passed.
+Build 19 omitted investigation startup state from that report, so the device's
+exact failed stage remains undetermined. Chat/composer visibility is not an
+admission input. No off-screen-layout diagnosis is claimed.
+
+One startup ordering defect is reproduced and corrected: native `ready` used
+to return zero if callableJSModules had not arrived, permanently leaving the
+JS epoch at zero. Now `ready` can bind the verified source/ABI first and retain
+its dormant scope-registration seam. Arrival of the exact admitted callable
+triggers one startup probe. Callable-first and ready-first order both work;
+the coordinator remains Unsupported until the probe ACK. No timer polls,
+arbitrary JS entry, capability bypass, activation or chat remount is added.
+Queued probes carry their source epoch; stale/expired probes and acknowledgments
+before a probe has been scheduled do not admit the runtime.
+
+Native startup records fixed numeric stages, profile checks, source/graft
+admission, API availability, ready attempts, callable availability and probe
+state. These are available through Copy Runtime Status even without a capture,
+and in the General diagnostic report independently of the selected preset.
+The copied fingerprints are executable UUIDs/text digests, not chat/room/user
+identities. JS reports one bounded startup mask; bootstrap exceptions become
+code 256 and never include exception text. All startup counters saturate.
+
+Native stage: 1 registry, 2 native profile, 3 callable ABI, 4 callable owner,
+5 registration API, 6 allocation, 7 class setup, 8 registered. Profile bits:
+1 dyld APIs, 2 declared donor metadata, 4 main parsed, 8 React parsed, 16 Hermes
+parsed, 32 main/Hermes identity match, 64 React UUID, 128 React text digest.
+Source stages: 0 missing hook, 1 installed, 2 observed, 3 graft admitted,
+4 graft refused. Startup-mask bits: 1 ready, 2 ack, 4 report, 8 JSX,
+16 callable registration, 32 WeakMap, 64 Map, 128 monotonic clock; 256 exception.
+Ready-result 1 is rejected; 2 is accepted while awaiting verified round-trip.
+
+Validation includes the production native ready/setter/probe/ACK functions in
+a host Objective-C lifetime facade, both dependency orders, wrong API/caps,
+missing donor readiness, foreign callable class, duplicate ready, premature
+ACK, source replacement and expired queued probes. Compiled Hermes executes
+the new missing-API and exception paths on both exact predecessors. This
+reproduces the ordering defect in host tests; it does not establish that the
+ordering defect caused the reported device failure. Build 20 must be tested
+on the device, with its copied startup status if Unsupported persists.
+
+The handshake watchdog is scheduled when ready is accepted, including when
+the callable has not arrived. Thus absence of the dependency cannot leave an
+unwatched pending handshake. This remains a one-shot startup deadline; it is
+cancelled after the acknowledgment and adds no armed-session polling.
+
+Build-20 local validation: 211 tests ran, 209 passed and two Apple-only checks
+skipped (Foundation and ImageIO). Exact donor/Hermes validation passed both
+predecessors, including startup failure masks, getter mutation traps, the scoped
+list seam, saturated recorder/capture transport and teardown. Native artifacts,
+receipt freshness and documentation/version checks passed. Live iOS scheduling
+and resolution of the reported failure still require the next device run.

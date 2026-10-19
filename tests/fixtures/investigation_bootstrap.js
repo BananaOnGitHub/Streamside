@@ -2,7 +2,7 @@ var global=_runtimeGlobal, calls=[], registered={}, jsxCalls=0, reads=0, refCall
 function check(x,why){if(!x)throw new Error(why);}
 var nativeJSX=function(type,props){jsxCalls++;return {type:type,props:props};};
 global.performance={now:function(){return 1000;}};
-var bridge={report:function(){return 1;},ready:function(abi,caps){check(abi===1,"ABI");calls.push([abi,caps]);return 1;},ack:function(epoch,generation,sequence,operation,success){calls.push([epoch,generation,sequence,operation,success]);}};
+var bridge={startup:function(mask){check(mask===255,"startup API availability");},report:function(){return 1;},ready:function(abi,caps){check(abi===1,"ABI");calls.push([abi,caps]);return 1;},ack:function(epoch,generation,sequence,operation,success){calls.push([epoch,generation,sequence,operation,success]);}};
 var map={};map.StreamsideInvestigation=bridge;
 var modules={16:{default:map},245:{jsx:nativeJSX},1:function(x){return {default:x};},17:{},72:{memo:function(fn){return fn;}},5:{StyleSheet:{create:function(x){return x;}}}};
 global.__r=function(id){return modules[id];};

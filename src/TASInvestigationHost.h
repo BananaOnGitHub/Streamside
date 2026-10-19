@@ -9,5 +9,7 @@ bool tas_inv_host_sha256(const void *, size_t, unsigned char[32]) __attribute__(
 void tas_inv_host_source_admitted(void) __attribute__((weak));
 bool tas_inv_host_request(unsigned operation) __attribute__((weak));
 void tas_inv_host_status(char *, size_t) __attribute__((weak));
+void tas_inv_host_explanation(char *, size_t) __attribute__((weak));
+void tas_inv_host_source_checked(unsigned) __attribute__((weak));
 void tas_emotes_install_investigation_bootstrap(void);
 #endif

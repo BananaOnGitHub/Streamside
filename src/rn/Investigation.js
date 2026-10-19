@@ -2,8 +2,13 @@
  * Numeric wire rows: kind,time,family,scope,label,flags,a,b,c.
  * Private bounded aliases never cross the bridge. No message contents read. */
 function install() {
+  var bridge=null;try{
   var name=String.fromCharCode(83,116,114,101,97,109,115,105,100,101,73,110,118,101,115,116,105,103,97,116,105,111,110);
   var modules=__r(16).default,nativeJSX=__r(245).jsx,bridge=modules && modules[name];
+  if(bridge && typeof bridge.startup==="function"){
+    var available=(typeof bridge.ready==="function"?1:0)|(typeof bridge.ack==="function"?2:0)|(typeof bridge.report==="function"?4:0)|(typeof nativeJSX==="function"?8:0)|(typeof global.RN$registerCallableModule==="function"?16:0)|(typeof WeakMap==="function"?32:0)|(typeof Map==="function"?64:0)|(global.performance && typeof global.performance.now==="function"?128:0);
+    bridge.startup(available);
+  }
   if(!bridge || typeof bridge.ready!=="function" || typeof bridge.ack!=="function" || typeof bridge.report!=="function" || typeof nativeJSX!=="function" || typeof global.RN$registerCallableModule!=="function" || typeof WeakMap!=="function" || typeof Map!=="function" || !global.performance || typeof global.performance.now!=="function")return null;
   var refs=new WeakMap(),lists=[],next=0,epoch=0,active=false,generation=0,sequence=0,config=null,hooks=[],clients=new WeakMap();
   var ordinary=[],priority=[],ordinaryAt=0,priorityAt=0,aliases=[],aliasBytes=0,labels=0,skipped=0,urgentSkipped=0,evicted=0,errors=0,coverage=0;
@@ -120,4 +125,5 @@ function install() {
     bridge.ack(epoch,g,seq,operation,false);
   }
   var methods={};methods.command=command;global.RN$registerCallableModule(name,function(){return methods;});epoch=bridge.ready(1,7);return epoch?renderList:null;
+  }catch(error){try{if(bridge && typeof bridge.startup==="function")bridge.startup(256);}catch(ignored){}return null;}
 }

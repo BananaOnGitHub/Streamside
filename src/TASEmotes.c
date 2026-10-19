@@ -2309,6 +2309,7 @@ static id rn_source_data(id self, SEL command) {
         pthread_mutex_unlock(&g_rn_width_lock);
         return cached ?: data;
     }
+    if(tas_inv_host_source_checked)tas_inv_host_source_checked(2);
     size_t count=0;
     unsigned char *patch=NULL;
     bool width=false, local=false, composer=false, popup=false,strip=false,inv=false;
@@ -2342,6 +2343,7 @@ static id rn_source_data(id self, SEL command) {
             size_t input_length=patch ? count : length,inv_count=0;
             unsigned char *inv_patch=tas_rn_investigation_patch(input,input_length,sha1,tas_inv_host_sha256,&inv_count);
             if(inv_patch){free(patch);patch=inv_patch;count=inv_count;inv=true;}
+            else if(tas_inv_host_source_checked)tas_inv_host_source_checked(4);
         }
     }
     if (patch) {
@@ -2391,7 +2393,9 @@ static void install_rn_width(void) {
         }
         free(methods);
     }
+    bool installed=g_rn_source_data!=NULL;
     pthread_mutex_unlock(&g_rn_install_lock);
+    if(tas_inv_host_source_checked)tas_inv_host_source_checked(installed?1:0);
 }
 
 void tas_emotes_install_investigation_bootstrap(void){if(tas_inv_host_supported && tas_inv_host_supported())install_rn_width();}

@@ -1,5 +1,6 @@
 #include "TASDiagnostics.h"
 #include "TASInvestigationUI.h"
+#include "TASInvestigationHost.h"
 #include "TASAnimatedImage.h"
 #include "TASImageDemand.h"
 #include "TASPrivacy.h"
@@ -46,7 +47,7 @@ typedef struct {
 
 #define TAS_DIAGNOSTICS_DIRECTORY "Streamside"
 #define TAS_DIAGNOSTICS_FILENAME "diagnostics-r5.log"
-#define TAS_REPORT_VERSION "3.1.0-build.19"
+#define TAS_REPORT_VERSION "3.1.0-build.20"
 #define TAS_LOADED_NOTICE_KEY "TASLoadedNoticeShown220R8"
 #define TAS_EMOTES_KEY "TASThirdPartyEmotesEnabled"
 
@@ -206,6 +207,7 @@ static id diagnostic_report_create(void) {
         if(!tas_diag_wants(category,TAS_DIAG_SUMMARY))continue;
         char text[8192];snprintf(text,sizeof(text),"\n--- %s ---\n",tas_diag_category_name(category));report_append(report,text);
         if(category==TAS_DIAG_GENERAL) {
+            if(tas_inv_host_status){tas_inv_host_status(text,sizeof(text));report_append(report,text);}
             tas_emotes_status_category(category,text,sizeof(text));report_append(report,text);
             pthread_mutex_lock(&g_diag_lock);uint64_t hls=g_metrics[TAS_DIAG_HLS_FAILURE],tokens=g_metrics[TAS_DIAG_TOKEN_FAILURE];pthread_mutex_unlock(&g_diag_lock);
             snprintf(text,sizeof(text),"Essential failure counters: HLS=%llu access-token=%llu (no playback event details)\n",(unsigned long long)hls,(unsigned long long)tokens);report_append(report,text);

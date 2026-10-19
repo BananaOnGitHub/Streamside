@@ -31,7 +31,18 @@ static ptrdiff_t callable_offset;
 static IMP parent_init, parent_dealloc, admitted_callable;
 static const void *react_image;
 static unsigned source_epoch, ready_caps;
-static bool supported, pong, started;
+static bool supported, pong, started, probe_scheduled;
+static unsigned native_stage, profile_bits, source_stage, startup_mask, startup_calls, ready_calls,
+    ready_result;
+static unsigned get_flag(unsigned *p) { return __atomic_load_n(p, __ATOMIC_ACQUIRE); }
+static void flag(unsigned *p, unsigned value) { __atomic_store_n(p, value, __ATOMIC_RELEASE); }
+static void inc_flag(unsigned *p) {
+    unsigned n = get_flag(p);
+    while (n < 10000000U &&
+           !__atomic_compare_exchange_n(p, &n, n + 1, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) {
+    }
+}
+
 static bool is_supported(void) { return __atomic_load_n(&supported, __ATOMIC_ACQUIRE); }
 static unsigned timer_queued;
 static uint64_t probe_deadline, last_capture;
@@ -145,11 +156,13 @@ static bool native_profile(void) {
     Slide slide = (Slide)dlsym(RTLD_DEFAULT, "_dyld_get_image_vmaddr_slide");
     if (!count || !header || !name || !slide)
         return false;
+    flag(&profile_bits, 1);
     id info = m0(m0((id)objc_getClass("NSBundle"), "mainBundle"), "infoDictionary");
     const char *v = text(m1(info, "objectForKey:", ns("CFBundleShortVersionString"))),
                *b = text(m1(info, "objectForKey:", ns("CFBundleVersion")));
     if (!v || !b || strcmp(v, "31.6.2") || strcmp(b, "262872150334984303"))
         return false;
+    flag(&profile_bits, 3);
     bool main = false, react = false, hermes = false;
     uint32_t n = count();
     if (!n || n > 4096)
@@ -184,6 +197,15 @@ static bool native_profile(void) {
                                  "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
                              .hbc_version = 98,
                              .hbc_bytes = 28682408};
+    unsigned bits = 3U | (main ? 4U : 0U) | (react ? 8U : 0U) | (hermes ? 16U : 0U);
+    if (tas_inv_donor_matches(&evidence))
+        bits |= 32;
+    if (!strcmp(fingerprints[2], "ee15b752fb4635f2b0bba46636572385"))
+        bits |= 64;
+    if (!strcmp(fingerprints[3],
+                "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48"))
+        bits |= 128;
+    flag(&profile_bits, bits);
     return main && react && hermes &&
            !strcmp(fingerprints[2], "ee15b752fb4635f2b0bba46636572385") &&
            !strcmp(fingerprints[3],
@@ -206,12 +228,14 @@ static void instance_dealloc(id self, SEL cmd) {
     objc_destroyWeak(callable_slot(self));
     ((void (*)(id, SEL))parent_dealloc)(self, cmd);
 }
+static void maybe_probe(void);
 static void set_callable(id self, SEL cmd, id callable) {
     (void)cmd;
     Class c = objc_getClass("RCTCallableJSModules");
     if (callable && object_getClass(callable) != c)
         return;
     objc_storeWeak(callable_slot(self), callable);
+    maybe_probe();
 }
 static id get_callable(id self) { return objc_loadWeakRetained(callable_slot(self)); }
 static unsigned bound_epoch(id self) {
@@ -314,8 +338,31 @@ static bool invoke(unsigned operation, unsigned generation, unsigned sequence,
     objc_release(self);
     return true;
 }
+static void probe(void *);
+static void maybe_probe(void) {
+    pthread_mutex_lock(&host_lock);
+    id self = objc_loadWeakRetained(&module_weak), callable = self ? get_callable(self) : nil;
+    bool dispatch = self && callable && bound_epoch(self) == source_epoch && probe_deadline &&
+                    !pong && !probe_scheduled;
+    unsigned epoch = source_epoch;
+    if (dispatch)
+        probe_scheduled = true;
+    pthread_mutex_unlock(&host_lock);
+    if (callable)
+        objc_release(callable);
+    if (self)
+        objc_release(self);
+    if (dispatch)
+        dispatch_async_f(dispatch_get_global_queue(0, 0), (void *)(uintptr_t)epoch, probe);
+}
 static void probe(void *context) {
-    (void)context;
+    unsigned epoch = (unsigned)(uintptr_t)context;
+    pthread_mutex_lock(&host_lock);
+    bool current = epoch == source_epoch && probe_scheduled && probe_deadline &&
+                   now_ms() < probe_deadline && !pong;
+    pthread_mutex_unlock(&host_lock);
+    if (!current)
+        return;
     if (!invoke(0, 0, 0, NULL)) {
         tas_inv_invalidate(TAS_INV_NO_RUNTIME);
         pthread_mutex_lock(&host_lock);
@@ -327,27 +374,48 @@ static void probe(void *context) {
 static id ready(id self, SEL cmd, id abi_value, id caps_value) {
     (void)cmd;
     unsigned version = 0, caps = 0;
+    inc_flag(&ready_calls);
+    flag(&ready_result, 1);
     if (!integer(abi_value, &version) || version != TAS_INV_ABI || !integer(caps_value, &caps) ||
         (caps & ~TAS_INV_HOST_CAPABILITIES))
         return box(0);
-    id callable = get_callable(self);
-    if (!callable)
-        return box(0);
-    objc_release(callable);
     pthread_mutex_lock(&host_lock);
     unsigned epoch = source_epoch, previous = bound_epoch(self);
     if (!is_supported() || !epoch || previous) {
         pthread_mutex_unlock(&host_lock);
         return box(0);
     }
+    flag(&ready_result, 2);
     objc_setAssociatedObject(self, &module_epoch_key, box(epoch), 1);
     objc_storeWeak(&module_weak, self);
     ready_caps = caps;
+    probe_scheduled = false;
     pong = false;
     probe_deadline = now_ms() + 2000;
     pthread_mutex_unlock(&host_lock);
-    dispatch_async_f(dispatch_get_global_queue(0, 0), NULL, probe);
+    maybe_probe();
+    schedule_timer();
     return box(epoch);
+}
+static void startup(id self, SEL cmd, id mask_value) {
+    (void)cmd;
+    unsigned mask = 0;
+    if (!integer(mask_value, &mask) || mask > 256)
+        return;
+    pthread_mutex_lock(&host_lock);
+    bool valid =
+        is_supported() && source_epoch && (!bound_epoch(self) || bound_epoch(self) == source_epoch);
+    pthread_mutex_unlock(&host_lock);
+    if (valid) {
+        inc_flag(&startup_calls);
+        flag(&startup_mask, mask);
+    }
+}
+static const MethodInfo *startup_export(id self, SEL cmd) {
+    (void)self;
+    (void)cmd;
+    static const MethodInfo m = {"startup", "startup:(NSNumber *)mask", NO};
+    return &m;
 }
 static void ack(id self, SEL cmd, id epoch_value, id generation_value, id sequence_value,
                 id operation_value, id success_value) {
@@ -362,8 +430,8 @@ static void ack(id self, SEL cmd, id epoch_value, id generation_value, id sequen
     bool valid = current == self && epoch == source_epoch && bound_epoch(self) == epoch;
     if (current)
         objc_release(current);
-    if (valid && !pong && probe_deadline && now_ms() < probe_deadline && operation == 0 &&
-        generation == 0 && sequence == 0 && success) {
+    if (valid && !pong && probe_scheduled && probe_deadline && now_ms() < probe_deadline &&
+        operation == 0 && generation == 0 && sequence == 0 && success) {
         pong = true;
         probe_deadline = 0;
         unsigned caps = ready_caps;
@@ -486,33 +554,46 @@ void tas_inv_host_initialize(void) {
     started = true;
     objc_initWeak(&module_weak, nil);
     pthread_mutex_unlock(&host_lock);
-    if (!tas_inv_initialize(tas_inv_host_sha256) || !native_profile())
+    flag(&native_stage, 1);
+    if (!tas_inv_initialize(tas_inv_host_sha256))
         return;
+    flag(&native_stage, 2);
+    if (!native_profile())
+        return;
+    flag(&native_stage, 3);
     Class callable = objc_getClass("RCTCallableJSModules");
     if (!abi(callable, "invokeModule:method:withArgs:onComplete:", "v48@0:8@16@24@32@?40"))
         return;
     admitted_callable = class_getMethodImplementation(
         callable, sel_registerName("invokeModule:method:withArgs:onComplete:"));
+    flag(&native_stage, 4);
     Dl_info owner;
     if (!dladdr((const void *)admitted_callable, &owner) || owner.dli_fbase != react_image ||
         (uintptr_t)admitted_callable - (uintptr_t)react_image != 0x7eaecU)
         return;
 
+    flag(&native_stage, 5);
     void (*register_module)(Class) = (void (*)(Class))dlsym(RTLD_DEFAULT, "RCTRegisterModule");
     void *protocol = objc_getProtocol("RCTBridgeModule");
     Class parent = objc_getClass("NSObject");
     if (!register_module || !protocol || !parent || objc_getClass("TASInvestigationModule"))
         return;
+    flag(&native_stage, 6);
     Class cls = objc_allocateClassPair(parent, "TASInvestigationModule", 0),
           clock = objc_allocateClassPair(parent, "TASInvestigationClock", 0);
     if (!cls || !clock)
         return;
+    flag(&native_stage, 7);
     bool ok = class_addIvar(cls, "_tasCallable", sizeof(id), 3, "@") &&
               class_addProtocol(cls, protocol) &&
               class_addMethod(cls, sel_registerName("init"), (IMP)instance_init, "@16@0:8") &&
               class_addMethod(cls, sel_registerName("dealloc"), (IMP)instance_dealloc, "v16@0:8") &&
               class_addMethod(cls, sel_registerName("setCallableJSModules:"), (IMP)set_callable,
                               "v24@0:8@16") &&
+              class_addMethod(cls, sel_registerName("startup:"), (IMP)startup, "v24@0:8@16") &&
+              class_addMethod(object_getClass((id)cls),
+                              sel_registerName("__rct_export__investigationStartup"),
+                              (IMP)startup_export, "^v16@0:8") &&
               class_addMethod(cls, sel_registerName("ready:capabilities:"), (IMP)ready,
                               "@32@0:8@16@24") &&
               class_addMethod(cls, sel_registerName("ack:generation:sequence:operation:success:"),
@@ -547,9 +628,15 @@ void tas_inv_host_initialize(void) {
     target = m0(m0((id)clock, "alloc"), "init");
     register_module(cls);
     __atomic_store_n(&supported, true, __ATOMIC_RELEASE);
+    flag(&native_stage, 8);
 }
 bool tas_inv_host_supported(void) { return __atomic_load_n(&supported, __ATOMIC_ACQUIRE); }
 void tas_inv_host_source_admitted(void) {
+    flag(&source_stage, 3);
+    flag(&startup_mask, 0);
+    flag(&startup_calls, 0);
+    flag(&ready_calls, 0);
+    flag(&ready_result, 0);
     pthread_mutex_lock(&host_lock);
     if (source_epoch < 10000000)
         source_epoch++;
@@ -557,6 +644,7 @@ void tas_inv_host_source_admitted(void) {
         __atomic_store_n(&supported, false, __ATOMIC_RELEASE);
     objc_storeWeak(&module_weak, nil);
     pong = false;
+    probe_scheduled = false;
     probe_deadline = 0;
     pthread_mutex_unlock(&host_lock);
     tas_inv_report_interrupt();
@@ -583,11 +671,53 @@ bool tas_inv_host_request(unsigned operation) {
     schedule_timer();
     return ok;
 }
+void tas_inv_host_source_checked(unsigned phase) {
+    if (phase > 4)
+        return;
+    unsigned old = get_flag(&source_stage);
+    if (phase >= 2 || old < 2)
+        flag(&source_stage, phase);
+}
+void tas_inv_host_explanation(char *buffer, size_t capacity) {
+    const char *message = "The chat integration has not started yet.";
+    unsigned stage = get_flag(&native_stage), source = get_flag(&source_stage),
+             mask = get_flag(&startup_mask), result = get_flag(&ready_result);
+    if (stage > 0 && stage < 8)
+        message = "The native startup check failed. Copy Runtime Status for details.";
+    else if (source == 4)
+        message = "The chat bundle was not admitted. Copy Runtime Status for details.";
+    else if (source == 3 && !mask)
+        message = "The chat bootstrap has not reported ready. Copy Runtime Status for details.";
+    else if (mask == 256)
+        message = "The chat bootstrap failed. Copy Runtime Status for details.";
+    else if (get_flag(&startup_calls) && mask != 255)
+        message = "The chat bootstrap is missing a required API. Copy Runtime Status for details.";
+    else if (result == 1)
+        message = "The chat startup request was rejected. Copy Runtime Status for details.";
+    else if (result == 2)
+        message =
+            "The chat command connection is not established. Copy Runtime Status for details.";
+    snprintf(buffer, capacity, "%s", message);
+}
 void tas_inv_host_status(char *buffer, size_t capacity) {
     TASInvStatus s = tas_inv_status();
     pthread_mutex_lock(&host_lock);
-    snprintf(buffer, capacity, "%s: %s; native=%u source=%u channel=%u; generation=%u pending=%u",
+    id self = objc_loadWeakRetained(&module_weak), callable = self ? get_callable(self) : nil;
+    snprintf(buffer, capacity,
+             "Investigation runtime / 3.1.0-build.20\nstate=%s reason=%s native=%u native-stage=%u "
+             "profile-bits=%u source-stage=%u epoch=%u\nstartup-mask=%u startup-calls=%u "
+             "ready-calls=%u ready-result=%u "
+             "module=%u callable=%u probe-scheduled=%u pong=%u generation=%u pending=%u\n"
+             "main=%s/%s\nreact=%s/%s\nhermes=%s/%s\n",
              tas_inv_state_name(s.state), tas_inv_reason_name(s.reason), is_supported() ? 1 : 0,
-             source_epoch, pong ? 1 : 0, s.generation, s.pending);
+             get_flag(&native_stage), get_flag(&profile_bits), get_flag(&source_stage),
+             source_epoch, get_flag(&startup_mask), get_flag(&startup_calls),
+             get_flag(&ready_calls), get_flag(&ready_result), self ? 1 : 0, callable ? 1 : 0,
+             probe_scheduled ? 1 : 0, pong ? 1 : 0, s.generation, s.pending, fingerprints[0],
+             fingerprints[1], fingerprints[2], fingerprints[3], fingerprints[4], fingerprints[5]);
+    if (callable)
+        objc_release(callable);
+    if (self)
+        objc_release(self);
     pthread_mutex_unlock(&host_lock);
 }

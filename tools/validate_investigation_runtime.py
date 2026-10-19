@@ -19,7 +19,7 @@ if '--check' not in sys.argv:
     from validate_investigation_getters import run_getter_gate,run_seam_gate
     from validate_rn_snapshot import patch_chain,test_entry,compile_js
 
-INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js','src/TASInvestigationUI.c','src/TASInvestigationUI.h','src/TASInvestigation.c','src/TASInvestigation.h','src/TASInvestigationRegistry.h']
+INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js','src/TASInvestigationUI.c','src/TASInvestigationUI.h','src/TASInvestigation.c','src/TASInvestigation.h','src/TASInvestigationRegistry.h','src/TASInvestigationHost.h','src/TASEmotes.c','src/TASDiagnostics.c','tests/test_investigation_startup.py','tests/fixtures/investigation_startup.js']
 def fingerprints():
     names=set(INPUTS)
     for pattern in ['src/TASRN*Patch.h','src/TASRN*Payload.h','src/TASRN*Layout.h']:
@@ -84,6 +84,10 @@ def validate(a):
             patched=graft(body,tmp);structure(body,patched)
             run_seam_gate(patched,a.hermesc,a.runner,native,tmp)
             (tmp/'entry.hbc').write_bytes(test_entry(patched,a.hermesc,tmp,base))
+            (tmp/'startup.js').write_text(fixture+'\n'+(ROOT/'tests/fixtures/investigation_startup.js').read_text()+'\nexerciseStartup(buildLocalEcho);\n');compile_js(a.hermesc,tmp/'startup.js',tmp/'startup.hbc')
+            result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'startup.hbc')],capture_output=True,text=True)
+            assert result.returncode==0,result.stderr
+            print(label+': missing APIs and bootstrap exceptions fail closed with numeric startup evidence')
             (tmp/'exercise.js').write_text(fixture+'\nexerciseBootstrap(buildLocalEcho());\n');compile_js(a.hermesc,tmp/'exercise.js',tmp/'exercise.hbc')
             result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'exercise.hbc')],capture_output=True,text=True)
             assert result.returncode==0,result.stderr

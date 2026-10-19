@@ -139,7 +139,7 @@ static long rows(id self, SEL cmd, id table, long section) {
     (void)self;
     (void)cmd;
     (void)table;
-    return section ? 3 : 5;
+    return section ? 4 : 5;
 }
 static id header(id self, SEL cmd, id table, long section) {
     (void)self;
@@ -189,6 +189,8 @@ static id cell(id self, SEL cmd, id table, id path) {
                     ? "The investigation configuration failed validation."
                     : "The chat runtime is not ready for this session.";
             snprintf(status, sizeof(status), "%s", message);
+            if (state.state == TAS_INV_UNSUPPORTED && tas_inv_host_explanation)
+                tas_inv_host_explanation(status, sizeof(status));
             detail = status;
             enabled = false;
         } else if (row == 1) {
@@ -207,7 +209,10 @@ static id cell(id self, SEL cmd, id table, id path) {
             enabled = visible || (state.state == TAS_INV_ARMED && !state.pending);
         }
     } else
-        name = row == 0 ? "Export Capture" : row == 1 ? "Copy Capture" : "Refresh Status";
+        name = row == 0   ? "Export Capture"
+               : row == 1 ? "Copy Capture"
+               : row == 2 ? "Refresh Status"
+                          : "Copy Runtime Status";
     m1(m0(c, "textLabel"), "setText:", ns(name));
     if (detail)
         m1(m0(c, "detailTextLabel"), "setText:", ns(detail));
@@ -274,6 +279,12 @@ static void select_row(id self, SEL cmd, id table, id path) {
         }
     } else if (row < 2)
         export_report(self, table, path, row == 1);
+    else if (row == 3 && tas_inv_host_status) {
+        char status[1024];
+        tas_inv_host_status(status, sizeof(status));
+        m1(m0((id)objc_getClass("UIPasteboard"), "generalPasteboard"), "setString:", ns(status));
+        notice(self, "The runtime startup status was copied.");
+    }
     tas_inv_ui_changed();
 }
 static bool initialize(void) {

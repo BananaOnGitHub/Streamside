@@ -150,7 +150,7 @@ size_t tas_inv_report_format(char *out, size_t cap) {
         }                                                                                          \
         used += (size_t)z;                                                                         \
     } while (0)
-    ADD("Streamside 3.1.0-build.19 development / numeric-chat-v1\nDonor Twitch 31.6.2 "
+    ADD("Streamside 3.1.0-build.20 development / numeric-chat-v1\nDonor Twitch 31.6.2 "
         "(262872150334984303), HBC98, runtime ABI1\nManifest SHA256: %s\nCapture "
         "generation=%u sequence=%u rows=%u wire_bytes=%u complete=%u interrupted=%u\n",
         TAS_INV_MANIFEST_SHA256, generation, sequence, count, wire, complete, interrupted);

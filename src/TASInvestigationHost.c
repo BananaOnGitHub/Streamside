@@ -1,4 +1,5 @@
 #include "TASInvestigationHost.h"
+#include "TASInvestigationReport.h"
 #include <dispatch/dispatch.h>
 #include <dlfcn.h>
 #include <mach-o/loader.h>
@@ -31,13 +32,14 @@ static const void *react_image;
 static unsigned source_epoch, ready_caps;
 static bool supported, pong, started;
 static unsigned timer_queued;
-static uint64_t probe_deadline;
+static uint64_t probe_deadline, last_capture;
 static char module_epoch_key;
 static TASInvDonor evidence;
 static char fingerprints[8][65];
 static const char *const module_name = "StreamsideInvestigation";
-/* Capabilities remain unavailable until their recorder/snapshot checkpoints. */
-#define TAS_INV_HOST_CAPABILITIES 0U
+/* Compiled snapshot, lifecycle and reward-route adapters. Per-field coverage
+ * remains explicit when a mounted donor handle is unavailable. */
+#define TAS_INV_HOST_CAPABILITIES 6U
 static id m0(id o, const char *s) { return ((id(*)(id, SEL))objc_msgSend)(o, sel_registerName(s)); }
 static id m1(id o, const char *s, id a) {
     return ((id(*)(id, SEL, id))objc_msgSend)(o, sel_registerName(s), a);
@@ -216,6 +218,14 @@ static unsigned bound_epoch(id self) {
     return n;
 }
 static void update_timer(void);
+static bool invoke(unsigned, unsigned, unsigned, const TASInvManifest *);
+static void emergency_stop(void) {
+    TASInvStatus s = tas_inv_status();
+    tas_inv_report_interrupt();
+    if (s.generation < UINT32_MAX && s.sequence < UINT32_MAX)
+        invoke(TAS_INV_STOP, s.generation + 1, s.sequence + 1, NULL);
+}
+
 static void schedule_timer(void) {
     if (__atomic_exchange_n(&timer_queued, 1, __ATOMIC_ACQ_REL))
         return;
@@ -235,8 +245,10 @@ static void timeout(id self, SEL cmd, id fired) {
         expired = true;
     }
     pthread_mutex_unlock(&host_lock);
-    if (expired)
+    if (expired) {
         tas_inv_invalidate(TAS_INV_TIMEOUT);
+        emergency_stop();
+    }
     update_timer();
 }
 static void update_timer(void) {
@@ -356,9 +368,50 @@ static void ack(id self, SEL cmd, id epoch_value, id generation_value, id sequen
         return;
     }
     pthread_mutex_unlock(&host_lock);
-    if (valid)
-        tas_inv_ack(generation, sequence, operation, success != 0);
+    if (valid) {
+        if (operation == TAS_INV_CAPTURE && success &&
+            !tas_inv_report_complete(generation, sequence))
+            success = 0;
+        bool accepted = tas_inv_ack(generation, sequence, operation, success != 0);
+        if (accepted && !success)
+            emergency_stop();
+    }
     schedule_timer();
+}
+static id report(id self, SEL cmd, id epoch_value, id generation_value, id sequence_value,
+                 id payload) {
+    (void)cmd;
+    unsigned epoch = 0, g = 0, s = 0;
+    if (!integer(epoch_value, &epoch) || !integer(generation_value, &g) ||
+        !integer(sequence_value, &s) || !kind(payload, "NSString") ||
+        ((unsigned long (*)(id, SEL))objc_msgSend)(payload, sel_registerName("length")) > 8192)
+        return box(0);
+    const char *bytes = text(payload);
+    if (!bytes)
+        return box(0);
+    size_t n = strnlen(bytes, 8193);
+    if (!n || n > 8192)
+        return box(0);
+    pthread_mutex_lock(&host_lock);
+    id current = objc_loadWeakRetained(&module_weak);
+    TASInvStatus status = tas_inv_status();
+    bool valid = current == self && epoch == source_epoch && bound_epoch(self) == epoch &&
+                 status.state == TAS_INV_CAPTURING && status.pending == TAS_INV_CAPTURE &&
+                 status.generation == g && status.sequence == s;
+    if (current)
+        objc_release(current);
+    bool ok = valid && tas_inv_report_accept(g, s, bytes, n, now_ms());
+    pthread_mutex_unlock(&host_lock);
+    return box(ok ? 1 : 0);
+}
+static const MethodInfo *report_export(id self, SEL cmd) {
+    (void)self;
+    (void)cmd;
+    static const MethodInfo m = {"report",
+                                 "report:(NSNumber *)epoch generation:(NSNumber *)generation "
+                                 "sequence:(NSNumber *)sequence payload:(NSString *)payload",
+                                 YES};
+    return &m;
 }
 static void invalidate(id self, SEL cmd) {
     (void)cmd;
@@ -374,6 +427,7 @@ static void invalidate(id self, SEL cmd) {
     }
     pthread_mutex_unlock(&host_lock);
     if (owned) {
+        tas_inv_report_interrupt();
         tas_inv_invalidate(TAS_INV_NO_RUNTIME);
         schedule_timer();
     }
@@ -445,6 +499,11 @@ void tas_inv_host_initialize(void) {
                               "@32@0:8@16@24") &&
               class_addMethod(cls, sel_registerName("ack:generation:sequence:operation:success:"),
                               (IMP)ack, "v56@0:8@16@24@32@40@48") &&
+              class_addMethod(cls, sel_registerName("report:generation:sequence:payload:"),
+                              (IMP)report, "@48@0:8@16@24@32@40") &&
+              class_addMethod(object_getClass((id)cls),
+                              sel_registerName("__rct_export__investigationReport"),
+                              (IMP)report_export, "^v16@0:8") &&
               class_addMethod(cls, sel_registerName("invalidate"), (IMP)invalidate, "v16@0:8") &&
               class_addMethod(object_getClass((id)cls), sel_registerName("moduleName"),
                               (IMP)moduleName, "@16@0:8") &&
@@ -482,17 +541,23 @@ void tas_inv_host_source_admitted(void) {
     pong = false;
     probe_deadline = 0;
     pthread_mutex_unlock(&host_lock);
+    tas_inv_report_interrupt();
     tas_inv_invalidate(TAS_INV_NO_RUNTIME);
     schedule_timer();
 }
 bool tas_inv_host_request(unsigned operation) {
     pthread_mutex_lock(&host_lock);
-    bool available = supported && pong;
-    pthread_mutex_unlock(&host_lock);
-    if (!available)
-        return false;
+    uint64_t now = now_ms();
+    bool available = supported && pong &&
+                     (operation != TAS_INV_CAPTURE || !last_capture || now >= last_capture + 3000);
     TASInvCommand command;
-    if (!tas_inv_begin(operation, now_ms(), &command))
+    bool begun = available && tas_inv_begin(operation, now, &command);
+    if (begun && operation == TAS_INV_CAPTURE)
+        last_capture = now;
+    if (begun && operation == TAS_INV_STOP)
+        tas_inv_report_interrupt();
+    pthread_mutex_unlock(&host_lock);
+    if (!begun)
         return false;
     bool ok = invoke(command.operation, command.generation, command.sequence, &command.manifest);
     if (!ok)

@@ -113,3 +113,39 @@ execution; it does not execute RCT/UIKit or establish device performance.
 
 The native invocation IMP must also belong to the admitted React image at its
 verified offset; a later foreign method replacement disables delivery.
+
+## Checkpoint C — bounded event history and numeric transport
+
+The fixed adapter now retains up to 256 ordinary and 64 priority records in
+separate rings. Shared token admission precedes alias allocation and event
+formatting; monotonic work accounting enforces a 10 ms/s admission budget and
+2 ms callback ceiling. Counters saturate. The observer does not bridge events
+while armed, and has no armed timer or session expiry. Exact original calls,
+returns, exceptions and context are retained. Scoped store subscriptions and
+owned method descriptors are released on Stop; foreign replacements survive.
+There are at most 16 hook records and two mounted scope records.
+
+Translation, emission, unpublished local-echo emission, aggregate store changes,
+IRC rewards, direct store reward insertion and mounted-list lifecycle have
+compiled adapters. Missing observations do not establish filtering, dropped
+messages, reconciliation or server acknowledgments. Reward renderer/catalog,
+layout and native geometry are not yet admitted. A coverage mask records the
+methods actually installed. Alias entries/bytes and object associations have
+independent bounds; no private identity is serialized.
+
+Capture freezes the event rings before its first numeric-only bridge transfer.
+The native parser rejects strings, objects, nonintegers, wrong columns, extra
+data, oversize packets, reordered/duplicate/stale parts and excessive transfer
+rate. It retains one bounded frozen report, including partial reports on error.
+Capture/Stop generation checks cancel late work. The native host sends a fixed
+best-effort Stop on failed/expired commands; it never enters a blocked JS queue
+through an alternative path. Captures have a three-second native cooldown.
+
+Compiled Hermes acceptance passed both original and functional predecessors:
+late arm without rendering, over two hours of simulated armed time, ordinary
+saturation with independent priority capacity, numeric privacy sentinels,
+known-size/list correlation, failed reads, cancelled capture and 100 teardown
+cycles. Native cross-build/receipt verification passed. These are host tests,
+not on-device timing/CPU/keyboard acceptance. Snapshot code is present for
+fixture coverage, but snapshot capability remains unadvertised until the donor
+getter audit and mutation traps pass in checkpoint D.

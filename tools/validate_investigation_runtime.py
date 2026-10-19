@@ -13,7 +13,7 @@ import tempfile
 from rn_graft import read,parse_hbc_bytecode,generate
 from validate_rn_snapshot import ROOT,RUNTIME_COMMIT,DONOR_SHA,patch_chain,test_entry,compile_js
 
-INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js']
+INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h']
 def fingerprints():return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in INPUTS}
 def graft(body,tmp):
     source=tmp/'inv_patch.c';source.write_text('#include "TASRNInvestigationPatch.h"\nvoid *patch(const void *p,size_t n,TASRNSHA1 s,TASInvSHA256 h,size_t *out){return tas_rn_investigation_patch(p,n,s,h,out);}\nvoid dispose(void *p){free(p);}\n')
@@ -59,7 +59,7 @@ def adapter(tmp):
     out=tmp/'adapter.so';subprocess.run(['cc','-shared','-fPIC',str(path),'-o',str(out)],check=True);return out
 def validate(a):
     assert subprocess.check_output(['git','-C',str(a.runtime_source),'rev-parse','HEAD'],text=True).strip()==RUNTIME_COMMIT
-    stamp=json.loads(a.runner.with_suffix('.build.json').read_text());assert stamp['runtime_commit']==RUNTIME_COMMIT and stamp['runner_sha256']==hashlib.sha256(a.runner.read_bytes()).hexdigest()
+    stamp=json.loads(a.runner.with_suffix('.build.json').read_text());assert stamp['runtime_commit']==RUNTIME_COMMIT and stamp['runner_source_sha256']==hashlib.sha256((ROOT/'tests/native/hermes_snapshot_runner.cpp').read_bytes()).hexdigest() and stamp['runner_sha256']==hashlib.sha256(a.runner.read_bytes()).hexdigest()
     assert hashlib.sha256(a.donor.read_bytes()).hexdigest()==DONOR_SHA
     a.record.parent.mkdir(parents=True,exist_ok=True);a.record.unlink(missing_ok=True)
     with tempfile.TemporaryDirectory() as directory:
@@ -75,6 +75,10 @@ def validate(a):
             result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'exercise.hbc')],capture_output=True,text=True)
             assert result.returncode==0,result.stderr
             print(label+': owned bootstrap, late callable command, original ref/cleanup/error, no dormant work passed')
+            (tmp/'recorder.js').write_text(fixture+'\n'+(ROOT/'tests/fixtures/investigation_recorder.js').read_text()+'\nexerciseRecorder(buildLocalEcho());\n');compile_js(a.hermesc,tmp/'recorder.js',tmp/'recorder.hbc')
+            result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'recorder.hbc')],capture_output=True,text=True)
+            assert result.returncode==0,result.stderr
+            print(label+': bounded recorder, long arm, priority admission, privacy, partial snapshots and teardown passed')
             # Execute the unchanged actual factory export and all its original
             # style initialization after the guarded additional installer.
             (tmp/'factory.hbc').write_bytes(test_entry(patched,a.hermesc,tmp,4900))

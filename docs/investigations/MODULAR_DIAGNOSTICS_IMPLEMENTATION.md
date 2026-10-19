@@ -236,3 +236,23 @@ keyboard; check focus, scrolling, accessibility, overlay hit testing and
 rotation; reproduce ordinary/own/reward scenarios; repeat capture/Stop and
 background/foreground cycles; inspect the exported numeric report. No
 Apple/device performance or compatibility pass is claimed from host results.
+
+### Packaged candidate identity
+
+Source candidate: `f9bcc5867588edd75a53bf48b4eaa9d4b24e1bdc` (`feat/modular-diagnostic-runtime`).
+The unsigned device-test IPA was generated and `verify_ipa.py` passed against
+the exact build receipt. The packaged framework is byte-for-byte identical to
+the verified local artifact. The donor HBC remains unchanged in the archive;
+the admitted graft occurs at runtime. Main, React and Hermes UUIDs and text
+digests in the packaged IPA still match the strict native admission profile.
+
+- IPA SHA-256: `07cec35926960ce80badf3ff29b6f66db4c9c5b0450bf73a121cd17befa80db5`.
+- Framework binary SHA-256: `4c18f14dd1ee43a5d0d5f9792a8617819be03f6b70f3ee13ef15bd408342c9ad`.
+- Dylib SHA-256: `e8b8e77b1ea58eba428cbdce46b5aa6a800c646eb7fdcb1e229adbbf486f3af1`.
+
+The IPA, checksum, structured validation record and device-testing handoff are
+under the local Streamside workspace's `artifacts/` directory, outside Git.
+The candidate requires signing before installation. No device run, release,
+push, merge or publication was performed. Coverage masks record adapters
+installed during an arm session, not proof of complete observation of every
+scope; missing observations remain inconclusive.

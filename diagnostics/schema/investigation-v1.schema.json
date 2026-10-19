@@ -1,0 +1,374 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "manifest_version",
+    "title",
+    "description",
+    "streamside",
+    "capabilities",
+    "donors",
+    "categories",
+    "activation",
+    "snapshot",
+    "sampling",
+    "limits",
+    "report"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295,
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "const": "rn-chat-gaps"
+    },
+    "manifest_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "streamside": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_lines",
+        "runtime_abi"
+      ],
+      "properties": {
+        "release_lines": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "3.1.0"
+            ]
+          }
+        },
+        "runtime_abi": {
+          "const": 1
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "const": "rn.chat.snapshot"
+              },
+              "version": {
+                "const": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "const": "rn.chat.lifecycle"
+              },
+              "version": {
+                "const": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "const": "rn.rewards.observation"
+              },
+              "version": {
+                "const": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "donors": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "bundle_build",
+              "native_profile",
+              "hermes_version",
+              "original_hbc_sha256"
+            ],
+            "properties": {
+              "version": {
+                "type": "string",
+                "const": "31.6.2"
+              },
+              "bundle_build": {
+                "type": "string",
+                "const": "262872150334984303"
+              },
+              "native_profile": {
+                "type": "string",
+                "const": "twitch-ios-31.6.2-arm64-v1"
+              },
+              "hermes_version": {
+                "const": 98
+              },
+              "original_hbc_sha256": {
+                "type": "string",
+                "const": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "chat"
+        ]
+      }
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requires_restart",
+        "after_capture"
+      ],
+      "properties": {
+        "requires_restart": {
+          "type": "boolean",
+          "const": false
+        },
+        "after_capture": {
+          "enum": [
+            "armed",
+            "dormant"
+          ]
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supported",
+        "profile"
+      ],
+      "properties": {
+        "supported": {
+          "type": "boolean",
+          "const": true
+        },
+        "profile": {
+          "type": "string",
+          "const": "rn-chat-current-v1"
+        }
+      }
+    },
+    "sampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "periodic_hz",
+        "events"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "event_driven"
+        },
+        "periodic_hz": {
+          "const": 0
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "translation",
+              "emission",
+              "local_echo",
+              "reconciliation",
+              "store",
+              "irc_reward",
+              "pubsub_reward",
+              "reward_render",
+              "list",
+              "layout"
+            ]
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_lists",
+        "max_entries",
+        "max_cells",
+        "snapshot_ms",
+        "js_work_us",
+        "callback_work_us",
+        "events_per_second",
+        "priority_per_second",
+        "bridge_batches_per_second",
+        "ordinary_events",
+        "priority_events",
+        "identity_aliases",
+        "alias_bytes",
+        "report_bytes"
+      ],
+      "properties": {
+        "max_lists": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "max_entries": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "max_cells": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "snapshot_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        },
+        "js_work_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "callback_work_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        },
+        "events_per_second": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "priority_per_second": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "bridge_batches_per_second": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "ordinary_events": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "priority_events": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "identity_aliases": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "alias_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "report_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "max_bytes"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "const": "numeric-chat-v1"
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Streamside investigation ABI 1"
+}

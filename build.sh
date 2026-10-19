@@ -25,6 +25,8 @@ if [ "$IMAGE_DEMAND_DIAGNOSTIC" = 1 ]; then
     python3 tools/validate_rn_snapshot.py --check "${RN_SNAPSHOT_VALIDATION:-$PWD/build/snapshot-validation.json}"
 fi
 
+python3 tools/generate_investigation_registry.py --check
+
 mkdir -p build "$LOCAL_CACHE" "$GLOBAL_CACHE"
 
 build_binary() {
@@ -44,7 +46,7 @@ build_binary() {
       --name "$binary_name" \
       -femit-bin="$output_path" \
       -cflags -Wall -Wextra -Werror -fblocks -fvisibility=hidden "-DTAS_EMOTE_DIAGNOSTIC=$EMOTE_DIAGNOSTIC" "-DTAS_IMAGE_DEMAND_DIAGNOSTIC=$IMAGE_DEMAND_DIAGNOSTIC" -- \
-      src/Streamside.c src/TASDiagnostics.c src/TASDiagnosticPolicy.c src/TASAnimatedImage.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNComposerUI.c src/TASImageDemand.c
+      src/Streamside.c src/TASInvestigation.c src/TASDiagnostics.c src/TASDiagnosticPolicy.c src/TASAnimatedImage.c src/TASPrivacy.c src/TASEmotes.c src/TASEmoteUI.c src/TASEmotePresentation.c src/TASEmoteImageProbe.c src/SSComposer.c src/TASRNComposerUI.c src/TASImageDemand.c
 }
 
 # Jailbreak package: keep the clean identity and a large in-place signature

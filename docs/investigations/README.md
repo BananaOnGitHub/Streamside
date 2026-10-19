@@ -7,6 +7,8 @@ not here.
 
 ## 3.1.0 trials
 
+- [Modular diagnostics implementation](MODULAR_DIAGNOSTICS_IMPLEMENTATION.md): checkpoint evidence, strict registry/coordinator, runtime admission, and remaining verification.
+
 - [Local diagnostic runtime baseline](LOCAL_DIAGNOSTIC_RUNTIME_BASELINE.md): WSL checkout recovery audit, verified build/test baseline, artifact identities, and missing implementation inputs.
 
 - [Diagnostic categories](DIAGNOSTIC_CATEGORIES.md): launch-applied presets, verbosity, category collection/retention/export, and branch integration.

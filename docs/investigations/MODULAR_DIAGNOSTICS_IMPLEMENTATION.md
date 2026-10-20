@@ -380,3 +380,54 @@ UUID/text identities remain unchanged.
 
 The workspace artifacts directory contains the distinct build-21 IPA, checksum,
 `build21-validation.json` and `BUILD21_TESTING.md`. Device confirmation is pending.
+
+
+## Build 22: capture action survives settings dismissal
+
+Device feedback for build 21 confirms Dormant/Armed transitions work. The
+pre-ready startup failure is therefore resolved on the reported device.
+The user-enabled Capture button appeared over settings but was absent after
+returning to chat. Capture transport, focus and keyboard behavior have not yet
+been confirmed by this feedback.
+
+Checkpoint E attached the button directly to the settings page's existing
+window. It had no independent presentation ownership across that window's
+content/presentation changes. Build 22 gives the opt-in action an owned native
+window bound to that same UIWindowScene. Its controller/button do not belong
+to the settings page hierarchy, so dismissal or replacement of that hierarchy
+cannot remove or cover the action within the app's normal window.
+
+The window refuses key status through canBecomeKeyWindow and is revealed only
+with setHidden:NO. It never calls makeKeyWindow/makeKeyAndVisible. Its level is
+1001 (above ordinary app content, below native alert windows). Its hitTest
+returns only the button's own hit-test result, with coordinates converted from
+the window; empty space returns nil rather than the full-screen root view.
+The root is transparent and not an accessibility modal. The control remains
+88 × 44 points and repositions from its own root view's bounds/safe area on
+native layout callbacks. It does not alter the app's safe area or transcript.
+
+Stop, Unsupported/Dormant transitions and application background destroy the
+button and overlay. Background/disconnection notifications from the originating
+scene also stop/remove it; unrelated scene notifications do not. There is no
+global window search, reparenting into keyboard/PiP windows, polling timer or
+React tree change. Capture still enqueues its request before changing button
+state, and the UI still defers updates until the first frozen-history transfer.
+
+A host regression executes the production show/hide/hit-test/layout/capture/
+scene-lifecycle functions against a UIKit facade. It models settings removal
+and app root replacement, tests button-only touch routing and non-key policy,
+repositions after safe-area/rotation changes, checks the first-transfer boundary,
+and exercises Stop/readiness/background/scene teardown. The typed UIKit
+geometry boundary is supplied by the facade; actual scene compositing, touch
+delivery, VoiceOver, keyboard focus/draft/selection and rotation require device
+validation. Host success does not establish those device properties.
+
+Apple's documented window contracts used here:
+[canBecomeKeyWindow](https://developer.apple.com/documentation/uikit/uiwindow/canbecomekey?language=objc)
+and [visibility without making key](https://developer.apple.com/documentation/uikit/uiwindow/makekeyandvisible()?language=objc).
+Earlier candidate artifacts and their original validation records remain intact.
+
+Build-22 local validation: 212 tests ran, 210 passed and the two Apple-only
+Foundation/ImageIO checks skipped. Exact compiled Hermes validation passed both
+predecessors. Native artifact, receipt freshness and documentation checks passed.
+The settings-to-chat overlay transition still requires the next device run.

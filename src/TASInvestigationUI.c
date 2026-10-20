@@ -18,9 +18,12 @@ typedef struct {
 typedef struct {
     double top, left, bottom, right;
 } Insets;
-static Class page_class;
-static IMP super_load, super_appear;
-static id owner, page_weak, button;
+typedef struct {
+    double x, y;
+} Point;
+static Class page_class, overlay_window_class, overlay_controller_class;
+static IMP super_load, super_appear, super_overlay_layout;
+static id owner, page_weak, button, overlay_window;
 static bool visible;
 static id m0(id o, const char *s) { return ((id(*)(id, SEL))objc_msgSend)(o, sel_registerName(s)); }
 static id m1(id o, const char *s, id a) {
@@ -36,12 +39,55 @@ static void title(id control, const char *value) {
     ((void (*)(id, SEL, id, unsigned long))objc_msgSend)(
         control, sel_registerName("setTitle:forState:"), ns(value), 0);
 }
+static Rect rect(id o, const char *selector) {
+    return ((Rect(*)(id, SEL))objc_msgSend)(o, sel_registerName(selector));
+}
+static Insets safe_insets(id o) {
+    return ((Insets(*)(id, SEL))objc_msgSend)(o, sel_registerName("safeAreaInsets"));
+}
+static Point button_point(id window, Point point) {
+    return ((Point(*)(id, SEL, Point, id))objc_msgSend)(
+        button, sel_registerName("convertPoint:fromView:"), point, window);
+}
+static BOOL can_key(id self, SEL cmd) {
+    (void)self;
+    (void)cmd;
+    return NO;
+}
+static id overlay_hit(id self, SEL cmd, Point point, id event) {
+    (void)cmd;
+    if (!visible || self != overlay_window || !button)
+        return nil;
+    // Returning nil outside the button lets UIKit try the underlying app window.
+    // Never return the full-screen root view or the window itself.
+    return ((id(*)(id, SEL, Point, id))objc_msgSend)(button, sel_registerName("hitTest:withEvent:"),
+                                                     button_point(self, point), event);
+}
+static void overlay_layout(id self, SEL cmd) {
+    if (super_overlay_layout)
+        ((void (*)(id, SEL))super_overlay_layout)(self, cmd);
+    if (!overlay_window || !button || m0(overlay_window, "rootViewController") != self)
+        return;
+    id view = m0(self, "view");
+    Rect bounds = rect(view, "bounds");
+    Insets insets = safe_insets(view);
+    Rect frame = {bounds.width - insets.right - 96, insets.top + 8, 88, 44};
+    ((void (*)(id, SEL, Rect))objc_msgSend)(button, sel_registerName("setFrame:"), frame);
+}
 static void hide(void) {
     visible = false;
+    if (overlay_window)
+        ((void (*)(id, SEL, BOOL))objc_msgSend)(overlay_window, sel_registerName("setHidden:"),
+                                                YES);
     if (button) {
         m0(button, "removeFromSuperview");
         objc_release(button);
         button = nil;
+    }
+    if (overlay_window) {
+        m1(overlay_window, "setRootViewController:", nil);
+        objc_release(overlay_window);
+        overlay_window = nil;
     }
 }
 void tas_inv_ui_changed(void) {
@@ -81,29 +127,55 @@ static void background(id self, SEL cmd, id note) {
     hide();
     tas_inv_ui_changed();
 }
+static void scene_closed(id self, SEL cmd, id note) {
+    if (overlay_window && m0(note, "object") == m0(overlay_window, "windowScene"))
+        background(self, cmd, note);
+}
 static void show(id page) {
     TASInvStatus s = tas_inv_status();
-    if (s.state != TAS_INV_ARMED || s.pending)
+    if (s.state != TAS_INV_ARMED || s.pending || visible)
         return;
     id window = m0(m0(page, "view"), "window");
-    if (!window)
+    id scene = m0(window, "windowScene");
+    if (!window || !scene)
         return;
-    Rect bounds = ((Rect(*)(id, SEL))objc_msgSend)(window, sel_registerName("bounds"));
-    Insets insets = ((Insets(*)(id, SEL))objc_msgSend)(window, sel_registerName("safeAreaInsets"));
+    // A separate, explicitly non-key window survives the settings transition.
+    // Bind to the originating scene; never search app/keyboard/PiP windows.
+    overlay_window = ((id(*)(id, SEL, id))objc_msgSend)(
+        m0((id)overlay_window_class, "alloc"), sel_registerName("initWithWindowScene:"), scene);
+    id controller = m0((id)overlay_controller_class, "new");
     button = objc_retain(((id(*)(id, SEL, long))objc_msgSend)(
         (id)objc_getClass("UIButton"), sel_registerName("buttonWithType:"), 1));
-    Rect frame = {bounds.width - insets.right - 96, insets.top + 8, 88, 44};
-    ((void (*)(id, SEL, Rect))objc_msgSend)(button, sel_registerName("setFrame:"), frame);
-    ((void (*)(id, SEL, unsigned long))objc_msgSend)(
-        button, sel_registerName("setAutoresizingMask:"), 1 | 8);
+    if (!overlay_window || !controller || !button) {
+        if (controller)
+            objc_release(controller);
+        hide();
+        return;
+    }
+    ((void (*)(id, SEL, Rect))objc_msgSend)(overlay_window, sel_registerName("setFrame:"),
+                                            rect(window, "frame"));
+    ((void (*)(id, SEL, double))objc_msgSend)(overlay_window, sel_registerName("setWindowLevel:"),
+                                              1001.0);
+    id clear = m0((id)objc_getClass("UIColor"), "clearColor");
+    m1(overlay_window, "setBackgroundColor:", clear);
+    m1(overlay_window, "setRootViewController:", controller);
+    id view = m0(controller, "view");
+    m1(view, "setBackgroundColor:", clear);
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(view, sel_registerName("setAccessibilityViewIsModal:"),
+                                            NO);
     m1(button,
        "setBackgroundColor:", m0((id)objc_getClass("UIColor"), "secondarySystemBackgroundColor"));
     m1(button, "setAccessibilityLabel:", ns("Capture Streamside investigation"));
     ((void (*)(id, SEL, id, SEL, unsigned long))objc_msgSend)(
         button, sel_registerName("addTarget:action:forControlEvents:"), owner,
         sel_registerName("capture:"), 1UL << 6);
-    m1(window, "addSubview:", button);
+    m1(view, "addSubview:", button);
     visible = true;
+    // Visibility only: makeKeyAndVisible/makeKeyWindow would disturb the editor.
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(overlay_window, sel_registerName("setHidden:"), NO);
+    m0(view, "setNeedsLayout");
+    m0(view, "layoutIfNeeded");
+    objc_release(controller);
     tas_inv_ui_changed();
 }
 static void notice(id page, const char *message) {
@@ -290,36 +362,65 @@ static void select_row(id self, SEL cmd, id table, id path) {
 static bool initialize(void) {
     if (page_class)
         return true;
-    Class parent = objc_getClass("UITableViewController"), base = objc_getClass("NSObject");
-    if (!parent || !base)
+    Class parent = objc_getClass("UITableViewController"), base = objc_getClass("NSObject"),
+          window_base = objc_getClass("UIWindow"),
+          controller_base = objc_getClass("UIViewController");
+    if (!parent || !base || !window_base || !controller_base)
         return false;
     Class cls = objc_allocateClassPair(parent, "TASInvestigationsViewController", 0),
-          observer = objc_allocateClassPair(base, "TASInvestigationActions", 0);
-    if (!cls || !observer)
+          observer = objc_allocateClassPair(base, "TASInvestigationActions", 0),
+          window = objc_allocateClassPair(window_base, "TASInvestigationCaptureWindow", 0),
+          controller =
+              objc_allocateClassPair(controller_base, "TASInvestigationCaptureController", 0);
+    if (!cls || !observer || !window || !controller) {
+        if (cls)
+            objc_disposeClassPair(cls);
+        if (observer)
+            objc_disposeClassPair(observer);
+        if (window)
+            objc_disposeClassPair(window);
+        if (controller)
+            objc_disposeClassPair(controller);
         return false;
-    bool ok = class_addMethod(cls, sel_registerName("viewDidLoad"), (IMP)load, "v@:") &&
-              class_addMethod(cls, sel_registerName("viewWillAppear:"), (IMP)appear, "v@:B") &&
-              class_addMethod(cls, sel_registerName("numberOfSectionsInTableView:"), (IMP)sections,
-                              "q@:@") &&
-              class_addMethod(cls, sel_registerName("tableView:numberOfRowsInSection:"), (IMP)rows,
-                              "q@:@q") &&
-              class_addMethod(cls, sel_registerName("tableView:titleForHeaderInSection:"),
-                              (IMP)header, "@@:@q") &&
-              class_addMethod(cls, sel_registerName("tableView:titleForFooterInSection:"),
-                              (IMP)footer, "@@:@q") &&
-              class_addMethod(cls, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)cell,
-                              "@@:@@") &&
-              class_addMethod(cls, sel_registerName("tableView:didSelectRowAtIndexPath:"),
-                              (IMP)select_row, "v@:@@") &&
-              class_addMethod(observer, sel_registerName("capture:"), (IMP)capture, "v@:@") &&
-              class_addMethod(observer, sel_registerName("background:"), (IMP)background, "v@:@");
+    }
+    bool ok =
+        class_addMethod(cls, sel_registerName("viewDidLoad"), (IMP)load, "v@:") &&
+        class_addMethod(cls, sel_registerName("viewWillAppear:"), (IMP)appear, "v@:B") &&
+        class_addMethod(cls, sel_registerName("numberOfSectionsInTableView:"), (IMP)sections,
+                        "q@:@") &&
+        class_addMethod(cls, sel_registerName("tableView:numberOfRowsInSection:"), (IMP)rows,
+                        "q@:@q") &&
+        class_addMethod(cls, sel_registerName("tableView:titleForHeaderInSection:"), (IMP)header,
+                        "@@:@q") &&
+        class_addMethod(cls, sel_registerName("tableView:titleForFooterInSection:"), (IMP)footer,
+                        "@@:@q") &&
+        class_addMethod(cls, sel_registerName("tableView:cellForRowAtIndexPath:"), (IMP)cell,
+                        "@@:@@") &&
+        class_addMethod(cls, sel_registerName("tableView:didSelectRowAtIndexPath:"),
+                        (IMP)select_row, "v@:@@") &&
+        class_addMethod(observer, sel_registerName("capture:"), (IMP)capture, "v@:@") &&
+        class_addMethod(observer, sel_registerName("background:"), (IMP)background, "v@:@") &&
+        class_addMethod(observer, sel_registerName("sceneClosed:"), (IMP)scene_closed, "v@:@") &&
+        class_addMethod(window, sel_registerName("canBecomeKeyWindow"), (IMP)can_key, "B@:") &&
+        class_addMethod(window, sel_registerName("hitTest:withEvent:"), (IMP)overlay_hit,
+                        "@@:{CGPoint=dd}@") &&
+        class_addMethod(controller, sel_registerName("viewDidLayoutSubviews"), (IMP)overlay_layout,
+                        "v@:");
     if (!ok) {
         objc_disposeClassPair(cls);
         objc_disposeClassPair(observer);
+        objc_disposeClassPair(window);
+        objc_disposeClassPair(controller);
         return false;
     }
     super_load = class_getMethodImplementation(parent, sel_registerName("viewDidLoad"));
     super_appear = class_getMethodImplementation(parent, sel_registerName("viewWillAppear:"));
+    super_overlay_layout =
+        class_getMethodImplementation(controller_base, sel_registerName("viewDidLayoutSubviews"));
+    objc_registerClassPair(window);
+    objc_registerClassPair(controller);
+    overlay_window_class = window;
+    overlay_controller_class = controller;
     objc_registerClassPair(cls);
     objc_registerClassPair(observer);
     page_class = cls;
@@ -329,6 +430,12 @@ static bool initialize(void) {
     ((void (*)(id, SEL, id, SEL, id, id))objc_msgSend)(
         center, sel_registerName("addObserver:selector:name:object:"), owner,
         sel_registerName("background:"), ns("UIApplicationDidEnterBackgroundNotification"), nil);
+    const char *scene_notes[] = {"UISceneDidEnterBackgroundNotification",
+                                 "UISceneDidDisconnectNotification"};
+    for (unsigned i = 0; i < sizeof(scene_notes) / sizeof(scene_notes[0]); i++)
+        ((void (*)(id, SEL, id, SEL, id, id))objc_msgSend)(
+            center, sel_registerName("addObserver:selector:name:object:"), owner,
+            sel_registerName("sceneClosed:"), ns(scene_notes[i]), nil);
     return true;
 }
 void tas_inv_ui_open(id parent) {

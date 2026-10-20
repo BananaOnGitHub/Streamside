@@ -442,3 +442,53 @@ UUID/text identities remain unchanged.
 
 The workspace artifacts directory contains the build-22 IPA, checksum,
 `build22-validation.json` and `BUILD22_TESTING.md`. Device confirmation is pending.
+
+
+### Build-22 device baseline: normal chat, no missing messages
+
+The device user confirms that the in-chat button displays Capturing briefly
+and returns to Capture. Copy Capture produced a numeric-chat-v1 report for
+Twitch 31.6.2 (262872150334984303), ABI1, generation 3 / sequence 2, with
+392 rows, 10,467 wire bytes, complete=1 and interrupted=0. The user explicitly
+states no missing messages occurred in this capture. Treat it as a normal-chat
+baseline, not a gap reproduction. This confirms the device capture/report path
+and reported return to Armed, without establishing untested keyboard, VoiceOver,
+rotation or performance properties.
+
+Selected original numeric observations:
+
+```text
+Manifest SHA256: 96836cc5491c68d475c436caff9a4862db402f74cb3d35342c8dc88c184fbb28
+0,38386,0,0,0,0,267,0,0
+3,38388,4,1,0,0,391,0,91
+4,38388,8,1,0,0,150,140,149
+7,38388,8,1,0,0,5439,382,5821
+6,38390,8,1,0,32,1823,64,64
+5,38390,0,0,0,375,0,6012,167
+```
+
+The frozen history begins around 38.386 seconds after Arm. Header a=267 counts
+ordinary observations skipped by diagnostic admission limits, not lost chat
+messages; priority admission skips and alias evictions are both zero. Coverage
+mask 375 records installed translation, emission, local-echo, store, IRC-reward,
+reward-store-route and list families. The coverage row records zero adapter
+errors. A reward-store-route event is present, without independent PubSub
+provenance. Complete=1 confirms completed report transport; it does not imply
+exhaustive event or membership collection.
+
+The snapshot reads 391 store entries and 150 list entries, with 64 membership
+samples from each side and membership-truncated flag 32. Different store/list
+counts alone do not establish loss. No store-unavailable, list-unavailable,
+work-budget, changed-revision or transfer-truncated flag is present in this
+snapshot status. The recorded snapshot duration is 1,823 microseconds; this is
+an adapter timing observation, not a device-wide performance measurement.
+
+Sampling limitation identified from this baseline: list start/end are 140/149,
+but sampled list membership covers indices 22–85; store samples cover 263–326.
+The current loops begin at length minus the total membership allowance and
+then stop after their shared budget is consumed, omitting the actual visible
+range in this case. This is a diagnostic sampling limitation, not evidence of
+a chat defect. Before using a snapshot to compare visible-message membership,
+prioritize the admitted visible range and explicitly label any tail fallback as
+specified by the proposal. This baseline cannot establish absence of any
+unsampled visible message, filtering/deduplication or server acknowledgment.

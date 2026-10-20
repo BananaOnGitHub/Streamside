@@ -431,3 +431,14 @@ Build-22 local validation: 212 tests ran, 210 passed and the two Apple-only
 Foundation/ImageIO checks skipped. Exact compiled Hermes validation passed both
 predecessors. Native artifact, receipt freshness and documentation checks passed.
 The settings-to-chat overlay transition still requires the next device run.
+
+Build-22 candidate source: `e893730d4b9e15f403ab7e58f8b60a02e61dc230`.
+The unsigned IPA passed package verification. The packaged framework exactly
+matches the verified native build; original donor HBC and all three native
+UUID/text identities remain unchanged.
+
+- IPA SHA-256: `170b3ed918ae4e434588e4ad7462f74f22fb1f49a55a328678fe136022a3a34b`.
+- Framework SHA-256: `47d062c216df5ad0bc82a7a43a100ad770a658b80fac4e3a13b1b0a3cc2cbc5d`.
+
+The workspace artifacts directory contains the build-22 IPA, checksum,
+`build22-validation.json` and `BUILD22_TESTING.md`. Device confirmation is pending.

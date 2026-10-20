@@ -369,3 +369,14 @@ two Apple-only Foundation/ImageIO checks skipped. Both compiled Hermes
 predecessors, native framework verification and documentation checks passed.
 The candidate retains the same strict donor identity and verified startup ACK
 requirements. Build-20 artifacts and their original records remain preserved.
+
+Build-21 candidate source: `2ccd4ed6fed1cd8fa1febd605998d63f72887e45`.
+The unsigned IPA passed package verification. The packaged framework exactly
+matches the verified native build; original donor HBC and all three native
+UUID/text identities remain unchanged.
+
+- IPA SHA-256: `95063dae49543302df8288f52049f3469499248b862c6bcf503db439f381f3b4`.
+- Framework SHA-256: `30ba38969ef1a32bae0bad022bbcc7a87c83ca69bbf4e03bbdf33bf29e45077d`.
+
+The workspace artifacts directory contains the distinct build-21 IPA, checksum,
+`build21-validation.json` and `BUILD21_TESTING.md`. Device confirmation is pending.

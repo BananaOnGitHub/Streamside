@@ -1,14 +1,15 @@
-var global=_runtimeGlobal, calls=[], registered={}, jsxCalls=0, reads=0, refCalls=0, cleanupCalls=0;
+var calls=[], registered={}, jsxCalls=0, reads=0, refCalls=0, cleanupCalls=0;
 function check(x,why){if(!x)throw new Error(why);}
+check(globalThis===_runtimeGlobal && typeof global==="undefined","donor globals without legacy alias");
 var nativeJSX=function(type,props){jsxCalls++;return {type:type,props:props};};
-global.performance={now:function(){return 1000;}};
+globalThis.performance={now:function(){return 1000;}};
 var bridge={startup:function(mask){check(mask===255,"startup API availability");},report:function(){return 1;},ready:function(abi,caps){check(abi===1,"ABI");calls.push([abi,caps]);return 1;},ack:function(epoch,generation,sequence,operation,success){calls.push([epoch,generation,sequence,operation,success]);}};
 var map={};map.StreamsideInvestigation=bridge;
 var modules={16:{default:map},245:{jsx:nativeJSX},1:function(x){return {default:x};},17:{},72:{memo:function(fn){return fn;}},5:{StyleSheet:{create:function(x){return x;}}}};
-global.__r=function(id){return modules[id];};
-global.RN$registerCallableModule=function(name,get){check(!registered[name],"single callable registration");registered[name]=get;};
-global.setInterval=function(){throw new Error("diagnostic interval forbidden");};
-global.setTimeout=function(){throw new Error("dormant timeout forbidden");};
+globalThis.__r=function(id){return modules[id];};
+globalThis.RN$registerCallableModule=function(name,get){check(!registered[name],"single callable registration");registered[name]=get;};
+globalThis.setInterval=function(){throw new Error("diagnostic interval forbidden");};
+globalThis.setTimeout=function(){throw new Error("dormant timeout forbidden");};
 var nativeStore={getState:function(){reads++;throw new Error("dormant store scan forbidden");}};
 var sourceRef=function(node){refCalls++;check(this===nativeStore,"ref this");return function(){cleanupCalls++;check(this===nativeStore,"cleanup this");return 73;};};
 function exerciseBootstrap(render){

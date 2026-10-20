@@ -99,7 +99,7 @@ def validate(a):
             # Execute the unchanged actual factory export and all its original
             # style initialization after the guarded additional installer.
             (tmp/'factory.hbc').write_bytes(test_entry(patched,a.hermesc,tmp,4900))
-            factory=fixture+'\nvar exports={};buildLocalEcho(global,__r,null,null,{},exports,[1,17,72,5,245]);check(typeof exports.ChatMessageList==="function","donor memo export retained");registered.StreamsideInvestigation().command(0,0,0,null);check(calls[calls.length-1][4]===true,"factory-installed callable command");\n'
+            factory=fixture+'\nvar exports={};buildLocalEcho(globalThis,__r,null,null,{},exports,[1,17,72,5,245]);check(typeof exports.ChatMessageList==="function","donor memo export retained");registered.StreamsideInvestigation().command(0,0,0,null);check(calls[calls.length-1][4]===true,"factory-installed callable command");\n'
             (tmp/'factory.js').write_text(factory);compile_js(a.hermesc,tmp/'factory.js',tmp/'factory-exercise.hbc')
             result=subprocess.run([str(a.runner),str(native),str(tmp/'factory.hbc'),str(tmp/'factory-exercise.hbc')],capture_output=True,text=True)
             assert result.returncode==0,result.stderr

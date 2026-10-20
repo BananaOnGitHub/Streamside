@@ -329,3 +329,43 @@ The workspace artifacts directory contains the IPA, checksum,
 `build20-validation.json` and `BUILD20_TESTING.md`. Build 19 remains intact.
 The next device result should include Copy Runtime Status if Unsupported
 persists; no claim of resolved device startup is made before that test.
+
+
+## Build 21: standard global binding after build-20 device failure
+
+Build 20 remained Unsupported on the device. Its copied status reports native=1,
+native-stage=8, profile-bits=255, source-stage=3, epoch=1, startup-mask=256,
+startup-calls=1, ready-calls=0 and ready-result=0. Thus native compatibility,
+module registration and the source graft passed. The JS installer caught an
+exception before its first API-availability report or native ready call. The
+build-20 dependency-order correction did not resolve this device failure.
+Chat/composer visibility is not a readiness input and does not explain this result.
+
+The installer used the free identifier `global`. This exact donor's top-level
+bootstrap selects `globalThis` first and supplies that object to Metro factories;
+it does not establish a legacy `global` alias. The donor's other `global`
+property uses are library object fields, not a global-object alias assignment.
+The owned installer bypasses Metro's normal parameter binding, so it cannot rely
+on the module-local name used in React Native source. The old host fixture
+declared `var global=_runtimeGlobal`, masking that dependency.
+
+The unchanged build-20 production graft was executed in the pinned Hermes-98
+runner with all expected APIs installed on the actual global object and without
+that fixture alias. It returned null, reported exactly one startup mask of 256,
+and made zero ready calls: the same boundary observed on the device. No native
+signature, profile or capability check was weakened to obtain that reproduction.
+
+Build 21 uses the standard `globalThis` binding for callable registration,
+the monotonic clock and capture timers. The bootstrap and recorder fixtures no
+longer install the legacy alias and assert that it is absent. The compiled
+acceptance gate runs the actual owned installer and the modified donor factory
+in this environment for both original and complete functional predecessors.
+Existing startup-order, failure-path, dormant-work, ref identity, recorder and
+transport checks remain applicable. Actual iOS confirmation remains pending;
+matching a host failure signature does not establish successful device startup.
+
+Build-21 local validation: all 211 tests completed, with 209 passing and the
+two Apple-only Foundation/ImageIO checks skipped. Both compiled Hermes
+predecessors, native framework verification and documentation checks passed.
+The candidate retains the same strict donor identity and verified startup ACK
+requirements. Build-20 artifacts and their original records remain preserved.

@@ -5,21 +5,21 @@
   "donor_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
   "inputs": {
     "diagnostics/investigations/rn-chat-gaps/2.json": "96836cc5491c68d475c436caff9a4862db402f74cb3d35342c8dc88c184fbb28",
-    "src/TASDiagnostics.c": "bfc07c729e8feff60fa2da62e7c79affa3b368e67e9fd26c700e9297fae71185",
+    "src/TASDiagnostics.c": "9ea9e949b2de0b9e6fde63892fd35fc6ea2f1a885076a363ba254d742a223b18",
     "src/TASEmotes.c": "03d9f7777d60385fe0fab759a71fdc67855b1b660bb3a23d79dfc9c326a42d38",
     "src/TASInvestigation.c": "18a4e48cded043ada86e76d0f164fa0a58d2366e98ef8a8bf26727208b6652da",
     "src/TASInvestigation.h": "7e5986668f5085f69020afc05e20ce6ca5b0d4936b49a42f5430129ddffd0049",
-    "src/TASInvestigationHost.c": "d3b305eeca77eee7f81a73198d957b84dad546ea1f4d53f3e5a31521462454ab",
+    "src/TASInvestigationHost.c": "a5bc5f38af3749919d38083992b0b02c4f9b0828b1bcb3e9247fb5f424d30d26",
     "src/TASInvestigationHost.h": "b456fbc4d25c83d9eed85d11c20269f5da5fb1a0917e1b0348047f19710937b9",
     "src/TASInvestigationRegistry.h": "12ab207456b309a6ccf269ebf40900b91b9f57a0a02451d527461d17f530c4c0",
-    "src/TASInvestigationReport.c": "d67f40afc64059bb16265acfe0872aab8f1e2afbe8f07e1771093ec2802f47d2",
+    "src/TASInvestigationReport.c": "fe4bcc66c20ef6b637e65382479614472d5e67aae29bcf388384e87ef49ac033",
     "src/TASInvestigationReport.h": "ac87c87b30ea826f5a1e56a78ce51229147b37c609dd4bd14de959279329e40d",
     "src/TASInvestigationUI.c": "1649a09b3bb9059a4c7da6e2f7270f9a30f751cef4e0c48d4cd94ccf24a7ecd4",
     "src/TASInvestigationUI.h": "1a43aca48fe03777c1ac83c37ec171fa2fa5cf1c01029530f35993890483a79d",
     "src/TASRNComposerPatch.h": "612b0869f165ccba2439ff72ab3187e45c722894607702802e1c15ddf9465969",
-    "src/TASRNInvestigationFunctionalPayload.h": "905895ba3fabffb0f0d4a582e3b91ba8e565da4fbbe2009b3d0bc6b18b5d09f2",
+    "src/TASRNInvestigationFunctionalPayload.h": "96ef521c4626c024ca759e8df5c979b499fa915a9078deee48fadb555250534b",
     "src/TASRNInvestigationLayout.h": "c03da8b9a0de5f83a33a7d468db85f44faa5480a8f1bb03a7202bb6ade52ec88",
-    "src/TASRNInvestigationOriginalPayload.h": "5026f13358e4ba7a67d4e92392618af06dd12d54e7c91a48181bec8b254b355c",
+    "src/TASRNInvestigationOriginalPayload.h": "22ff0b2084600429805f80d5175123a8cfbd959cf2e958e5476a4396ee748e9f",
     "src/TASRNInvestigationPatch.h": "7962e8c21411c63fc327a97036ccbb86c96551012ef3da6ed6b1fb9d54b20ffa",
     "src/TASRNLocalEchoPatch.h": "505e040b6ac6006a5a09d6674078b10546ef1ecf0eb9419888b062435b81d701",
     "src/TASRNPopupPatch.h": "eec4f6f2291c2306feb11076506bf9bafd28e36e775c334c58c9e16703a8dc05",
@@ -27,30 +27,30 @@
     "src/TASRNStripPatch.h": "4aa76d779c670e87be52912c7a40dc5b8c1a18f536a30af6dab0b6cb07bc914a",
     "src/TASRNStripPayload.h": "ccff9632b6740f045febbd343f71bf7e1aa96fbf12cd9749714ca5195fb763e3",
     "src/TASRNWidthPatch.h": "8cb571cf85448844ed7820b0bb4aa7a38d6beb0362ca578f4de290fd7903c647",
-    "src/rn/Investigation.js": "2494af9c857c88372dc45211525c412c96642c5971aeb546353c0c91735d80d6",
-    "tests/fixtures/investigation_bootstrap.js": "78831ddf38f284f909c476b2bdd40bfc0a13a5c17c92ff370a778d5ab0d50a17",
+    "src/rn/Investigation.js": "288c020d642c0e1ffd9a19c22fb69fa166f60326b67bb92dd366ffcd2dc6e358",
+    "tests/fixtures/investigation_bootstrap.js": "8c20ff622dce11e0d3b8545cec75a0fdfa23d168a893f0e9ecd143f05de06425",
     "tests/fixtures/investigation_getters.js": "c96a84102b8d9765b448d050eb8794b5b8793dffee1ed16219e0484fff979eec",
-    "tests/fixtures/investigation_recorder.js": "731760acac5a7021d586762dc80f67ed0dc4960e633269ecb29441232da8d25f",
-    "tests/fixtures/investigation_startup.js": "5c1d0dc86901179e56b1b777621dcb994ed45d4c0bb9de8e5fb52abb77e961fa",
+    "tests/fixtures/investigation_recorder.js": "4f28bbbd93cbf1b809110a8b52436004b00d59b8597b3f87af82639d29589831",
+    "tests/fixtures/investigation_startup.js": "a05c03b0e2edcdf1b6768f51cc5480bf497788fa0296651bb1ff4c55c5ee31ba",
     "tests/native/hermes_snapshot_runner.cpp": "e1fe15a3857c6bc437cd3f2fc027ad0f711465d08734effc9e719f7f26d2c06b",
     "tests/test_investigation_startup.py": "6ba77755bd6b578187fe1450df2dd2c5c296a71c4b958325ed1d417d3a91dfe4",
     "tools/generate_investigation_payload.py": "6ab71f6f217c181571e23c2e36f2f2589bc4d31a6aa9b2cf1b05fb2e3af7a629",
     "tools/generate_investigation_registry.py": "1264e2f9bcc2dccf1cd2c8da5caf5bebaf2bbad78f36e463331453635a35156a",
     "tools/rn_graft.py": "edc91c7df14960e5f7591c71f45fddecdd75a84cf7c77dd5a88d1e6444a20a3d",
     "tools/validate_investigation_getters.py": "05c268d2b2885e0c6e72547d736e76167d658d0b8202496893514ebcf9ebb3cc",
-    "tools/validate_investigation_runtime.py": "46411db08f486630885f219d0dea8c69fe25853a383486371587a0e236f2e032",
+    "tools/validate_investigation_runtime.py": "892e4dc313c6b8a1aef22069c1b136ed3150421cd406b8cb4cab0a80cea0e159",
     "tools/validate_rn_snapshot.py": "9e1860f11a547563b798a320625d9738ca2cec207467caa1630acc73097dd442"
   },
   "profiles": [
     {
       "profile": "Original",
       "bytes": 28702768,
-      "sha256": "bb27f4ff0b6a5786bb6bf67091aa6a929334bd3f8a594169cf0733bce1048e54"
+      "sha256": "34387bb94efddadc1210375c733865975f71601c0004f710bb22ffdf7f6019b4"
     },
     {
       "profile": "Functional",
       "bytes": 28744240,
-      "sha256": "ddd1646c9127f1098cafcfe24f44d47e8822e6291a17dda1afc4bfac53108c78"
+      "sha256": "6abd09bccc8527f7f67e0b2a38abc8ce81e139d5b113645f119f6080dd5580ee"
     }
   ],
   "donor_getters": {

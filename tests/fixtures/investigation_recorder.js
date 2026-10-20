@@ -1,9 +1,9 @@
 /* Runs against the production owned graft in pinned compiled Hermes. */
 function exerciseRecorder(render){
   var time=1000,timers=[],packets=[],sent=0,listener=null,originals=[],nativeCalls=0,unsubscribed=0;
-  global.performance.now=function(){return time;};
-  global.setTimeout=function(fn,delay){var t={fn:fn,delay:delay,cancelled:false};timers.push(t);return t;};
-  global.clearTimeout=function(t){t.cancelled=true;};
+  globalThis.performance.now=function(){return time;};
+  globalThis.setTimeout=function(fn,delay){var t={fn:fn,delay:delay,cancelled:false};timers.push(t);return t;};
+  globalThis.clearTimeout=function(t){t.cancelled=true;};
   function flush(){var count=0;while(timers.length){var t=timers.shift();if(!t.cancelled){check(++count<20,"bounded capture timers");time+=t.delay;t.fn();}}}
   bridge.report=function(e,g,s,payload){check(e===1 && payload.length<=8192,"bounded packet");check(payload.indexOf("PRIVATE")<0,"privacy sentinel absent");packets.push(JSON.parse(payload));sent++;return _observeNative(g,s,payload,time,0);};
   var failure={PRIVATE:1},client={};

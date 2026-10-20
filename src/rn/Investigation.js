@@ -1,20 +1,22 @@
 /* Fixed donor adapter. Dormant: ref registration only, no timers or scans.
  * Numeric wire rows: kind,time,family,scope,label,flags,a,b,c.
  * Private bounded aliases never cross the bridge. No message contents read. */
+// Metro supplies its global object to donor factories; the legacy global alias
+// is not established in this donor. Use the standard Hermes globalThis binding.
 function install() {
   var bridge=null;try{
   var name=String.fromCharCode(83,116,114,101,97,109,115,105,100,101,73,110,118,101,115,116,105,103,97,116,105,111,110);
   var modules=__r(16).default,nativeJSX=__r(245).jsx,bridge=modules && modules[name];
   if(bridge && typeof bridge.startup==="function"){
-    var available=(typeof bridge.ready==="function"?1:0)|(typeof bridge.ack==="function"?2:0)|(typeof bridge.report==="function"?4:0)|(typeof nativeJSX==="function"?8:0)|(typeof global.RN$registerCallableModule==="function"?16:0)|(typeof WeakMap==="function"?32:0)|(typeof Map==="function"?64:0)|(global.performance && typeof global.performance.now==="function"?128:0);
+    var available=(typeof bridge.ready==="function"?1:0)|(typeof bridge.ack==="function"?2:0)|(typeof bridge.report==="function"?4:0)|(typeof nativeJSX==="function"?8:0)|(typeof globalThis.RN$registerCallableModule==="function"?16:0)|(typeof WeakMap==="function"?32:0)|(typeof Map==="function"?64:0)|(globalThis.performance && typeof globalThis.performance.now==="function"?128:0);
     bridge.startup(available);
   }
-  if(!bridge || typeof bridge.ready!=="function" || typeof bridge.ack!=="function" || typeof bridge.report!=="function" || typeof nativeJSX!=="function" || typeof global.RN$registerCallableModule!=="function" || typeof WeakMap!=="function" || typeof Map!=="function" || !global.performance || typeof global.performance.now!=="function")return null;
+  if(!bridge || typeof bridge.ready!=="function" || typeof bridge.ack!=="function" || typeof bridge.report!=="function" || typeof nativeJSX!=="function" || typeof globalThis.RN$registerCallableModule!=="function" || typeof WeakMap!=="function" || typeof Map!=="function" || !globalThis.performance || typeof globalThis.performance.now!=="function")return null;
   var refs=new WeakMap(),lists=[],next=0,epoch=0,active=false,generation=0,sequence=0,config=null,hooks=[],clients=new WeakMap();
   var ordinary=[],priority=[],ordinaryAt=0,priorityAt=0,aliases=[],aliasBytes=0,labels=0,skipped=0,urgentSkipped=0,evicted=0,errors=0,coverage=0;
   var start=0,last=0,tokens=0,urgentTokens=0,work=0,capturing=false,captureTimer=null,captureRows=null;
   function safe(fn){try{return fn();}catch(error){errors=Math.min(10000000,errors+1);return null;}}
-  function clock(){return global.performance.now();}
+  function clock(){return globalThis.performance.now();}
   function number(x){return typeof x==="number" && Number.isFinite(x) && Math.abs(x)<=10000000?Math.round(x):-1;}
   function elapsed(){return Math.min(10000000,Math.max(0,Math.round(clock()-start)));}
   function row(kind,time,family,scope,label,flags,a,b,c){var out=[];out.push(kind,time,family,scope,label,flags,number(a),number(b),number(c));return out;}
@@ -63,7 +65,7 @@ function install() {
     });coverage|=256;if(typeof s[5]==="function")coverage|=16;observe(8,s,null,0,1,0,0,true);
   }
   function detach(s){s[13]=false;for(var i=hooks.length-1;i>=0;i--)if(hooks[i][5]===s){var h=hooks.splice(i,1)[0];safe(function(){var d=Object.getOwnPropertyDescriptor(h[0],h[1]);if(d && d.value===h[3])Object.defineProperty(h[0],h[1],h[4]);});}if(typeof s[5]==="function")safe(s[5]);s[5]=null;if(s[6])clients.delete(s[6]);s[6]=null;s[8]=null;s[9]=null;s[10]=null;s[11]=null;s[12]=0;}
-  function stop(){active=false;capturing=false;if(captureTimer!==null)global.clearTimeout(captureTimer);captureTimer=null;captureRows=null;lists.forEach(detach);for(var i=hooks.length-1;i>=0;i--){var h=hooks[i];safe(function(){var d=Object.getOwnPropertyDescriptor(h[0],h[1]);if(d && d.value===h[3])Object.defineProperty(h[0],h[1],h[4]);});}hooks=[];clients=new WeakMap();aliases=[];aliasBytes=0;ordinary=[];priority=[];ordinaryAt=0;priorityAt=0;}
+  function stop(){active=false;capturing=false;if(captureTimer!==null)globalThis.clearTimeout(captureTimer);captureTimer=null;captureRows=null;lists.forEach(detach);for(var i=hooks.length-1;i>=0;i--){var h=hooks[i];safe(function(){var d=Object.getOwnPropertyDescriptor(h[0],h[1]);if(d && d.value===h[3])Object.defineProperty(h[0],h[1],h[4]);});}hooks=[];clients=new WeakMap();aliases=[];aliasBytes=0;ordinary=[];priority=[];ordinaryAt=0;priorityAt=0;}
   function forget(record){record[14]++;if(active)observe(8,record,null,0,0,0,0,true);detach(record);var at=lists.indexOf(record);if(at>=0)lists.splice(at,1);if(record[2] && refs.get(record[2])===record)refs.delete(record[2]);record[1]=null;record[3]=null;}
   function forward(ref,context,args){if(typeof ref==="function")return ref.apply(context,args);if(ref)ref.current=args[0];}
   function register(record,node){if(!node){forget(record);return;}if(lists.indexOf(record)<0){if(lists.length>=2){forget(record);return;}lists.push(record);}record[14]++;record[3]=node;if(active)attach(record);}
@@ -107,7 +109,7 @@ function install() {
       if(!accepted){capturing=false;captureRows=null;bridge.ack(epoch,g,seq,2,false);stop();return;}
       if(!snapshotDone){snapshotDone=true;safe(function(){snapshot(rows);});rows.push(row(5,elapsed(),0,0,0,coverage,errors,aliasBytes,labels));}
       if(final){capturing=false;captureRows=null;bridge.ack(epoch,g,seq,2,true);if(!config[1])stop();return;}
-      captureRows=rows;captureTimer=global.setTimeout(send,Math.ceil(1000/config[10]));
+      captureRows=rows;captureTimer=globalThis.setTimeout(send,Math.ceil(1000/config[10]));
     }
     send();
   }
@@ -124,6 +126,6 @@ function install() {
     if(operation===2 && active && !capturing){generation=g;sequence=seq;capture(g,seq);return;}
     bridge.ack(epoch,g,seq,operation,false);
   }
-  var methods={};methods.command=command;global.RN$registerCallableModule(name,function(){return methods;});epoch=bridge.ready(1,7);return epoch?renderList:null;
+  var methods={};methods.command=command;globalThis.RN$registerCallableModule(name,function(){return methods;});epoch=bridge.ready(1,7);return epoch?renderList:null;
   }catch(error){try{if(bridge && typeof bridge.startup==="function")bridge.startup(256);}catch(ignored){}return null;}
 }

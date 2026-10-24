@@ -669,3 +669,16 @@ Native report/manifest fuzzers each passed 20,000 malformed-input cases under
 AddressSanitizer/UndefinedBehaviorSanitizer. Native framework verification,
 validation-receipt freshness and documentation checks passed. Device validation
 of the corrected viewport range remains pending.
+
+Build-23 candidate source: `b8a62d458097e5a78af9a5582dc438853ed7b6da`.
+The unsigned IPA passed package verification. Its framework matches the verified
+native build; original donor HBC and all three native UUID/text identities remain
+unchanged. Prior manifests and device-test artifacts remain intact.
+
+- IPA SHA-256: `118f60af34b9d3a3d2125afecf85a958aad8c38f97cd0ebb75e39a8ef82ee673`.
+- Framework SHA-256: `1b06e86acb974a6fcca7e75cdd11f7667a9446e5f76357be0d9201e2e021d60c`.
+
+The workspace artifacts directory contains the build-23 IPA, checksum,
+`build23-validation.json` and `BUILD23_TESTING.md`. The report now identifies
+numeric-chat-v2 and manifest hash `60f94c27ec7c4df13dd62fe2aa35586badc871c72cb29540b9aa13ef7b047177`.
+Device viewport validation is pending.

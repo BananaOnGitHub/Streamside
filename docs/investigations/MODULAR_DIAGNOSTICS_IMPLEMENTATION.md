@@ -492,3 +492,68 @@ a chat defect. Before using a snapshot to compare visible-message membership,
 prioritize the admitted visible range and explicitly label any tail fallback as
 specified by the proposal. This baseline cannot establish absence of any
 unsampled visible message, filtering/deduplication or server acknowledgment.
+
+
+### Further build-22 device feedback and gap capture supplied 2026-10-24
+
+The user separately confirms that the capture action remains visible in
+landscape. This establishes reported landscape visibility, not exhaustive
+rotation, focus, accessibility or hit-testing validation.
+
+A subsequent build-22 report was supplied as a chat-gap capture. Asked whether
+the symptom was blank space, known missing messages or both/uncertain, the user
+selected both/uncertain. Preserve that ambiguity; no particular missing message
+or affected row is identified. The report uses the same manifest hash and donor
+as the normal-chat baseline. Generation 3 / sequence 2 do not uniquely identify
+a capture across launches and must not be used to merge the two recordings.
+
+Selected original observations from the new report:
+
+```text
+Capture generation=3 sequence=2 rows=163 wire_bytes=4286 complete=1 interrupted=0
+0,9598,0,0,0,0,0,0,0
+3,9598,4,7,0,0,127,0,10
+4,9598,8,7,0,0,127,119,126
+7,9598,8,7,0,0,4703,303,5006
+9,9600,8,7,39,1,29,-1,1117
+9,9600,8,7,40,1,30,-1,1155
+9,9600,8,7,41,1,31,-1,1193
+6,9600,8,7,0,32,1668,64,64
+5,9600,0,0,0,375,0,2556,73
+```
+
+The report completed without interruption. Header admission skips (ordinary
+and priority) and alias evictions are zero. Its ordinary ring has only 27
+events, below capacity 256. Nine labels (1–9) each have paired translation and
+emission observations with no recorded callback exception. Store notifications
+continue during the approximately 9.6-second armed interval. This supports
+continued execution of these observed paths; it does not prove receipt of every
+server message or successful rendering. Coverage mask 375 and zero adapter
+errors match the installed probes. The snapshot records 1,668 microseconds and
+membership-truncated flag 32, without unavailable/read-budget/change/transport
+truncation flags. Store paused is false.
+
+Both the store and transcript data contain 127 entries at capture. Their
+sampled indices 0–63 have matching labels 10–73 at corresponding indices.
+Equal counts and matching partial samples cannot establish equality of all
+127 entries, delivery of each tracked message, or correct pixel rendering.
+The nine live-event labels are outside this sampled membership and therefore
+cannot be followed into current store/list membership from this report.
+
+The donor list reports range 119–126, scroll 4703, viewport length 303 and
+content length 5006 (the reported viewport reaches the content end). The
+recorder instead samples indices 0–63 on both sides. This repeats the already
+recorded sampling defect: starting at max(0,length-128) and spending half of
+the shared allowance on each side can omit the entire current list range and
+the newest messages. Actual native/pixel geometry is not observed, so the
+range is donor state rather than independent visibility evidence.
+
+Known sizes are unavailable for sampled list indices 29–31; their size field
+is -1 and their per-row flag is 1. These are older entries outside the reported
+current range. Their presence is not evidence that those rows caused the gap,
+and this report does not establish whether the symptom is missing data or
+blank rendering/layout space. The next diagnostic correction should prioritize
+the admitted current list range and relevant bounded associations before
+older history, while retaining existing work/privacy limits and accurately
+reporting incomplete coverage. No chat-loss or layout root cause is established
+by this capture.

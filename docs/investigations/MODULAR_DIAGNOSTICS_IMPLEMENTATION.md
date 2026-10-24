@@ -523,7 +523,7 @@ Capture generation=3 sequence=2 rows=163 wire_bytes=4286 complete=1 interrupted=
 ```
 
 The report completed without interruption. Header admission skips (ordinary
-and priority) and alias evictions are zero. Its ordinary ring has only 27
+and priority) and alias evictions are zero. Its ordinary ring has only 28
 events, below capacity 256. Nine labels (1–9) each have paired translation and
 emission observations with no recorded callback exception. Store notifications
 continue during the approximately 9.6-second armed interval. This supports

@@ -704,7 +704,7 @@ void tas_inv_host_status(char *buffer, size_t capacity) {
     pthread_mutex_lock(&host_lock);
     id self = objc_loadWeakRetained(&module_weak), callable = self ? get_callable(self) : nil;
     snprintf(buffer, capacity,
-             "Investigation runtime / 3.1.0-build.22\nstate=%s reason=%s native=%u native-stage=%u "
+             "Investigation runtime / 3.1.0-build.23\nstate=%s reason=%s native=%u native-stage=%u "
              "profile-bits=%u source-stage=%u epoch=%u\nstartup-mask=%u startup-calls=%u "
              "ready-calls=%u ready-result=%u "
              "module=%u callable=%u probe-scheduled=%u pong=%u generation=%u pending=%u\n"

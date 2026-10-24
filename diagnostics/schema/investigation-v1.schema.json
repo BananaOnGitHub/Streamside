@@ -215,7 +215,7 @@
         },
         "profile": {
           "type": "string",
-          "const": "rn-chat-current-v1"
+          "enum": ["rn-chat-current-v1", "rn-chat-current-v2"]
         }
       }
     },
@@ -359,7 +359,7 @@
       "properties": {
         "profile": {
           "type": "string",
-          "const": "numeric-chat-v1"
+          "enum": ["numeric-chat-v1", "numeric-chat-v2"]
         },
         "max_bytes": {
           "type": "integer",

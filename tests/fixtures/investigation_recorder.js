@@ -12,7 +12,7 @@ function exerciseRecorder(render){
   client.onChannelPointsRewardEvent=function(){nativeCalls++;return 74;};
   var state={_tmiClient:client,lines:[],paused:false,pushRewardRedemption:function(){nativeCalls++;return 75;}};
   var store={getState:function(){return state;},subscribe:function(fn){check(listener===null,"single subscription");listener=fn;return function(){unsubscribed++;listener=null;};}};
-  var sizes=new Map(),data=[],list={getState:function(){return {data:data,start:0,end:data.length-1,scroll:1,scrollLength:200,contentLength:400,sizes:sizes,positionAtIndex:function(i){return i*40;},elementAtIndex:function(){throw new Error("mutating helper used");},sizeAtIndex:function(){throw new Error("mutating helper used");}};}};
+  var sizes=new Map(),data=[],list={getState:function(){return {data:data,start:Math.max(0,data.length-8),end:data.length-1,scroll:1,scrollLength:200,contentLength:400,sizes:sizes,positionAtIndex:function(i){return i*40;},elementAtIndex:function(){throw new Error("mutating helper used");},sizeAtIndex:function(){throw new Error("mutating helper used");}};}};
   var ref={current:null};render.call(store,{}, {ref:ref}).props.ref(list);
   originals.push(client.translateChatMessage,client.emitLine,client.onChannelPointsRewardEvent,state.pushRewardRedemption);
   var cmd=registered.StreamsideInvestigation().command,config=[];config.push(1023,1,2,128,12,2000,10000,2000,8,4,4,256,64,256,65536,65536);
@@ -28,11 +28,11 @@ function exerciseRecorder(render){
   while(state.lines.length<128)state.lines.push({line:privateLine});while(data.length<128)data.push({line:privateLine,key:"PRIVATE-key"});
   time+=7200000;client.emitLine(privateLine);cmd(2,2,2,config);
   check(sent===1,"history transferred before snapshot");flush();
-  var rows=[];packets.forEach(function(p){check(p[0]===1,"wire version");rows=rows.concat(p[3]);});
+  var rows=[];packets.forEach(function(p){check(p[0]===2,"wire version");rows=rows.concat(p[3]);});
   check(packets.length===8 && !packets[7][3].some(function(r){return r[0]===6 && (r[5]&16);}),"full final batch is not falsely truncated");
   check(packets[packets.length-1][2]===1 && calls[calls.length-1][4]===true,"complete capture acknowledged");
   var normal=0,urgent=0,member=0,listed=0,firstLabel=0;
-  rows.forEach(function(r){check(r.length===9 && r.every(function(n){return Number.isInteger(n) && n>=-1 && n<=10000000;}),"numeric-only fixed rows");if(r[0]===1)normal++;if(r[0]===2)urgent++;if(r[0]===8){member=r[4];}if(r[0]===9){listed=r[4];check(r[7]===42 && r[8]===r[6]*40,"known size and position");}if(r[0]===2 && r[2]===0 && r[5]===1)firstLabel=r[4];});
+  rows.forEach(function(r){check(r.length===9 && r.every(function(n){return Number.isInteger(n) && n>=-1 && n<=10000000;}),"numeric-only fixed rows");if(r[0]===1)normal++;if(r[0]===2)urgent++;if(r[0]===8){member=r[4];}if(r[0]===9){listed=r[4];check(r[7]===42000 && r[8]===r[6]*40,"known size and position");}if(r[0]===2 && r[2]===0 && r[5]===1)firstLabel=r[4];});
   check(normal<=256 && urgent<=64 && normal>200 && urgent>0,"bounded separate rings");check(member>0 && member===listed,"store/list identity association");
   check(listener!==null && timers.length===0,"capture returns armed without timer");
   // A failed read must leave already transferred frozen history intact.

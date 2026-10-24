@@ -557,3 +557,115 @@ the admitted current list range and relevant bounded associations before
 older history, while retaining existing work/privacy limits and accurately
 reporting incomplete coverage. No chat-loss or layout root cause is established
 by this capture.
+
+
+## Build 23: viewport-relative immutable snapshots
+
+Build-22 baseline and gap reports sampled older list entries while omitting
+the reported current range. Build 23 changes the existing capture projection;
+it adds no app hooks, lifecycle probes, per-message bridge calls, polling,
+renderer/Fabric instrumentation, or native measurement operation.
+
+Capture still freezes and transfers its existing event history before any
+current-state read or reporting UI update. It next reads the existing admitted
+LegendList getState result. Exact-donor replay now explicitly verifies that
+result.start/end expose startNoBuffer/endNoBuffer rather than the buffered
+range. It samples all available visible indices first, across both admitted
+scopes, then at most two adjacent indices per side, nearest first. Store state
+and its bounded tail are read only after visible rows and margins. A missing or
+invalid range is reported unavailable; any bounded tail fallback is labelled
+and never described as a visible-range sample.
+
+All entry projections continue to share max_entries=128 and the smaller
+callback/JS-work deadline (2 ms in the shipped manifest). More than 128 visible
+rows, exhausted time, failed row reads, missing margin or changed scope/store
+revision produce explicit partial coverage. Entry exhaustion is distinct from
+time exhaustion. An empty valid range is explicit. A successful range sample
+does not imply that every sampled row has an available identity or measured
+height; those fields have their own status. No list scrolling, mounting, layout
+forcing or getter retries are added.
+
+Each list-member row records its list index, existing per-arm anonymous label
+where available, measured-height cache status/value, cached position and
+counterpart-store membership status. All list observations precede store-tail
+projections. Associations use only the already admitted object/id/nonce fields
+for bounded transient equality; source objects are not copied or exported.
+Matching store projections reuse the sampled list label even if the bounded
+global alias map evicts an older association during the snapshot. Object-only
+identity and unavailable identity are explicit.
+
+Counterpart membership is present when directly matched, absent only following
+a complete stable scan with comparable identity fields, and unknown otherwise.
+Incomplete store/list sampling never establishes absence. A changed revision,
+mount or array length downgrades the affected snapshot's membership claims to
+unknown and its range to partial. The existing independent work and privacy
+limits remain in force. This does not add confirmed nonce reconciliation or
+server acknowledgments.
+
+Measurement comes solely from getState().sizes (the original sizesKnown Map)
+using has/get. Missing entry, exact measured zero, invalid measured value and
+unavailable measurement access are distinct. Cache absence means no current
+known measurement; these adapters cannot establish whether the row was ever
+measured before a cache clear/eviction. A cached measured zero survives the
+actual donor getter unchanged. Height is exported in 1/1000 logical points;
+exact-zero status is tested before rounding. Finite bounded negative heights
+are retained and marked invalid, rather than conflated with unmeasured values.
+Cached positions remain rounded logical points. Neither elementAtIndex nor
+sizeAtIndex is invoked, and their idCache mutation remains forbidden. The
+existing exact getter graph is replayed behind mutation traps; the projection
+fixtures also trap writes to source state, data, lines and idCache and check
+measurement-map size preservation.
+
+### Report and registry versioning
+
+Manifest revision 3 selects rn-chat-current-v2 and numeric-chat-v2. Revision 2
+and prior device artifacts remain unchanged. The numeric transport version is
+2, with the same nine-integer row envelope and original kinds 0–9 plus kind 10
+for range coverage. Native scalar parsing accepts bounded signed payload
+integers (±10,000,000); structural fields retain their existing nonnegative
+checks. This preserves negative scroll/position geometry such as overscroll
+instead of rejecting a complete capture. Native rows, packet bytes, batches,
+deadline, generation/sequence and privacy bounds remain unchanged. The report
+identifies units and every status flag; old packets are not silently interpreted
+with the new height units.
+
+List member a/b/c are index, measured height in milli-points and rounded-point
+position. Member flags are 8 counterpart present, 16 absent after a full
+comparable scan, 32 unknown, 64 identity unavailable, 512 object-only identity.
+List flags additionally identify 1 unmeasured in current cache, 2 exact measured
+zero, 4 invalid measurement, 1024 measurement unavailable, 128 visible and
+256 margin. For kind 10, a/b/c are requested first/last and visible rows sampled;
+flags are 1 complete including margin, 2 partial, 4 unavailable, 8 partial
+margin, 16 tail fallback, 32 empty list, 64 changed and 128 budget reached.
+Report completion continues to describe transport separately from these range
+and membership coverage results.
+
+### Interpretation boundaries
+
+Where complete comparable membership establishes store-present/list-absent,
+investigate store-to-list reconciliation. A list row with cached zero, negative
+or suspicious height is a lead for list layout/virtualization, with the cached
+measurement's age/native-geometry limits retained. Normal cached row geometry
+cannot prove a Fabric text component displayed content; blank presentation
+would require further evidence. Missing lifecycle observations may reflect
+upstream delivery or missing observation coverage and do not alone prove a
+message was dropped. No automatic root-cause classification is added.
+
+Tests reproduce both device ranges (119–126 of 127; 140–149 of 150), a middle
+viewport, two scopes, margins, oversized ranges, time and entry exhaustion,
+failed/unavailable getters, invalid/empty ranges and labelled fallback. They
+exercise positive fractional heights, exact zero, absent/invalid/unavailable
+cache entries, object-only identity, complete/partial membership scans, changed
+snapshots and forced alias eviction. The actual owned graft and modified donor
+factory run in pinned Hermes for both original and complete functional
+predecessors. A native report test round-trips the new statuses, signed
+geometry and height units, and refuses old-version or out-of-range rows.
+Actual device confirmation of the corrected viewport capture remains pending.
+
+Build-23 local validation: 214 tests ran, 212 passed and the two Apple-only
+Foundation/ImageIO checks skipped. Both exact compiled Hermes predecessors
+passed viewport, identity, measurement-state, budget and mutation-trap cases.
+Native report/manifest fuzzers each passed 20,000 malformed-input cases under
+AddressSanitizer/UndefinedBehaviorSanitizer. Native framework verification,
+validation-receipt freshness and documentation checks passed. Device validation
+of the corrected viewport range remains pending.

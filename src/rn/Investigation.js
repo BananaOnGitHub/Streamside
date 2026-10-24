@@ -74,25 +74,103 @@ function install() {
       record[4]=function(node){var value=forward(record[2],this,arguments);safe(function(){register(record,node);});var mounted=record[14];if(typeof value==="function")return function(){try{return value.apply(this,arguments);}finally{safe(function(){if(record[14]===mounted)forget(record);});}};return value;};refs.set(ref,record);}
     copy=Object.assign({},props);copy.ref=record[4];});return nativeJSX(type,copy);}
   function ordered(buffer,at){return buffer.slice(at).concat(buffer.slice(0,at));}
+  // Comparison uses only the already admitted identity fields. No renderer or
+  // mutating LegendList accessor is called. -1 means identity is incomparable.
+  function relation(a,b){
+    if(!a || !b || typeof a!=="object" || typeof b!=="object")return -1;
+    if(a===b)return 1;
+    var ai=bytes(a.id)?a.id:null,bi=bytes(b.id)?b.id:null,an=bytes(a.clientNonce)?a.clientNonce:null,bn=bytes(b.clientNonce)?b.clientNonce:null;
+    if(ai && bi && ai===bi || an && bn && an===bn)return 1;
+    return ai && bi || an && bn?0:-1;
+  }
+  function identityFlags(line){return !line || typeof line!=="object"?64:bytes(line.id) || bytes(line.clientNonce)?0:512;}
   function snapshot(rows){
-    var began=clock(),count=0,total=0,budget=Math.min(config[6],config[7]);if(!lists.length)rows.push(row(6,elapsed(),8,0,0,2,0,0,0));for(var j=0;j<lists.length && j<config[2];j++){
-      if((clock()-began)*1000>=budget){rows.push(row(6,elapsed(),0,0,0,4,count,total,0));break;}
-      var s=lists[j],revision=s[7],state=null,list=null,lines=null,data=null,status=0;
-      safe(function(){state=s[1].getState();lines=state.lines;});
-      safe(function(){if(!s[3] || typeof s[3].getState!=="function")return;list=s[3].getState();data=list.data;});
-      if(!state)status|=1;if(!list)status|=2;
-      rows.push(row(3,elapsed(),4,s[0],0,status,Array.isArray(lines)?lines.length:-1,state && state.paused?1:0,revision));
-      rows.push(row(4,elapsed(),8,s[0],0,status,Array.isArray(data)?data.length:-1,list?list.start:-1,list?list.end:-1));
-      rows.push(row(7,elapsed(),8,s[0],0,status,list?list.scroll:-1,list?list.scrollLength:-1,list?list.contentLength:-1));
-      if(Array.isArray(lines))for(var i=Math.max(0,lines.length-config[3]);i<lines.length && count+total<config[3] && count<(Array.isArray(data)?Math.max(1,Math.floor(config[3]/2)):config[3]);i++){
-        if((clock()-began)*1000>=budget){status|=4;break;}var entry=lines[i],line=entry && (entry.line || entry),id=label(s,line,true);rows.push(row(8,elapsed(),4,s[0],id,0,i,0,0));count++;
+    var began=clock(),budget=Math.min(config[6],config[7]),used=0,contexts=[];
+    function expired(){return (clock()-began)*1000>=budget;}
+    // Context slots: 0 scope,1 store state,2 list state,3 store lines,4 list data,
+    // 5 revision,6 mount,7 store length,8 list length,9/10 visible first/last,
+    // 11 targets,12 snapshot flags,13/14 visible/margin counts,15 failed reads,
+    // 16 store reads,17 full store scan,18 valid range,19 entry limit reached.
+    if(!lists.length){rows.push(row(10,elapsed(),8,0,0,4,-1,-1,0));rows.push(row(6,elapsed(),8,0,0,2,0,0,0));return;}
+    for(var j=0;j<lists.length && j<config[2];j++){
+      var scope=lists[j],state=null,list=null,lines=null,data=null,status=0,revision=scope[7],mount=scope[14];
+      if(!expired())safe(function(){if(scope[3] && typeof scope[3].getState==="function"){list=scope[3].getState();data=list.data;}});else status|=4;
+      if(!list || !Array.isArray(data))status|=2;
+      var length=Array.isArray(data)?data.length:0,storeLength=Array.isArray(lines)?lines.length:0,first=-1,last=-1;safe(function(){if(list){first=list.start;last=list.end;}});
+      var valid=!!list && Array.isArray(data) && Number.isInteger(first) && Number.isInteger(last) && (length===0?(first===0 || first===-1) && last===-1:first>=0 && last>=first && last<length);
+      rows.push(row(4,elapsed(),8,scope[0],0,status,Array.isArray(data)?length:-1,first,last));
+      rows.push(row(7,elapsed(),8,scope[0],0,status,list?list.scroll:-1,list?list.scrollLength:-1,list?list.contentLength:-1));
+      var c=[];c.push(scope,state,list,lines,data,revision,mount,storeLength,length,valid?first:-1,valid?last:-1,[],status,0,0,0,0,false,valid,false);contexts.push(c);
+    }
+    function sample(c,index,flags){
+      if(used>=config[3]){c[19]=true;return false;}if(expired()){c[12]|=4;return false;}used++;
+      var target=safe(function(){
+        var item=c[4][index],line=item && (item.line || item),key=item && item.key,height=-1,position=-1,measurement=1024;
+        // has() distinguishes an unmeasured row from a measured height of zero.
+        safe(function(){var sizes=c[2].sizes;if(sizes && typeof sizes.has==="function" && typeof sizes.get==="function" && (typeof key==="string" || typeof key==="number")){
+          if(!sizes.has(key))measurement=1;
+          else{var raw=sizes.get(key);measurement=4;if(typeof raw==="number" && Number.isFinite(raw) && Math.abs(raw)<=10000){height=Math.round(raw*1000);measurement=raw<0?4:raw===0?2:0;}}
+        }});
+        safe(function(){if(typeof c[2].positionAtIndex==="function")position=number(c[2].positionAtIndex(index));});
+        var value=row(9,elapsed(),8,c[0][0],label(c[0],line,true),flags|measurement|identityFlags(line)|32,index,height,position),record=[];
+        record.push(line,value,false,true);rows.push(value);return record;
+      });
+      if(!target){c[15]++;return true;}
+      c[11].push(target);if(flags&128)c[13]++;if(flags&256)c[14]++;return true;
+    }
+    // Every admitted viewport precedes any margin or fallback, including when
+    // two lists share the same fixed entry/work allowance.
+    for(var a=0;a<contexts.length;a++){
+      var c=contexts[a];if(!c[18] || !c[8])continue;
+      for(var k=c[9];k<=c[10];k++)if(!sample(c,k,128))break;
+    }
+    for(var b=0;b<contexts.length;b++){
+      var c=contexts[b];if(!c[18] || !c[8] || c[13]!==c[10]-c[9]+1)continue;
+      // Two neighbours per side, nearest first. Never replace a visible row.
+      for(var distance=1;distance<=2;distance++){
+        if(c[9]-distance>=0 && !sample(c,c[9]-distance,256))break;
+        if(c[10]+distance<c[8] && !sample(c,c[10]+distance,256))break;
       }
-      if(Array.isArray(data))for(var k=Math.max(0,data.length-config[3]);k<data.length && count+total<config[3];k++){
-        if((clock()-began)*1000>=budget){status|=4;break;}var item=data[k],value=item && (item.line || item),key=item && item.key,known=-1,position=-1;
-        safe(function(){if(list.sizes && typeof list.sizes.get==="function" && (typeof key==="string" || typeof key==="number"))known=list.sizes.has(key)?number(list.sizes.get(key)):-1;if(typeof list.positionAtIndex==="function")position=number(list.positionAtIndex(k));});
-        rows.push(row(9,elapsed(),8,s[0],label(s,value,true),known<0?1:0,k,known,position));total++;
+    }
+    for(var f=0;f<contexts.length;f++){
+      var c=contexts[f];if(c[18] || !Array.isArray(c[4]))continue;
+      // Unavailable range is explicit; a bounded tail is context, not viewport.
+      var allowance=Math.floor((config[3]-used)/2);
+      for(var k=Math.max(0,c[8]-allowance);k<c[8];k++)if(!sample(c,k,0))break;
+    }
+    // Remaining work is a bounded store tail. Absence is asserted only after
+    // a complete, stable and identity-comparable scan of the other side.
+    for(var t=0;t<contexts.length;t++){
+      var c=contexts[t],storeRows=[];
+      if(!expired())safe(function(){c[1]=c[0][1].getState();c[3]=c[1].lines;});else c[12]|=4;
+      if(!c[1] || !Array.isArray(c[3]))c[12]|=1;c[7]=Array.isArray(c[3])?c[3].length:0;
+      rows.push(row(3,elapsed(),4,c[0][0],0,c[12],Array.isArray(c[3])?c[7]:-1,c[1] && c[1].paused?1:0,c[5]));
+      var allowance=Math.floor((config[3]-used)/(contexts.length-t)),start=Math.max(0,c[7]-allowance),scanOK=Array.isArray(c[3]),fullList=c[11].length===c[8] && !(c[12]&2) && !c[15];
+      if(scanOK)for(var i=start;i<c[7];i++){
+        if(used>=config[3] || expired()){c[12]|=4;scanOK=false;break;}used++;
+        var projected=safe(function(){
+          var entry=c[3][i],line=entry && (entry.line || entry),matched=false,comparable=true,associated=0;
+          for(var n=0;n<c[11].length;n++){
+            if(expired()){comparable=false;scanOK=false;c[12]|=4;break;}
+            var target=c[11][n],same=relation(line,target[0]);
+            if(same===1){target[2]=true;matched=true;associated=target[1][4];}
+            if(same<0){target[3]=false;comparable=false;}
+          }
+          var value=row(8,elapsed(),4,c[0][0],associated || label(c[0],line,true),identityFlags(line)|(identityFlags(line)&64?32:matched?8:fullList && comparable?16:32),i,0,0);
+          rows.push(value);storeRows.push(value);return true;
+        });
+        if(projected)c[16]++;else scanOK=false;
       }
-      if(s[7]!==revision)status|=8;if(Array.isArray(lines) && lines.length>count || Array.isArray(data) && data.length>total)status|=32;rows.push(row(6,elapsed(),8,s[0],0,status,Math.round((clock()-began)*1000),count,total));
+      c[17]=scanOK && start===0 && c[16]===c[7];
+      var changed=c[0][7]!==c[5] || c[0][14]!==c[6] || Array.isArray(c[3]) && c[3].length!==c[7] || Array.isArray(c[4]) && c[4].length!==c[8];
+      if(changed){c[12]|=8;for(var r=0;r<storeRows.length;r++)storeRows[r][5]=(storeRows[r][5]&~24)|32;}
+      for(var n=0;n<c[11].length;n++){var target=c[11][n];target[1][5]=(target[1][5]&~32)|(changed || !target[1][4]?32:target[2]?8:c[17] && target[3]?16:32);}
+      var visible=c[18]?(c[8]?c[10]-c[9]+1:0):0,margin=c[18] && c[8]?Math.min(2,c[9])+Math.min(2,c[8]-c[10]-1):0;
+      var rangeFlags=!c[18]?4:c[13]===visible && c[14]===margin && !c[15] && !changed?1:2;
+      if(c[18] && c[14]<margin)rangeFlags|=8;if(!c[18] && c[11].length)rangeFlags|=16;if(!c[8] && Array.isArray(c[4]))rangeFlags|=32;if(changed)rangeFlags|=64;if(c[12]&4 || c[19])rangeFlags|=128;
+      if(c[16]<c[7] || c[11].length<c[8])c[12]|=32;
+      rows.push(row(10,elapsed(),8,c[0][0],0,rangeFlags,c[9],c[10],c[13]));
+      rows.push(row(6,elapsed(),8,c[0][0],0,c[12],Math.round((clock()-began)*1000),c[16],c[11].length));
     }
   }
   function capture(g,seq){
@@ -103,7 +181,7 @@ function install() {
     function send(){captureTimer=null;if(g!==generation || seq!==sequence || !capturing)return;
       var remaining=rows.length,chunk=rows.splice(0,64),final=snapshotDone && rows.length===0;
       if(!final && (part+1>=maxParts || clock()-began>=config[5]-100)){final=true;rows=[];chunk.push(row(6,elapsed(),0,0,0,16,remaining,0,0));}
-      var packet=[];packet.push(1,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
+      var packet=[];packet.push(2,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
       var accepted=payload.length<=8192 && wire<=config[15] && safe(function(){return bridge.report(epoch,g,seq,payload);});
       part++;
       if(!accepted){capturing=false;captureRows=null;bridge.ack(epoch,g,seq,2,false);stop();return;}

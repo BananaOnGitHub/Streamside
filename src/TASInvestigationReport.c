@@ -41,8 +41,6 @@ static bool integer(Reader *r, int32_t *out) {
         if (zero && r->p < r->end && *r->p >= '0' && *r->p <= '9')
             return false;
     } while (r->p < r->end && *r->p >= '0' && *r->p <= '9');
-    if (neg && n > 1)
-        return false;
     *out = neg ? -(int32_t)n : (int32_t)n;
     return true;
 }
@@ -53,7 +51,7 @@ bool tas_inv_report_accept(uint32_t g, uint32_t s, const void *input, size_t siz
     int32_t version, p, f;
     int32_t rows[PACKET_ROWS][FIELDS];
     unsigned n = 0;
-    if (!symbol(&r, '[') || !integer(&r, &version) || version != 1 || !symbol(&r, ',') ||
+    if (!symbol(&r, '[') || !integer(&r, &version) || version != 2 || !symbol(&r, ',') ||
         !integer(&r, &p) || p < 0 || p >= 8 || !symbol(&r, ',') || !integer(&r, &f) || f < 0 ||
         f > 1 || !symbol(&r, ',') || !symbol(&r, '['))
         return false;
@@ -67,9 +65,9 @@ bool tas_inv_report_accept(uint32_t g, uint32_t s, const void *input, size_t siz
                     return false;
             if (!symbol(&r, ']'))
                 return false;
-            if (rows[n][0] < 0 || rows[n][0] > 9 || (rows[n][0] == 0 && (p || n)) ||
+            if (rows[n][0] < 0 || rows[n][0] > 10 || (rows[n][0] == 0 && (p || n)) ||
                 rows[n][1] < 0 || rows[n][2] < 0 || rows[n][2] > 9 || rows[n][3] < 0 ||
-                rows[n][4] < 0 || rows[n][5] < 0 || rows[n][5] > 1023)
+                rows[n][4] < 0 || rows[n][5] < 0 || rows[n][5] > 2047)
                 return false;
             n++;
             space(&r);
@@ -150,24 +148,41 @@ size_t tas_inv_report_format(char *out, size_t cap) {
         }                                                                                          \
         used += (size_t)z;                                                                         \
     } while (0)
-    ADD("Streamside 3.1.0-build.22 development / numeric-chat-v1\nDonor Twitch 31.6.2 "
+    ADD("Streamside 3.1.0-build.23 development / numeric-chat-v2\nDonor Twitch 31.6.2 "
         "(262872150334984303), HBC98, runtime ABI1\nManifest SHA256: %s\nCapture "
         "generation=%u sequence=%u rows=%u wire_bytes=%u complete=%u interrupted=%u\n",
         TAS_INV_MANIFEST_SHA256, generation, sequence, count, wire, complete, interrupted);
     ADD("No contents or raw identities. Labels are ephemeral per arm. Missing observations do not "
         "prove dropped messages.\nKinds: 0 frozen header; 1 ordinary; 2 priority; 3 store; 4 list; "
-        "5 coverage; 6 snapshot status; 7 viewport; 8 store member; 9 list member.\nColumns: "
-        "kind,elapsed_ms,family,scope,label,flags,a,b,c. Families: 0 translation,1 emission,2 "
+        "5 coverage; 6 snapshot status; 7 viewport; 8 store member; 9 list member; 10 range "
+        "coverage.\nColumns: "
+        "kind,elapsed_ms,family,scope,label,flags,a,b,c. Numeric payloads are bounded signed "
+        "integers. Families: 0 translation,1 emission,2 "
         "local_echo,3 reconciliation,4 store,5 IRC_reward,6 reward_store_route,7 reward_render,8 "
         "list,9 "
         "layout.\nUnobserved: per-message filtering/deduplication, server acknowledgments, "
-        "confirmed nonce reconciliation, reward renderer/catalog, row layout/native geometry. "
+        "confirmed nonce reconciliation, reward renderer/catalog, native row geometry and Fabric "
+        "content presentation. "
         "Estimated row sizes unavailable; direct store reward observations do not independently "
         "establish PubSub provenance. Non-atomic JS snapshot; viewport values are donor state. "
         "Coverage flags are the actually installed family mask; header a/b/c are ordinary "
         "drops/priority drops/alias evictions. Snapshot flags: 1 store unavailable,2 list "
         "unavailable,4 work budget,8 changed,16 transfer truncated,32 membership sample "
-        "truncated.\n");
+        "truncated.\n"
+        "List-member a/b/c: index, measured height in 1/1000 points, position in rounded points. "
+        "List flags: 1 unmeasured in current cache,2 measured exactly zero,4 invalid "
+        "measurement,1024 measurement "
+        "unavailable; "
+        "Cache absence does not prove no prior measurement. Heights round to 0.001 points; zero "
+        "flag uses the unrounded value. "
+        "128 visible,256 margin. Member flags: 8 counterpart present,16 absent after full "
+        "comparable scan,"
+        "32 membership unknown,64 identity unavailable,512 object-identity only. "
+        "Range a/b/c: requested first,last,visible rows sampled; margin is two rows per side. "
+        "Range flags: 1 complete including margin,2 partial,4 unavailable,8 margin partial,"
+        "16 tail fallback,32 empty list,64 changed,128 budget reached. "
+        "Complete range does not imply measured/native pixel geometry. "
+        "Normal measured row size cannot prove Fabric text displayed content.\n");
     for (unsigned i = 0; i < count; i++)
         ADD("%d,%d,%d,%d,%d,%d,%d,%d,%d\n", frozen[i][0], frozen[i][1], frozen[i][2], frozen[i][3],
             frozen[i][4], frozen[i][5], frozen[i][6], frozen[i][7], frozen[i][8]);

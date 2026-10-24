@@ -353,7 +353,7 @@ bool tas_inv_parse(const void *bytes, size_t length, TASInvManifest *out) {
     m.return_armed = eq(a, "armed");
     n = get(&j, r, "snapshot");
     if (!FIELDS(&j, n, "supported", "profile") || !boolean(get(&j, n, "supported"), true) ||
-        !eq(get(&j, n, "profile"), "rn-chat-current-v1"))
+        !eq(get(&j, n, "profile"), "rn-chat-current-v2"))
         return false;
     n = get(&j, r, "sampling");
     if (!FIELDS(&j, n, "mode", "periodic_hz", "events") ||
@@ -387,7 +387,7 @@ bool tas_inv_parse(const void *bytes, size_t length, TASInvManifest *out) {
         m.limits[k] = a->number;
     }
     n = get(&j, r, "report");
-    if (!FIELDS(&j, n, "profile", "max_bytes") || !eq(get(&j, n, "profile"), "numeric-chat-v1") ||
+    if (!FIELDS(&j, n, "profile", "max_bytes") || !eq(get(&j, n, "profile"), "numeric-chat-v2") ||
         !number(get(&j, n, "max_bytes"), 1, m.limits[TAS_INV_REPORT_BYTES]))
         return false;
     m.limits[TAS_INV_REPORT_BYTES] = get(&j, n, "max_bytes")->number;

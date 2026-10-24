@@ -19,12 +19,12 @@ if '--check' not in sys.argv:
     from validate_investigation_getters import run_getter_gate,run_seam_gate
     from validate_rn_snapshot import patch_chain,test_entry,compile_js
 
-INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js','src/TASInvestigationUI.c','src/TASInvestigationUI.h','src/TASInvestigation.c','src/TASInvestigation.h','src/TASInvestigationRegistry.h','src/TASInvestigationHost.h','src/TASEmotes.c','src/TASDiagnostics.c','tests/test_investigation_startup.py','tests/test_investigation_overlay.py','tests/fixtures/investigation_startup.js']
+INPUTS=['src/rn/Investigation.js','src/TASRNInvestigationPatch.h','src/TASRNInvestigationLayout.h','src/TASRNInvestigationOriginalPayload.h','src/TASRNInvestigationFunctionalPayload.h','tools/generate_investigation_payload.py','tools/validate_investigation_runtime.py','tests/fixtures/investigation_bootstrap.js','tests/fixtures/investigation_recorder.js','src/TASInvestigationHost.c','src/TASInvestigationReport.c','src/TASInvestigationReport.h','tools/validate_investigation_getters.py','tests/fixtures/investigation_getters.js','src/TASInvestigationUI.c','src/TASInvestigationUI.h','src/TASInvestigation.c','src/TASInvestigation.h','src/TASInvestigationRegistry.h','src/TASInvestigationHost.h','src/TASEmotes.c','src/TASDiagnostics.c','tests/test_investigation_startup.py','tests/test_investigation_overlay.py','tests/fixtures/investigation_startup.js','tests/fixtures/investigation_viewport.js','tests/test_investigation_viewport.py','tests/test_investigation_report.py','tests/native/investigation_report.c','diagnostics/schema/investigation-v1.schema.json']
 def fingerprints():
     names=set(INPUTS)
     for pattern in ['src/TASRN*Patch.h','src/TASRN*Payload.h','src/TASRN*Layout.h']:
         names.update(str(p.relative_to(ROOT)) for p in ROOT.glob(pattern))
-    names.update(['tools/rn_graft.py','tools/validate_rn_snapshot.py','tools/generate_investigation_registry.py','diagnostics/investigations/rn-chat-gaps/2.json','tests/native/hermes_snapshot_runner.cpp'])
+    names.update(['tools/rn_graft.py','tools/validate_rn_snapshot.py','tools/generate_investigation_registry.py','diagnostics/investigations/rn-chat-gaps/3.json','tests/native/hermes_snapshot_runner.cpp'])
     return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(names)}
 def graft(body,tmp):
     source=tmp/'inv_patch.c';source.write_text('#include "TASRNInvestigationPatch.h"\nvoid *patch(const void *p,size_t n,TASRNSHA1 s,TASInvSHA256 h,size_t *out){return tas_rn_investigation_patch(p,n,s,h,out);}\nvoid dispose(void *p){free(p);}\n')
@@ -96,6 +96,10 @@ def validate(a):
             result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'recorder.hbc')],capture_output=True,text=True)
             assert result.returncode==0,result.stderr
             print(label+': bounded recorder, long arm, priority admission, privacy, partial snapshots and teardown passed')
+            (tmp/'viewport.js').write_text(fixture+'\n'+(ROOT/'tests/fixtures/investigation_viewport.js').read_text()+'\nexerciseViewport(buildLocalEcho());\n');compile_js(a.hermesc,tmp/'viewport.js',tmp/'viewport.hbc')
+            result=subprocess.run([str(a.runner),str(native),str(tmp/'entry.hbc'),str(tmp/'viewport.hbc')],capture_output=True,text=True)
+            assert result.returncode==0,result.stderr
+            print(label+': viewport priority, margins, zero/unmeasured heights, membership and immutable budgets passed')
             # Execute the unchanged actual factory export and all its original
             # style initialization after the guarded additional installer.
             (tmp/'factory.hbc').write_bytes(test_entry(patched,a.hermesc,tmp,4900))

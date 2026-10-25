@@ -844,3 +844,17 @@ replay passed on both donor predecessors; report and manifest sanitizer harnesse
 each passed 20,000 malformed-input cases under ASan/UBSan. Native artifact
 verification, documentation checks and whitespace checks passed. All manifest
 limits were compared against revision 3 and remain identical.
+
+Build-24 device candidate provenance:
+
+- Source commit: 365214477eab053134c852ee0d3c9ea80eace6d6.
+- IPA: Streamside-3.1.0-build.24-modular-diagnostics.ipa.
+- IPA SHA-256: 1d7179fc899c32c297803623a2e1808838e3262c56bded4021e00ec14e87d530.
+- Framework SHA-256: 76e773b9d7224390b431f28947558634886493055f66abe18950988e0f9a0e2f.
+- Manifest revision 4 SHA-256: 44e05c219d39bd41a690f9151f4633b9d16b2a9aa959beaada9317ab76f50b88.
+
+Unsigned IPA verification passed against the guarded framework. Independent
+checks confirmed the packaged framework/version, original HBC digest and all
+three donor native UUID/text identities. External build24-validation.json and
+BUILD24_TESTING.md preserve the complete validation and device handoff.
+Earlier artifacts/hashes remain unchanged; device acceptance remains pending.

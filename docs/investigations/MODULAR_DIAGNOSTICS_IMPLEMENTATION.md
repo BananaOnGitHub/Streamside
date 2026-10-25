@@ -682,3 +682,84 @@ The workspace artifacts directory contains the build-23 IPA, checksum,
 `build23-validation.json` and `BUILD23_TESTING.md`. The report now identifies
 numeric-chat-v2 and manifest hash `60f94c27ec7c4df13dd62fe2aa35586badc871c72cb29540b9aa13ef7b047177`.
 Device viewport validation is pending.
+
+
+### Build-23 device gap report: viewport confirmed, store membership incomplete
+
+The user reports another chat gap and supplies a build-23 numeric-chat-v2
+capture with the expected manifest hash. Generation 11 / sequence 10 contains
+56 rows and 1,567 wire bytes, complete=1 and interrupted=0. Header ordinary/
+priority admission skips and alias evictions are zero; coverage mask is 375
+with zero adapter errors. The user hopes this captured the symptom. The report
+establishes the sampled state, not independently that a blank/missing message
+was still visible at the exact snapshot instant.
+
+Selected original observations:
+
+```text
+0,10750,0,0,0,0,0,0,0
+1,8960,0,12,9,0,2,0,0
+1,8961,1,12,9,0,2,0,0
+1,9582,0,12,10,0,2,0,0
+1,9582,1,12,10,0,2,0,0
+4,10751,8,12,0,0,150,142,149
+7,10751,8,12,0,0,5605,303,5908
+9,10752,8,12,1,160,142,34000,5596
+9,10752,8,12,2,160,143,40000,5630
+9,10752,8,12,3,160,144,34000,5670
+9,10752,8,12,4,160,145,40000,5704
+9,10752,8,12,5,160,146,34000,5744
+9,10752,8,12,6,160,147,34000,5778
+9,10752,8,12,7,160,148,40000,5812
+9,10752,8,12,8,160,149,40000,5852
+9,10752,8,12,11,288,141,40000,5556
+9,10752,8,12,12,288,140,34000,5522
+3,10752,4,12,0,0,151,0,11
+10,10753,8,12,0,129,142,149,8
+6,10753,8,12,0,36,2040,7,10
+5,10753,0,0,0,375,0,684,19
+```
+
+Viewport priority is now confirmed on the reported device: all eight indices
+142–149 were sampled before the two available margin indices, 141 and 140.
+Range flag 129 is complete-including-margin (1) plus budget-reached (128); the
+work limit was reached during later membership work, not before the visible
+range was captured. Snapshot flag 36 is work-budget (4) plus membership partial
+(32), and the recorded total projection duration is 2,040 microseconds.
+
+All ten list rows have available positive cached heights of 34 or 40 logical
+points. There are no unmeasured, exact-zero, invalid or unavailable-height flags
+on these rows. After sorting by index, every next position equals the prior
+position plus its measured height: 5522/5556/5596/5630/5670/5704/5744/5778/5812/
+5852. Thus no inter-row gap appears in this cached numeric geometry. The last
+row ends at 5892 while reported content length is 5908; that 16-point trailing
+extent alone does not establish a fault, since native pixel geometry and
+footer/inset attribution are not captured here. The reported viewport ends at
+5605+303=5908. Normal cached geometry cannot rule out native/Fabric blanking or
+prove that the text content was displayed.
+
+Ten labels have translation/emission pairs in the frozen history. The visible
+tail contains labels 1–8; the later labels 9 and 10 reached those two lifecycle
+callbacks but are not among the sampled tail rows. With zero alias evictions,
+this is a useful bounded progression lead, not proof they are absent from the
+entire list, absent from the store, or dropped. Filtering/deduplication,
+reconciliation and actual presentation remain unobserved. Store/list counts
+151/150 do not prove a mismatch: differing counts also occurred in the known
+normal baseline and may reflect bounded list data or other normal processing.
+
+All list-member flags are 160 (visible + membership unknown) or 288 (margin +
+membership unknown). The store scan sampled only indices 33–39, with labels
+13–19 and unknown counterpart membership. It exhausted its remaining 2 ms
+work allowance before reaching recent store entries or the relevant identities.
+The existing loop starts at the oldest edge of its bounded tail allowance and
+walks forward. Device evidence now shows that an early deadline can spend all
+remaining work on those older entries. A subsequent optimization within the
+same adapters/budgets should examine newest/relevant store entries first;
+partial scans must retain unknown, never absent, membership. No new native or
+Fabric instrumentation is justified by a root-cause claim from this report.
+
+This capture confirms the requested visible-range projection and supplies
+normal cached geometry during a reported gap. It does not yet distinguish
+store-to-list progression/filtering from native/Fabric presentation, or establish
+an upstream delivery failure. No functional chat fix or new candidate was made
+as part of interpreting this device report.

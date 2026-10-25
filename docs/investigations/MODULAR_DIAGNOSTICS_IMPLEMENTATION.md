@@ -763,3 +763,84 @@ normal cached geometry during a reported gap. It does not yet distinguish
 store-to-list progression/filtering from native/Fabric presentation, or establish
 an upstream delivery failure. No functional chat fix or new candidate was made
 as part of interpreting this device report.
+
+
+## Build 24: newest-first store traversal under the unchanged deadline
+
+The build-23 device gap capture completed its viewport but spent the remaining
+work allowance on store indices 33–39. Build 24 reverses traversal of the same
+bounded tail: begin at store length minus one and move backward, retaining
+the original viewport-first, margin-second ordering and comparing existing
+viewport targets before margin targets. It does not guess a store index from
+a list index or assume equal store/list lengths. Newest entries are examined
+first, which prioritizes the likely counterparts for the end-of-chat viewport
+and recent observed messages.
+
+Every manifest limit is identical to revision 3: the callback deadline remains
+2,000 microseconds, JS work allowance 10,000 microseconds, shared entry allowance
+128 and all transport/privacy/rate limits unchanged. The effective snapshot
+deadline remains the smaller of the callback and JS-work limits. Each next
+entry and each identity comparison still checks that deadline; no work is
+deferred to another snapshot task or resumed after expiration. An individual
+already-entered read/comparison is not preemptible, as in earlier candidates.
+No new app hooks, live event stages, getters, timers, layout operations or
+per-message bookkeeping are added. History still freezes/transfers first;
+elementAtIndex and sizeAtIndex remain forbidden.
+
+A new kind-11 numeric row records store slots successfully read, lowest read
+index and highest read index. Failed accesses do not count as successful reads
+or establish that the newest slot was reached. If a slot is read but later
+identity projection/comparison fails, the read still counts while the failure
+and incomplete-comparison flags identify the limitation. Extrema do not assert
+that every intermediate slot was successfully projected. A separate flag marks
+all captured store slots read; that is not equivalent to complete, stable
+membership correlation.
+
+Traversal flags are 1 store available, 2 newest entry read, 4 all store slots
+read, 8 time budget, 16 entry limit, 32 read failure, 64 changed snapshot,
+128 empty store, 256 alias continuity limited and 512 comparisons incomplete.
+Unavailable/empty stores and a deadline reached before the first read explicitly
+have zero examined entries and no newest-entry-read flag. Entry exhaustion is
+not misreported as time exhaustion. Unmatched/unread membership remains unknown;
+absence still requires the existing complete, comparable and stable scan.
+
+The copied/exported report adds human-readable per-scope traversal summaries,
+including examined/total counts, read-index extrema, whether the newest entry
+was read, stop limits and failures. It also summarizes existing visible-row
+store membership and up to eight recent distinct retained lifecycle labels,
+with store/visible-list observation counts. Recent labels are selected by
+recorded elapsed time from the frozen translation/emission/local-echo rows,
+deduplicated and scope filtered. These are observations in the bounded saved
+capture, not all server messages or proof of global absence.
+
+Recent-label matching is performed only by tas_inv_report_format on explicit
+Copy/Export, using numeric frozen rows. The production call-site audit finds
+the formatter only in the explicit report-export UI. It does not run in
+tas_inv_report_accept, the JS projection, or any per-message callback. This
+keeps that extra correlation work outside the capture's 2 ms allowance and
+requires no additional raw identifiers or retained live objects. Changed
+snapshot/alias flags remain visible; observation counts are not promoted into
+stable membership claims.
+
+Manifest revision 4 and numeric-chat-v3 / rn-chat-current-v3 identify the new
+traversal row and summaries. Earlier manifests and artifacts are unchanged.
+The same nine-integer envelope, signed scalar limits, immutable native parser,
+generation/sequence checks and runtime ABI1 remain. The numeric transport
+version is 3 and old packets are not silently interpreted as the new profile.
+
+Regression cases reproduce a seven-entry time limit: indices 150,149,148,147,
+146,145,144 are read instead of 33–39, while the complete viewport remains
+sampled first. Tests cover expiration before traversal, a failed newest read,
+entry exhaustion, complete/empty/unavailable stores, changed snapshots, alias
+continuity limits and conservative membership. The native formatter tests
+scope filtering, recent-label deduplication/selection, viewport counts and
+explicit unknown results. The sanitizer seed includes more than eight retained
+lifecycle labels and traversal rows so bounded export-summary selection executes
+under the malformed-input harness. Device confirmation remains pending.
+
+Build-24 host validation: 216 tests ran, 214 passed, and the Apple Foundation
+and ImageIO checks were skipped on this Linux host. Pinned compiled Hermes
+replay passed on both donor predecessors; report and manifest sanitizer harnesses
+each passed 20,000 malformed-input cases under ASan/UBSan. Native artifact
+verification, documentation checks and whitespace checks passed. All manifest
+limits were compared against revision 3 and remain identical.

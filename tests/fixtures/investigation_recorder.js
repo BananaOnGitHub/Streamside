@@ -28,7 +28,7 @@ function exerciseRecorder(render){
   while(state.lines.length<128)state.lines.push({line:privateLine});while(data.length<128)data.push({line:privateLine,key:"PRIVATE-key"});
   time+=7200000;client.emitLine(privateLine);cmd(2,2,2,config);
   check(sent===1,"history transferred before snapshot");flush();
-  var rows=[];packets.forEach(function(p){check(p[0]===2,"wire version");rows=rows.concat(p[3]);});
+  var rows=[];packets.forEach(function(p){check(p[0]===3,"wire version");rows=rows.concat(p[3]);});
   check(packets.length===8 && !packets[7][3].some(function(r){return r[0]===6 && (r[5]&16);}),"full final batch is not falsely truncated");
   check(packets[packets.length-1][2]===1 && calls[calls.length-1][4]===true,"complete capture acknowledged");
   var normal=0,urgent=0,member=0,listed=0,firstLabel=0;

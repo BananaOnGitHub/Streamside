@@ -51,7 +51,7 @@ bool tas_inv_report_accept(uint32_t g, uint32_t s, const void *input, size_t siz
     int32_t version, p, f;
     int32_t rows[PACKET_ROWS][FIELDS];
     unsigned n = 0;
-    if (!symbol(&r, '[') || !integer(&r, &version) || version != 2 || !symbol(&r, ',') ||
+    if (!symbol(&r, '[') || !integer(&r, &version) || version != 3 || !symbol(&r, ',') ||
         !integer(&r, &p) || p < 0 || p >= 8 || !symbol(&r, ',') || !integer(&r, &f) || f < 0 ||
         f > 1 || !symbol(&r, ',') || !symbol(&r, '['))
         return false;
@@ -65,7 +65,7 @@ bool tas_inv_report_accept(uint32_t g, uint32_t s, const void *input, size_t siz
                     return false;
             if (!symbol(&r, ']'))
                 return false;
-            if (rows[n][0] < 0 || rows[n][0] > 10 || (rows[n][0] == 0 && (p || n)) ||
+            if (rows[n][0] < 0 || rows[n][0] > 11 || (rows[n][0] == 0 && (p || n)) ||
                 rows[n][1] < 0 || rows[n][2] < 0 || rows[n][2] > 9 || rows[n][3] < 0 ||
                 rows[n][4] < 0 || rows[n][5] < 0 || rows[n][5] > 2047)
                 return false;
@@ -148,14 +148,14 @@ size_t tas_inv_report_format(char *out, size_t cap) {
         }                                                                                          \
         used += (size_t)z;                                                                         \
     } while (0)
-    ADD("Streamside 3.1.0-build.23 development / numeric-chat-v2\nDonor Twitch 31.6.2 "
+    ADD("Streamside 3.1.0-build.24 development / numeric-chat-v3\nDonor Twitch 31.6.2 "
         "(262872150334984303), HBC98, runtime ABI1\nManifest SHA256: %s\nCapture "
         "generation=%u sequence=%u rows=%u wire_bytes=%u complete=%u interrupted=%u\n",
         TAS_INV_MANIFEST_SHA256, generation, sequence, count, wire, complete, interrupted);
     ADD("No contents or raw identities. Labels are ephemeral per arm. Missing observations do not "
         "prove dropped messages.\nKinds: 0 frozen header; 1 ordinary; 2 priority; 3 store; 4 list; "
         "5 coverage; 6 snapshot status; 7 viewport; 8 store member; 9 list member; 10 range "
-        "coverage.\nColumns: "
+        "coverage; 11 store traversal.\nColumns: "
         "kind,elapsed_ms,family,scope,label,flags,a,b,c. Numeric payloads are bounded signed "
         "integers. Families: 0 translation,1 emission,2 "
         "local_echo,3 reconciliation,4 store,5 IRC_reward,6 reward_store_route,7 reward_render,8 "
@@ -182,7 +182,87 @@ size_t tas_inv_report_format(char *out, size_t cap) {
         "Range flags: 1 complete including margin,2 partial,4 unavailable,8 margin partial,"
         "16 tail fallback,32 empty list,64 changed,128 budget reached. "
         "Complete range does not imply measured/native pixel geometry. "
-        "Normal measured row size cannot prove Fabric text displayed content.\n");
+        "Normal measured row size cannot prove Fabric text displayed content.\n"
+        "Traversal a/b/c: store entries read, lowest read index, highest read index; newest first. "
+        "Traversal flags: 1 store available,2 newest entry read,4 all store slots read,8 time "
+        "budget,"
+        "16 entry limit,32 read failure,64 changed,128 empty store,256 alias continuity limited,"
+        "512 comparisons incomplete. Unread entries and unmatched labels remain unknown.\n");
+    /* Export-time derivation only: never spends the capture's 2 ms allowance.
+     * At most eight retained lifecycle labels per scope; no raw identifiers. */
+    for (unsigned traversal = 0; traversal < count; traversal++) {
+        const int32_t *r = frozen[traversal];
+        if (r[0] != 11)
+            continue;
+        int32_t scope = r[3], total = -1, recent[8] = {0}, times[8] = {0};
+        unsigned selected = 0, present = 0, absent = 0, unknown = 0;
+        for (unsigned i = 0; i < count; i++) {
+            const int32_t *v = frozen[i];
+            if (v[3] != scope)
+                continue;
+            if (v[0] == 3)
+                total = v[6];
+            if (v[0] == 9 && (v[5] & 128)) {
+                if (v[5] & 8)
+                    present++;
+                else if (v[5] & 16)
+                    absent++;
+                else
+                    unknown++;
+            }
+            if ((v[0] != 1 && v[0] != 2) || v[2] > 2 || v[4] <= 0)
+                continue;
+            unsigned slot = 0;
+            while (slot < selected && recent[slot] != v[4])
+                slot++;
+            if (slot < selected) {
+                if (v[1] > times[slot])
+                    times[slot] = v[1];
+                continue;
+            }
+            if (selected < 8)
+                slot = selected++;
+            else {
+                slot = 0;
+                for (unsigned k = 1; k < 8; k++)
+                    if (times[k] < times[slot])
+                        slot = k;
+                if (v[1] < times[slot])
+                    continue;
+            }
+            recent[slot] = v[4];
+            times[slot] = v[1];
+        }
+        unsigned store_found = 0, visible_found = 0;
+        for (unsigned k = 0; k < selected; k++) {
+            bool in_store = false, in_visible = false;
+            for (unsigned i = 0; i < count; i++) {
+                const int32_t *v = frozen[i];
+                if (v[3] != scope || v[4] != recent[k])
+                    continue;
+                if (v[0] == 8)
+                    in_store = true;
+                if (v[0] == 9 && (v[5] & 128))
+                    in_visible = true;
+            }
+            store_found += in_store;
+            visible_found += in_visible;
+        }
+        ADD("Store traversal scope=%d available=%u examined=%d/%d read_indices=%d..%d "
+            "newest_first=1 "
+            "newest_entry_read=%u all_slots_read=%u time_limited=%u entry_limited=%u "
+            "read_failure=%u comparisons_incomplete=%u changed=%u empty=%u aliases_limited=%u\n",
+            scope, (unsigned)!!(r[5] & 1), r[6], total, r[8], r[7], (unsigned)!!(r[5] & 2),
+            (unsigned)!!(r[5] & 4), (unsigned)!!(r[5] & 8), (unsigned)!!(r[5] & 16),
+            (unsigned)!!(r[5] & 32), (unsigned)!!(r[5] & 512), (unsigned)!!(r[5] & 64),
+            (unsigned)!!(r[5] & 128), (unsigned)!!(r[5] & 256));
+        ADD("Viewport store membership scope=%d present=%u absent=%u unknown=%u. "
+            "Recent retained lifecycle labels selected=%u store_observed=%u "
+            "visible_list_observed=%u; "
+            "unmatched remains unknown. Summaries use frozen numeric rows at export time.\n",
+            scope, present, absent, unknown, selected, store_found, visible_found);
+    }
+
     for (unsigned i = 0; i < count; i++)
         ADD("%d,%d,%d,%d,%d,%d,%d,%d,%d\n", frozen[i][0], frozen[i][1], frozen[i][2], frozen[i][3],
             frozen[i][4], frozen[i][5], frozen[i][6], frozen[i][7], frozen[i][8]);

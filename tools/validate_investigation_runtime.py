@@ -24,7 +24,7 @@ def fingerprints():
     names=set(INPUTS)
     for pattern in ['src/TASRN*Patch.h','src/TASRN*Payload.h','src/TASRN*Layout.h']:
         names.update(str(p.relative_to(ROOT)) for p in ROOT.glob(pattern))
-    names.update(['tools/rn_graft.py','tools/validate_rn_snapshot.py','tools/generate_investigation_registry.py','diagnostics/investigations/rn-chat-gaps/3.json','tests/native/hermes_snapshot_runner.cpp'])
+    names.update(['tools/rn_graft.py','tools/validate_rn_snapshot.py','tools/generate_investigation_registry.py','diagnostics/investigations/rn-chat-gaps/4.json','tests/native/hermes_snapshot_runner.cpp'])
     return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(names)}
 def graft(body,tmp):
     source=tmp/'inv_patch.c';source.write_text('#include "TASRNInvestigationPatch.h"\nvoid *patch(const void *p,size_t n,TASRNSHA1 s,TASInvSHA256 h,size_t *out){return tas_rn_investigation_patch(p,n,s,h,out);}\nvoid dispose(void *p){free(p);}\n')

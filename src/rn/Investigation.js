@@ -91,7 +91,7 @@ function install() {
     // 5 revision,6 mount,7 store length,8 list length,9/10 visible first/last,
     // 11 targets,12 snapshot flags,13/14 visible/margin counts,15 failed reads,
     // 16 store reads,17 full store scan,18 valid range,19 entry limit reached.
-    if(!lists.length){rows.push(row(10,elapsed(),8,0,0,4,-1,-1,0));rows.push(row(6,elapsed(),8,0,0,2,0,0,0));return;}
+    if(!lists.length){rows.push(row(11,elapsed(),4,0,0,0,0,-1,-1));rows.push(row(10,elapsed(),8,0,0,4,-1,-1,0));rows.push(row(6,elapsed(),8,0,0,2,0,0,0));return;}
     for(var j=0;j<lists.length && j<config[2];j++){
       var scope=lists[j],state=null,list=null,lines=null,data=null,status=0,revision=scope[7],mount=scope[14];
       if(!expired())safe(function(){if(scope[3] && typeof scope[3].getState==="function"){list=scope[3].getState();data=list.data;}});else status|=4;
@@ -138,20 +138,23 @@ function install() {
       var allowance=Math.floor((config[3]-used)/2);
       for(var k=Math.max(0,c[8]-allowance);k<c[8];k++)if(!sample(c,k,0))break;
     }
-    // Remaining work is a bounded store tail. Absence is asserted only after
+    // Remaining work starts at the newest store entry. Existing viewport
+    // targets are compared first. Absence is asserted only after
     // a complete, stable and identity-comparable scan of the other side.
     for(var t=0;t<contexts.length;t++){
-      var c=contexts[t],storeRows=[];
+      var c=contexts[t],storeRows=[],examined=0,attempted=0,lowest=-1,highest=-1,readFailure=false,comparisonsComplete=true;
       if(!expired())safe(function(){c[1]=c[0][1].getState();c[3]=c[1].lines;});else c[12]|=4;
       if(!c[1] || !Array.isArray(c[3]))c[12]|=1;c[7]=Array.isArray(c[3])?c[3].length:0;
       rows.push(row(3,elapsed(),4,c[0][0],0,c[12],Array.isArray(c[3])?c[7]:-1,c[1] && c[1].paused?1:0,c[5]));
       var allowance=Math.floor((config[3]-used)/(contexts.length-t)),start=Math.max(0,c[7]-allowance),scanOK=Array.isArray(c[3]),fullList=c[11].length===c[8] && !(c[12]&2) && !c[15];
-      if(scanOK)for(var i=start;i<c[7];i++){
-        if(used>=config[3] || expired()){c[12]|=4;scanOK=false;break;}used++;
+      if(scanOK)for(var i=c[7]-1;i>=start;i--){
+        if(used>=config[3]){c[19]=true;scanOK=false;break;}
+        if(expired()){c[12]|=4;scanOK=false;break;}used++;attempted++;
         var projected=safe(function(){
-          var entry=c[3][i],line=entry && (entry.line || entry),matched=false,comparable=true,associated=0;
+          var entry=c[3][i];examined++;lowest=i;if(highest<0)highest=i;
+          var line=entry && (entry.line || entry),matched=false,comparable=true,associated=0;
           for(var n=0;n<c[11].length;n++){
-            if(expired()){comparable=false;scanOK=false;c[12]|=4;break;}
+            if(expired()){comparable=false;scanOK=false;comparisonsComplete=false;c[12]|=4;break;}
             var target=c[11][n],same=relation(line,target[0]);
             if(same===1){target[2]=true;matched=true;associated=target[1][4];}
             if(same<0){target[3]=false;comparable=false;}
@@ -159,7 +162,7 @@ function install() {
           var value=row(8,elapsed(),4,c[0][0],associated || label(c[0],line,true),identityFlags(line)|(identityFlags(line)&64?32:matched?8:fullList && comparable?16:32),i,0,0);
           rows.push(value);storeRows.push(value);return true;
         });
-        if(projected)c[16]++;else scanOK=false;
+        if(projected)c[16]++;else{scanOK=false;readFailure=true;comparisonsComplete=false;}
       }
       c[17]=scanOK && start===0 && c[16]===c[7];
       var changed=c[0][7]!==c[5] || c[0][14]!==c[6] || Array.isArray(c[3]) && c[3].length!==c[7] || Array.isArray(c[4]) && c[4].length!==c[8];
@@ -169,6 +172,17 @@ function install() {
       var rangeFlags=!c[18]?4:c[13]===visible && c[14]===margin && !c[15] && !changed?1:2;
       if(c[18] && c[14]<margin)rangeFlags|=8;if(!c[18] && c[11].length)rangeFlags|=16;if(!c[8] && Array.isArray(c[4]))rangeFlags|=32;if(changed)rangeFlags|=64;if(c[12]&4 || c[19])rangeFlags|=128;
       if(c[16]<c[7] || c[11].length<c[8])c[12]|=32;
+      var traversalFlags=Array.isArray(c[3])?1:0;
+      if(examined && highest===c[7]-1)traversalFlags|=2;
+      if(Array.isArray(c[3]) && examined===c[7])traversalFlags|=4;
+      if(c[12]&4)traversalFlags|=8;
+      if(Array.isArray(c[3]) && c[7]>0 && start>0 && attempted>=allowance || c[19])traversalFlags|=16;
+      if(readFailure || !(traversalFlags&1) && !(c[12]&4))traversalFlags|=32;
+      if(changed)traversalFlags|=64;
+      if(Array.isArray(c[3]) && c[7]===0)traversalFlags|=128;
+      if(evicted)traversalFlags|=256;
+      if(!comparisonsComplete)traversalFlags|=512;
+      rows.push(row(11,elapsed(),4,c[0][0],0,traversalFlags,examined,lowest,highest));
       rows.push(row(10,elapsed(),8,c[0][0],0,rangeFlags,c[9],c[10],c[13]));
       rows.push(row(6,elapsed(),8,c[0][0],0,c[12],Math.round((clock()-began)*1000),c[16],c[11].length));
     }
@@ -181,7 +195,7 @@ function install() {
     function send(){captureTimer=null;if(g!==generation || seq!==sequence || !capturing)return;
       var remaining=rows.length,chunk=rows.splice(0,64),final=snapshotDone && rows.length===0;
       if(!final && (part+1>=maxParts || clock()-began>=config[5]-100)){final=true;rows=[];chunk.push(row(6,elapsed(),0,0,0,16,remaining,0,0));}
-      var packet=[];packet.push(2,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
+      var packet=[];packet.push(3,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
       var accepted=payload.length<=8192 && wire<=config[15] && safe(function(){return bridge.report(epoch,g,seq,payload);});
       part++;
       if(!accepted){capturing=false;captureRows=null;bridge.ack(epoch,g,seq,2,false);stop();return;}

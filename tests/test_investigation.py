@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 ROOT=Path(__file__).resolve().parent.parent
-MANIFEST=ROOT/'diagnostics/investigations/rn-chat-gaps/3.json'
+MANIFEST=ROOT/'diagnostics/investigations/rn-chat-gaps/4.json'
 class Manifest(C.Structure):
     _fields_=[('version',C.c_uint32),('capabilities',C.c_uint32),('events',C.c_uint32),('limits',C.c_uint32*14),('return_armed',C.c_bool),('title',C.c_char*65),('description',C.c_char*257)]
 class Donor(C.Structure):

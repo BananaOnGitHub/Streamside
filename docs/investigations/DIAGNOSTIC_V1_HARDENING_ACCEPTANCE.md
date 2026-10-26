@@ -200,3 +200,19 @@ The required secure-update v2 milestone remains separately open at M0–M6.
 Closing v1 must not state or imply that immutable pinning is the final
 architecture or that newly reviewed configuration bytes are remotely
 updateable today.
+
+## Source/native provenance
+
+Implementation source: d9317c52fac8916e1d0887bec1ba4cef5194d9c5.
+
+- Ordinary framework SHA-256: 11c41e383062ad117f8f882f7c10b2d2312a447c777e4a3df825c8b298733a6c.
+- Ordinary dylib SHA-256: f21082911849c3dff82da63959132c23034e06835b2eb71c0cd58532a1192195.
+- Current compiled-Hermes receipt SHA-256: fd5caa5515c8e3f7a7762372d756d7219a5519f0054c134672747db652234cb8.
+
+The workspace artifacts/v1-hardening-2026-10-26-validation.json binds the
+source, native artifact/receipt digests, log digests and explicit pending-device
+status. Persistent local logs are under build/v1-hardening-2026-10-26.
+The final report-legend wording change was rechecked by all 27 focused cases,
+both compiled predecessors, native verification and the report sanitizer;
+the 220-case integration result is recorded separately without double counting.
+There is no IPA or device acceptance artifact for this source.

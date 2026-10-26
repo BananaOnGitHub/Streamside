@@ -1,4 +1,5 @@
 #include "TASInvestigationHost.h"
+#include "TASDiagnosticPolicy.h"
 #include "TASInvestigationReport.h"
 #include "TASInvestigationUI.h"
 #include <dispatch/dispatch.h>
@@ -48,6 +49,11 @@ static unsigned timer_queued;
 static uint64_t probe_deadline, last_capture;
 static char module_epoch_key;
 static TASInvDonor evidence;
+static char patched_hbc[65];
+static uint64_t arm_requested_ms;
+static uint32_t arm_generation, arm_sequence;
+static bool resource_observers_ready;
+
 static char fingerprints[8][65];
 static const char *const module_name = "StreamsideInvestigation";
 /* Compiled snapshot, lifecycle and reward-route adapters. Per-field coverage
@@ -300,6 +306,113 @@ static void update_timer(void) {
         (id)objc_getClass("NSTimer"),
         sel_registerName("scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:"),
         interval, target, sel_registerName("deadline:"), nil, NO));
+}
+/* Native resource events only. No polling, transcript hook or per-message work. */
+static unsigned current_resource_reason(void) {
+    id app = m0((id)objc_getClass("UIApplication"), "sharedApplication");
+    id process = m0((id)objc_getClass("NSProcessInfo"), "processInfo");
+    if (!app || !process)
+        return TAS_INV_NO_RUNTIME;
+    long app_state = ((long (*)(id, SEL))objc_msgSend)(app, sel_registerName("applicationState"));
+    long thermal = ((long (*)(id, SEL))objc_msgSend)(process, sel_registerName("thermalState"));
+    if (app_state == 2)
+        return TAS_INV_BACKGROUND;
+    return thermal >= 2 ? TAS_INV_THERMAL : TAS_INV_OK;
+}
+static void resource_stop(unsigned reason) {
+    tas_inv_set_safety(reason);
+    tas_inv_report_export_cancel();
+    TASInvStatus s = tas_inv_status();
+    if (s.pending != TAS_INV_STOP &&
+        (s.state == TAS_INV_ARMED || s.state == TAS_INV_CAPTURING || s.pending == TAS_INV_ARM)) {
+        tas_inv_report_stop(reason);
+        tas_inv_host_request(TAS_INV_STOP);
+    }
+    schedule_timer();
+}
+static unsigned resource_pending, resource_queued;
+static void schedule_resource(unsigned flags) {
+    __atomic_fetch_or(&resource_pending, flags, __ATOMIC_ACQ_REL);
+    if (__atomic_exchange_n(&resource_queued, 1, __ATOMIC_ACQ_REL))
+        return;
+    id queue = m0((id)objc_getClass("NSOperationQueue"), "mainQueue");
+    m1(
+        queue, "addOperationWithBlock:", (id) ^ {
+            unsigned pending = __atomic_exchange_n(&resource_pending, 0, __ATOMIC_ACQ_REL);
+            __atomic_store_n(&resource_queued, 0, __ATOMIC_RELEASE);
+            unsigned reason = current_resource_reason();
+            if (!reason && (pending & 2))
+                reason = TAS_INV_MEMORY;
+            if (reason)
+                resource_stop(reason);
+            else
+                tas_inv_set_safety(TAS_INV_OK);
+            schedule_timer();
+        });
+}
+static void resource_changed(id self, SEL cmd, id note) {
+    (void)self;
+    (void)cmd;
+    (void)note;
+    schedule_resource(1);
+}
+static void memory_warning(id self, SEL cmd, id note) {
+    (void)self;
+    (void)cmd;
+    (void)note;
+    schedule_resource(2);
+}
+static void install_resource_observers(void) {
+    if (resource_observers_ready || !target)
+        return;
+    resource_observers_ready = true;
+    id center = m0((id)objc_getClass("NSNotificationCenter"), "defaultCenter");
+    const char *names[] = {"NSProcessInfoThermalStateDidChangeNotification",
+                           "UIApplicationDidReceiveMemoryWarningNotification",
+                           "UIApplicationDidEnterBackgroundNotification",
+                           "UIApplicationWillEnterForegroundNotification",
+                           "UIApplicationDidBecomeActiveNotification"};
+    for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); i++)
+        ((void (*)(id, SEL, id, SEL, id, id))objc_msgSend)(
+            center, sel_registerName("addObserver:selector:name:object:"), target,
+            sel_registerName(i == 1 ? "memoryWarning:" : "resourceChanged:"), ns(names[i]), nil);
+    unsigned reason = current_resource_reason();
+    if (reason)
+        tas_inv_set_safety(reason);
+}
+void tas_inv_host_source_identity(const void *bytes, size_t length) {
+    unsigned char digest[32];
+    char value[65] = {0};
+    if (tas_inv_host_sha256(bytes, length, digest))
+        hex(digest, 32, value);
+    pthread_mutex_lock(&host_lock);
+    memcpy(patched_hbc, value, sizeof(value));
+    pthread_mutex_unlock(&host_lock);
+}
+static void prepare_capture(const TASInvCommand *command, uint64_t now) {
+    TASInvManifest selected;
+    TASInvReportMetadata m = {0};
+    m.available = tas_inv_configuration(&selected, m.manifest_sha256, &m.registry_source);
+    m.manifest_version = command->manifest.version;
+    m.capabilities = command->manifest.capabilities;
+    m.vm_epoch = source_epoch;
+    m.arm_generation = arm_generation;
+    m.arm_sequence = arm_sequence;
+    m.arm_requested_ms = arm_requested_ms;
+    m.capture_requested_ms = now;
+    m.general_policy = tas_diag_policy_word ? tas_diag_policy_word() : 0;
+    memcpy(m.limits, command->manifest.limits, sizeof(m.limits));
+    snprintf(m.original_hbc, sizeof(m.original_hbc), "%s",
+             evidence.hbc_sha256 ? evidence.hbc_sha256 : "unavailable");
+    snprintf(m.native_profile, sizeof(m.native_profile), "%s", "twitch-ios-31.6.2-arm64-v1");
+    memcpy(m.patched_hbc, patched_hbc, sizeof(m.patched_hbc));
+    snprintf(m.main_uuid, sizeof(m.main_uuid), "%.32s", fingerprints[0]);
+    snprintf(m.main_text, sizeof(m.main_text), "%.64s", fingerprints[1]);
+    snprintf(m.react_uuid, sizeof(m.react_uuid), "%.32s", fingerprints[2]);
+    snprintf(m.react_text, sizeof(m.react_text), "%.64s", fingerprints[3]);
+    snprintf(m.hermes_uuid, sizeof(m.hermes_uuid), "%.32s", fingerprints[4]);
+    snprintf(m.hermes_text, sizeof(m.hermes_text), "%.64s", fingerprints[5]);
+    tas_inv_report_prepare(command->generation, command->sequence, &m);
 }
 static bool invoke(unsigned operation, unsigned generation, unsigned sequence,
                    const TASInvManifest *manifest) {
@@ -614,7 +727,11 @@ void tas_inv_host_initialize(void) {
               class_addMethod(object_getClass((id)cls),
                               sel_registerName("__rct_export__investigationAck"), (IMP)ack_export,
                               "^v16@0:8") &&
-              class_addMethod(clock, sel_registerName("deadline:"), (IMP)timeout, "v24@0:8@16");
+              class_addMethod(clock, sel_registerName("deadline:"), (IMP)timeout, "v24@0:8@16") &&
+              class_addMethod(clock, sel_registerName("resourceChanged:"), (IMP)resource_changed,
+                              "v24@0:8@16") &&
+              class_addMethod(clock, sel_registerName("memoryWarning:"), (IMP)memory_warning,
+                              "v24@0:8@16");
     if (!ok) {
         objc_disposeClassPair(cls);
         objc_disposeClassPair(clock);
@@ -629,6 +746,8 @@ void tas_inv_host_initialize(void) {
     register_module(cls);
     __atomic_store_n(&supported, true, __ATOMIC_RELEASE);
     flag(&native_stage, 8);
+    id queue = m0((id)objc_getClass("NSOperationQueue"), "mainQueue");
+    m1(queue, "addOperationWithBlock:", (id) ^ { install_resource_observers(); });
 }
 bool tas_inv_host_supported(void) { return __atomic_load_n(&supported, __ATOMIC_ACQUIRE); }
 void tas_inv_host_source_admitted(void) {
@@ -643,6 +762,7 @@ void tas_inv_host_source_admitted(void) {
     else
         __atomic_store_n(&supported, false, __ATOMIC_RELEASE);
     objc_storeWeak(&module_weak, nil);
+    patched_hbc[0] = 0;
     pong = false;
     probe_scheduled = false;
     probe_deadline = 0;
@@ -652,14 +772,42 @@ void tas_inv_host_source_admitted(void) {
     schedule_timer();
 }
 bool tas_inv_host_request(unsigned operation) {
+    /* Public UI/resource entry point is main-queue-only; do not wait for JS. */
+    if (!((BOOL(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSThread"),
+                                          sel_registerName("isMainThread")))
+        return false;
+    if (operation != TAS_INV_STOP) {
+        if (!resource_observers_ready)
+            return false;
+        unsigned reason = current_resource_reason();
+        /* A memory warning is latched until the next explicit Arm and a fresh
+         * foreground/thermal check. Recovery never resumes the prior lease. */
+        if (reason) {
+            resource_stop(reason);
+            return false;
+        }
+        if (operation == TAS_INV_ARM)
+            tas_inv_set_safety(TAS_INV_OK);
+    }
+    TASInvStatus before = tas_inv_status();
+    if (operation == TAS_INV_STOP &&
+        (before.pending == TAS_INV_STOP || (before.state == TAS_INV_DORMANT && !before.pending)))
+        return true;
     pthread_mutex_lock(&host_lock);
     uint64_t now = now_ms();
     bool available = is_supported() && pong &&
                      (operation != TAS_INV_CAPTURE || !last_capture || now >= last_capture + 3000);
     TASInvCommand command;
     bool begun = available && tas_inv_begin(operation, now, &command);
-    if (begun && operation == TAS_INV_CAPTURE)
+    if (begun && operation == TAS_INV_ARM) {
+        arm_requested_ms = now;
+        arm_generation = command.generation;
+        arm_sequence = command.sequence;
+    }
+    if (begun && operation == TAS_INV_CAPTURE) {
         last_capture = now;
+        prepare_capture(&command, now);
+    }
     if (begun && operation == TAS_INV_STOP)
         tas_inv_report_interrupt();
     pthread_mutex_unlock(&host_lock);
@@ -704,7 +852,7 @@ void tas_inv_host_status(char *buffer, size_t capacity) {
     pthread_mutex_lock(&host_lock);
     id self = objc_loadWeakRetained(&module_weak), callable = self ? get_callable(self) : nil;
     snprintf(buffer, capacity,
-             "Investigation runtime / 3.1.0-build.24\nstate=%s reason=%s native=%u native-stage=%u "
+             "Investigation runtime / 3.1.0-build.25\nstate=%s reason=%s native=%u native-stage=%u "
              "profile-bits=%u source-stage=%u epoch=%u\nstartup-mask=%u startup-calls=%u "
              "ready-calls=%u ready-result=%u "
              "module=%u callable=%u probe-scheduled=%u pong=%u generation=%u pending=%u\n"

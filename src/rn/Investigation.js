@@ -12,15 +12,17 @@ function install() {
     bridge.startup(available);
   }
   if(!bridge || typeof bridge.ready!=="function" || typeof bridge.ack!=="function" || typeof bridge.report!=="function" || typeof nativeJSX!=="function" || typeof globalThis.RN$registerCallableModule!=="function" || typeof WeakMap!=="function" || typeof Map!=="function" || !globalThis.performance || typeof globalThis.performance.now!=="function")return null;
-  var refs=new WeakMap(),lists=[],next=0,epoch=0,active=false,generation=0,sequence=0,config=null,hooks=[],clients=new WeakMap();
+  var refs=new WeakMap(),lists=[],next=0,epoch=0,active=false,generation=0,sequence=0,config=null,hooks=[],clients=new WeakMap(),ownedMethods=new WeakMap(),armToken=0;
   var ordinary=[],priority=[],ordinaryAt=0,priorityAt=0,aliases=[],aliasBytes=0,labels=0,skipped=0,urgentSkipped=0,evicted=0,errors=0,coverage=0;
+  var ordinaryOverwritten=0,priorityOverwritten=0;
   var start=0,last=0,tokens=0,urgentTokens=0,work=0,capturing=false,captureTimer=null,captureRows=null;
   function safe(fn){try{return fn();}catch(error){errors=Math.min(10000000,errors+1);return null;}}
   function clock(){return globalThis.performance.now();}
   function number(x){return typeof x==="number" && Number.isFinite(x) && Math.abs(x)<=10000000?Math.round(x):-1;}
   function elapsed(){return Math.min(10000000,Math.max(0,Math.round(clock()-start)));}
   function row(kind,time,family,scope,label,flags,a,b,c){var out=[];out.push(kind,time,family,scope,label,flags,number(a),number(b),number(c));return out;}
-  function append(value,urgent){var buffer=urgent?priority:ordinary,limit=config[urgent?12:11];if(buffer.length<limit)buffer.push(value);else if(urgent){buffer[priorityAt]=value;priorityAt=(priorityAt+1)%limit;}else{buffer[ordinaryAt]=value;ordinaryAt=(ordinaryAt+1)%limit;}}
+  function increment(n){return Math.min(10000000,n+1);}
+  function append(value,urgent){var buffer=urgent?priority:ordinary,limit=config[urgent?12:11];if(buffer.length<limit)buffer.push(value);else if(urgent){priorityOverwritten=increment(priorityOverwritten);buffer[priorityAt]=value;priorityAt=(priorityAt+1)%limit;}else{ordinaryOverwritten=increment(ordinaryOverwritten);buffer[ordinaryAt]=value;ordinaryAt=(ordinaryAt+1)%limit;}}
   function admit(family,urgent){
     if(!active || capturing || !(config[0]&(1<<family)))return false;
     var time=clock(),delta=Math.max(0,time-last);last=time;
@@ -46,8 +48,8 @@ function install() {
   function method(target,key,family,specific){
     safe(function(){var descriptor=null,depth=0;while(target && depth++<4){descriptor=Object.getOwnPropertyDescriptor(target,key);if(descriptor)break;target=Object.getPrototypeOf(target);}if(!descriptor || !descriptor.writable || typeof descriptor.value!=="function" || hooks.length>=16 || !(config[0]&((1<<family)|(family===1?4:0))))return;
       for(var i=0;i<hooks.length;i++)if(hooks[i][0]===target && hooks[i][1]===key)return;
-      var original=descriptor.value,copy=Object.assign({},descriptor);
-      copy.value=function(){var s=specific || clients.get(this);if(!active || !s || !s[13])return original.apply(this,arguments);
+      var original=ownedMethods.get(descriptor.value) || descriptor.value,copy=Object.assign({},descriptor),lease=armToken;
+      copy.value=function(){var s=specific || clients.get(this);if(!active || lease!==armToken || !s || !s[13])return original.apply(this,arguments);
         var args=arguments,result,failed=false;
         try{result=original.apply(this,args);return result;}catch(error){failed=true;throw error;}finally{
           safe(function(){var line=family===0?result:args[0],own=!!(line && line.isUnpublished),f=own?1:0;if(family===0 && args[0] && args[0].sentByCurrentUser)f|=1;
@@ -55,7 +57,7 @@ function install() {
             if(family===1 && own)observe(2,s,line,1,failed?3:2,0,0,true);
           });
         }
-      };Object.defineProperty(target,key,copy);var item=[];item.push(target,key,original,copy.value,descriptor,specific);hooks.push(item);coverage|=1<<family;if(family===1)coverage|=4;
+      };ownedMethods.set(copy.value,original);Object.defineProperty(target,key,copy);var item=[];item.push(target,key,original,copy.value,descriptor,specific);hooks.push(item);coverage|=1<<family;if(family===1)coverage|=4;
     });
   }
   function attach(s){
@@ -191,11 +193,13 @@ function install() {
     capturing=true;var rows=ordered(ordinary,ordinaryAt).concat(ordered(priority,priorityAt));
     // First transfer contains frozen history before any current-state read.
     var header=row(0,elapsed(),0,0,0,0,skipped,urgentSkipped,evicted);rows.unshift(header);
+    var lossFlags=(ordinaryOverwritten===10000000?1:0)|(priorityOverwritten===10000000?2:0)|(skipped===10000000 || urgentSkipped===10000000?4:0)|(evicted===10000000?8:0)|(errors===10000000?16:0)|(clock()-start>=10000000?32:0)|(labels===10000000?64:0);
+    rows.splice(1,0,row(12,header[1],0,0,0,lossFlags,ordinaryOverwritten,priorityOverwritten,0));
     var part=0,wire=0,began=clock(),snapshotDone=false,maxParts=Math.max(1,1+Math.floor((config[5]-100)*config[10]/1000));
     function send(){captureTimer=null;if(g!==generation || seq!==sequence || !capturing)return;
       var remaining=rows.length,chunk=rows.splice(0,64),final=snapshotDone && rows.length===0;
       if(!final && (part+1>=maxParts || clock()-began>=config[5]-100)){final=true;rows=[];chunk.push(row(6,elapsed(),0,0,0,16,remaining,0,0));}
-      var packet=[];packet.push(3,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
+      var packet=[];packet.push(4,part,final?1:0,chunk);var payload=JSON.stringify(packet);wire+=payload.length;
       var accepted=payload.length<=8192 && wire<=config[15] && safe(function(){return bridge.report(epoch,g,seq,payload);});
       part++;
       if(!accepted){capturing=false;captureRows=null;bridge.ack(epoch,g,seq,2,false);stop();return;}
@@ -214,7 +218,7 @@ function install() {
     if(!epoch)return;if(operation===0 && g===0 && seq===0){bridge.ack(epoch,0,0,0,true);return;}
     if(!Number.isInteger(g) || !Number.isInteger(seq) || g<generation || g===generation && seq<=sequence)return;
     if(operation===3){generation=g;sequence=seq;stop();bridge.ack(epoch,g,seq,3,true);return;}
-    if(operation===1 && !active && valid(parameters)){generation=g;sequence=seq;config=parameters;start=clock();last=start;tokens=config[8];urgentTokens=config[9];work=0;labels=0;skipped=0;urgentSkipped=0;evicted=0;errors=0;coverage=0;active=true;lists.forEach(attach);bridge.ack(epoch,g,seq,1,true);return;}
+    if(operation===1 && !active && valid(parameters)){generation=g;sequence=seq;config=parameters;start=clock();last=start;tokens=config[8];urgentTokens=config[9];work=0;armToken++;ordinaryOverwritten=0;priorityOverwritten=0;labels=0;skipped=0;urgentSkipped=0;evicted=0;errors=0;coverage=0;active=true;lists.forEach(attach);bridge.ack(epoch,g,seq,1,true);return;}
     if(operation===2 && active && !capturing){generation=g;sequence=seq;capture(g,seq);return;}
     bridge.ack(epoch,g,seq,operation,false);
   }

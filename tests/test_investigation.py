@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 ROOT=Path(__file__).resolve().parent.parent
-MANIFEST=ROOT/'diagnostics/investigations/rn-chat-gaps/4.json'
+MANIFEST=ROOT/'diagnostics/investigations/rn-chat-gaps/5.json'
 class Manifest(C.Structure):
     _fields_=[('version',C.c_uint32),('capabilities',C.c_uint32),('events',C.c_uint32),('limits',C.c_uint32*14),('return_armed',C.c_bool),('title',C.c_char*65),('description',C.c_char*257)]
 class Donor(C.Structure):
@@ -49,6 +49,7 @@ class InvestigationTests(unittest.TestCase):
     def tearDownClass(cls):cls.folder.cleanup()
     def setUp(self):
         self.lib.tas_inv_invalidate(4)
+        self.lib.tas_inv_set_safety(0)
         self.assertTrue(self.lib.tas_inv_initialize(self.sha))
     def parse(self,obj):
         raw=obj if isinstance(obj,bytes) else json.dumps(obj,ensure_ascii=False).encode()
@@ -116,7 +117,7 @@ class InvestigationTests(unittest.TestCase):
     def test_capture_returns_armed_and_disarm_invalidates_pending_callbacks(self):
         self.admitted();self.ack(self.begin(1));capture=self.begin(2);self.assertEqual(self.lib.tas_inv_status().state,3)
         self.ack(capture);self.assertEqual(self.lib.tas_inv_status().state,2)
-        capture=self.begin(2);stop=self.begin(3);self.assertEqual(self.lib.tas_inv_status().state,1)
+        capture=self.begin(2);stop=self.begin(3);self.assertEqual(self.lib.tas_inv_status().state,4)
         self.assertFalse(self.lib.tas_inv_ack(capture.generation,capture.sequence,capture.operation,True));self.ack(stop)
         for _ in range(100):self.ack(self.begin(1));self.ack(self.begin(2));self.ack(self.begin(3))
     def test_failed_or_expired_commands_invalidate_generation_and_require_readmission(self):

@@ -353,7 +353,7 @@ bool tas_inv_parse(const void *bytes, size_t length, TASInvManifest *out) {
     m.return_armed = eq(a, "armed");
     n = get(&j, r, "snapshot");
     if (!FIELDS(&j, n, "supported", "profile") || !boolean(get(&j, n, "supported"), true) ||
-        !eq(get(&j, n, "profile"), "rn-chat-current-v3"))
+        !eq(get(&j, n, "profile"), "rn-chat-current-v4"))
         return false;
     n = get(&j, r, "sampling");
     if (!FIELDS(&j, n, "mode", "periodic_hz", "events") ||
@@ -387,7 +387,7 @@ bool tas_inv_parse(const void *bytes, size_t length, TASInvManifest *out) {
         m.limits[k] = a->number;
     }
     n = get(&j, r, "report");
-    if (!FIELDS(&j, n, "profile", "max_bytes") || !eq(get(&j, n, "profile"), "numeric-chat-v3") ||
+    if (!FIELDS(&j, n, "profile", "max_bytes") || !eq(get(&j, n, "profile"), "numeric-chat-v4") ||
         !number(get(&j, n, "max_bytes"), 1, m.limits[TAS_INV_REPORT_BYTES]))
         return false;
     m.limits[TAS_INV_REPORT_BYTES] = get(&j, n, "max_bytes")->number;
@@ -433,7 +433,7 @@ static TASInvManifest config;
 static TASInvStatus status = {
     .state = TAS_INV_UNSUPPORTED, .reason = TAS_INV_NO_RUNTIME, .generation = 1};
 static bool initialized;
-static uint32_t vm;
+static uint32_t vm, safety_reason;
 static void invalidate_locked(unsigned reason) {
     status.state = TAS_INV_UNSUPPORTED;
     status.reason = reason;
@@ -455,6 +455,27 @@ bool tas_inv_initialize(TASInvSHA256 sha) {
     bool ok = initialized;
     pthread_mutex_unlock(&lock);
     return ok;
+}
+bool tas_inv_configuration(TASInvManifest *out, char digest[65], unsigned *source) {
+    pthread_mutex_lock(&lock);
+    bool ok = initialized && out && digest && source;
+    if (ok) {
+        *out = config;
+        memcpy(digest, TAS_INV_MANIFEST_SHA256, 65);
+        *source = status.registry_source;
+    }
+    pthread_mutex_unlock(&lock);
+    return ok;
+}
+void tas_inv_set_safety(unsigned reason) {
+    pthread_mutex_lock(&lock);
+    safety_reason =
+        reason == TAS_INV_THERMAL || reason == TAS_INV_MEMORY || reason == TAS_INV_BACKGROUND
+            ? reason
+            : TAS_INV_OK;
+    if (status.state != TAS_INV_UNSUPPORTED && !status.pending)
+        status.reason = safety_reason;
+    pthread_mutex_unlock(&lock);
 }
 bool tas_inv_admit(const TASInvDonor *d, uint32_t ready, uint32_t generation) {
     pthread_mutex_lock(&lock);
@@ -489,6 +510,10 @@ bool tas_inv_begin(unsigned operation, uint64_t now, TASInvCommand *out) {
         status.reason = TAS_INV_NO_RUNTIME;
         goto done;
     }
+    if (operation != TAS_INV_STOP && safety_reason) {
+        status.reason = safety_reason;
+        goto done;
+    }
     if (operation == TAS_INV_STOP) {
         if (status.generation == UINT32_MAX) {
             invalidate_locked(TAS_INV_NO_RUNTIME);
@@ -496,7 +521,7 @@ bool tas_inv_begin(unsigned operation, uint64_t now, TASInvCommand *out) {
         }
         status.generation++;
         status.pending = 0;
-        status.state = TAS_INV_DORMANT;
+        status.state = TAS_INV_STOPPING;
     } else {
         if (status.pending) {
             status.reason = TAS_INV_BUSY;
@@ -535,7 +560,7 @@ bool tas_inv_ack(uint32_t generation, uint32_t sequence, unsigned operation, boo
     if (ok) {
         status.pending = 0;
         status.deadline_ms = 0;
-        status.reason = success ? TAS_INV_OK : TAS_INV_NO_RUNTIME;
+        status.reason = success ? safety_reason : TAS_INV_NO_RUNTIME;
         if (!success) {
             invalidate_locked(TAS_INV_NO_RUNTIME);
             vm = 0;
@@ -572,12 +597,13 @@ TASInvStatus tas_inv_status(void) {
     return s;
 }
 const char *tas_inv_state_name(unsigned i) {
-    static const char *const names[] = {"Unsupported", "Dormant", "Armed", "Capturing"};
-    return i < 4 ? names[i] : "Unsupported";
+    static const char *const names[] = {"Unsupported", "Dormant", "Armed", "Capturing", "Stopping"};
+    return i < 5 ? names[i] : "Unsupported";
 }
 const char *tas_inv_reason_name(unsigned i) {
     static const char *const names[] = {
-        "Available",           "Manifest rejected", "Integrity rejected", "Unsupported donor",
-        "Runtime unavailable", "Command pending",   "Invalid state",      "Command timed out"};
-    return i < 8 ? names[i] : "Unavailable";
+        "Available",           "Manifest rejected",  "Integrity rejected", "Unsupported donor",
+        "Runtime unavailable", "Command pending",    "Invalid state",      "Command timed out",
+        "Thermal safety stop", "Memory safety stop", "App in background"};
+    return i < 11 ? names[i] : "Unavailable";
 }

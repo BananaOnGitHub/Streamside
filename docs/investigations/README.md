@@ -7,6 +7,10 @@ not here.
 
 ## 3.1.0 trials
 
+- [Secure investigation updates v2 plan](SECURE_INVESTIGATION_UPDATES_V2_PLAN.md): required future GitHub-backed configuration updates, independent TUF/Ed25519 authorization, trust/cache/activation boundaries and finite implementation gates.
+
+- [Diagnostic v1 hardening acceptance](DIAGNOSTIC_V1_HARDENING_ACCEPTANCE.md): F1–F4 implementation, focused/integration evidence, bounded resource accounting and pending F5/F6 device acceptance.
+
 - [Diagnostic infrastructure completion audit](DIAGNOSTIC_INFRASTRUCTURE_COMPLETION_AUDIT.md): original-brief conformance, implementation/host/device evidence, closure blockers, and the finite F1–F6 completion plan.
 
 - [Modular diagnostics implementation](MODULAR_DIAGNOSTICS_IMPLEMENTATION.md): checkpoint evidence, strict registry/coordinator, runtime admission, and remaining verification.

@@ -3,6 +3,7 @@
 #include "TASInvestigationUI.h"
 #include "TASInvestigationHost.h"
 #include "TASInvestigationReport.h"
+#include <dispatch/dispatch.h>
 #include <objc/message.h>
 #include <objc/runtime.h>
 #include <stdio.h>
@@ -96,7 +97,7 @@ void tas_inv_ui_changed(void) {
     TASInvStatus s = tas_inv_status();
     if (s.pending == TAS_INV_CAPTURE && !tas_inv_report_started(s.generation, s.sequence))
         return;
-    if (s.state == TAS_INV_UNSUPPORTED || s.state == TAS_INV_DORMANT)
+    if (s.state == TAS_INV_UNSUPPORTED || s.state == TAS_INV_DORMANT || s.state == TAS_INV_STOPPING)
         hide();
     if (button) {
         title(button, s.pending == TAS_INV_CAPTURE ? "Capturing…" : "Capture");
@@ -223,13 +224,23 @@ static id footer(id self, SEL cmd, id table, long section) {
     (void)self;
     (void)cmd;
     (void)table;
-    return ns(section ? "Captures stay in memory until you copy or export them. Stop preserves the "
-                        "frozen capture. Reports contain numeric observations; missing "
-                        "observations do not prove a dropped message."
-                      : "Arm without relaunching, return to the stream, then use the optional "
-                        "Capture button. No preset change is needed. Capture returns to Armed. "
-                        "Collection stops when Twitch enters the background. This development "
-                        "candidate still requires device validation.");
+    if (section)
+        return ns("Captures stay in memory until you copy or export them. Stop preserves "
+                  "frozen evidence. Numeric observations do not prove a dropped message.");
+    TASInvManifest manifest;
+    char digest[65];
+    unsigned source;
+    char description[768];
+    if (!tas_inv_configuration(&manifest, digest, &source))
+        return ns("The built-in configuration is unavailable.");
+    snprintf(description, sizeof(description),
+             "%s\nBuilt-in configuration · revision %u · bundled and integrity verified. "
+             "Compatibility: Twitch 31.6.2, runtime ABI 1. "
+             "Arm without relaunching; Capture returns to Armed. Stop ends collection. "
+             "Background, thermal or memory safety stops require explicit rearming. "
+             "Remote configuration updates are not installed in this version.",
+             manifest.description, manifest.version);
+    return ns(description);
 }
 static id cell(id self, SEL cmd, id table, id path) {
     (void)self;
@@ -249,6 +260,11 @@ static id cell(id self, SEL cmd, id table, id path) {
             const char *message =
                 state.pending == TAS_INV_ARM    ? "Arming…"
                 : state.pending == TAS_INV_STOP ? "Stopping…"
+                : state.reason == TAS_INV_THERMAL
+                    ? "Stopped for device temperature. Let it cool before arming."
+                : state.reason == TAS_INV_MEMORY
+                    ? "Stopped after a memory warning. Arm again explicitly."
+                : state.reason == TAS_INV_BACKGROUND ? "Collection stopped in the background."
                 : state.state == TAS_INV_ARMED
                     ? "Retaining recent events. Capture returns to Armed."
                 : state.state == TAS_INV_CAPTURING
@@ -296,39 +312,70 @@ static id cell(id self, SEL cmd, id table, id path) {
                                               enabled ? 1.0 : 0.55);
     return m0(c, "autorelease");
 }
-static void export_report(id page, id table, id path, bool copy) {
-    if (!tas_inv_report_available()) {
-        notice(page, "Capture a snapshot first.");
-        return;
-    }
-    char *buffer = malloc(65536);
-    if (!buffer)
-        return;
-    size_t n = tas_inv_report_format(buffer, 65536);
-    id text = n ? objc_retain(ns(buffer)) : nil;
-    free(buffer);
+/* One job/copy/buffer globally, including the queued main-thread handoff. */
+static struct {
+    id page, table, path;
+    bool copy;
+    size_t length;
+} export_job;
+static char export_buffer[65536];
+static void export_finish(void) {
+    id text = export_job.length && !tas_inv_report_export_cancelled()
+                  ? objc_retain(ns(export_buffer))
+                  : nil;
     if (!text)
-        return;
-    if (copy) {
+        goto done;
+    if (export_job.copy) {
         m1(m0((id)objc_getClass("UIPasteboard"), "generalPasteboard"), "setString:", text);
-        objc_release(text);
-        notice(page, "The frozen numeric capture was copied.");
-        return;
+        notice(export_job.page, "The frozen numeric capture was copied.");
+        goto done;
     }
+    if (!m0(m0(export_job.page, "view"), "window"))
+        goto done;
     id items = ((id(*)(id, SEL, id))objc_msgSend)((id)objc_getClass("NSArray"),
                                                   sel_registerName("arrayWithObject:"), text);
     id activity = ((id(*)(id, SEL, id, id))objc_msgSend)(
         m0((id)objc_getClass("UIActivityViewController"), "alloc"),
         sel_registerName("initWithActivityItems:applicationActivities:"), items, nil);
     id popover = m0(activity, "popoverPresentationController");
-    m1(popover, "setSourceView:", table);
+    m1(popover, "setSourceView:", export_job.table);
     Rect rect = ((Rect(*)(id, SEL, id))objc_msgSend)(
-        table, sel_registerName("rectForRowAtIndexPath:"), path);
+        export_job.table, sel_registerName("rectForRowAtIndexPath:"), export_job.path);
     ((void (*)(id, SEL, Rect))objc_msgSend)(popover, sel_registerName("setSourceRect:"), rect);
     ((void (*)(id, SEL, id, BOOL, id))objc_msgSend)(
-        page, sel_registerName("presentViewController:animated:completion:"), activity, YES, nil);
+        export_job.page, sel_registerName("presentViewController:animated:completion:"), activity,
+        YES, nil);
     objc_release(activity);
-    objc_release(text);
+done:
+    if (text)
+        objc_release(text);
+    objc_release(export_job.page);
+    objc_release(export_job.table);
+    objc_release(export_job.path);
+    export_job.page = export_job.table = export_job.path = nil;
+    tas_inv_report_export_end();
+}
+static void export_worker(void *unused) {
+    (void)unused;
+    export_job.length = tas_inv_report_export_format(export_buffer, sizeof(export_buffer));
+    id queue = m0((id)objc_getClass("NSOperationQueue"), "mainQueue");
+    m1(queue, "addOperationWithBlock:", (id) ^ { export_finish(); });
+}
+static void export_report(id page, id table, id path, bool copy) {
+    if (!tas_inv_report_available()) {
+        notice(page, "Capture a snapshot first.");
+        return;
+    }
+    if (!tas_inv_report_export_begin()) {
+        notice(page, "An export is already in progress.");
+        return;
+    }
+    export_job.page = objc_retain(page);
+    export_job.table = objc_retain(table);
+    export_job.path = objc_retain(path);
+    export_job.copy = copy;
+    export_job.length = 0;
+    dispatch_async_f(dispatch_get_global_queue(0, 0), NULL, export_worker);
 }
 static void select_row(id self, SEL cmd, id table, id path) {
     (void)cmd;

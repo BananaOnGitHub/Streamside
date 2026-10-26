@@ -2354,6 +2354,8 @@ static id rn_source_data(id self, SEL command) {
     objc_setAssociatedObject(self,&g_rn_width_checked_key,str("checked"),1);
     if (cached) {
         if(inv && tas_inv_host_source_admitted)tas_inv_host_source_admitted();
+        if(inv && tas_inv_host_source_identity)tas_inv_host_source_identity(
+            (const void *)call0(cached,"bytes"),(size_t)((NSUInteger (*)(id,SEL))objc_msgSend)(cached,sel_registerName("length")));
         objc_setAssociatedObject(self,&g_rn_width_data_key,cached,1);
         if(width)__atomic_store_n(&g_rn_width_ready,true,__ATOMIC_RELEASE);
         if (local) __atomic_store_n(&g_rn_local_ready,true,__ATOMIC_RELEASE);

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "id": "rn-chat-gaps",
+  "manifest_version": 5,
+  "title": "RN chat gaps",
+  "description": "Retain recent chat events and capture current list state without restarting.",
+  "streamside": {
+    "release_lines": [
+      "3.1.0"
+    ],
+    "runtime_abi": 1
+  },
+  "capabilities": [
+    {
+      "id": "rn.chat.snapshot",
+      "version": 1
+    },
+    {
+      "id": "rn.chat.lifecycle",
+      "version": 1
+    },
+    {
+      "id": "rn.rewards.observation",
+      "version": 1
+    }
+  ],
+  "donors": [
+    {
+      "version": "31.6.2",
+      "bundle_build": "262872150334984303",
+      "native_profile": "twitch-ios-31.6.2-arm64-v1",
+      "hermes_version": 98,
+      "original_hbc_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458"
+    }
+  ],
+  "categories": [
+    "chat"
+  ],
+  "activation": {
+    "requires_restart": false,
+    "after_capture": "armed"
+  },
+  "snapshot": {
+    "supported": true,
+    "profile": "rn-chat-current-v4"
+  },
+  "sampling": {
+    "mode": "event_driven",
+    "periodic_hz": 0,
+    "events": [
+      "translation",
+      "emission",
+      "local_echo",
+      "store",
+      "irc_reward",
+      "pubsub_reward",
+      "list"
+    ]
+  },
+  "limits": {
+    "max_lists": 2,
+    "max_entries": 128,
+    "max_cells": 12,
+    "snapshot_ms": 2000,
+    "js_work_us": 10000,
+    "callback_work_us": 2000,
+    "events_per_second": 8,
+    "priority_per_second": 4,
+    "bridge_batches_per_second": 4,
+    "ordinary_events": 256,
+    "priority_events": 64,
+    "identity_aliases": 256,
+    "alias_bytes": 65536,
+    "report_bytes": 65536
+  },
+  "report": {
+    "profile": "numeric-chat-v4",
+    "max_bytes": 65536
+  }
+}

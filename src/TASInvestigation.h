@@ -8,7 +8,7 @@
 #define TAS_INV_MANIFEST_BYTES 16384U
 #define TAS_INV_EVENT_FAMILIES 10U
 #define TAS_INV_CAPABILITIES 3U
-enum { TAS_INV_UNSUPPORTED, TAS_INV_DORMANT, TAS_INV_ARMED, TAS_INV_CAPTURING };
+enum { TAS_INV_UNSUPPORTED, TAS_INV_DORMANT, TAS_INV_ARMED, TAS_INV_CAPTURING, TAS_INV_STOPPING };
 enum { TAS_INV_ARM = 1, TAS_INV_CAPTURE, TAS_INV_STOP };
 enum {
     TAS_INV_OK,
@@ -18,7 +18,10 @@ enum {
     TAS_INV_NO_RUNTIME,
     TAS_INV_BUSY,
     TAS_INV_BAD_STATE,
-    TAS_INV_TIMEOUT
+    TAS_INV_TIMEOUT,
+    TAS_INV_THERMAL,
+    TAS_INV_MEMORY,
+    TAS_INV_BACKGROUND
 };
 enum { TAS_INV_BUNDLED, TAS_INV_PINNED_CACHE, TAS_INV_CACHE_REJECTED };
 enum { TAS_INV_SNAPSHOT = 1, TAS_INV_LIFECYCLE = 2, TAS_INV_REWARDS = 4 };
@@ -86,6 +89,10 @@ bool tas_inv_parse(const void *, size_t, TASInvManifest *);
 bool tas_inv_registry(const void *, size_t, TASInvSHA256, TASInvManifest *, unsigned *source);
 bool tas_inv_donor_matches(const TASInvDonor *);
 bool tas_inv_initialize(TASInvSHA256);
+/* Read-only selection snapshot. Trust admission and configuration replacement
+ * remain separate from parsing; v1 exposes no downloaded-configuration setter. */
+bool tas_inv_configuration(TASInvManifest *, char digest[65], unsigned *source);
+void tas_inv_set_safety(unsigned reason);
 /* Called only by the compiled host after its ABI/bootstrap/command checks.
  * ready_capabilities describes actually installed adapters, not manifest wishes. */
 bool tas_inv_admit(const TASInvDonor *, uint32_t ready_capabilities, uint32_t vm_generation);

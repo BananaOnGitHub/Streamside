@@ -355,3 +355,17 @@ Documentation/whitespace checks are recorded with the audit commit. No new
 native artifact, IPA, runtime instrumentation, version bump or chat-gap
 experiment was produced. The remaining work is exactly F1–F6, subject only to
 fixing failures of those stated acceptance criteria.
+
+## Required future capability clarification — 2026-10-26
+
+The v1 scope above remains authoritative. Secure GitHub-hosted, cryptographically
+authenticated, remotely updateable investigation configurations are a required
+future Streamside capability, not a discarded possibility or work completed by
+v1 pinning. The separate [v2 architecture and milestone plan](SECURE_INVESTIGATION_UPDATES_V2_PLAN.md)
+defines that delivery requirement and M0–M6 acceptance. The existing pin remains
+a trusted fallback; v2 must authorize different configuration bytes without
+authorizing new executable behavior. Its updater is not implemented by F1–F4.
+
+The [v1 hardening acceptance record](DIAGNOSTIC_V1_HARDENING_ACCEPTANCE.md)
+tracks implementation and evidence against F1–F6. Earlier audit findings remain
+historical baseline evidence; pending device requirements are not waived.

@@ -870,3 +870,21 @@ It does not claim platform acceptance from checkpoints A–E or require resolvin
 the chat gap. No production source, version, native artifact or IPA changed.
 The next work is the finite hardening/acceptance batch, not new observation
 capabilities or successive gap-driven diagnostic candidates.
+
+
+## F1–F4 hardening and separate required v2 milestone — 2026-10-26
+
+The [hardening acceptance record](DIAGNOSTIC_V1_HARDENING_ACCEPTANCE.md) records
+the implemented safety/lifecycle, loss/provenance, export and built-in UI/authoring
+changes, 218 passing integration tests and two Apple-only skips. Native artifacts
+and both pinned Hermes predecessors passed. No diagnostic-only IPA was created.
+F5 remains open for actual device/Apple/performance evidence; F6 remains pending.
+The stated device target is iPhone 16 Pro on iOS 27.0.1, without measured results.
+
+The [secure configuration update plan](SECURE_INVESTIGATION_UPDATES_V2_PLAN.md)
+preserves GitHub-backed authenticated mutable configurations as a required future
+capability. It defines standard TUF/Ed25519 trust, role separation, publication,
+admission, persistent rollback/cache behavior, state transitions, tests and M0–M6.
+No remote updater or alternate trust path is implemented in this hardening batch.
+Historical proof/artifact identities are preserved; public release/feature guides
+await feature freeze and accepted evidence.

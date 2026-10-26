@@ -37,7 +37,7 @@ function exerciseViewport(render){
     cmd(1,g,1,config);cases[0].client.translateChatMessage({id:"PRIVATE-live"});cases[0].client.emitLine({id:"PRIVATE-live"});
     check(timers.length===0,"no armed polling");capturingNow=true;cmd(2,g,2,config);capturingNow=false;flush();
     check(cases.every(function(c){return c.trace[0]==="list";}),"visible range getter precedes store snapshot");
-    check(packets[0][3][0][0]===0 && packets.every(function(p){return p[0]===3;}),"frozen history and version");
+    check(packets[0][3][0][0]===0 && packets.every(function(p){return p[0]===4;}),"frozen history and version");
     var rows=[];packets.forEach(function(p){rows=rows.concat(p[3]);});
     check(rows.filter(function(r){return r[0]===8 || r[0]===9;}).length<=128,"shared entry cap");
     check(packets[packets.length-1][2]===1 && calls[calls.length-1][4]===true,"capture complete, case "+seq);

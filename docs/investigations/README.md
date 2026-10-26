@@ -7,6 +7,8 @@ not here.
 
 ## 3.1.0 trials
 
+- [Diagnostic infrastructure completion audit](DIAGNOSTIC_INFRASTRUCTURE_COMPLETION_AUDIT.md): original-brief conformance, implementation/host/device evidence, closure blockers, and the finite F1–F6 completion plan.
+
 - [Modular diagnostics implementation](MODULAR_DIAGNOSTICS_IMPLEMENTATION.md): checkpoint evidence, strict registry/coordinator, runtime admission, and remaining verification.
 
 - [Local diagnostic runtime baseline](LOCAL_DIAGNOSTIC_RUNTIME_BASELINE.md): WSL checkout recovery audit, verified build/test baseline, artifact identities, and missing implementation inputs.

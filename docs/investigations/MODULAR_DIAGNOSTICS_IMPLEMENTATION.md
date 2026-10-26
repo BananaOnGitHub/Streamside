@@ -858,3 +858,15 @@ checks confirmed the packaged framework/version, original HBC digest and all
 three donor native UUID/text identities. External build24-validation.json and
 BUILD24_TESTING.md preserve the complete validation and device handoff.
 Earlier artifacts/hashes remain unchanged; device acceptance remains pending.
+
+
+## Completion-scope audit — 2026-10-26
+
+The [completion audit](DIAGNOSTIC_INFRASTRUCTURE_COMPLETION_AUDIT.md) compares
+the current implementation against both original briefs and the full recovered
+proposal. It distinguishes implemented code, host verification, reported device
+evidence and remaining work, and fixes the closure list to F1–F6.
+It does not claim platform acceptance from checkpoints A–E or require resolving
+the chat gap. No production source, version, native artifact or IPA changed.
+The next work is the finite hardening/acceptance batch, not new observation
+capabilities or successive gap-driven diagnostic candidates.

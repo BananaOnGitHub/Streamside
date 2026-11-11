@@ -17,7 +17,7 @@ The build accepts only the inspected decrypted IPA:
 | Original Hermes bundle SHA-256 | `1866099398b36a4fc98717dca5715547d6f16785bfa3dc8f74605fe98d1755d8` |
 | App iOS floor | `16.4` |
 
-The original JS bundle and all retained donor entries outside the four probe images and app Info.plist are compared byte-for-byte during packaging. Backend frameworks are unchanged. Original signature resources and provisioning profiles are omitted for re-signing. Individual donor image hashes, probe prefixes and ABI entry identities are pinned in [twitch32.json](../../native/twitch32.json). Final package identities and the exact build source revision belong in the companion artifact receipt `NATIVE_FRONTEND_PHASE2_ARTIFACTS.json`.
+The original JS bundle and all retained donor entries outside the four probe images and app Info.plist are compared byte-for-byte during packaging. Backend frameworks are unchanged. Original signature resources and provisioning profiles are omitted for re-signing. Individual donor image hashes, probe prefixes and ABI entry identities are pinned in [twitch32.json](../../native/twitch32.json). Final package identities and the exact build source revision belong in the companion artifact receipt [artifact receipt](NATIVE_FRONTEND_PHASE2_ARTIFACTS.json).
 
 ## Implementation
 
@@ -100,7 +100,7 @@ The tool fails closed on missing baseline observations, mismatched identities, i
 
 ## Validation and blockers
 
-The companion validation receipt records commands, source revisions, tool/dependency identities, logs and artifact hashes. The completed host run has 23 Phase 2 tests: compiler/ABI emulation, all probe entries at two slides, unarmed/denied paths, evidence rotation/calibration, bounded/private report output and fail-closed comparison. This is host evidence only. Synthetic data exists only in explicitly labeled host test fixtures; the frontend has no sample account or channel data.
+The [validation receipt](NATIVE_FRONTEND_PHASE2_VALIDATION.json) records commands, source revisions, tool/dependency identities, logs and artifact hashes. The existing regression suite passed 218 tests with two Apple-only skips. Documentation checking passed. Both IPA hashes matched a repeated build in the same clean checkout and compiler cache; this is not a separate clean-machine reproducibility test. The completed host run has 23 Phase 2 tests: compiler/ABI emulation, all probe entries at two slides, unarmed/denied paths, evidence rotation/calibration, bounded/private report output and fail-closed comparison. This is host evidence only. Synthetic data exists only in explicitly labeled host test fixtures; the frontend has no sample account or channel data.
 
 The existing regression suite and documentation check are recorded separately. Packaging success establishes the structure and inspected mutations of the unsigned candidate, not iOS compatibility.
 

@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "proof_id": "7781ed12b1ec49cc4be32cef34f946f8515da95754c59fd679af690d67abafe9",
+  "source_revision": "f5a6c8e10a98d14b35d459648f5278fb990f5b58",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "zig": "0.14.0",
+  "inspection": {
+    "abi_entries": 19,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "artifacts": {
+    "baseline": {
+      "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-frontend/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196413212,
+      "sha256": "d99e09bbe7d9713e653e473bec45554636a7afd61f698132dbdecc7fdc200f0d",
+      "framework_sha256": "9bb634691f53e2e639b714da21ecc6931b49272800f07a5f456f0c087cf673dd",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "99a00eed0d188548b08d7aef7a628c7b85440f5c765646a7c726302f56b0189c",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "68597429daff116f88ad41552745972379855b01b7b2fa44c4279124798b3ed4",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "9a298789f5c23171e575a23fde8debfc9708aea6f1f5ff92bd4a75a57ba21317",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "ab713dced7555744a2e4f14ba3484b81279e77e55a14eb7cf74e7f1c82ffe7b4"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+    },
+    "native": {
+      "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-frontend/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196417297,
+      "sha256": "f03ce77bc3be059413b482106d296038c816b9cdd9e4eda0fa9a890d11c2cb3d",
+      "framework_sha256": "b7c4db3f04ad650f70cbadbf9d0779f9f4755eb3d9886da5abcbb1d3a88b91e5",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "86cf767a24167b0640c33941ed79a96d5dc36ed28bd4bacfd64d2f82378e8ecc",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "68597429daff116f88ad41552745972379855b01b7b2fa44c4279124798b3ed4",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "9a298789f5c23171e575a23fde8debfc9708aea6f1f5ff92bd4a75a57ba21317",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "ab713dced7555744a2e4f14ba3484b81279e77e55a14eb7cf74e7f1c82ffe7b4"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+    }
+  },
+  "donor_identity": {
+    "bundle_identifier": "tv.twitch",
+    "version": "32.0",
+    "build": "263110145453907615",
+    "minimum_ios": "16.4",
+    "bytes": 201278706,
+    "original_hbc_sha256": "1866099398b36a4fc98717dca5715547d6f16785bfa3dc8f74605fe98d1755d8",
+    "image_sha256": {
+      "Twitch": "f256c2a8576f4bafb26d4bd8f3c36470c0a6fc779e06fd1e254bbefa059875f1",
+      "React": "74a3b3cde26076fd5fb9b327c7e15928443a514a4f86b27ecb376b7cc33d76f5",
+      "hermesvm": "fce4c67d0e4acdc65edfbe5c029cd5b90c17f9a0249d686df753e5db598e3a33",
+      "worklets": "e9c2b82a0c171a43036830ca33a9163cd1302b44c75e24aa65fecfd4d1e79c51",
+      "TwitchKit": "f9cf2a880924bfcef7b46a7f64887fb835c28f5aa7e1593c6d5fa31bd1711401",
+      "TwitchIdentity": "5129aa20a21789e1c72f28bd10250a4192da009229d2c866af44cb58fc2d6f03",
+      "TwitchCore": "ad7772a3a86e6ff364007a1d29301734e82c0755a074e73c878ce18112b3ec44",
+      "Tomorrowland": "b3f4e1d8d59b43e8ef35e1cd072a0b18aa9d70b8a9093d7183581b53b9c571a1"
+    }
+  },
+  "repeat_build": {
+    "scope": "Same clean checkout, compiler and build cache; not a separate clean-machine build",
+    "artifacts": {
+      "baseline": {
+        "first": "d99e09bbe7d9713e653e473bec45554636a7afd61f698132dbdecc7fdc200f0d",
+        "second": "d99e09bbe7d9713e653e473bec45554636a7afd61f698132dbdecc7fdc200f0d",
+        "identical": true
+      },
+      "native": {
+        "first": "f03ce77bc3be059413b482106d296038c816b9cdd9e4eda0fa9a890d11c2cb3d",
+        "second": "f03ce77bc3be059413b482106d296038c816b9cdd9e4eda0fa9a890d11c2cb3d",
+        "identical": true
+      }
+    }
+  },
+  "artifact_status": "Sideload-prepared diagnostic IPAs; device-authorized re-signing and installation not performed"
+}

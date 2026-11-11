@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-11-11T07:50:00.334398+00:00",
+  "branch": "feat/native-frontend",
+  "source_revision": "f5a6c8e10a98d14b35d459648f5278fb990f5b58",
+  "phase1_revision": "76eb97733fbf11be02dc30d97ef56b4ae6019197",
+  "recovered_development_base": "f5cacb0e45fb0617b2f44c536cd25f9129763951",
+  "proof_id": "7781ed12b1ec49cc4be32cef34f946f8515da95754c59fd679af690d67abafe9",
+  "host": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "zig_version": "0.14.0",
+    "zig_binary_sha256": "77340932066b76bc9f3a4ac120288f21790ed2836e5cd5a003f4a3c12f37d765",
+    "unicorn": {
+      "filename": "unicorn-2.1.4-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "url": "https://files.pythonhosted.org/packages/e7/df/ded5e3684c2d7600b30cc8a7530277b8cb36644a1a9d34cade7ebb45604c/unicorn-2.1.4-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "digests": {
+        "blake2b_256": "e7dfded5e3684c2d7600b30cc8a7530277b8cb36644a1a9d34cade7ebb45604c",
+        "md5": "55b5c7fb95ef021417a6d053d611b117",
+        "sha256": "9d6e6dea140560de4ebd8446661f7ef84a357d428c14a3ef09dacd306ec8c239"
+      }
+    },
+    "unavailable_tools": [
+      "swiftc",
+      "xcrun",
+      "codesign",
+      "ldid",
+      "idevice_id",
+      "ideviceinstaller"
+    ]
+  },
+  "phase2_host_tests": {
+    "command": "PYTHONPATH=/tmp/ssn-test-deps:/home/bananas/Agent-Stuff/streamside/toolchains/python python3 -m unittest discover -s tests/native_frontend -v",
+    "tests": 23,
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Compiled ARM64 caller emulation; 25 probes at two slides; native cursor witness inspection/emulation; synthetic core/report safety and comparison tests. No application or authenticated service executed on iOS."
+  },
+  "legacy_regression": {
+    "command": "make test",
+    "tests": 220,
+    "passed": 218,
+    "failed": 0,
+    "skipped": 2,
+    "log": "build/native-frontend/validation/legacy-tests.log",
+    "log_sha256": "0c7ad715be2f9657868787822c837ffab469271aa2ac63853bce3ed7f9784845",
+    "scope": "Preserved production implementation unchanged from Phase 1; no native-frontend iOS execution",
+    "skips": [
+      "Apple Foundation HTTP cache integration requires Xcode/Foundation",
+      "Apple ImageIO WebP decoding requires Xcode/ImageIO"
+    ],
+    "environment": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONPATH": "/home/bananas/Agent-Stuff/streamside/toolchains/python",
+      "PATH_prefix": "/home/bananas/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin",
+      "ZIG": "/home/bananas/Agent-Stuff/streamside/repo/build/toolchains/zig-0.14.0/zig",
+      "TAS_RN_DONOR": "/home/bananas/Agent-Stuff/streamside/donors/twitch-31.6.2/index.ios.bundle",
+      "TAS_HERMESC": "/home/bananas/Agent-Stuff/streamside/toolchains/hermes-build/bin/hermesc",
+      "TAS_HERMES_SNAPSHOT_RUNNER": "/home/bananas/Agent-Stuff/streamside/toolchains/hermes-build/bin/streamside-snapshot-runner",
+      "TAS_HERMES_SOURCE": "/home/bananas/Agent-Stuff/streamside/toolchains/hermes-source"
+    }
+  },
+  "checks": [
+    {
+      "name": "phase2-tests",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/native_frontend",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log": "build/native-frontend/validation/phase2-tests.log",
+      "log_sha256": "ff1976535d5cf0ca9651e25bbfd7ec85ef0f759bf4260d77c96131e4ab4e3f8e"
+    },
+    {
+      "name": "docs-check",
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "exit_code": 0,
+      "log": "build/native-frontend/validation/docs-check.log",
+      "log_sha256": "b9936de0edd5f71b2b175273b4d8328ee2979de227213a2be83dd8182d5063ec"
+    },
+    {
+      "name": "docs-check-final-records",
+      "command": [
+        "make",
+        "docs-check"
+      ],
+      "exit_code": 0,
+      "log": "build/native-frontend/validation/docs-check-final.log",
+      "log_sha256": "dffd4be6f4513269fcadbc942731078bc191bca9c556b2bd473d75ff61cae954",
+      "result": "85 Markdown files, 790 references, zero errors"
+    }
+  ],
+  "binary_inspection": {
+    "abi_entries": 19,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "packaging": {
+    "exit_code": 0,
+    "build_log": "build/native-frontend/validation/build.log",
+    "build_log_sha256": "8147d382c0e762de7970b1e506d317836cebc6e4ba99926d8b507bcb292c96dc",
+    "repeat_build": {
+      "scope": "Same clean checkout, compiler and build cache; not a separate clean-machine build",
+      "artifacts": {
+        "baseline": {
+          "first": "d99e09bbe7d9713e653e473bec45554636a7afd61f698132dbdecc7fdc200f0d",
+          "second": "d99e09bbe7d9713e653e473bec45554636a7afd61f698132dbdecc7fdc200f0d",
+          "identical": true
+        },
+        "native": {
+          "first": "f03ce77bc3be059413b482106d296038c816b9cdd9e4eda0fa9a890d11c2cb3d",
+          "second": "f03ce77bc3be059413b482106d296038c816b9cdd9e4eda0fa9a890d11c2cb3d",
+          "identical": true
+        }
+      }
+    }
+  },
+  "device": {
+    "status": "not_performed",
+    "installation": "not_performed",
+    "observed_baseline_runtime_counts": null,
+    "native_runtime_counts": null,
+    "account_restoration": "not_verified",
+    "authenticated_followed_channel_results": "not_verified",
+    "invalid_or_unauthenticated_session_behavior": "not_verified",
+    "account_change_notifications_and_routing": "not_verified",
+    "launch_and_transition_sequence": "not_verified",
+    "memory_and_startup_measurements": null,
+    "acceptance": "not_established"
+  },
+  "blockers": [
+    "No physical iOS device/Apple execution environment",
+    "No device-authorized signing profile supplied or used",
+    "Baseline observations and native acceptance reports require device execution"
+  ],
+  "preserved_host_findings": [
+    "Swift calling-convention attributes required placement before the return type for context/indirect-result declarations",
+    "Isolated system link stubs required main dispatch queue and strrchr declarations",
+    "Zig segment/signature normalization required explicit empty ad-hoc entitlements",
+    "Display-name getter shares an implementation address with an unrelated getter alias; admission now uses the actual exported symbol",
+    "Cursor admission initially confused 24-byte stride with 17-byte size; corrected using donor value witness table, native enum operations and runtime tuple/optional checks"
+  ]
+}

@@ -18,10 +18,14 @@ class SwiftCalls(unittest.TestCase):
     def setUpClass(cls):
         cls.temp=tempfile.TemporaryDirectory();directory=Path(cls.temp.name)
         zig=Path(os.environ.get('ZIG',ROOT/'build/toolchains/zig-0.14.0/zig')).resolve()
-        cls.object=directory/'abi.o'
-        subprocess.run([str(zig),'cc','-target','aarch64-ios-none','-O1','-c','-isystem',str(zig.parent/'lib/libc/include/any-macos-any'),'-I'+str(ROOT/'native'),
-                        '-o',str(cls.object),str(ROOT/'tests/native_frontend/abi_calls.c')],check=True,
-                        env=dict(os.environ,ZIG_LOCAL_CACHE_DIR=str(directory/'cache'),ZIG_GLOBAL_CACHE_DIR=str(directory/'global')))
+        prebuilt=os.environ.get('SSN_ABI_OBJECT')
+        if prebuilt:
+            cls.object=Path(prebuilt).resolve()
+        else:
+            cls.object=directory/'abi.o'
+            subprocess.run([str(zig),'cc','-target','aarch64-ios-none','-O1','-c','-isystem',str(zig.parent/'lib/libc/include/any-macos-any'),'-I'+str(ROOT/'native'),
+                            '-o',str(cls.object),str(ROOT/'tests/native_frontend/abi_calls.c')],check=True,
+                            env=dict(os.environ,ZIG_LOCAL_CACHE_DIR=str(directory/'cache'),ZIG_GLOBAL_CACHE_DIR=str(directory/'global')))
         data=cls.object.read_bytes();cls.symbols={};cls.sections=[]
         for command in load_commands(data):
             if command.command==0x19:

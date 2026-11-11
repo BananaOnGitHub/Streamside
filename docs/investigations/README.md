@@ -11,6 +11,8 @@ not here.
 
 - [Twitch 32.0 phase 2](NATIVE_FRONTEND_TWITCH_32_PHASE2.md): guarded UIKit candidate, admitted native account/GraphQL bridge, paired diagnostic packages, host evidence and pending physical-device acceptance. [Device instructions](NATIVE_FRONTEND_PHASE2_DEVICE_TEST.md). [First signed-in device review and Settings obstruction](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_1.md). [Export separation follow-up](NATIVE_FRONTEND_PHASE2_EXPORT_ISOLATION.md). [Signed-out device review](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_2.md).
 
+- [SwiftUI native foundation and authentication boundaries](SWIFTUI_NATIVE_FOUNDATION_TWITCH_32.md): SwiftUI shell, preserved services/guards, validated logout adapter, exact-donor auth findings and Apple SDK build path. [Device checklist](SWIFTUI_NATIVE_DEVICE_TEST.md).
+
 ## 3.1.0 trials
 
 - [Secure investigation updates v2 plan](SECURE_INVESTIGATION_UPDATES_V2_PLAN.md): required future GitHub-backed configuration updates, independent TUF/Ed25519 authorization, trust/cache/activation boundaries and finite implementation gates.

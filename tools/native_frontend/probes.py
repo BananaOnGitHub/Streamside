@@ -131,4 +131,9 @@ def generate_header(plan, proof_id, revision, destination):
                       spec['address'] - bases.get(spec['image'], 0),
                       ','.join('0x'+spec['bytes'][i:i+2] for i in range(0,32,2))))
     lines += ['};']
+    spec=plan['objc_services']['logout']
+    lines += ['typedef struct { const char *image,*class_name,*selector,*encoding; uintptr_t offset; unsigned char prefix[16]; } SSNObjCServiceSpec;',
+              'static const SSNObjCServiceSpec ssn_logout = {%s,%s,%s,%s,0x%x,{%s}};' %
+              (json.dumps(spec['image']),json.dumps(spec['class_name']),json.dumps(spec['selector']),json.dumps(spec['encoding']),
+               spec['address']-bases[spec['image']],','.join('0x'+spec['bytes'][i:i+2] for i in range(0,32,2)))]
     Path(destination).write_text('\n'.join(lines) + '\n')

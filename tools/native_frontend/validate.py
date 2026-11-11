@@ -48,3 +48,15 @@ def validate_abi(images,plan):
         for index,name in [(6,'get_single_payload_tag'),(7,'store_single_payload_tag')]:
             address=struct.unpack_from('<Q',data,pos+8*index)[0]&((1<<36)-1)
             if address!=spec[name]:raise ValueError('Native cursor enum witness mismatch')
+
+    # The existing donor Objective-C adapter owns all Swift witness dispatch.
+    from inspect_native_frontend import Image
+    for spec in plan.get('objc_services',{}).values():
+        _,data=images[spec['image']]
+        image=Image(data)
+        classes=image.selected_classes({spec['class_name']})
+        methods=[m for m in classes[0]['methods'] if m['selector']==spec['selector']]
+        if len(methods)!=1 or methods[0]['encoding']!=spec['encoding'] or int(methods[0]['address'],16)!=spec['address']:
+            raise ValueError('Objective-C account adapter signature/address changed')
+        pos=file_offset(data,spec['address'])
+        if data[pos:pos+16].hex()!=spec['bytes']:raise ValueError('Objective-C account adapter prefix changed')

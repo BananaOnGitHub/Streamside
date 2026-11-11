@@ -1,0 +1,711 @@
+{
+  "schema": 1,
+  "scope": "static donor inspection only",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "main_sha256": "f256c2a8576f4bafb26d4bd8f3c36470c0a6fc779e06fd1e254bbefa059875f1",
+  "bundle_sha256": "1866099398b36a4fc98717dca5715547d6f16785bfa3dc8f74605fe98d1755d8",
+  "hermesc_sha256": "5c021ce7457d69b733ccf3709388f36ff373605b503e873f6e00f483dd60c029",
+  "native_classes": [
+    {
+      "class": "AMZNASWebAuthenticationSessionViewStrategy",
+      "address": "0x105dfaf18",
+      "field_names": [
+        "_webAuthSession",
+        "_currentViewable"
+      ],
+      "methods": [
+        {
+          "selector": "isASWebAuthenticationSessionAvailable",
+          "encoding": "B16@0:8",
+          "address": "0x1050f8758"
+        },
+        {
+          "selector": "shouldAttempt",
+          "encoding": "B16@0:8",
+          "address": "0x1050f877c"
+        },
+        {
+          "selector": "open:",
+          "encoding": "B24@0:8@16",
+          "address": "0x1050f8780"
+        },
+        {
+          "selector": "close",
+          "encoding": "v16@0:8",
+          "address": "0x1050f8944"
+        },
+        {
+          "selector": "presentationAnchorForWebAuthenticationSession:",
+          "encoding": "@24@0:8@16",
+          "address": "0x1050f8984"
+        },
+        {
+          "selector": "webAuthSession",
+          "encoding": "@16@0:8",
+          "address": "0x1050f89d0"
+        },
+        {
+          "selector": "setWebAuthSession:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1050f89d8"
+        },
+        {
+          "selector": "currentViewable",
+          "encoding": "@16@0:8",
+          "address": "0x1050f89e4"
+        },
+        {
+          "selector": "setCurrentViewable:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1050f89ec"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1050f89f8"
+        }
+      ],
+      "class_methods": []
+    },
+    {
+      "class": "AMZNAuthorizationManager",
+      "address": "0x105dfa5b8",
+      "field_names": [],
+      "methods": [
+        {
+          "selector": "region",
+          "encoding": "q16@0:8",
+          "address": "0x1050ed118"
+        },
+        {
+          "selector": "setRegion:",
+          "encoding": "v24@0:8q16",
+          "address": "0x1050ed174"
+        },
+        {
+          "selector": "isSandboxMode",
+          "encoding": "B16@0:8",
+          "address": "0x1050ed1b4"
+        },
+        {
+          "selector": "setSandboxMode:",
+          "encoding": "v20@0:8B16",
+          "address": "0x1050ed1f8"
+        },
+        {
+          "selector": "authorize:withHandler:",
+          "encoding": "v32@0:8@16@?24",
+          "address": "0x1050ed2cc"
+        },
+        {
+          "selector": "signOut:",
+          "encoding": "v24@0:8@?16",
+          "address": "0x1050ede9c"
+        },
+        {
+          "selector": "getScopeStrings:",
+          "encoding": "@24@0:8@16",
+          "address": "0x1050ee148"
+        },
+        {
+          "selector": "initializeSignIn:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1050ee28c"
+        },
+        {
+          "selector": "handleAuthorizeCallback:withAuthorizeResult:fetchUserResult:error:",
+          "encoding": "v48@0:8@?16@24@32@40",
+          "address": "0x1050ee380"
+        },
+        {
+          "selector": "handleAuthorizeCallback:withAuthorizeResult:fetchUserResult:error:request:",
+          "encoding": "v56@0:8@?16@24@32@40@48",
+          "address": "0x1050ee440"
+        },
+        {
+          "selector": "didUserCancelled:",
+          "encoding": "B24@0:8@16",
+          "address": "0x1050ee610"
+        }
+      ],
+      "class_methods": [
+        {
+          "selector": "sharedManager",
+          "encoding": "@16@0:8",
+          "address": "0x1050ed078"
+        },
+        {
+          "selector": "handleOpenURL:sourceApplication:",
+          "encoding": "B32@0:8@16@24",
+          "address": "0x1050ee13c"
+        }
+      ]
+    },
+    {
+      "class": "_TtC6Twitch13TWAppDelegate",
+      "address": "0x105da34f8",
+      "field_names": [
+        "$__lazy_storage_$_chromecastManager",
+        "isFreshInstall",
+        "themeManager",
+        "maybeURLForAnalytics",
+        "branchDiscoveryPath",
+        "hangAnalytics",
+        "_appRouter"
+      ],
+      "methods": [
+        {
+          "selector": "setUpSharePlay",
+          "encoding": "v16@0:8",
+          "address": "0x10400ab88"
+        },
+        {
+          "selector": "loadInitialAccountData",
+          "encoding": "v16@0:8",
+          "address": "0x103d07860"
+        },
+        {
+          "selector": "logoutUserWithUserInitiated:",
+          "encoding": "v20@0:8B16",
+          "address": "0x103d078c0"
+        },
+        {
+          "selector": "prepareLiveDependencies",
+          "encoding": "v16@0:8",
+          "address": "0x1034b7acc"
+        },
+        {
+          "selector": "createAudioSession",
+          "encoding": "v16@0:8",
+          "address": "0x10328ad70"
+        },
+        {
+          "selector": "synchronizeAnalyticsDestination",
+          "encoding": "v16@0:8",
+          "address": "0x10302613c"
+        },
+        {
+          "selector": "configureGraphQL",
+          "encoding": "v16@0:8",
+          "address": "0x102625e5c"
+        },
+        {
+          "selector": "configureWithHttpManager:",
+          "encoding": "v24@0:8@16",
+          "address": "0x102625e6c"
+        },
+        {
+          "selector": "setUpMobileShield",
+          "encoding": "v16@0:8",
+          "address": "0x102625eb0"
+        },
+        {
+          "selector": "cancelAppLaunchTracking",
+          "encoding": "v16@0:8",
+          "address": "0x1024e308c"
+        },
+        {
+          "selector": "trackAppInit",
+          "encoding": "v16@0:8",
+          "address": "0x1024e3090"
+        },
+        {
+          "selector": "attachDeviceIdentifierToCrashLogs",
+          "encoding": "v16@0:8",
+          "address": "0x1024e3094"
+        },
+        {
+          "selector": "setUpAnalytics",
+          "encoding": "v16@0:8",
+          "address": "0x102477b50"
+        },
+        {
+          "selector": "handleBranchAppOpenAnalyticsWithURL:branchParams:",
+          "encoding": "v32@0:8@16@24",
+          "address": "0x102477b84"
+        },
+        {
+          "selector": "handleFirstAppOpenAnalytics",
+          "encoding": "v16@0:8",
+          "address": "0x102477d6c"
+        },
+        {
+          "selector": "subscribeToAnalyticsNotifications",
+          "encoding": "v16@0:8",
+          "address": "0x102477d70"
+        },
+        {
+          "selector": "handleWillTrackEventNotification:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1024784bc"
+        },
+        {
+          "selector": "tw_buildMenuWith:",
+          "encoding": "v24@0:8@16",
+          "address": "0x101f7e154"
+        },
+        {
+          "selector": "isRunningUnitTests",
+          "encoding": "B16@0:8",
+          "address": "0x101bb4d64"
+        },
+        {
+          "selector": "startAppLaunchLatencyMetricKitMonitoring",
+          "encoding": "v16@0:8",
+          "address": "0x101694d80"
+        },
+        {
+          "selector": "registerMiniExperimentManagerDelegate",
+          "encoding": "v16@0:8",
+          "address": "0x1015f7170"
+        },
+        {
+          "selector": "trackStartFollowTabCompositeQuery",
+          "encoding": "v16@0:8",
+          "address": "0x101360b24"
+        },
+        {
+          "selector": "setUpAppPerformanceMonitoring",
+          "encoding": "v16@0:8",
+          "address": "0x100eb8d48"
+        },
+        {
+          "selector": "makeKeychainItemBackgroundAccessible",
+          "encoding": "v16@0:8",
+          "address": "0x100d19b6c"
+        },
+        {
+          "selector": "startInterceptingLogs",
+          "encoding": "v16@0:8",
+          "address": "0x1006f4634"
+        },
+        {
+          "selector": "loadUITestsOverriddenRemoteSettingsIfNeeded",
+          "encoding": "v16@0:8",
+          "address": "0x100607198"
+        },
+        {
+          "selector": "loadUITestsOverriddenExperimentsIfNeeded",
+          "encoding": "v16@0:8",
+          "address": "0x10060719c"
+        },
+        {
+          "selector": "setupGameBroadcastingSettings",
+          "encoding": "v16@0:8",
+          "address": "0x10029172c"
+        },
+        {
+          "selector": "application:willFinishLaunchingWithOptions:",
+          "encoding": "B32@0:8@16@24",
+          "address": "0x1030add6c"
+        },
+        {
+          "selector": "application:didFinishLaunchingWithOptions:",
+          "encoding": "B32@0:8@16@24",
+          "address": "0x1030aeaec"
+        },
+        {
+          "selector": "applicationDidReceiveMemoryWarning:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1030aeb94"
+        },
+        {
+          "selector": "applicationWillTerminate:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1030aebd0"
+        },
+        {
+          "selector": "application:didRegisterForRemoteNotificationsWithDeviceToken:",
+          "encoding": "v32@0:8@16@24",
+          "address": "0x1030aebd4"
+        },
+        {
+          "selector": "application:didFailToRegisterForRemoteNotificationsWithError:",
+          "encoding": "v32@0:8@16@24",
+          "address": "0x1030aec70"
+        },
+        {
+          "selector": "buildMenuWithBuilder:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1030aecec"
+        },
+        {
+          "selector": "init",
+          "encoding": "@16@0:8",
+          "address": "0x1030aee70"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1030aee90"
+        }
+      ],
+      "class_methods": [
+        {
+          "selector": "isInUITestEnvironment",
+          "encoding": "B16@0:8",
+          "address": "0x101bb4d54"
+        },
+        {
+          "selector": "disableAnimationsForUITests",
+          "encoding": "B16@0:8",
+          "address": "0x101bb4d5c"
+        },
+        {
+          "selector": "useMockChromecastManager",
+          "encoding": "B16@0:8",
+          "address": "0x101bb4e18"
+        }
+      ]
+    },
+    {
+      "class": "_TtC6Twitch14LoginNetworker",
+      "address": "0x105eb6068",
+      "field_names": [
+        "_accountManager",
+        "_analyticsController",
+        "calendar",
+        "_graphQL",
+        "httpCookieStorage",
+        "_httpManager",
+        "_mobileShield",
+        "accessTokenSubscription"
+      ],
+      "methods": [],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch17SocialAuthSession",
+      "address": "0x105d6e7b0",
+      "field_names": [
+        "session",
+        "completion",
+        "authUrl",
+        "presentationAnchor",
+        "logger"
+      ],
+      "methods": [
+        {
+          "selector": "presentationAnchorForWebAuthenticationSession:",
+          "encoding": "@24@0:8@16",
+          "address": "0x101a53660"
+        },
+        {
+          "selector": "init",
+          "encoding": "@16@0:8",
+          "address": "0x101a534c8"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x101a534f4"
+        }
+      ],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch22SocialAuthEventHandler",
+      "address": "0x105e57428",
+      "field_names": [
+        "socialAuthSession",
+        "windowProvider",
+        "eventDispatcher",
+        "logger"
+      ],
+      "methods": [],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch22StandardAccountManager",
+      "address": "0x105e0f680",
+      "field_names": [
+        "notificationCenter",
+        "_analyticsController",
+        "application",
+        "_appRouter",
+        "cachedHasSavedAccessTokenValue",
+        "crashAnalytics",
+        "currentUserRequestCancellable",
+        "_httpManager",
+        "_keychain",
+        "_graphQL",
+        "_userDefaults",
+        "pushNotificationsController",
+        "notificationSettingsController",
+        "logger",
+        "anonymousAgeConfirmation",
+        "ageConfirmedUsernameKey",
+        "authenticatorSubscription",
+        "authFailureSubscription",
+        "authenticationState",
+        "authenticationActionQueue",
+        "isProcessingAuthenticationActionQueue"
+      ],
+      "methods": [],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch31LoginVerificationViewController",
+      "address": "0x105d3a928",
+      "field_names": [
+        "delegate",
+        "isLoading",
+        "verificationError",
+        "showResendCodeButton",
+        "scrollableStackContainerView",
+        "standardTextField",
+        "titleLabel",
+        "subtitleLabel",
+        "spacer",
+        "$__lazy_storage_$_linkableInfoTextView",
+        "passportErrorView",
+        "buttonStackView",
+        "submitButton",
+        "resendCodeButton",
+        "$__lazy_storage_$_loadingView",
+        "loginUserInfo",
+        "fetchedUserID",
+        "context",
+        "source",
+        "undeleteUser",
+        "_accountManager",
+        "_analyticsController"
+      ],
+      "methods": [
+        {
+          "selector": "submitButtonTapped",
+          "encoding": "v16@0:8",
+          "address": "0x100656904"
+        },
+        {
+          "selector": "resendCodeButtonTapped",
+          "encoding": "v16@0:8",
+          "address": "0x100656c38"
+        },
+        {
+          "selector": "dismissKeyboard",
+          "encoding": "v16@0:8",
+          "address": "0x100656c6c"
+        },
+        {
+          "selector": "viewDidLoad",
+          "encoding": "v16@0:8",
+          "address": "0x1006536bc"
+        },
+        {
+          "selector": "viewDidAppear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x100654ad8"
+        },
+        {
+          "selector": "viewWillDisappear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x1006552bc"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1006559a8"
+        }
+      ],
+      "class_methods": []
+    }
+  ],
+  "functions": [
+    {
+      "ordinal": 9055,
+      "name": "AuthProvider",
+      "disassembly_line": 1533078,
+      "sha256": "2ea118a9d3c96fad10296e09f9fc890f3f99639d43bf8177e07ceabfee3e46a5",
+      "relevant_property_references": [
+        "clientId",
+        "fetchImpl",
+        "session"
+      ]
+    },
+    {
+      "ordinal": 9307,
+      "name": "buildInjectedJS",
+      "disassembly_line": 1544528,
+      "sha256": "23dba41f2a2df995da0a44fca1de32bb9b957dc6baaef8b11fc8937c5640e7fc",
+      "relevant_property_references": [
+        "userId"
+      ]
+    },
+    {
+      "ordinal": 9308,
+      "name": "parseLoginMessage",
+      "disassembly_line": 1544584,
+      "sha256": "4027aa4e79d3f2b5064b5a0afad0d2f8e3e51ceb366c189037b3be0b6bc1867e",
+      "relevant_property_references": [
+        "accessToken",
+        "authyId",
+        "eventName",
+        "spareKey",
+        "token"
+      ]
+    },
+    {
+      "ordinal": 9814,
+      "name": "createHostTrustedSession",
+      "disassembly_line": 1559571,
+      "sha256": "b52815577a77cc37ede7864ad362e92230bc692fcdf983e3e5e2fd8a16f70596",
+      "relevant_property_references": [
+        "createNativeModul"
+      ]
+    },
+    {
+      "ordinal": 10019,
+      "name": "keychainPersistence",
+      "disassembly_line": 1564634,
+      "sha256": "077efcb90f3acd8564b9b1ccb1a949f7599590a507f71ed5bcc910ecd77c5b88",
+      "relevant_property_references": []
+    },
+    {
+      "ordinal": 18354,
+      "name": "PortalWebView",
+      "disassembly_line": 1887554,
+      "sha256": "d9a7aed7cdae11d6df52f86ed8ab0a55c949dbe48b995b56ead9aa3edb98f0c1",
+      "relevant_property_references": [
+        "onOutcome",
+        "session"
+      ]
+    },
+    {
+      "ordinal": 18356,
+      "name": "usePortalIdentity",
+      "disassembly_line": 1887733,
+      "sha256": "1e28af14cecc19c876bc099093582287227d330c5b5e14369ddf86b7f94711ab",
+      "relevant_property_references": [
+        "deviceId",
+        "isLoggedIn",
+        "languageCode",
+        "session",
+        "token",
+        "useAuth",
+        "userId"
+      ]
+    },
+    {
+      "ordinal": 18361,
+      "name": "buildPortalBridgeJS",
+      "disassembly_line": 1888246,
+      "sha256": "d774b50ca7821c796baa22a8cbc74eea5050c876e8f7c824d3e60eb7e1282199",
+      "relevant_property_references": []
+    },
+    {
+      "ordinal": 18363,
+      "name": "PortalWebViewContent",
+      "disassembly_line": 1888270,
+      "sha256": "634e8acdccd7cce2dc9f340ef014ed2bafbc9151055b073322d9d6f96a509a82",
+      "relevant_property_references": [
+        "injectedJS",
+        "navPolicy",
+        "onOutcome",
+        "onRawMessage",
+        "parseMessage"
+      ]
+    },
+    {
+      "ordinal": 27831,
+      "name": "parseLoginPortalMessage",
+      "disassembly_line": 2819247,
+      "sha256": "64fab46cf5ea4d76391661b33b787aa78c3a6a850cbea7844592231be27adc0a",
+      "relevant_property_references": [
+        "accessToken",
+        "parseLoginMessage"
+      ]
+    },
+    {
+      "ordinal": 27832,
+      "name": "LoginScreen",
+      "disassembly_line": 2819286,
+      "sha256": "2935badf4c9cdb4dd62472baf8181c0ae3d77d394594d0bbfa1771da95510a28",
+      "relevant_property_references": [
+        "LOGIN_URL",
+        "PortalWebView",
+        "SIGNUP_URL",
+        "completeLogin",
+        "getToken",
+        "useAuth"
+      ]
+    },
+    {
+      "ordinal": 28728,
+      "name": "useChallengeSudoPhase",
+      "disassembly_line": 2921166,
+      "sha256": "a5248bb2f1b1508fd186210995dfe28639da7b4dabe685413c7b451a1f816c79",
+      "relevant_property_references": [
+        "completeLogin",
+        "getToken",
+        "logout",
+        "useAuth"
+      ]
+    },
+    {
+      "ordinal": 28730,
+      "name": "buildChallengeUrl",
+      "disassembly_line": 2921361,
+      "sha256": "99d44ecd2250f3224fead64aec6ea5d99dd1dc3c635a87e15802e376e2672f4d",
+      "relevant_property_references": []
+    },
+    {
+      "ordinal": 28739,
+      "name": "ChallengeWebView",
+      "disassembly_line": 2921556,
+      "sha256": "d94a72adf85bb7da7bafb45195e1b2f131d4e779cdd40d68e7e44bf80f7b6b2e",
+      "relevant_property_references": [
+        "PortalWebView",
+        "onOutcome"
+      ]
+    },
+    {
+      "ordinal": 30427,
+      "name": "AuthSession",
+      "disassembly_line": 2971764,
+      "sha256": "1346398f87087c2594c75cc845523fbcf37ad8884d96f6f92c46168c79b781c0",
+      "relevant_property_references": [
+        "load"
+      ]
+    },
+    {
+      "ordinal": 30430,
+      "name": "setToken",
+      "disassembly_line": 2971816,
+      "sha256": "4e60973398481887bacae9b35124e6ad3d3484007501a3754ce657e72015b477",
+      "relevant_property_references": [
+        "persistence",
+        "save",
+        "token"
+      ]
+    },
+    {
+      "ordinal": 30431,
+      "name": "logout",
+      "disassembly_line": 2971838,
+      "sha256": "dd0432272db4134b00ee3f27162b3004f969c9e317903d4ef04ef83eb1793db0",
+      "relevant_property_references": [
+        "setToken"
+      ]
+    }
+  ],
+  "native_execution": false,
+  "authenticated_requests": false,
+  "fresh_login_established": false,
+  "hosted_portal_literals": {
+    "https://m.twitch.tv/wv/auth/login": true,
+    "https://m.twitch.tv/wv/auth/signup": true
+  },
+  "login_event_literals": {
+    "login-success": true,
+    "signup-success": true,
+    "login-portal-ready": true,
+    "close-login-portal": true
+  },
+  "disassembly_sha256": "33b2bbe891404bdf219949be2bd6828e3c3758418ebca2049f10d735365c4a34",
+  "limits": [
+    "Named function/property relationships are static evidence, not complete call-graph or route-execution proof.",
+    "Presence of native social SDK/system session components does not prove provider completion or first-party session compatibility.",
+    "No credential values, request headers/bodies, login submissions, Keychain items, or full disassembly are retained."
+  ]
+}

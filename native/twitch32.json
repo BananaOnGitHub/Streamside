@@ -370,5 +370,15 @@
       "store_single_payload_tag": 2540312,
       "evidence": "Generic value metadata pattern at 0x4537f0 references this table; copy witness is memcpy17_8; Bool at byte 16."
     }
+  },
+  "objc_services": {
+    "logout": {
+      "image": "Twitch",
+      "class_name": "_TtC6Twitch13TWAppDelegate",
+      "selector": "logoutUserWithUserInitiated:",
+      "encoding": "v20@0:8B16",
+      "address": 4358961344,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    }
   }
 }

@@ -14,6 +14,16 @@ static const struct mach_header *image(const char *name) {
     }
     return NULL;
 }
+id ssn_logout_target(void) {
+    const char *base=(const char*)image(ssn_logout.image);
+    Class cls=objc_getClass(ssn_logout.class_name);
+    id target=m0(m0(c("UIApplication"),"sharedApplication"),"delegate");
+    if(!base || !cls || !kind(target,ssn_logout.class_name) ||
+       !method_is(cls,ssn_logout.selector,ssn_logout.encoding,false)) return nil;
+    IMP method=class_getMethodImplementation(cls,ss(ssn_logout.selector));
+    const void *expected=base+ssn_logout.offset;
+    return (const void*)method==expected && !memcmp(expected,ssn_logout.prefix,16)?target:nil;
+}
 void *ssn_resolve(const char *name) {
     for(size_t i=0;i<sizeof(ssn_abi)/sizeof(*ssn_abi);i++) if(!strcmp(name,ssn_abi[i].name)) {
         const char *base=(const char*)image(ssn_abi[i].image);

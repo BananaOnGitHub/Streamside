@@ -1,0 +1,15 @@
+# SwiftUI native foundation — device test
+
+Use the new matching SwiftUI baseline/native pair. Sign with your usual settings and install over the existing app; **do not uninstall**. Save earlier reports separately.
+
+1. **Baseline:** install `StreamsideNativeProof-Twitch32-baseline.ipa`. Open Twitch. If you are signed out, use Twitch's normal login here. Confirm your account, visit Home/Browse, then hold two fingers still for one second to open Diagnostics. Wait for “Baseline positive control observed,” wait about 30 seconds and export baseline reports. Return to Twitch dismisses Diagnostics.
+2. **Native:** install the matching `StreamsideNativeProof-Twitch32-native.ipa`. The app should open a simple SwiftUI account/followed-channel screen. Confirm the account and channel names are yours. Only the first 50 are shown; unavailable live status is expected. Use Refresh twice and confirm data returns.
+3. **Navigate and reopen:** open/close Diagnostics, try the system appearance/text-size settings, background/return, then fully close and reopen. Confirm the account and follows return. Wait about 30 seconds and export native reports through Diagnostics. Runtime counts must remain zero and no failure/unverified status should appear.
+4. **Native sign-out:** save the signed-in reports first. Tap Sign out and confirm. The account and follows should disappear and a signed-out welcome should appear. Background/return, fully close/reopen, then export again. Check for no stale account/follows and zero runtime counts. If sign-out cannot be confirmed, report the error rather than treating it as success.
+5. **Return observations and reports:** say whether SwiftUI opened, the account/follows were correct, both refreshes worked, navigation/restarts were stable, and native sign-out stayed signed out. Include the matching baseline and native latest/previous JSON files. Reports exclude names and credentials. Screenshots are optional and may show names.
+
+Fresh login is deliberately unavailable inside the native build. Its welcome screen can check for an existing account and open diagnostics. To sign in again, install the matching baseline over it, use Twitch's normal login, then install native over it again with the same signing settings. Do not send passwords, tokens, Keychain exports or authentication callback contents.
+
+If the native app closes during logout or another action, stop repeating that action and retain the iOS crash report. If it can safely reopen, export its latest and previous reports. The baseline exports only baseline files and cannot recover a native JSON through its share action. A close, failure, inaccessible report or missing observer is failed/incomplete evidence, never proof of zero activity. No RN fallback is permitted.
+
+The supplied packages have been compiled and checked, but SwiftUI and logout have not yet been device-validated. See [the foundation report](SWIFTUI_NATIVE_FOUNDATION_TWITCH_32.md) for authentication blockers and validation scope.

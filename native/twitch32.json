@@ -1,0 +1,374 @@
+{
+  "schema": 1,
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "images": {
+    "Twitch": "f256c2a8576f4bafb26d4bd8f3c36470c0a6fc779e06fd1e254bbefa059875f1",
+    "React": "74a3b3cde26076fd5fb9b327c7e15928443a514a4f86b27ecb376b7cc33d76f5",
+    "hermesvm": "fce4c67d0e4acdc65edfbe5c029cd5b90c17f9a0249d686df753e5db598e3a33",
+    "worklets": "e9c2b82a0c171a43036830ca33a9163cd1302b44c75e24aa65fecfd4d1e79c51",
+    "TwitchKit": "f9cf2a880924bfcef7b46a7f64887fb835c28f5aa7e1593c6d5fa31bd1711401",
+    "TwitchIdentity": "5129aa20a21789e1c72f28bd10250a4192da009229d2c866af44cb58fc2d6f03",
+    "TwitchCore": "ad7772a3a86e6ff364007a1d29301734e82c0755a074e73c878ce18112b3ec44",
+    "Tomorrowland": "b3f4e1d8d59b43e8ef35e1cd072a0b18aa9d70b8a9093d7183581b53b9c571a1"
+  },
+  "layout": {
+    "Twitch": {
+      "base": 4294967296,
+      "code_offset": 26624,
+      "code_size": 6144,
+      "slot": 4396285936
+    },
+    "React": {
+      "base": 0,
+      "code_offset": 10240,
+      "code_size": 6144,
+      "slot": 5029872
+    },
+    "hermesvm": {
+      "base": 0,
+      "code_offset": 23680,
+      "code_size": 6144,
+      "slot": 2277360
+    },
+    "worklets": {
+      "base": 0,
+      "code_offset": 10240,
+      "code_size": 6144,
+      "slot": 491504
+    }
+  },
+  "probes": [
+    {
+      "id": 0,
+      "image": "Twitch",
+      "name": "twitch_holder",
+      "address": 4349152480,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9",
+      "guard": false
+    },
+    {
+      "id": 1,
+      "image": "Twitch",
+      "name": "warmup",
+      "address": 4349231476,
+      "bytes": "ff4301d1f85f01a9f65702a9f44f03a9",
+      "guard": true
+    },
+    {
+      "id": 2,
+      "image": "Twitch",
+      "name": "twitch_factory",
+      "address": 4349229156,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9",
+      "guard": true
+    },
+    {
+      "id": 3,
+      "image": "Twitch",
+      "name": "bundle_url",
+      "address": 4349150400,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091",
+      "guard": true
+    },
+    {
+      "id": 4,
+      "image": "React",
+      "name": "rn_factory",
+      "address": 3406676,
+      "bytes": "ff0301d1f65701a9f44f02a9fd7b03a9",
+      "guard": true
+    },
+    {
+      "id": 5,
+      "image": "React",
+      "name": "rn_runtime_factory",
+      "address": 891248,
+      "bytes": "ff4301d1f44f03a9fd7b04a9fd030191",
+      "guard": true
+    },
+    {
+      "id": 6,
+      "image": "React",
+      "name": "rn_host",
+      "address": 2828640,
+      "bytes": "ff4305d1e9230e6dfc6f0fa9fa6710a9",
+      "guard": true
+    },
+    {
+      "id": 7,
+      "image": "React",
+      "name": "rn_host_start",
+      "address": 2830020,
+      "bytes": "ff8303d1f6570ba9f44f0ca9fd7b0da9",
+      "guard": true
+    },
+    {
+      "id": 8,
+      "image": "React",
+      "name": "rn_surface",
+      "address": 2831028,
+      "bytes": "ff0302d1f85f04a9f65705a9f44f06a9",
+      "guard": true
+    },
+    {
+      "id": 9,
+      "image": "React",
+      "name": "rn_root_surface",
+      "address": 3415752,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9",
+      "guard": true
+    },
+    {
+      "id": 10,
+      "image": "React",
+      "name": "rn_instance",
+      "address": 2840880,
+      "bytes": "ffc302d1fc6f05a9fa6706a9f85f07a9",
+      "guard": true
+    },
+    {
+      "id": 11,
+      "image": "React",
+      "name": "rn_bundle_load",
+      "address": 2854672,
+      "bytes": "ffc302d1e923066df85f07a9f65708a9",
+      "guard": true
+    },
+    {
+      "id": 12,
+      "image": "React",
+      "name": "rn_script_load",
+      "address": 2855856,
+      "bytes": "ffc302d1f85f07a9f65708a9f44f09a9",
+      "guard": true
+    },
+    {
+      "id": 13,
+      "image": "React",
+      "name": "rn_hermes_instance",
+      "address": 2818600,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9",
+      "guard": true
+    },
+    {
+      "id": 14,
+      "image": "hermesvm",
+      "name": "hermes_factory",
+      "address": 127380,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa",
+      "guard": true
+    },
+    {
+      "id": 15,
+      "image": "hermesvm",
+      "name": "hermes_factory_nothrow",
+      "address": 127460,
+      "bytes": "f44fbea9fd7b01a9fd430091f40300aa",
+      "guard": true
+    },
+    {
+      "id": 16,
+      "image": "hermesvm",
+      "name": "hermes_runtime",
+      "address": 125468,
+      "bytes": "ff0301d1f65701a9f44f02a9fd7b03a9",
+      "guard": true
+    },
+    {
+      "id": 17,
+      "image": "hermesvm",
+      "name": "hermes_eval",
+      "address": 131464,
+      "bytes": "ffc300d1f44f01a9fd7b02a9fd830091",
+      "guard": true
+    },
+    {
+      "id": 18,
+      "image": "hermesvm",
+      "name": "hermes_eval_prepared",
+      "address": 131712,
+      "bytes": "ff0305d1fc6f0fa9f85f10a9f65711a9",
+      "guard": true
+    },
+    {
+      "id": 19,
+      "image": "hermesvm",
+      "name": "hermes_eval_source_map",
+      "address": 162084,
+      "bytes": "ff8301d1f65703a9f44f04a9fd7b05a9",
+      "guard": true
+    },
+    {
+      "id": 20,
+      "image": "worklets",
+      "name": "worklet_factory",
+      "address": 142512,
+      "bytes": "ff8302d1f85f06a9f65707a9f44f08a9",
+      "guard": true
+    },
+    {
+      "id": 21,
+      "image": "worklets",
+      "name": "worklet_ui_factory",
+      "address": 143116,
+      "bytes": "ffc300d1f44f01a9fd7b02a9fd830091",
+      "guard": true
+    },
+    {
+      "id": 22,
+      "image": "worklets",
+      "name": "worklet_runtime",
+      "address": 250080,
+      "bytes": "ff4306d1fc6f13a9fa6714a9f85f15a9",
+      "guard": true
+    },
+    {
+      "id": 23,
+      "image": "hermesvm",
+      "name": "hermes_implementation",
+      "address": 130016,
+      "bytes": "ffc304d1f85f0fa9f65710a9f44f11a9",
+      "guard": true
+    },
+    {
+      "id": 24,
+      "image": "hermesvm",
+      "name": "hermes_engine",
+      "address": 1230812,
+      "bytes": "ff4307d1e923166dfc6f17a9fa6718a9",
+      "guard": true
+    }
+  ],
+  "abi": {
+    "_$s9TwitchKit9TKGraphQLC11currentUser12Tomorrowland7PromiseVy0A8Identity07CurrentF0V0A6Apollo0A12GraphQLErrorVGyF": {
+      "image": "TwitchKit",
+      "address": 2905020,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+    },
+    "_$s9TwitchKit9TKGraphQLC13followedUsers5limit6cursor14blockedUserIDs12Tomorrowland7PromiseVySay0A4Core0J0VG_AA10PageCursorVyAA09_FollowedF0OGt0A6Apollo0A12GraphQLErrorVGSi_ASSgShys6UInt32VGtF": {
+      "image": "TwitchKit",
+      "address": 2909180,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+    },
+    "+[_TtC9TwitchKit9TKGraphQL sharedInstance]": {
+      "image": "TwitchKit",
+      "address": 2939316,
+      "bytes": "881000d0089d41f91f0500b181000054"
+    },
+    "_$s9TwitchKit10PageCursorVMa": {
+      "image": "TwitchKit",
+      "address": 2540376,
+      "bytes": "6410009084203e9159aff617a9ffff17"
+    },
+    "_$s9TwitchKit14_FollowedUsersOMa": {
+      "image": "TwitchKit",
+      "address": 2928648,
+      "bytes": "a00f00f000000e91010080d2c0035fd6"
+    },
+    "_$s14TwitchIdentity11CurrentUserV4user0A4Core0D0Vvg": {
+      "image": "TwitchIdentity",
+      "address": 47788,
+      "bytes": "fd7bbfa9fd030091e00314aae10308aa"
+    },
+    "_$s14TwitchIdentity11CurrentUserVMa": {
+      "image": "TwitchIdentity",
+      "address": 47884,
+      "bytes": "810000b021800c91420000b042d02d91"
+    },
+    "_$sSo18NSNotificationNamea14TwitchIdentityE11UserUpdatedABvgZ": {
+      "image": "TwitchIdentity",
+      "address": 78628,
+      "bytes": "400000b000201b91410000b021601c91"
+    },
+    "_$sSo18NSNotificationNamea14TwitchIdentityE15UserIsAvailableABvgZ": {
+      "image": "TwitchIdentity",
+      "address": 78708,
+      "bytes": "400000b000401b91410000b021801c91"
+    },
+    "_$sSo18NSNotificationNamea14TwitchIdentityE12UserDidLogInABvgZ": {
+      "image": "TwitchIdentity",
+      "address": 78852,
+      "bytes": "400000b000a01b91410000b021a01c91"
+    },
+    "_$sSo18NSNotificationNamea14TwitchIdentityE13UserDidLogOutABvgZ": {
+      "image": "TwitchIdentity",
+      "address": 78932,
+      "bytes": "400000b000601b91410000b021c01c91"
+    },
+    "_$sSo18NSNotificationNamea14TwitchIdentityE22UserAccessTokenChangedABvgZ": {
+      "image": "TwitchIdentity",
+      "address": 79012,
+      "bytes": "400000b000801b91410000b021e01c91"
+    },
+    "_$s10TwitchCore4UserV8identityAA8IdentityVvg": {
+      "image": "TwitchCore",
+      "address": 424796,
+      "bytes": "e00314aae10308aa01000014f44fbea9"
+    },
+    "_$s10TwitchCore4UserVMa": {
+      "image": "TwitchCore",
+      "address": 424728,
+      "bytes": "e80300aaa901009020c145f9600000b4"
+    },
+    "_$s10TwitchCore8IdentityVMa": {
+      "image": "TwitchCore",
+      "address": 244652,
+      "bytes": "a00200f000401c91010080d2c0035fd6"
+    },
+    "_$s10TwitchCore8IdentityV4nameSSvg": {
+      "image": "TwitchCore",
+      "address": 27984,
+      "bytes": "f44fbea9fd7b01a9fd43009193d240a9"
+    },
+    "_$s12Tomorrowland7PromiseV4objc8mapValue0D5ErrorSo10TWLPromiseCyqd__qd_0_Gqd__xc_qd_0_q_ctRld__CRld_0_Cr0_lF": {
+      "image": "Tomorrowland",
+      "address": 224560,
+      "bytes": "ff0302d1fc6f02a9fa6703a9f85f04a9"
+    },
+    "_$s12Tomorrowland7PromiseVMa": {
+      "image": "Tomorrowland",
+      "address": 197576,
+      "bytes": "a4000090843010916b8eff1757000014"
+    },
+    "_$s10TwitchCore8IdentityV11displayNameSSvg": {
+      "image": "TwitchCore",
+      "address": 240940,
+      "bytes": "f44fbea9fd7b01a9fd43009193d242a9"
+    }
+  },
+  "gate": {
+    "image": "Twitch",
+    "address": 4349385344,
+    "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+  },
+  "required_baseline": [
+    "rn_factory",
+    "rn_host",
+    "rn_instance",
+    "rn_root_surface",
+    "rn_script_load",
+    "hermes_runtime",
+    "hermes_eval",
+    "worklet_runtime",
+    "hermes_implementation",
+    "hermes_engine"
+  ],
+  "evidence_only": {
+    "promise_result_dispatch": {
+      "image": "Tomorrowland",
+      "address": 225476,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+    }
+  },
+  "value_layouts": {
+    "page_cursor": {
+      "witness_table": 4970368,
+      "size": 17,
+      "stride": 24,
+      "flags_and_extra_inhabitants": 9223372032593428487,
+      "get_single_payload_tag": 2540240,
+      "store_single_payload_tag": 2540312,
+      "evidence": "Generic value metadata pattern at 0x4537f0 references this table; copy witness is memcpy17_8; Bool at byte 16."
+    }
+  }
+}

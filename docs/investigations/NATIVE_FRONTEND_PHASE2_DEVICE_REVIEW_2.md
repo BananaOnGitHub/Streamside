@@ -1,0 +1,25 @@
+# Native frontend — signed-out device review
+
+## Supplied evidence
+
+The tester confirms: “Confirmed logged out on native.” The supplied archive contains matching export-v3 latest baseline/native reports and two retained reports from earlier builds. Preserve the [original archive](evidence/native-frontend-device-2/nativetesting-2.zip), [file hashes](evidence/native-frontend-device-2/hashes.json), and [explicit report assessment](evidence/native-frontend-device-2/assessment.json). Archive SHA256: `9b7de4dcb0cc1dc24c351784a7e0dbfb9f8a84e086a841e7df1cefeab7305b61`.
+
+The latest reports identify source `ebbad865fa8228497bf5b8e29c9aac571f63def4`, proof `fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4`, Twitch 32.0 build `263110145453907615`, and donor SHA256 `076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`. These match the [export-v3 package receipt](NATIVE_FRONTEND_PHASE2_EXPORT_V3_ARTIFACTS.json). Hardware and kernel are reported as `iPhone17,1` and `27.0.0`. Installed re-signed IPA hashes, exact iOS marketing version and signing details were not supplied.
+
+## Result
+
+The latest native report has account/list state 1, “No existing authorized session,” and zero channels. This agrees with the tester's visible logged-out confirmation. All four image observers are armed, all expected probe keys are present, all 25 counts are zero, and failures are zero. Native calibration is true. The latest baseline has the same source/proof/donor/device identity and successfully observes all required RN/Hermes/worklet positive-control paths, including RN factory/host/instance each 1, root surfaces 2, Hermes runtime/implementation/engine each 2 and worklet runtime 1. Zero native observations therefore have a matching positive control.
+
+This supports correct signed-out detection and zero monitored runtime-entry attempts during the supplied initial signed-out run. The native sample is at 16,083 ms, launch sequence 3, with one active notification and zero background notifications. Physical footprint is 30,656,520 bytes (29.2 MiB); sampled peak is 39,077,872 bytes (37.3 MiB). Constructor to first active is 318 ms. The baseline sample is at 40,429 ms with a 230,492,696-byte footprint (219.8 MiB), and 482 ms constructor-to-active. Different dwell times and UI states prevent treating these snapshots as a controlled performance benchmark or full cold-launch measurement.
+
+The combined archive does not independently establish the contents of each individual share sheet. Its `baseline-previous.json` is the gesture-v2 source `2308ca8648fd2ffc7bcfd199ddfda9497b7594ca`. Its `native-previous.json` is the original signed-in source `f5a6c8e10a98d14b35d459648f5278fb990f5b58`, state 4 with 50 channels, exported later than the first submission. Preserve both as historical evidence; neither proves an export-v3 signed-out restart. A previous JSON file is retained evidence, not the current on-screen account/list state.
+
+The unchanged authenticated comparator rejects this set for the expected reasons: current state is signed out rather than an authenticated list success, and the previous native process has a different proof identity. Its numeric transition check is satisfied by the older signed-in process, which cannot establish signed-out transitions on export-v3. Those rejections are preserved in the assessment. No authenticated test criterion has been relaxed to label this as a passing authenticated listing or complete lifecycle sequence.
+
+## Acceptance scope and next check
+
+The [first review](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_1.md) records the original signed-in native launch, successful account/list path with 50 results, and positive-controlled zero monitored counts across two native processes. This review adds a confirmed signed-out initial launch on the export-v3 source. It does not merge different revisions into one complete device acceptance run. Visible signed-in account/channel correctness and manual refresh completion remain tester observations not present in the private reports; invalid/expired sessions, account switching, and broader native lifecycle/routing behavior remain outside the supplied evidence.
+
+Use the currently installed export-v3 pair; no new build is needed. While signed out in native, background the app, return and confirm it stays signed out, then fully close and reopen it and export. Keep the new latest and previous native reports with the matching export-v3 baseline already saved. They should retain no authorized session, zero returned channels, all image observers armed, no failures and zero guarded runtime counts. The native UI should show no stale account or follow list. A failure or missing report remains incomplete evidence.
+
+This is a development evidence update only. Application sources, report schema, runtime guards, packages, prior hashes and earlier validation records are unchanged. No implementation or host test suite was rerun; documentation integrity is checked before committing the record. No playback, chat or additional frontend work is introduced.

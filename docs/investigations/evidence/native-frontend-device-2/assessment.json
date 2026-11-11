@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "scope": "Signed-out initial launch review of supplied device reports, not a full signed-out lifecycle sequence or local iOS execution",
+  "tested_source_revision": "ebbad865fa8228497bf5b8e29c9aac571f63def4",
+  "proof_id": "fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4",
+  "checks": {
+    "latest_schema_and_modes": true,
+    "latest_match_export_v3_source_and_proof": true,
+    "latest_match_exact_donor_version_build": true,
+    "latest_same_reported_device_and_kernel": true,
+    "latest_all_image_observers_armed_no_failures": true,
+    "latest_complete_valid_probe_sets": true,
+    "baseline_positive_control_observed": true,
+    "native_matching_baseline_calibrated": true,
+    "native_all_25_probe_counts_zero": true,
+    "native_signed_out_with_zero_channels": true
+  },
+  "result": "signed_out_initial_launch_supported_by_report_and_tester_confirmation",
+  "tester_observation": "Confirmed logged out on native",
+  "native_sample": {
+    "launch_sequence": 3,
+    "uptime_ms": 16083,
+    "foregrounds": 1,
+    "backgrounds": 0,
+    "account_list_state": 1,
+    "returned_channel_count": 0,
+    "phys_footprint_bytes": 30656520,
+    "peak_observed_footprint_bytes": 39077872,
+    "first_active_ms": 318
+  },
+  "prior_reports": {
+    "native-previous.json": {
+      "source_revision": "f5a6c8e10a98d14b35d459648f5278fb990f5b58",
+      "proof_id": "7781ed12b1ec49cc4be32cef34f946f8515da95754c59fd679af690d67abafe9",
+      "interpretation": "Older signed-in process (state 4, 50 channels); excluded from export-v3 signed-out restart/transition acceptance."
+    },
+    "baseline-previous.json": {
+      "source_revision": "2308ca8648fd2ffc7bcfd199ddfda9497b7594ca",
+      "interpretation": "Older gesture-v2 baseline; excluded from export-v3 calibration review."
+    }
+  },
+  "existing_authenticated_comparison": {
+    "status": "evidence_incomplete_or_failed",
+    "failures": [
+      "native: authenticated account/list result not successful",
+      "native_previous: mismatched source/probe identity"
+    ],
+    "limits": [
+      "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+    ],
+    "memory_difference_bytes": -199836176,
+    "constructor_to_active_difference_ms": -164
+  },
+  "limits": [
+    "The authenticated sequence comparator correctly rejects signed-out state and old previous-build identity; it is unchanged. Its numeric transition check uses the older signed-in process, which cannot establish export-v3 signed-out lifecycle acceptance.",
+    "Export-v3 native sample has one active notification and no background notification; no second matching signed-out process report was supplied.",
+    "Tester confirms logged-out UI; reports omit account names and cannot independently verify every visible label.",
+    "Single combined attachment does not establish which individual files appeared in each separate iOS share sheet.",
+    "Expired/invalid session and account switching remain untested; no credentials were requested or inspected.",
+    "No new code, donor patches, build or host tests are needed for this evidence-only review."
+  ]
+}

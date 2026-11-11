@@ -9,7 +9,7 @@ not here.
 
 - [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.
 
-- [Twitch 32.0 phase 2](NATIVE_FRONTEND_TWITCH_32_PHASE2.md): guarded UIKit candidate, admitted native account/GraphQL bridge, paired diagnostic packages, host evidence and pending physical-device acceptance. [Device instructions](NATIVE_FRONTEND_PHASE2_DEVICE_TEST.md). [First signed-in device review and Settings obstruction](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_1.md). [Export separation follow-up](NATIVE_FRONTEND_PHASE2_EXPORT_ISOLATION.md).
+- [Twitch 32.0 phase 2](NATIVE_FRONTEND_TWITCH_32_PHASE2.md): guarded UIKit candidate, admitted native account/GraphQL bridge, paired diagnostic packages, host evidence and pending physical-device acceptance. [Device instructions](NATIVE_FRONTEND_PHASE2_DEVICE_TEST.md). [First signed-in device review and Settings obstruction](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_1.md). [Export separation follow-up](NATIVE_FRONTEND_PHASE2_EXPORT_ISOLATION.md). [Signed-out device review](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_2.md).
 
 ## 3.1.0 trials
 

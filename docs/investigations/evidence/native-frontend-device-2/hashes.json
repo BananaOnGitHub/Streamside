@@ -1,0 +1,12 @@
+{
+  "archive_sha256": "9b7de4dcb0cc1dc24c351784a7e0dbfb9f8a84e086a841e7df1cefeab7305b61",
+  "files": {
+    "assessment.json": "a670ea63250359cf34e70fbeb82b5ed17a6ad7c7c8a60b5d2fd946d499dc1794",
+    "baseline-latest.json": "f630617db53cb53bdb570a1237af53ab6ffb7773c4d58ac2d69272beea29f09e",
+    "baseline-previous.json": "ec4cdf35708e87f7596ebf5b6f5ed985ead6d984c16e8bb5c1d42e9c4227b30a",
+    "documentation-check.json": "c86d41739d6c79081bc51c7c2040db1592bf039654dd50202108f3b3ac48aaa9",
+    "native-latest.json": "81b783c12dad2e73ba63b504fa03efb3075d4bfff30e28c3f1da0047e5312df9",
+    "native-previous.json": "0c4579227333db312435b03aa66c715a37767e1bd3cd168aa38edc969faa9531",
+    "nativetesting-2.zip": "9b7de4dcb0cc1dc24c351784a7e0dbfb9f8a84e086a841e7df1cefeab7305b61"
+  }
+}

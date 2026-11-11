@@ -44,3 +44,12 @@ This is a small frontend access change. Donor patches, ABI admission, native req
 Next device steps: install the revised baseline over the existing app using the same signing settings; use Settings normally; open Diagnostics with the two-finger hold and save a fresh positive-control report. Preserve earlier signed-in reports before signing out through Twitch normally. Install the matching revised native build over it, confirm no authorized session and no stale account/follows, background/reopen and fully restart, then export. The authenticated comparison tool intentionally rejects signed-out account state; use the signed-out checklist and the individual report fields rather than treating that rejection as a runtime-isolation failure. Signed-in account/channel identity and manual refresh observations can be supplied in text without sharing names or credentials.
 
 This review supplements the [original Phase 2 report](NATIVE_FRONTEND_TWITCH_32_PHASE2.md) and [original validation receipt](NATIVE_FRONTEND_PHASE2_VALIDATION.json), whose pre-device-testing scope is preserved. Updated build/check identities belong in a separate follow-up receipt.
+
+## Replacement package receipt
+
+Source revision: `2308ca8648fd2ffc7bcfd199ddfda9497b7594ca`. Replacement proof: `39cee54065c6e419657af64480dbcf0397e0fca83f64e28c5f2afb080a5217f0`. Both flavors were compiled with Zig 0.14.0, passed donor/ABI/probe admission, retained-entry verification and ZIP verification, and require the usual device-authorized re-signing. They are in `build/native-frontend-gesture-v2/`, leaving the original candidate files intact. The [follow-up receipt](NATIVE_FRONTEND_PHASE2_GESTURE_V2_ARTIFACTS.json) records exact identities, hashes, build command and validation limits. All 23 existing native frontend host tests passed with no skips; the legacy suite was not repeated for this frontend-only control change. The replacement gesture and signed-out sequence have not been exercised on iOS here.
+
+| Flavor | Bytes | Unsigned IPA SHA256 |
+| --- | --- | --- |
+| Baseline | 196413112 | `17797cdcb62f39c7fca51a6f99d6e79de03d24dda7633fce84d3538f23e96c2d` |
+| Native | 196417366 | `ebd3510e05d979693dbd38037ce8d0d3dd172722e5876fac293da6f21fec1926` |

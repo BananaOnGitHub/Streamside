@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-11-11T21:11:32.536168+00:00",
+  "branch": "feat/native-frontend",
+  "build": {
+    "schema": 1,
+    "proof_id": "39cee54065c6e419657af64480dbcf0397e0fca83f64e28c5f2afb080a5217f0",
+    "source_revision": "2308ca8648fd2ffc7bcfd199ddfda9497b7594ca",
+    "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "zig": "0.14.0",
+    "inspection": {
+      "abi_entries": 19,
+      "probe_entries": 25,
+      "all_retained_donor_entries_verified": true,
+      "original_hbc_unchanged": true
+    },
+    "device_validation": "not performed",
+    "artifacts": {
+      "baseline": {
+        "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-frontend-gesture-v2/StreamsideNativeProof-Twitch32-baseline.ipa",
+        "bytes": 196413112,
+        "sha256": "17797cdcb62f39c7fca51a6f99d6e79de03d24dda7633fce84d3538f23e96c2d",
+        "framework_sha256": "715e3e7be64abea561251e5bf4289e7e3bbd4be953a95124152d223688e1f64a",
+        "modified_images": {
+          "Payload/Twitch.app/Twitch": "50a37be06ba19a4022e80a1b0566a349d070dd9d795ab7f79c65dae7360499b5",
+          "Payload/Twitch.app/Frameworks/React.framework/React": "0f1386abd164abaf997e21e59d1e919ff15b75ff02d40997445c0403beab0ced",
+          "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "e507c09180ce855eb52d15dccedd8d394b3f600df96ac65db73b402c472407db",
+          "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "9a532e5835701b4d460140a3d581437b03a210e2d5508db15c5977179a4d54dc"
+        },
+        "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+      },
+      "native": {
+        "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-frontend-gesture-v2/StreamsideNativeProof-Twitch32-native.ipa",
+        "bytes": 196417366,
+        "sha256": "ebd3510e05d979693dbd38037ce8d0d3dd172722e5876fac293da6f21fec1926",
+        "framework_sha256": "419770b96d32fd84ce7947fe4e9086f5e65ff84dd49ddcd9fdb821bcc4d340d9",
+        "modified_images": {
+          "Payload/Twitch.app/Twitch": "89a29843e0b4cdc72005b828f42a8b0937d71027c2b1c348fdda253329706e7e",
+          "Payload/Twitch.app/Frameworks/React.framework/React": "0f1386abd164abaf997e21e59d1e919ff15b75ff02d40997445c0403beab0ced",
+          "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "e507c09180ce855eb52d15dccedd8d394b3f600df96ac65db73b402c472407db",
+          "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "9a532e5835701b4d460140a3d581437b03a210e2d5508db15c5977179a4d54dc"
+        },
+        "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+      }
+    }
+  },
+  "change": "Remove the Settings-obstructing baseline button; use a two-finger one-second hold and present from the top controller. No request, probe, ABI, report-schema or runtime-policy changes.",
+  "build_command": "python3 tools/native_frontend/build.py --donor /home/bananas/Agent-Stuff/streamside/donors/tv.twitch-32.0.ipa --zig build/toolchains/zig-0.14.0/zig --mode both --output build/native-frontend-gesture-v2",
+  "checks": {
+    "native_frontend_host_tests": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/ssn-test-deps:/home/bananas/Agent-Stuff/streamside/toolchains/python python3 -m unittest discover -s tests/native_frontend -v",
+      "total": 23,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    "documentation_before_receipt": {
+      "command": "make docs-check",
+      "markdown_files": 86,
+      "references": 798,
+      "errors": 0
+    },
+    "git_diff_check": {
+      "exit_code": 0
+    },
+    "packaging": {
+      "exit_code": 0,
+      "log": "build/native-frontend-gesture-v2/validation/build.log",
+      "log_sha256": "5f01eb8e6550854ccc9323ff32b37be19cf895a69885c8d31c95d7458f21ed59"
+    },
+    "legacy_tests": "Not repeated for this frontend-only control change; prior 218 passed/2 skipped are recorded with their original scope.",
+    "repeat_build": "Not repeated for this follow-up; original candidate repeat-build evidence is preserved separately.",
+    "documentation_final": {
+      "command": "make docs-check",
+      "markdown_files": 86,
+      "references": 800,
+      "errors": 0
+    }
+  },
+  "original_candidate_device_review": {
+    "source_revision": "f5a6c8e10a98d14b35d459648f5278fb990f5b58",
+    "archive_sha256": "38adcd39f6b4c71fc903cf8f80560e0f8ff007d3f598b27cb62a2525aa656d39",
+    "comparison_failures": [],
+    "baseline_positive_control": true,
+    "native_all_25_probe_counts_zero": true,
+    "native_launch_sequences": [
+      1,
+      2
+    ],
+    "native_account_list_state": 4,
+    "native_returned_channels": 50,
+    "visible_account_and_channel_identity": "Tester confirmation pending; absent from privacy-safe reports",
+    "manual_refresh_completion": "Tester confirmation pending; no per-refresh counter",
+    "signed_out": "Blocked by original button; not tested"
+  },
+  "replacement_candidate_device_validation": "Not performed: gesture access, Settings reachability, matching calibration, signed-out handling and runtime isolation need device testing with the new pair."
+}

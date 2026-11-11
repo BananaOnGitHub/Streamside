@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "result": "signed_out_restart_and_background_return_supported_by_matching_reports_and_tester_confirmation",
+  "tested_source_revision": "ebbad865fa8228497bf5b8e29c9aac571f63def4",
+  "proof_id": "fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4",
+  "report_sha256": "d6059d2496d447e683884e969989fd5061cd641652373db8017065005eb0ddbc",
+  "tester_observation": "Remains signed out in fully closing and background/reopening",
+  "previous_observation": "docs/investigations/evidence/native-frontend-device-2/native-latest.json",
+  "baseline_observation": "docs/investigations/evidence/native-frontend-device-2/baseline-latest.json",
+  "checks": {
+    "schema_modes": true,
+    "matching_export_v3_source_and_proof": true,
+    "matching_exact_donor_and_build": true,
+    "same_device_kernel": true,
+    "complete_armed_instrumentation_no_failures": true,
+    "matching_baseline_positive_control": true,
+    "both_native_calibrated": true,
+    "both_native_signed_out_no_channels": true,
+    "all_25_native_counts_zero_in_both_reports": true,
+    "new_native_process_sequence": true,
+    "background_return_recorded_in_new_process": true
+  },
+  "launch_sequences": [
+    3,
+    4
+  ],
+  "new_report": {
+    "uptime_ms": 16901,
+    "foregrounds": 2,
+    "backgrounds": 1,
+    "account_list_state": 1,
+    "returned_channel_count": 0,
+    "armed_mask": 15,
+    "failures": 0,
+    "first_active_ms": 312,
+    "phys_footprint_bytes": 29739040,
+    "peak_observed_footprint_bytes": 36571144
+  },
+  "limits": [
+    "The earlier process report is its previously supplied snapshot, not its final report at termination. No claim is made about activity after that snapshot.",
+    "These are user-supplied physical-device reports and observations; no local iOS execution was performed.",
+    "This closes the requested signed-out restart/background-return check for this build/device; it does not establish expired-session handling, account switching, untested routes, or a complete signed-in acceptance sequence on export-v3.",
+    "The authenticated listing comparator is unchanged and is not used to grade signed-out state.",
+    "Application code, packages and original artifact hashes are unchanged; no new build or host tests are needed for this evidence-only update."
+  ]
+}

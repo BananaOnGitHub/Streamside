@@ -1,0 +1,6 @@
+{
+  "command": "make docs-check",
+  "exit_code": 0,
+  "output": "python3 tools/check_docs.py\nChecked 88 Markdown files, 814 explicit references, and current version metadata: 0 error(s).",
+  "initial_check": "Initially failed because the hashes.json link target was checked before writing its file; corrected file creation order before the final passing check."
+}

@@ -88,3 +88,14 @@ The IPAs still require the usual device-authorized re-signing with the existing 
 Host validation so far: 25 native frontend tests passed with no skips (the preserved 23 plus two logout admission tests); the six Swift ABI caller/register tests also passed against Apple-compiled caller code. A macOS executable built from the pure Swift presentation models passed synthetic state-boundary checks, including removal of stale data on sign-out/account change/failure. These do not execute Twitch services or SwiftUI on iOS. The first exploratory build required the imported notification-name correction, then the Clang `-Os` flag correction; failure logs are preserved under `build/native-swiftui-trial/` and `build/native-swiftui-trial2/`. A subsequent dirty-checkout candidate compiled/linked and packaged successfully in `build/native-swiftui-trial3/`; it is not the delivered clean-source identity.
 
 Physical-device validation remains necessary for SwiftUI hosting/navigation, signed-in restoration/list/refresh, signed-out state, native logout, account changes, the new baseline positive control, zero runtime counts and stability across transitions/restarts. Fresh login, provider verification/challenges and complete session creation remain blocked as described above. No phase-3 iOS device results or performance improvement are fabricated. Follow [the device checklist](SWIFTUI_NATIVE_DEVICE_TEST.md).
+
+## Delivered candidate identities
+
+Implementation revision: `607f5954670ff7e98d8e5873928c3a14524f0f40`. Proof: `0f59f958f85511f00e97d888d0e20e1cbb3de2d018f9dafeac30c2dbdd37a382`. Both flavors were built from a clean checkout using the VM compiler above and packaged on Ubuntu. The [artifact and validation receipt](SWIFTUI_NATIVE_FOUNDATION_ARTIFACTS.json) records exact source/input/output identities, preserved checkpoint comparisons, compiler findings and pending device gates. The final 25 host tests and six Apple-compiled ABI checks passed; both macOS model test executables passed. No iOS device acceptance is inferred.
+
+| Flavor | Bytes | IPA SHA256 |
+| --- | --- | --- |
+| Baseline | 196475822 | `e6e6a317be5f352fc2a0bbccd3dc4433e34faf2c1515cb9876fed20bccdf1b2d` |
+| Native | 196479929 | `b9f5c836e728f82e109ed1c71679f3b3ab6de408cd86d6fd1d6c8f204b45ff9b` |
+
+Files are in `build/native-swiftui/`. Original UIKit IPAs and earlier development/device records remain intact. A later documentation-receipt commit does not alter these compiled source/proof identities.

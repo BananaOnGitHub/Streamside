@@ -5,6 +5,10 @@ implementation trials, per-build findings, failures, and testing evidence.
 Reusable maintainer guidance belongs in [development guides](../development/),
 not here.
 
+## Native frontend trial
+
+- [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.
+
 ## 3.1.0 trials
 
 - [Secure investigation updates v2 plan](SECURE_INVESTIGATION_UPDATES_V2_PLAN.md): required future GitHub-backed configuration updates, independent TUF/Ed25519 authorization, trust/cache/activation boundaries and finite implementation gates.

@@ -1,0 +1,5040 @@
+{
+  "app": {
+    "CFBundleIdentifier": "tv.twitch",
+    "CFBundleShortVersionString": "32.0",
+    "CFBundleVersion": "263110145453907615",
+    "MinimumOSVersion": "16.4",
+    "UIApplicationSceneManifest": {
+      "UIApplicationSupportsMultipleScenes": false,
+      "UISceneConfigurations": {
+        "UIWindowSceneSessionRoleApplication": [
+          {
+            "UISceneConfigurationName": "Default Configuration",
+            "UISceneDelegateClassName": "Twitch.SceneDelegate"
+          }
+        ]
+      }
+    }
+  },
+  "authenticated_requests": false,
+  "device_validation": false,
+  "evidence": "static-only",
+  "hermes_bundle": {
+    "bytes": 29678860,
+    "footer_valid": true,
+    "path": "main.jsbundle",
+    "sha256": "1866099398b36a4fc98717dca5715547d6f16785bfa3dc8f74605fe98d1755d8",
+    "version": 98
+  },
+  "images": {
+    "AmazonIVSBroadcast": {
+      "bytes": 8596704,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/AmazonIVSBroadcast.framework/AmazonIVSBroadcast",
+      "sha256": "5bb478afb32c5c6829fab2238e56a055802b414b6d3012ea549e6b208e28f204",
+      "uuid": "d375fca0-0355-31e0-ade2-103b0f7410de"
+    },
+    "AmazonIVSPlayer": {
+      "bytes": 1865632,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/AmazonIVSPlayer.framework/AmazonIVSPlayer",
+      "sha256": "f6bbfbf4ab295778e431f44e3ba8d242d9f3681e27d1413280db095bad85b4c5",
+      "uuid": "896812b4-c7b3-33c2-bb67-0015af7591bf"
+    },
+    "ApolloAPI": {
+      "bytes": 316320,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ApolloAPI.framework/ApolloAPI",
+      "sha256": "0d233cb1b9a5a1b36c8df8086620b58a9d6295df3f985dfb8461c8c54c2e95fd",
+      "uuid": "15419544-b879-3927-b722-f772950341fd"
+    },
+    "Apollo_171E9C48F1D7AD_PackageProduct": {
+      "bytes": 676368,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct",
+      "sha256": "4112c7ddb4cadfbde3460e6e4458c6dc70f3666e7b303375d819fe8c37b98803",
+      "uuid": "22ad1885-9efe-3a30-a16f-45066584f07e"
+    },
+    "Atomics_301F3DE065572157_PackageProduct": {
+      "bytes": 178064,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "sha256": "b00c1592d9a28af0718b92727f098b32a8a4ec713210210c570ff4a9088e39cd",
+      "uuid": "4419f91e-618c-3137-87e6-f5719ca3147f"
+    },
+    "Capacitor": {
+      "bytes": 868320,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Capacitor.framework/Capacitor",
+      "sha256": "357efe7cb403532721c17f9331cbcac9b0f0b4d12c18d248705db0b5a50c4de4",
+      "uuid": "757d09cc-7a1e-3aa7-b747-f34234ba5769"
+    },
+    "Clocks_17A223499E7CA5_PackageProduct": {
+      "bytes": 191184,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "sha256": "9d01eccb51edbc04ef301ba29f46643e1906b5893bd0b85e0b1b9468a970ba36",
+      "uuid": "03e4cbea-7dac-3664-9b7b-40668db101fd"
+    },
+    "ComScore": {
+      "bytes": 1724560,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ComScore.framework/ComScore",
+      "sha256": "6eef52deed6845dbca798a2d44d289445cefdde7c7a34295b0aef9f6152161d5",
+      "uuid": "44288c31-2d2e-3cef-97e3-c44e1b6e3170"
+    },
+    "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct": {
+      "bytes": 154256,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct",
+      "sha256": "6aaf854e57cabdc538ff4614813ed66bb6f1fcaf6991e25722ebd293557837f8",
+      "uuid": "3efcdd8c-fd85-3228-af61-d721a2f1a302"
+    },
+    "Cordova": {
+      "bytes": 132304,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Cordova.framework/Cordova",
+      "sha256": "c53967c4cd3ab218fa9c15440b3e499bd05ed3ad62ee3e0fd68917c791928e19",
+      "uuid": "aa81f436-157d-34c5-9de9-383854eb7d94"
+    },
+    "DequeModule_307A0402D40AB265_PackageProduct": {
+      "bytes": 230576,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/DequeModule_307A0402D40AB265_PackageProduct.framework/DequeModule_307A0402D40AB265_PackageProduct",
+      "sha256": "33e10d85cc9af2477be40973e5f96572e7ffbf5b765892a508c70374d4ed8df6",
+      "uuid": "6970fd26-7b67-349b-8d3c-0a31b957a6bd"
+    },
+    "ExpoModulesJSI": {
+      "bytes": 1476336,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ExpoModulesJSI.framework/ExpoModulesJSI",
+      "sha256": "3079b1351f6aa9991ee6eda825fe391002c5cb62008134c984c7b1dbb69bd95f",
+      "uuid": "587f8b0d-29cf-3756-863d-0a6255d9a702"
+    },
+    "FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct": {
+      "bytes": 113152,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct.framework/FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct",
+      "sha256": "c7403207dbbcc4564e6099a93cc1d6a82a0378fa3b69cf3c9699298ed77fa4b0",
+      "uuid": "f0e2ee52-229a-3481-9903-3786a37bc054"
+    },
+    "GiphyUISDK": {
+      "bytes": 1969840,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/GiphyUISDK.framework/GiphyUISDK",
+      "sha256": "f5d8c645158f95a6c12e3ef97d54d45c069e0f6029e951bcb4e45449a1e81bfc",
+      "uuid": "3ac54169-21fb-3b52-b1c0-3e4a147aac26"
+    },
+    "GoogleCast": {
+      "bytes": 4770320,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/GoogleCast.framework/GoogleCast",
+      "sha256": "934407cfbfa60139cb0831be2dd131c82e53096e118d6cb1267a35960af00606",
+      "uuid": "502630c7-1cef-301c-8b84-e711d07e2e7c"
+    },
+    "HotUpdater": {
+      "bytes": 935808,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/HotUpdater.framework/HotUpdater",
+      "sha256": "ca21fb761f3f88a2543a41d5b54d2d71404bf0c47679076a63623eaf0937e1a3",
+      "uuid": "0329ee32-03b8-32df-b36a-a0ad56582c9a"
+    },
+    "InternalCollectionsUtilities": {
+      "bytes": 132576,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/InternalCollectionsUtilities.framework/InternalCollectionsUtilities",
+      "sha256": "dae78e029e086982b2ef67e3bfa9c8ced827a79403dc7c5dd9746e8a6707f06c",
+      "uuid": "b759946d-f17f-39be-80fa-b2e6df55314f"
+    },
+    "IssueReporting_2041EB56849B4D1_PackageProduct": {
+      "bytes": 225008,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/IssueReporting_2041EB56849B4D1_PackageProduct.framework/IssueReporting_2041EB56849B4D1_PackageProduct",
+      "sha256": "228a925147c1f2cffdbe1d95464bbe0539bbe37e5c85eb1554696c5b0a0e6e08",
+      "uuid": "0ad45159-7cc9-3342-8464-41a55457a10e"
+    },
+    "KMPMobileChat": {
+      "bytes": 4393712,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/KMPMobileChat.framework/KMPMobileChat",
+      "sha256": "2436d650a1a2cf091b14d0b0627ff8cad414425e363976e576ed32777da9b1c0",
+      "uuid": "c759cc9b-dd09-3f15-9c6d-b27d13e0068b"
+    },
+    "Lottie": {
+      "bytes": 2311120,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Lottie.framework/Lottie",
+      "sha256": "b04028aebfbfb35fc8f1339e3b87ceb4aff6d632f6bfef7228a920d1e9c9d329",
+      "uuid": "98ca029a-2f46-31ec-91a9-39073701c19c"
+    },
+    "MobileShieldKit": {
+      "bytes": 836272,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/MobileShieldKit.framework/MobileShieldKit",
+      "sha256": "0115f2a415c921d950c65eea5470aa447b1ae4ad9e2d60326f78aaa9db4c2ee3",
+      "uuid": "24611df6-5552-32aa-a1f1-fd0c083960ef"
+    },
+    "OMSDK_Twitchtv1": {
+      "bytes": 355776,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/OMSDK_Twitchtv1.framework/OMSDK_Twitchtv1",
+      "sha256": "6f0866145ac98b675ce8cf12dcffa381583e2e069d7a7289b48770a23e2e3b65",
+      "uuid": "33473198-2eae-3e83-8cda-8285f5c699bb"
+    },
+    "OrderedCollections_1222128174265B56_PackageProduct": {
+      "bytes": 331248,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/OrderedCollections_1222128174265B56_PackageProduct.framework/OrderedCollections_1222128174265B56_PackageProduct",
+      "sha256": "6107b721b33ba5e58aa94402dd5bfd5a2339709693628587b50516ed2c738c7b",
+      "uuid": "2c57ec91-697a-32d9-9122-a2594b3dbc4a"
+    },
+    "PMHTTP": {
+      "bytes": 867856,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/PMHTTP.framework/PMHTTP",
+      "sha256": "86bed295d9474f3306e51a3049bb80da1dc8b0882c5fda38ab457763bcca6de9",
+      "uuid": "61db3a25-5f05-397f-867d-0f4e78b0e35c"
+    },
+    "PMJSON": {
+      "bytes": 669792,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/PMJSON.framework/PMJSON",
+      "sha256": "4df6b959bd7ea237fee00ce1ddba8b39395011ae829c8c405381e120f2bc706a",
+      "uuid": "71dabe18-3582-3f95-984f-f7459937361d"
+    },
+    "RNCAsyncStorage": {
+      "bytes": 133808,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNCAsyncStorage.framework/RNCAsyncStorage",
+      "sha256": "f26b8ea03699b2a5f3657f326dc5a249adef2ed17387cdac0e87b0971b4a0af6",
+      "uuid": "a5667ea8-0572-36a3-8987-52cfd557b489"
+    },
+    "RNGestureHandler": {
+      "bytes": 671344,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNGestureHandler.framework/RNGestureHandler",
+      "sha256": "386f8e1d69e4154367fa8cbb46931cbc4647c2dc0da9619a1e65e5bdbb6dd58b",
+      "uuid": "33367161-5d19-34aa-9dd8-1da0c887f34b"
+    },
+    "RNKeychain": {
+      "bytes": 124544,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNKeychain.framework/RNKeychain",
+      "sha256": "9081eb2f62e982c7647b511c2dc5a71abaee930551ae4812e40828339d0f478f",
+      "uuid": "54d44dc1-b8c9-3b66-9884-96ddf2cd6520"
+    },
+    "RNSVG": {
+      "bytes": 1867312,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNSVG.framework/RNSVG",
+      "sha256": "e807e122e1bfa4bbee63f506ca97506dafc51f4a6d72dff4c9eb9cb42a2ef879",
+      "uuid": "27d6afd9-f940-39a1-8934-61f36e22a77a"
+    },
+    "RNScreens": {
+      "bytes": 1632096,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNScreens.framework/RNScreens",
+      "sha256": "2ed64f9ac91092276ed59f158353117fc738cbe7e25eb8d85a4707c8a6f9118f",
+      "uuid": "d8a27dbd-9927-3927-9a55-3a3bfdb2c689"
+    },
+    "RNSentry": {
+      "bytes": 367312,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNSentry.framework/RNSentry",
+      "sha256": "3ebffacfb115c29358e6f89baa66f422690284b0f2cab2a0f734fc023cf14879",
+      "uuid": "2c4848ba-a546-3c5a-a6da-68955dafaad7"
+    },
+    "RNTrueSheet": {
+      "bytes": 705184,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/RNTrueSheet.framework/RNTrueSheet",
+      "sha256": "1cbe2df0d0bcede47b0b14d04ecd06da257c20f0a01aac537c999f1df85448c2",
+      "uuid": "f344ccb1-d30d-3ab3-bc73-027c650e227f"
+    },
+    "React": {
+      "bytes": 12338576,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/React.framework/React",
+      "sha256": "74a3b3cde26076fd5fb9b327c7e15928443a514a4f86b27ecb376b7cc33d76f5",
+      "uuid": "ee15b752-fb46-35f2-b0bb-a46636572385"
+    },
+    "ReactAppDependencyProvider": {
+      "bytes": 91648,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ReactAppDependencyProvider.framework/ReactAppDependencyProvider",
+      "sha256": "06ed70b87ebd7d2cbccb659352a3fb921d175ac103b9373f6f88721156331af2",
+      "uuid": "9f2cc25d-ec9c-3e40-8138-45a2c098e12a"
+    },
+    "ReactCodegen": {
+      "bytes": 2632704,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ReactCodegen.framework/ReactCodegen",
+      "sha256": "4d20c70b8cadeba088aa0c6ed3dafae28830bbd911c712ede5ece770124ba3e0",
+      "uuid": "67313bfa-34e7-3161-b402-c007da40e3d6"
+    },
+    "ReactNativeDependencies": {
+      "bytes": 1285632,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "sha256": "af886b072e594a1398cae3059e21fdf1f333e18ce2c508d000ed2c275bca995c",
+      "uuid": "db4e1216-70c6-36f0-8a46-fdd48fcae1f2"
+    },
+    "Sentry": {
+      "bytes": 6358896,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Sentry.framework/Sentry",
+      "sha256": "104d93abaed0a6893571959109d5661293517cc92ce76656a06e41e31350457b",
+      "uuid": "f5fb68e2-58d4-3166-ab5f-a27ecc6f1777"
+    },
+    "Tomorrowland": {
+      "bytes": 522256,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/Tomorrowland.framework/Tomorrowland",
+      "sha256": "b3f4e1d8d59b43e8ef35e1cd072a0b18aa9d70b8a9093d7183581b53b9c571a1",
+      "uuid": "36c39036-68d7-3c48-96e0-aa48e5847f32"
+    },
+    "Twitch": {
+      "bytes": 106381504,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Twitch",
+      "sha256": "f256c2a8576f4bafb26d4bd8f3c36470c0a6fc779e06fd1e254bbefa059875f1",
+      "uuid": "071845a7-12dd-3b69-afa2-9a2b6633c54b"
+    },
+    "TwitchAnalyticsCore": {
+      "bytes": 477040,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchAnalyticsCore.framework/TwitchAnalyticsCore",
+      "sha256": "34c8a53f14073ecca79c042f9fe9552164b2ad8e84ec51bff1ea27f3cc51977e",
+      "uuid": "8265140a-4f74-35ce-b61d-921c9a4b64a1"
+    },
+    "TwitchApollo": {
+      "bytes": 161936,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchApollo.framework/TwitchApollo",
+      "sha256": "e6c609a1b602f87fa73d41b8b1db8dc8e065d522d5c98144d38fc016bc44e3c7",
+      "uuid": "a5bb96e9-cde0-33f7-9fee-5f098d5b8349"
+    },
+    "TwitchAppLaunch": {
+      "bytes": 94064,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchAppLaunch.framework/TwitchAppLaunch",
+      "sha256": "73cc1a2e573779c98f24e9a326a9231a077913b198e9d138a7a920174d150108",
+      "uuid": "d46d9a9c-58f3-3a80-92c2-933401ad431c"
+    },
+    "TwitchCore": {
+      "bytes": 834288,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchCore.framework/TwitchCore",
+      "sha256": "ad7772a3a86e6ff364007a1d29301734e82c0755a074e73c878ce18112b3ec44",
+      "uuid": "fc82d25c-0655-314e-9955-b1bd9d631cc1"
+    },
+    "TwitchCoreUIAssets": {
+      "bytes": 451056,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchCoreUIAssets.framework/TwitchCoreUIAssets",
+      "sha256": "76802ad39cafb417f2634c8b8947772714c9649548f2fd3f01f307befe1ed6f7",
+      "uuid": "f1ec0e99-74dc-3a7f-8a3e-860ff0a1645e"
+    },
+    "TwitchGraphQLAPI": {
+      "bytes": 20495312,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "sha256": "bb5792e2c28d6c7799ae67fca95144547097e622efb61ab2b5838eaa87f41ee8",
+      "uuid": "55938d80-6dbc-3f8f-bde7-76bc66ecb518"
+    },
+    "TwitchIdentity": {
+      "bytes": 175392,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchIdentity.framework/TwitchIdentity",
+      "sha256": "5129aa20a21789e1c72f28bd10250a4192da009229d2c866af44cb58fc2d6f03",
+      "uuid": "aaba29d4-4f3b-33fc-a59a-620e3e689a4f"
+    },
+    "TwitchKit": {
+      "bytes": 6254432,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchKit.framework/TwitchKit",
+      "sha256": "f9cf2a880924bfcef7b46a7f64887fb835c28f5aa7e1593c6d5fa31bd1711401",
+      "uuid": "1b2681ba-31ca-388e-8da0-3a12065d49f0"
+    },
+    "TwitchLogging": {
+      "bytes": 223280,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchLogging.framework/TwitchLogging",
+      "sha256": "1470a4bdf723ef22592506bf26c1d8e7c5e1cc6df19d20025634a4e5517c17f1",
+      "uuid": "98edff00-79f9-36b4-8676-6456406f69f3"
+    },
+    "TwitchPersistence": {
+      "bytes": 126224,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchPersistence.framework/TwitchPersistence",
+      "sha256": "3164ebc246ef37b7b623915ec175110d4ea39d19ee0c467ddf2ce36763ad4ff5",
+      "uuid": "79f75859-f94d-3cba-bfda-acc0d3702242"
+    },
+    "TwitchUtilities": {
+      "bytes": 537184,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/TwitchUtilities.framework/TwitchUtilities",
+      "sha256": "c8f077cd3e6aeca841ca786d47d46e121ba64c680150ea2bdedeb7d95dcc1712",
+      "uuid": "fbb7b850-89b4-354a-a664-4a02ad58c065"
+    },
+    "UserLeapKit": {
+      "bytes": 1049360,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/UserLeapKit.framework/UserLeapKit",
+      "sha256": "9e492cbfcb5014cbdc75056442d72132a8b23c02d1048d2af232ad7c6d462f77",
+      "uuid": "e05acc0e-26ae-3048-a197-ebac5362a1dd"
+    },
+    "hermesvm": {
+      "bytes": 5213408,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm",
+      "sha256": "fce4c67d0e4acdc65edfbe5c029cd5b90c17f9a0249d686df753e5db598e3a33",
+      "uuid": "be274a23-47cc-3f5a-9e98-8474553df5a8"
+    },
+    "lottie_react_native": {
+      "bytes": 280608,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/lottie_react_native.framework/lottie_react_native",
+      "sha256": "8e49a6a647c40055bdd175b06a96eeb5f453b2b68af1bc6df8c642b73234346b",
+      "uuid": "5758edfe-cfb4-39dc-ab7b-0a615e070765"
+    },
+    "react_native_cookies": {
+      "bytes": 123376,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/react_native_cookies.framework/react_native_cookies",
+      "sha256": "e1227a4a1a3c52478cad3c8c34dfef60a13197e9c67fba66baad530bd9db0156",
+      "uuid": "43925d77-242b-3ed0-aeb2-68a16d2b2815"
+    },
+    "react_native_keyboard_controller": {
+      "bytes": 1004992,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/react_native_keyboard_controller.framework/react_native_keyboard_controller",
+      "sha256": "8bf94a24bd47e526b2e6662e71d07411abdab26b3082f38a6434079c67d58d39",
+      "uuid": "25f62af7-69a3-32c1-8539-6b581e48e3d4"
+    },
+    "react_native_netinfo": {
+      "bytes": 134224,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/react_native_netinfo.framework/react_native_netinfo",
+      "sha256": "c9364f7726b253fc84c66d86b8f3c9402b46204e981a6736da456a9650a8a4af",
+      "uuid": "f61a5813-56f9-320a-95ea-0e369f5c4219"
+    },
+    "react_native_safe_area_context": {
+      "bytes": 289152,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/react_native_safe_area_context.framework/react_native_safe_area_context",
+      "sha256": "e23811347a1aa00416d6aec6dcb8b83096184d6d3f8c3d9e6986fe79d8cdc985",
+      "uuid": "5eda9fc5-146f-3000-9b61-7de842c7521e"
+    },
+    "react_native_video": {
+      "bytes": 877936,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/react_native_video.framework/react_native_video",
+      "sha256": "7dc961ce0d324a60ed93fea54ae094f1b1ceafb5fbde25a2ce13c2d45793f481",
+      "uuid": "ff41e48f-cb60-34cc-a833-a2406fb37973"
+    },
+    "react_native_webview": {
+      "bytes": 422368,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/react_native_webview.framework/react_native_webview",
+      "sha256": "326bfe8a544319d10b738f2a13ffd22ba28a6e1274a194840f08305ae27fd4f7",
+      "uuid": "0c60f217-b3fd-34fc-8e04-7488be622a10"
+    },
+    "reanimated": {
+      "bytes": 3548768,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/reanimated.framework/reanimated",
+      "sha256": "0e7d335e58af6bc38b78ac214d0a751fa9572b24776d8050cf1b0ca883c9605b",
+      "uuid": "aec386c1-16fe-38b2-88bb-52e3c477be4f"
+    },
+    "twitch_rn_animated_image": {
+      "bytes": 103968,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_animated_image.framework/twitch_rn_animated_image",
+      "sha256": "9bd67c1f7ba061aa2663418bda55e2fb594305f02ae60bce3e2a38e76bf55fcb",
+      "uuid": "3a1da41a-876d-3f6c-920b-02463ebf321f"
+    },
+    "twitch_rn_battery": {
+      "bytes": 94928,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_battery.framework/twitch_rn_battery",
+      "sha256": "1b43ed149eb13ca28ce61a0268afe664de347b62e839da4bcf8716dbaa44947e",
+      "uuid": "27c965fd-2114-30cd-b6f5-e9a70a975637"
+    },
+    "twitch_rn_debug_props": {
+      "bytes": 96992,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_debug_props.framework/twitch_rn_debug_props",
+      "sha256": "423ba7fbb228a9e33be02c46fff6a45c928461dbb2f594230a3105b0fdae4a40",
+      "uuid": "33509f93-e5f3-34f0-9093-d52c9cb058d8"
+    },
+    "twitch_rn_device_model": {
+      "bytes": 92192,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_device_model.framework/twitch_rn_device_model",
+      "sha256": "8388303310232976bda3b172891f98da7c51b38789762e06c58d097dd17dce7a",
+      "uuid": "3972f034-4bc2-30e6-8fc6-e4257c4db0de"
+    },
+    "twitch_rn_emote_input": {
+      "bytes": 339888,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_emote_input.framework/twitch_rn_emote_input",
+      "sha256": "412cf685ad6e05b01ffbbbffacc06bf743a27a3758d891c895b96ca9529622c6",
+      "uuid": "8a1801dc-3073-32a8-b74b-5dfa6ef89e2d"
+    },
+    "twitch_rn_iap": {
+      "bytes": 149248,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_iap.framework/twitch_rn_iap",
+      "sha256": "1be90974f363287fa7c6e9c896d5379f0148f643cd738b339bf09c1ee575765f",
+      "uuid": "3d86014d-9125-3518-8fed-4781c532550b"
+    },
+    "twitch_rn_nested_scroll": {
+      "bytes": 112400,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_nested_scroll.framework/twitch_rn_nested_scroll",
+      "sha256": "d432f545e878d8076f85c6003c832f71381fdf61c860644c770a6be6a9c261fc",
+      "uuid": "d9b92864-1c1c-3419-8e76-af58f03368cd"
+    },
+    "twitch_rn_player": {
+      "bytes": 960576,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_player.framework/twitch_rn_player",
+      "sha256": "a7f3a3711be4df55252486c430e546ecc7d01a51004869b4fae6bdb170f9e876",
+      "uuid": "8211b7e9-44ab-37e1-a122-3a83f9380647"
+    },
+    "twitch_rn_screen_orientation": {
+      "bytes": 154752,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_screen_orientation.framework/twitch_rn_screen_orientation",
+      "sha256": "5ee4fc244a1fe08935e3561dc0146fda2ef046c9e475cd4d84fb075e6e3f2be9",
+      "uuid": "6766a1b1-fd76-3269-918a-7c6206490734"
+    },
+    "twitch_rn_scroll_end_pin": {
+      "bytes": 106288,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_scroll_end_pin.framework/twitch_rn_scroll_end_pin",
+      "sha256": "8add1e154156914979a1c1b41d39c1a1538ad6ead17af1014b3b00a161473a64",
+      "uuid": "60de9cba-401b-3f19-98ca-869c7b3481eb"
+    },
+    "twitch_rn_system_prefs": {
+      "bytes": 91696,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/twitch_rn_system_prefs.framework/twitch_rn_system_prefs",
+      "sha256": "45960120597872fd8a3449ca3581a64dccd2b962c1f2d3866a054b4b09d4d649",
+      "uuid": "a6d39352-e1fb-3442-9c40-54da38222977"
+    },
+    "worklets": {
+      "bytes": 1400768,
+      "encryption_ids": [
+        0
+      ],
+      "path": "Payload/Twitch.app/Frameworks/worklets.framework/worklets",
+      "sha256": "e9c2b82a0c171a43036830ca33a9163cd1302b44c75e24aa65fecfd4d1e79c51",
+      "uuid": "671e87df-75f9-3dae-81dd-e36d599714f2"
+    }
+  },
+  "ipa": {
+    "bytes": 201278706,
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129"
+  },
+  "limits": [
+    "No proof of safe Swift ABI bridging or live authentication/playback.",
+    "No proof that all runtime startup routes have been excluded.",
+    "Linked-image absence and runtime-instance absence are different checks."
+  ],
+  "load_graph": {
+    "AmazonIVSBroadcast": [
+      "/System/Library/Frameworks/AVKit.framework/AVKit",
+      "/System/Library/Frameworks/CallKit.framework/CallKit",
+      "/usr/lib/libcompression.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreML.framework/CoreML",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/System/Library/Frameworks/OpenGLES.framework/OpenGLES",
+      "/System/Library/Frameworks/GLKit.framework/GLKit",
+      "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/Metal.framework/Metal",
+      "/System/Library/Frameworks/MetalKit.framework/MetalKit",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox",
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/Network.framework/Network",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "AmazonIVSPlayer": [
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/AVKit.framework/AVKit",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+      "/System/Library/Frameworks/Network.framework/Network",
+      "/System/Library/Frameworks/CoreML.framework/CoreML",
+      "/System/Library/Frameworks/Metal.framework/Metal",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/usr/lib/libcompression.dylib",
+      "/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio",
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftCoreML.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "ApolloAPI": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/libc++.1.dylib",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCoreFoundation.dylib",
+      "@rpath/libswiftDarwin.dylib",
+      "@rpath/libswiftDispatch.dylib",
+      "@rpath/libswiftObjectiveC.dylib",
+      "@rpath/libswiftXPC.dylib",
+      "@rpath/libswiftFoundation.dylib"
+    ],
+    "Apollo_171E9C48F1D7AD_PackageProduct": [
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/libc++.1.dylib",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCoreFoundation.dylib",
+      "@rpath/libswiftDarwin.dylib",
+      "@rpath/libswiftDispatch.dylib",
+      "@rpath/libswiftObjectiveC.dylib",
+      "@rpath/libswiftXPC.dylib",
+      "@rpath/libswiftFoundation.dylib"
+    ],
+    "Atomics_301F3DE065572157_PackageProduct": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "@rpath/libswiftCore.dylib"
+    ],
+    "Capacitor": [
+      "/System/Library/Frameworks/WebKit.framework/WebKit",
+      "@rpath/Cordova.framework/Cordova",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreServices.framework/CoreServices",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/UserNotifications.framework/UserNotifications",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDataDetection.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "Clocks_17A223499E7CA5_PackageProduct": [
+      "@rpath/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct",
+      "@rpath/IssueReporting_2041EB56849B4D1_PackageProduct.framework/IssueReporting_2041EB56849B4D1_PackageProduct",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "ComScore": [
+      "/usr/lib/libz.1.dylib",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/System/Library/Frameworks/UIKit.framework/UIKit"
+    ],
+    "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "@rpath/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib"
+    ],
+    "Cordova": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/WebKit.framework/WebKit"
+    ],
+    "DequeModule_307A0402D40AB265_PackageProduct": [
+      "@rpath/InternalCollectionsUtilities.framework/InternalCollectionsUtilities",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCompatibilitySpan.dylib"
+    ],
+    "ExpoModulesJSI": [
+      "/usr/lib/libc++.1.dylib",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswift_StringProcessing.dylib"
+    ],
+    "FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct": [
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreServices.framework/CoreServices",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "GiphyUISDK": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreServices.framework/CoreServices",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "@rpath/libswiftAVFoundation.dylib",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCoreAudio.dylib",
+      "@rpath/libswiftCoreFoundation.dylib",
+      "@rpath/libswiftCoreImage.dylib",
+      "@rpath/libswiftCoreMedia.dylib",
+      "@rpath/libswiftDarwin.dylib",
+      "@rpath/libswiftDispatch.dylib",
+      "@rpath/libswiftMetal.dylib",
+      "@rpath/libswiftObjectiveC.dylib",
+      "@rpath/libswiftQuartzCore.dylib",
+      "@rpath/libswiftXPC.dylib",
+      "@rpath/libswiftos.dylib",
+      "@rpath/libswiftsimd.dylib",
+      "@rpath/libswiftFoundation.dylib",
+      "@rpath/libswiftCoreGraphics.dylib",
+      "@rpath/libswiftUIKit.dylib"
+    ],
+    "GoogleCast": [
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/AVRouting.framework/AVRouting",
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+      "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+      "/System/Library/Frameworks/CoreData.framework/CoreData",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/CoreText.framework/CoreText",
+      "/System/Library/Frameworks/MediaAccessibility.framework/MediaAccessibility",
+      "/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer",
+      "/System/Library/Frameworks/Network.framework/Network",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/AVKit.framework/AVKit",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio"
+    ],
+    "HotUpdater": [
+      "/usr/lib/libbz2.1.0.dylib",
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CryptoKit.framework/CryptoKit",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/usr/lib/libcompression.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCompression.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "InternalCollectionsUtilities": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "@rpath/libswiftCore.dylib"
+    ],
+    "IssueReporting_2041EB56849B4D1_PackageProduct": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "@rpath/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib"
+    ],
+    "KMPMobileChat": [
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libobjc.A.dylib",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/libresolv.9.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/libbz2.1.0.dylib",
+      "/usr/lib/libcompression.dylib",
+      "/usr/lib/libate.dylib"
+    ],
+    "Lottie": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreText.framework/CoreText",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libcompression.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/swift/libswiftCompression.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDataDetection.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "MobileShieldKit": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/WebKit.framework/WebKit",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/swift/libswiftDataDetection.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCoreFoundation.dylib",
+      "@rpath/libswiftCoreImage.dylib",
+      "@rpath/libswiftDarwin.dylib",
+      "@rpath/libswiftDispatch.dylib",
+      "@rpath/libswiftMetal.dylib",
+      "@rpath/libswiftObjectiveC.dylib",
+      "@rpath/libswiftQuartzCore.dylib",
+      "@rpath/libswiftXPC.dylib",
+      "@rpath/libswiftFoundation.dylib",
+      "@rpath/libswiftUIKit.dylib"
+    ],
+    "OMSDK_Twitchtv1": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/UIKit.framework/UIKit"
+    ],
+    "OrderedCollections_1222128174265B56_PackageProduct": [
+      "@rpath/InternalCollectionsUtilities.framework/InternalCollectionsUtilities",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "@rpath/libswiftCore.dylib"
+    ],
+    "PMHTTP": [
+      "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreServices.framework/CoreServices",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "@rpath/PMJSON.framework/PMJSON",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCoreFoundation.dylib",
+      "@rpath/libswiftCoreImage.dylib",
+      "@rpath/libswiftDarwin.dylib",
+      "@rpath/libswiftDispatch.dylib",
+      "@rpath/libswiftMetal.dylib",
+      "@rpath/libswiftObjectiveC.dylib",
+      "@rpath/libswiftQuartzCore.dylib",
+      "@rpath/libswiftXPC.dylib",
+      "@rpath/libswiftos.dylib",
+      "@rpath/libswiftsimd.dylib",
+      "@rpath/libswiftFoundation.dylib",
+      "@rpath/libswiftCoreGraphics.dylib",
+      "@rpath/libswiftUIKit.dylib"
+    ],
+    "PMJSON": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib"
+    ],
+    "RNCAsyncStorage": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+    ],
+    "RNGestureHandler": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
+    ],
+    "RNKeychain": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/LocalAuthentication.framework/LocalAuthentication",
+      "/System/Library/Frameworks/Security.framework/Security"
+    ],
+    "RNSVG": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+      "/System/Library/Frameworks/CoreText.framework/CoreText",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
+    ],
+    "RNScreens": [
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "RNSentry": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "@rpath/Sentry.framework/Sentry",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
+    ],
+    "RNTrueSheet": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
+    ],
+    "React": [
+      "/usr/lib/libc++.1.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreServices.framework/CoreServices",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreText.framework/CoreText",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDataDetection.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib"
+    ],
+    "ReactAppDependencyProvider": [
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "ReactCodegen": [
+      "@rpath/React.framework/React",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+    ],
+    "ReactNativeDependencies": [
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libc++abi.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "Sentry": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/CoreData.framework/CoreData",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
+      "/System/Library/Frameworks/MetricKit.framework/MetricKit",
+      "/System/Library/Frameworks/PDFKit.framework/PDFKit",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/WebKit.framework/WebKit",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/usr/lib/swift/libswiftNetwork.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "Tomorrowland": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "@rpath/libswiftCore.dylib",
+      "@rpath/libswiftCoreFoundation.dylib",
+      "@rpath/libswiftDarwin.dylib",
+      "@rpath/libswiftDispatch.dylib",
+      "@rpath/libswiftObjectiveC.dylib",
+      "@rpath/libswiftXPC.dylib",
+      "@rpath/libswiftFoundation.dylib"
+    ],
+    "Twitch": [
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libbz2.1.0.dylib",
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "@rpath/ExpoModulesJSI.framework/ExpoModulesJSI",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "@rpath/HotUpdater.framework/HotUpdater",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "/System/Library/Frameworks/NetworkExtension.framework/NetworkExtension",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "@rpath/RNCAsyncStorage.framework/RNCAsyncStorage",
+      "@rpath/RNGestureHandler.framework/RNGestureHandler",
+      "@rpath/RNKeychain.framework/RNKeychain",
+      "@rpath/RNSVG.framework/RNSVG",
+      "@rpath/RNScreens.framework/RNScreens",
+      "@rpath/RNSentry.framework/RNSentry",
+      "@rpath/RNTrueSheet.framework/RNTrueSheet",
+      "@rpath/React.framework/React",
+      "@rpath/ReactAppDependencyProvider.framework/ReactAppDependencyProvider",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "@rpath/Sentry.framework/Sentry",
+      "/System/Library/Frameworks/StoreKit.framework/StoreKit",
+      "@rpath/TwitchAppLaunch.framework/TwitchAppLaunch",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "@rpath/lottie_react_native.framework/lottie_react_native",
+      "@rpath/react_native_cookies.framework/react_native_cookies",
+      "@rpath/react_native_keyboard_controller.framework/react_native_keyboard_controller",
+      "@rpath/react_native_netinfo.framework/react_native_netinfo",
+      "@rpath/react_native_safe_area_context.framework/react_native_safe_area_context",
+      "@rpath/react_native_video.framework/react_native_video",
+      "@rpath/react_native_webview.framework/react_native_webview",
+      "@rpath/reanimated.framework/reanimated",
+      "@rpath/twitch_rn_animated_image.framework/twitch_rn_animated_image",
+      "@rpath/twitch_rn_battery.framework/twitch_rn_battery",
+      "@rpath/twitch_rn_debug_props.framework/twitch_rn_debug_props",
+      "@rpath/twitch_rn_device_model.framework/twitch_rn_device_model",
+      "@rpath/twitch_rn_emote_input.framework/twitch_rn_emote_input",
+      "@rpath/twitch_rn_iap.framework/twitch_rn_iap",
+      "@rpath/twitch_rn_nested_scroll.framework/twitch_rn_nested_scroll",
+      "@rpath/twitch_rn_player.framework/twitch_rn_player",
+      "@rpath/twitch_rn_screen_orientation.framework/twitch_rn_screen_orientation",
+      "@rpath/twitch_rn_scroll_end_pin.framework/twitch_rn_scroll_end_pin",
+      "@rpath/twitch_rn_system_prefs.framework/twitch_rn_system_prefs",
+      "@rpath/worklets.framework/worklets",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/System/Library/Frameworks/CoreTelephony.framework/CoreTelephony",
+      "/usr/lib/libz.1.dylib",
+      "/System/Library/Frameworks/CoreServices.framework/CoreServices",
+      "/System/Library/Frameworks/WebKit.framework/WebKit",
+      "/System/Library/Frameworks/CoreSpotlight.framework/CoreSpotlight",
+      "/System/Library/Frameworks/AdServices.framework/AdServices",
+      "@rpath/GiphyUISDK.framework/GiphyUISDK",
+      "/System/Library/Frameworks/ReplayKit.framework/ReplayKit",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "@rpath/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "@rpath/TwitchCore.framework/TwitchCore",
+      "@rpath/TwitchAnalyticsCore.framework/TwitchAnalyticsCore",
+      "@rpath/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct",
+      "@rpath/TwitchApollo.framework/TwitchApollo",
+      "@rpath/IssueReporting_2041EB56849B4D1_PackageProduct.framework/IssueReporting_2041EB56849B4D1_PackageProduct",
+      "@rpath/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct.framework/ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct",
+      "@rpath/OrderedCollections_1222128174265B56_PackageProduct.framework/OrderedCollections_1222128174265B56_PackageProduct",
+      "/System/Library/Frameworks/iAd.framework/iAd",
+      "/System/Library/Frameworks/Social.framework/Social",
+      "/System/Library/Frameworks/SafariServices.framework/SafariServices",
+      "@rpath/TwitchCoreUIAssets.framework/TwitchCoreUIAssets",
+      "@rpath/TwitchPersistence.framework/TwitchPersistence",
+      "@rpath/Lottie.framework/Lottie",
+      "@rpath/TwitchIdentity.framework/TwitchIdentity",
+      "@rpath/AmazonIVSBroadcast.framework/AmazonIVSBroadcast",
+      "@rpath/ComScore.framework/ComScore",
+      "/System/Library/Frameworks/WidgetKit.framework/WidgetKit",
+      "/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer",
+      "/usr/lib/libxml2.2.dylib",
+      "/System/Library/Frameworks/AdSupport.framework/AdSupport",
+      "@rpath/KMPMobileChat.framework/KMPMobileChat",
+      "@rpath/GoogleCast.framework/GoogleCast",
+      "@rpath/Cordova.framework/Cordova",
+      "@rpath/AmazonIVSPlayer.framework/AmazonIVSPlayer",
+      "@rpath/PMHTTP.framework/PMHTTP",
+      "@rpath/Capacitor.framework/Capacitor",
+      "@rpath/DequeModule_307A0402D40AB265_PackageProduct.framework/DequeModule_307A0402D40AB265_PackageProduct",
+      "@rpath/OMSDK_Twitchtv1.framework/OMSDK_Twitchtv1",
+      "@rpath/UserLeapKit.framework/UserLeapKit",
+      "/System/Library/Frameworks/AVKit.framework/AVKit",
+      "/System/Library/Frameworks/MediaAccessibility.framework/MediaAccessibility",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "@rpath/FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct.framework/FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/MessageUI.framework/MessageUI",
+      "@rpath/TwitchKit.framework/TwitchKit",
+      "@rpath/PMJSON.framework/PMJSON",
+      "/System/Library/Frameworks/CryptoKit.framework/CryptoKit",
+      "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+      "/System/Library/Frameworks/CoreText.framework/CoreText",
+      "@rpath/Tomorrowland.framework/Tomorrowland",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio",
+      "/System/Library/Frameworks/AppTrackingTransparency.framework/AppTrackingTransparency",
+      "/System/Library/Frameworks/AuthenticationServices.framework/AuthenticationServices",
+      "/System/Library/Frameworks/Charts.framework/Charts",
+      "/System/Library/Frameworks/Contacts.framework/Contacts",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+      "/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
+      "/System/Library/Frameworks/DeclaredAgeRange.framework/DeclaredAgeRange",
+      "/System/Library/Frameworks/GroupActivities.framework/GroupActivities",
+      "/System/Library/Frameworks/Intents.framework/Intents",
+      "/System/Library/Frameworks/LinkPresentation.framework/LinkPresentation",
+      "/System/Library/Frameworks/Metal.framework/Metal",
+      "/System/Library/Frameworks/MetricKit.framework/MetricKit",
+      "/System/Library/Frameworks/PermissionKit.framework/PermissionKit",
+      "/System/Library/Frameworks/Photos.framework/Photos",
+      "/System/Library/Frameworks/PhotosUI.framework/PhotosUI",
+      "/System/Library/Frameworks/UniformTypeIdentifiers.framework/UniformTypeIdentifiers",
+      "/System/Library/Frameworks/UserNotifications.framework/UserNotifications",
+      "/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox",
+      "/System/Library/Frameworks/_PermissionKit_UIKit.framework/_PermissionKit_UIKit",
+      "/System/Library/Frameworks/_StoreKit_SwiftUI.framework/_StoreKit_SwiftUI",
+      "/usr/lib/libsqlite3.dylib",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCompression.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftIntents.dylib",
+      "/usr/lib/swift/libswiftMapKit.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftObservation.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftRegexBuilder.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftSynchronization.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftVideoToolbox.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswift_StringProcessing.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/InternalCollectionsUtilities.framework/InternalCollectionsUtilities",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib",
+      "/usr/lib/swift/libswiftNetwork.dylib",
+      "/usr/lib/swift/libswiftPhotosUI.dylib"
+    ],
+    "TwitchAnalyticsCore": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "@rpath/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "@rpath/TwitchCore.framework/TwitchCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchApollo": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "@rpath/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "@rpath/TwitchCore.framework/TwitchCore",
+      "@rpath/TwitchAnalyticsCore.framework/TwitchAnalyticsCore",
+      "@rpath/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchAppLaunch": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+    ],
+    "TwitchCore": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "@rpath/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchCoreUIAssets": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreText.framework/CoreText",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchGraphQLAPI": [
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib"
+    ],
+    "TwitchIdentity": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "@rpath/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "@rpath/TwitchCore.framework/TwitchCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchKit": [
+      "@rpath/Apollo_171E9C48F1D7AD_PackageProduct.framework/Apollo_171E9C48F1D7AD_PackageProduct",
+      "@rpath/ApolloAPI.framework/ApolloAPI",
+      "@rpath/DequeModule_307A0402D40AB265_PackageProduct.framework/DequeModule_307A0402D40AB265_PackageProduct",
+      "@rpath/FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct.framework/FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct",
+      "@rpath/MobileShieldKit.framework/MobileShieldKit",
+      "@rpath/OrderedCollections_1222128174265B56_PackageProduct.framework/OrderedCollections_1222128174265B56_PackageProduct",
+      "@rpath/PMJSON.framework/PMJSON",
+      "@rpath/PMHTTP.framework/PMHTTP",
+      "@rpath/Tomorrowland.framework/Tomorrowland",
+      "@rpath/TwitchAnalyticsCore.framework/TwitchAnalyticsCore",
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "@rpath/TwitchGraphQLAPI.framework/TwitchGraphQLAPI",
+      "@rpath/TwitchCore.framework/TwitchCore",
+      "@rpath/TwitchApollo.framework/TwitchApollo",
+      "@rpath/TwitchCoreUIAssets.framework/TwitchCoreUIAssets",
+      "@rpath/TwitchIdentity.framework/TwitchIdentity",
+      "@rpath/TwitchPersistence.framework/TwitchPersistence",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/AdSupport.framework/AdSupport",
+      "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/CryptoKit.framework/CryptoKit",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/MetricKit.framework/MetricKit",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchLogging": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchPersistence": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "@rpath/TwitchUtilities.framework/TwitchUtilities",
+      "@rpath/TwitchLogging.framework/TwitchLogging",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "TwitchUtilities": [
+      "@rpath/Atomics_301F3DE065572157_PackageProduct.framework/Atomics_301F3DE065572157_PackageProduct",
+      "@rpath/Clocks_17A223499E7CA5_PackageProduct.framework/Clocks_17A223499E7CA5_PackageProduct",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/Combine.framework/Combine",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/CryptoKit.framework/CryptoKit",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "UserLeapKit": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
+      "/System/Library/Frameworks/MapKit.framework/MapKit",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/WebKit.framework/WebKit",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDataDetection.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMapKit.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreGraphics.dylib",
+      "/usr/lib/swift/libswiftNetwork.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "hermesvm": [
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "lottie_react_native": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/usr/lib/swift/libswiftCompression.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/Lottie.framework/Lottie",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "react_native_cookies": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/WebKit.framework/WebKit"
+    ],
+    "react_native_keyboard_controller": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "react_native_netinfo": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "/System/Library/Frameworks/NetworkExtension.framework/NetworkExtension",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreTelephony.framework/CoreTelephony",
+      "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration"
+    ],
+    "react_native_safe_area_context": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"
+    ],
+    "react_native_video": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/AVKit.framework/AVKit",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/MediaAccessibility.framework/MediaAccessibility",
+      "/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer",
+      "/System/Library/Frameworks/Photos.framework/Photos",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "react_native_webview": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/Security.framework/Security",
+      "/System/Library/Frameworks/WebKit.framework/WebKit"
+    ],
+    "reanimated": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "@rpath/worklets.framework/worklets",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreMotion.framework/CoreMotion",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
+    ],
+    "twitch_rn_animated_image": [
+      "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+    ],
+    "twitch_rn_battery": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/UIKit.framework/UIKit"
+    ],
+    "twitch_rn_debug_props": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_device_model": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+    ],
+    "twitch_rn_emote_input": [
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_iap": [
+      "/System/Library/Frameworks/StoreKit.framework/StoreKit",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_nested_scroll": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_player": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/AVFAudio.framework/AVFAudio",
+      "/System/Library/Frameworks/AVFoundation.framework/AVFoundation",
+      "/System/Library/Frameworks/AVKit.framework/AVKit",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+      "/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox",
+      "/usr/lib/swift/libswiftAVFoundation.dylib",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreAudio.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftCoreMIDI.dylib",
+      "/usr/lib/swift/libswiftCoreMedia.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftVideoToolbox.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/AmazonIVSPlayer.framework/AmazonIVSPlayer",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftNetwork.dylib",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_screen_orientation": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswift_Concurrency.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_scroll_end_pin": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "/usr/lib/swift/libswiftAccelerate.dylib",
+      "/usr/lib/swift/libswiftCore.dylib",
+      "/usr/lib/swift/libswiftCoreFoundation.dylib",
+      "/usr/lib/swift/libswiftCoreImage.dylib",
+      "/usr/lib/swift/libswiftCoreLocation.dylib",
+      "/usr/lib/swift/libswiftDarwin.dylib",
+      "/usr/lib/swift/libswiftDispatch.dylib",
+      "/usr/lib/swift/libswiftMetal.dylib",
+      "/usr/lib/swift/libswiftOSLog.dylib",
+      "/usr/lib/swift/libswiftObjectiveC.dylib",
+      "/usr/lib/swift/libswiftQuartzCore.dylib",
+      "/usr/lib/swift/libswiftSpatial.dylib",
+      "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+      "/usr/lib/swift/libswiftXPC.dylib",
+      "/usr/lib/swift/libswiftos.dylib",
+      "/usr/lib/swift/libswiftsimd.dylib",
+      "@rpath/React.framework/React",
+      "/usr/lib/swift/libswiftUIKit.dylib"
+    ],
+    "twitch_rn_system_prefs": [
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+    ],
+    "worklets": [
+      "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+      "@rpath/React.framework/React",
+      "@rpath/ReactCodegen.framework/ReactCodegen",
+      "@rpath/ReactNativeDependencies.framework/ReactNativeDependencies",
+      "/System/Library/Frameworks/UIKit.framework/UIKit",
+      "@rpath/hermesvm.framework/hermesvm",
+      "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+      "/System/Library/Frameworks/Foundation.framework/Foundation",
+      "/usr/lib/libobjc.A.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+      "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
+    ]
+  },
+  "native_dependency_closures": {
+    "AmazonIVSPlayer": [
+      "AmazonIVSPlayer"
+    ],
+    "PMHTTP": [
+      "PMHTTP",
+      "PMJSON",
+      "libswiftCore.dylib",
+      "libswiftCoreFoundation.dylib",
+      "libswiftCoreGraphics.dylib",
+      "libswiftCoreImage.dylib",
+      "libswiftDarwin.dylib",
+      "libswiftDispatch.dylib",
+      "libswiftFoundation.dylib",
+      "libswiftMetal.dylib",
+      "libswiftObjectiveC.dylib",
+      "libswiftQuartzCore.dylib",
+      "libswiftUIKit.dylib",
+      "libswiftXPC.dylib",
+      "libswiftos.dylib",
+      "libswiftsimd.dylib"
+    ],
+    "TwitchApollo": [
+      "ApolloAPI",
+      "Apollo_171E9C48F1D7AD_PackageProduct",
+      "Atomics_301F3DE065572157_PackageProduct",
+      "Clocks_17A223499E7CA5_PackageProduct",
+      "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct",
+      "IssueReporting_2041EB56849B4D1_PackageProduct",
+      "TwitchAnalyticsCore",
+      "TwitchApollo",
+      "TwitchCore",
+      "TwitchGraphQLAPI",
+      "TwitchLogging",
+      "TwitchUtilities",
+      "libswiftCore.dylib",
+      "libswiftCoreFoundation.dylib",
+      "libswiftDarwin.dylib",
+      "libswiftDispatch.dylib",
+      "libswiftFoundation.dylib",
+      "libswiftObjectiveC.dylib",
+      "libswiftXPC.dylib",
+      "libswift_Concurrency.dylib"
+    ],
+    "TwitchGraphQLAPI": [
+      "ApolloAPI",
+      "TwitchGraphQLAPI",
+      "libswiftCore.dylib",
+      "libswiftCoreFoundation.dylib",
+      "libswiftDarwin.dylib",
+      "libswiftDispatch.dylib",
+      "libswiftFoundation.dylib",
+      "libswiftObjectiveC.dylib",
+      "libswiftXPC.dylib"
+    ],
+    "TwitchIdentity": [
+      "ApolloAPI",
+      "Atomics_301F3DE065572157_PackageProduct",
+      "Clocks_17A223499E7CA5_PackageProduct",
+      "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct",
+      "IssueReporting_2041EB56849B4D1_PackageProduct",
+      "TwitchCore",
+      "TwitchGraphQLAPI",
+      "TwitchIdentity",
+      "TwitchLogging",
+      "TwitchUtilities",
+      "libswiftCore.dylib",
+      "libswiftCoreFoundation.dylib",
+      "libswiftDarwin.dylib",
+      "libswiftDispatch.dylib",
+      "libswiftFoundation.dylib",
+      "libswiftObjectiveC.dylib",
+      "libswiftXPC.dylib",
+      "libswift_Concurrency.dylib"
+    ],
+    "TwitchKit": [
+      "ApolloAPI",
+      "Apollo_171E9C48F1D7AD_PackageProduct",
+      "Atomics_301F3DE065572157_PackageProduct",
+      "Clocks_17A223499E7CA5_PackageProduct",
+      "ConcurrencyExtras_-2B4B167800F2E3ED_PackageProduct",
+      "DequeModule_307A0402D40AB265_PackageProduct",
+      "FLAnimatedImage_39B8392C9CA8E5A7_PackageProduct",
+      "InternalCollectionsUtilities",
+      "IssueReporting_2041EB56849B4D1_PackageProduct",
+      "MobileShieldKit",
+      "OrderedCollections_1222128174265B56_PackageProduct",
+      "PMHTTP",
+      "PMJSON",
+      "Tomorrowland",
+      "TwitchAnalyticsCore",
+      "TwitchApollo",
+      "TwitchCore",
+      "TwitchCoreUIAssets",
+      "TwitchGraphQLAPI",
+      "TwitchIdentity",
+      "TwitchKit",
+      "TwitchLogging",
+      "TwitchPersistence",
+      "TwitchUtilities",
+      "libswiftCompatibilitySpan.dylib",
+      "libswiftCore.dylib",
+      "libswiftCoreFoundation.dylib",
+      "libswiftCoreGraphics.dylib",
+      "libswiftCoreImage.dylib",
+      "libswiftDarwin.dylib",
+      "libswiftDispatch.dylib",
+      "libswiftFoundation.dylib",
+      "libswiftMetal.dylib",
+      "libswiftObjectiveC.dylib",
+      "libswiftQuartzCore.dylib",
+      "libswiftUIKit.dylib",
+      "libswiftXPC.dylib",
+      "libswift_Concurrency.dylib",
+      "libswiftos.dylib",
+      "libswiftsimd.dylib"
+    ]
+  },
+  "native_execution": false,
+  "runtime_creation_symbols": {
+    "React": [
+      {
+        "address": "0xd9970",
+        "symbol": "_jsrt_create_hermes_factory",
+        "undefined": false
+      },
+      {
+        "address": "0x0",
+        "symbol": "__ZN8facebook6hermes17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "undefined": true
+      }
+    ],
+    "hermesvm": [
+      {
+        "address": "0x1ea1c",
+        "symbol": "__ZN8facebook6hermes13HermesRootAPI17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "undefined": false
+      },
+      {
+        "address": "0x1ea1c",
+        "symbol": "__ZN8facebook6hermes13HermesRootAPI17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "undefined": false
+      },
+      {
+        "address": "0x1f194",
+        "symbol": "__ZN8facebook6hermes17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "undefined": false
+      },
+      {
+        "address": "0x1f1e4",
+        "symbol": "__ZN8facebook6hermes24makeHermesRuntimeNoThrowERKN6hermes2vm13RuntimeConfigE",
+        "undefined": false
+      },
+      {
+        "address": "0x1f194",
+        "symbol": "__ZN8facebook6hermes17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "undefined": false
+      },
+      {
+        "address": "0x1f1e4",
+        "symbol": "__ZN8facebook6hermes24makeHermesRuntimeNoThrowERKN6hermes2vm13RuntimeConfigE",
+        "undefined": false
+      }
+    ],
+    "worklets": [
+      {
+        "address": "0x0",
+        "symbol": "__ZN8facebook6hermes17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "undefined": true
+      }
+    ]
+  },
+  "schema": 1,
+  "selected_classes": {
+    "AmazonIVSPlayer": [
+      {
+        "address": "0x1a0b60",
+        "class": "IVSPlayer",
+        "class_methods": [
+          {
+            "address": "0x678ec",
+            "encoding": "B16@0:8",
+            "selector": "accessInstanceVariablesDirectly"
+          },
+          {
+            "address": "0x678f4",
+            "encoding": "B24@0:8@16",
+            "selector": "automaticallyNotifiesObserversForKey:"
+          }
+        ],
+        "field_names": [
+          "m_source",
+          "m_mutex",
+          "m_player",
+          "m_platform",
+          "m_listener",
+          "m_stateUpdates",
+          "m_presentationSizeObserver",
+          "_shouldResumeAfterAudioSessionInterruption",
+          "_playbackPaused",
+          "_pictureInPictureActive",
+          "_textTrack",
+          "_textTracks",
+          "_delegate",
+          "_logLevel",
+          "_quality",
+          "_state",
+          "_error",
+          "_sinkMode",
+          "_configStore",
+          "_deviceId",
+          "_audioRenderer",
+          "_mergedConfiguration",
+          "_layers",
+          "_observer",
+          "_seekCompletionBlock",
+          "_superResolution",
+          "_videoRenderer",
+          "_videoSize",
+          "_duration"
+        ],
+        "methods": [
+          {
+            "address": "0x6dba0",
+            "encoding": "v32@0:8@16@24",
+            "selector": "load:configuration:"
+          },
+          {
+            "address": "0x6dc5c",
+            "encoding": "@16@0:8",
+            "selector": "twitchClipManifest"
+          },
+          {
+            "address": "0x6dd04",
+            "encoding": "v24@0:8@16",
+            "selector": "loadTwitchClipManifest:"
+          },
+          {
+            "address": "0x6dd0c",
+            "encoding": "v32@0:8@16@24",
+            "selector": "loadTwitchClipManifest:configuration:"
+          },
+          {
+            "address": "0x6ddc8",
+            "encoding": "@16@0:8",
+            "selector": "source"
+          },
+          {
+            "address": "0x6de70",
+            "encoding": "v32@0:8@16@24",
+            "selector": "loadSource:configuration:"
+          },
+          {
+            "address": "0x6df2c",
+            "encoding": "@16@0:8",
+            "selector": "unavailableQualities"
+          },
+          {
+            "address": "0x6e060",
+            "encoding": "@16@0:8",
+            "selector": "sourceGroup"
+          },
+          {
+            "address": "0x6e0f0",
+            "encoding": "v24@0:8@16",
+            "selector": "setSourceGroup:"
+          },
+          {
+            "address": "0x6e168",
+            "encoding": "v28@0:8@16B24",
+            "selector": "setSourceGroup:adaptive:"
+          },
+          {
+            "address": "0x6e1ec",
+            "encoding": "@16@0:8",
+            "selector": "sourceGroups"
+          },
+          {
+            "address": "0x6e2cc",
+            "encoding": "v16@0:8",
+            "selector": "skipAd"
+          },
+          {
+            "address": "0x6c094",
+            "encoding": "v32@0:8{shared_ptr<const twitch::Cue>=^{Cue}^{__shared_weak_count}}16",
+            "selector": "onCue:"
+          },
+          {
+            "address": "0x6c348",
+            "encoding": "v32@0:8{shared_ptr<const twitch::SeiMessage>=^{SeiMessage}^{__shared_weak_count}}16",
+            "selector": "onSeiMessage:"
+          },
+          {
+            "address": "0x6c3e0",
+            "encoding": "v32@0:8{MediaTime=qI}16",
+            "selector": "onDurationChanged:"
+          },
+          {
+            "address": "0x6c430",
+            "encoding": "v24@0:8^v16",
+            "selector": "onError:"
+          },
+          {
+            "address": "0x6c48c",
+            "encoding": "v32@0:8r^v16r^v24",
+            "selector": "onMetadata:data:"
+          },
+          {
+            "address": "0x6c544",
+            "encoding": "v32@0:8{MediaTime=qI}16",
+            "selector": "onPositionChanged:"
+          },
+          {
+            "address": "0x6c5c8",
+            "encoding": "v32@0:8{MediaTime=qI}16",
+            "selector": "onSyncTimeChanged:"
+          },
+          {
+            "address": "0x6c648",
+            "encoding": "v24@0:8r^v16",
+            "selector": "onQualityChanged:"
+          },
+          {
+            "address": "0x6c690",
+            "encoding": "v24@0:8r^v16",
+            "selector": "onSourceGroupChanged:"
+          },
+          {
+            "address": "0x6c754",
+            "encoding": "v16@0:8",
+            "selector": "onRebuffering"
+          },
+          {
+            "address": "0x6c7a0",
+            "encoding": "v32@0:8{MediaTime=qI}16",
+            "selector": "onSeekCompleted:"
+          },
+          {
+            "address": "0x6c8c8",
+            "encoding": "v24@0:8r^v16",
+            "selector": "onSessionData:"
+          },
+          {
+            "address": "0x6c9cc",
+            "encoding": "v20@0:8i16",
+            "selector": "onStateChanged:"
+          },
+          {
+            "address": "0x6ce94",
+            "encoding": "v32@0:8r^v16r^v24",
+            "selector": "onAnalyticsEvent:properties:"
+          },
+          {
+            "address": "0x6cfc8",
+            "encoding": "v16@0:8",
+            "selector": "onNetworkUnavailable"
+          },
+          {
+            "address": "0x6d014",
+            "encoding": "v32@0:8{shared_ptr<const twitch::InternalAdBreak>=^{InternalAdBreak}^{__shared_weak_count}}16",
+            "selector": "onAdBreakStarted:"
+          },
+          {
+            "address": "0x6d0f8",
+            "encoding": "v32@0:8{shared_ptr<const twitch::InternalAdCreative>=^{InternalAdCreative}^{__shared_weak_count}}16",
+            "selector": "onAdCreativeStarted:"
+          },
+          {
+            "address": "0x6d1dc",
+            "encoding": "v24@0:8r^v16",
+            "selector": "onAdTimeUpdate:"
+          },
+          {
+            "address": "0x6d2b4",
+            "encoding": "v32@0:8{shared_ptr<const twitch::InternalAdCreative>=^{InternalAdCreative}^{__shared_weak_count}}16",
+            "selector": "onAdCreativeEnded:"
+          },
+          {
+            "address": "0x6d398",
+            "encoding": "v36@0:8i16{shared_ptr<const twitch::InternalAdBreak>=^{InternalAdBreak}^{__shared_weak_count}}20",
+            "selector": "onAdBreakEnded:adBreak:"
+          },
+          {
+            "address": "0x6d47c",
+            "encoding": "v24@0:8r^v16",
+            "selector": "onTextTrackChanged:"
+          },
+          {
+            "address": "0x6d5b0",
+            "encoding": "v24@0:8r^v16",
+            "selector": "onTextTracksChanged:"
+          },
+          {
+            "address": "0x679dc",
+            "encoding": "@56@0:8{?=qiIq}16@40@?48",
+            "selector": "addPeriodicTimeObserverForInterval:queue:usingBlock:"
+          },
+          {
+            "address": "0x67aa4",
+            "encoding": "@40@0:8@16@24@?32",
+            "selector": "addBoundaryTimeObserverForTimes:queue:usingBlock:"
+          },
+          {
+            "address": "0x67e1c",
+            "encoding": "v24@0:8@16",
+            "selector": "removeTimeObserver:"
+          },
+          {
+            "address": "0x5517c",
+            "encoding": "v40@0:8@16{CGSize=dd}24",
+            "selector": "mediaSink:didChangeVideoSize:"
+          },
+          {
+            "address": "0x551cc",
+            "encoding": "@24@0:8@16",
+            "selector": "audioRendererForMediaSink:"
+          },
+          {
+            "address": "0x55240",
+            "encoding": "@24@0:8@16",
+            "selector": "videoRendererForMediaSink:"
+          },
+          {
+            "address": "0x5524c",
+            "encoding": "B24@0:8@16",
+            "selector": "mediaSinkShouldAlwaysDecodeVideo:"
+          },
+          {
+            "address": "0x552c0",
+            "encoding": "@24@0:8@16",
+            "selector": "additionalVideoFiltersForMediaSink:"
+          },
+          {
+            "address": "0x60ce0",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x60ce8",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithConfiguration:"
+          },
+          {
+            "address": "0x616c0",
+            "encoding": "v16@0:8",
+            "selector": "dealloc"
+          },
+          {
+            "address": "0x61808",
+            "encoding": "v24@0:8@16",
+            "selector": "applicationWillTerminate:"
+          },
+          {
+            "address": "0x61840",
+            "encoding": "@16@0:8",
+            "selector": "configuration"
+          },
+          {
+            "address": "0x618d4",
+            "encoding": "B16@0:8",
+            "selector": "autoQualityMode"
+          },
+          {
+            "address": "0x618e4",
+            "encoding": "v20@0:8B16",
+            "selector": "setAutoQualityMode:"
+          },
+          {
+            "address": "0x618f8",
+            "encoding": "v32@0:8{CGSize=dd}16",
+            "selector": "setMaxVideoSize:"
+          },
+          {
+            "address": "0x61910",
+            "encoding": "v20@0:8B16",
+            "selector": "setRebufferToLive:"
+          },
+          {
+            "address": "0x61924",
+            "encoding": "v20@0:8B16",
+            "selector": "setLiveLowLatencyEnabled:"
+          },
+          {
+            "address": "0x61938",
+            "encoding": "v24@0:8@16",
+            "selector": "setUserAgent:"
+          },
+          {
+            "address": "0x619a4",
+            "encoding": "B16@0:8",
+            "selector": "isLiveLowLatency"
+          },
+          {
+            "address": "0x619b4",
+            "encoding": "v24@0:8q16",
+            "selector": "setLogLevel:"
+          },
+          {
+            "address": "0x619cc",
+            "encoding": "B16@0:8",
+            "selector": "looping"
+          },
+          {
+            "address": "0x619dc",
+            "encoding": "v20@0:8B16",
+            "selector": "setLooping:"
+          },
+          {
+            "address": "0x619f0",
+            "encoding": "B16@0:8",
+            "selector": "muted"
+          },
+          {
+            "address": "0x61a00",
+            "encoding": "v20@0:8B16",
+            "selector": "setMuted:"
+          },
+          {
+            "address": "0x61a14",
+            "encoding": "f16@0:8",
+            "selector": "playbackRate"
+          },
+          {
+            "address": "0x61a24",
+            "encoding": "v20@0:8f16",
+            "selector": "setPlaybackRate:"
+          },
+          {
+            "address": "0x61a34",
+            "encoding": "f16@0:8",
+            "selector": "volume"
+          },
+          {
+            "address": "0x61a44",
+            "encoding": "v20@0:8f16",
+            "selector": "setVolume:"
+          },
+          {
+            "address": "0x61a54",
+            "encoding": "q16@0:8",
+            "selector": "averageBitrate"
+          },
+          {
+            "address": "0x61a78",
+            "encoding": "q16@0:8",
+            "selector": "bandwidthEstimate"
+          },
+          {
+            "address": "0x61a9c",
+            "encoding": "{?=qiIq}16@0:8",
+            "selector": "buffered"
+          },
+          {
+            "address": "0x61ae4",
+            "encoding": "{?=qiIq}16@0:8",
+            "selector": "position"
+          },
+          {
+            "address": "0x61b2c",
+            "encoding": "{?=qiIq}16@0:8",
+            "selector": "syncTime"
+          },
+          {
+            "address": "0x61b74",
+            "encoding": "{?=qiIq}16@0:8",
+            "selector": "liveLatency"
+          },
+          {
+            "address": "0x61bbc",
+            "encoding": "v40@0:8{?=qiIq}16",
+            "selector": "setInitialBufferDuration:"
+          },
+          {
+            "address": "0x61c04",
+            "encoding": "v20@0:8B16",
+            "selector": "setPrebufferWhilePaused:"
+          },
+          {
+            "address": "0x61c18",
+            "encoding": "v40@0:8{?=qiIq}16",
+            "selector": "setPrebufferWindow:"
+          },
+          {
+            "address": "0x61cfc",
+            "encoding": "v24@0:8@16",
+            "selector": "setQuality:"
+          },
+          {
+            "address": "0x61d04",
+            "encoding": "v28@0:8@16B24",
+            "selector": "setQuality:adaptive:"
+          },
+          {
+            "address": "0x61db8",
+            "encoding": "v24@0:8q16",
+            "selector": "setAutoInitialBitrate:"
+          },
+          {
+            "address": "0x61de0",
+            "encoding": "v24@0:8q16",
+            "selector": "setAutoMaxBitrate:"
+          },
+          {
+            "address": "0x61e08",
+            "encoding": "v24@0:8@16",
+            "selector": "setAutoMaxQuality:"
+          },
+          {
+            "address": "0x61ec4",
+            "encoding": "v24@0:8@16",
+            "selector": "setOrigin:"
+          },
+          {
+            "address": "0x61f3c",
+            "encoding": "@16@0:8",
+            "selector": "qualities"
+          },
+          {
+            "address": "0x62048",
+            "encoding": "@16@0:8",
+            "selector": "textTracks"
+          },
+          {
+            "address": "0x62060",
+            "encoding": "v24@0:8@16",
+            "selector": "setTextTrack:"
+          },
+          {
+            "address": "0x62144",
+            "encoding": "@16@0:8",
+            "selector": "sessionId"
+          },
+          {
+            "address": "0x621bc",
+            "encoding": "@16@0:8",
+            "selector": "channelMetadata"
+          },
+          {
+            "address": "0x62294",
+            "encoding": "@16@0:8",
+            "selector": "version"
+          },
+          {
+            "address": "0x6230c",
+            "encoding": "q16@0:8",
+            "selector": "videoBitrate"
+          },
+          {
+            "address": "0x6233c",
+            "encoding": "q16@0:8",
+            "selector": "videoFramesDecoded"
+          },
+          {
+            "address": "0x6236c",
+            "encoding": "q16@0:8",
+            "selector": "videoFramesDropped"
+          },
+          {
+            "address": "0x6239c",
+            "encoding": "v24@0:8q16",
+            "selector": "setNetworkRecoveryMode:"
+          },
+          {
+            "address": "0x623b4",
+            "encoding": "v32@0:8@16@?24",
+            "selector": "preload:completionHandler:"
+          },
+          {
+            "address": "0x62614",
+            "encoding": "v24@0:8@16",
+            "selector": "loadSource:"
+          },
+          {
+            "address": "0x6261c",
+            "encoding": "@16@0:8",
+            "selector": "path"
+          },
+          {
+            "address": "0x626c4",
+            "encoding": "v24@0:8@16",
+            "selector": "load:"
+          },
+          {
+            "address": "0x626cc",
+            "encoding": "v16@0:8",
+            "selector": "pause"
+          },
+          {
+            "address": "0x62710",
+            "encoding": "v16@0:8",
+            "selector": "play"
+          },
+          {
+            "address": "0x62750",
+            "encoding": "v40@0:8{?=qiIq}16",
+            "selector": "seekTo:"
+          },
+          {
+            "address": "0x627b0",
+            "encoding": "v48@0:8{?=qiIq}16@?40",
+            "selector": "seekTo:completionHandler:"
+          },
+          {
+            "address": "0x628e0",
+            "encoding": "v24@0:8@16",
+            "selector": "audioSessionInterrupted:"
+          },
+          {
+            "address": "0x62a64",
+            "encoding": "v24@0:8@16",
+            "selector": "audioSessionMediaServicesLostOrReset:"
+          },
+          {
+            "address": "0x62a94",
+            "encoding": "v24@0:8@16",
+            "selector": "setDeviceId:"
+          },
+          {
+            "address": "0x62b38",
+            "encoding": "v32@0:8@16@24",
+            "selector": "superResolution:didEmitAnalyticsEvent:"
+          },
+          {
+            "address": "0x63ec8",
+            "encoding": "@16@0:8",
+            "selector": "textTrack"
+          },
+          {
+            "address": "0x63ed0",
+            "encoding": "@16@0:8",
+            "selector": "delegate"
+          },
+          {
+            "address": "0x63ee8",
+            "encoding": "v24@0:8@16",
+            "selector": "setDelegate:"
+          },
+          {
+            "address": "0x63ef4",
+            "encoding": "q16@0:8",
+            "selector": "logLevel"
+          },
+          {
+            "address": "0x63efc",
+            "encoding": "{?=qiIq}16@0:8",
+            "selector": "duration"
+          },
+          {
+            "address": "0x63f14",
+            "encoding": "@16@0:8",
+            "selector": "quality"
+          },
+          {
+            "address": "0x63f1c",
+            "encoding": "{CGSize=dd}16@0:8",
+            "selector": "videoSize"
+          },
+          {
+            "address": "0x63f24",
+            "encoding": "q16@0:8",
+            "selector": "state"
+          },
+          {
+            "address": "0x63f2c",
+            "encoding": "@16@0:8",
+            "selector": "error"
+          },
+          {
+            "address": "0x63f34",
+            "encoding": "@16@0:8",
+            "selector": "deviceId"
+          },
+          {
+            "address": "0x63f3c",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          },
+          {
+            "address": "0x640ec",
+            "encoding": "@16@0:8",
+            "selector": ".cxx_construct"
+          }
+        ]
+      }
+    ],
+    "React": [
+      {
+        "address": "0x4bf5e8",
+        "class": "RCTDefaultReactNativeFactoryDelegate",
+        "class_methods": [],
+        "field_names": [
+          "dependencyProvider"
+        ],
+        "methods": [
+          {
+            "address": "0x33f61c",
+            "encoding": "@24@0:8@16",
+            "selector": "sourceURLForBridge:"
+          },
+          {
+            "address": "0x33f64c",
+            "encoding": "@16@0:8",
+            "selector": "createRootViewController"
+          },
+          {
+            "address": "0x33f668",
+            "encoding": "@32@0:8@16@24",
+            "selector": "createBridgeWithDelegate:launchOptions:"
+          },
+          {
+            "address": "0x33f6f0",
+            "encoding": "v32@0:8@16@24",
+            "selector": "setRootView:toRootViewController:"
+          },
+          {
+            "address": "0x33f6f8",
+            "encoding": "^v16@0:8",
+            "selector": "createJSRuntimeFactory"
+          },
+          {
+            "address": "0x33f6fc",
+            "encoding": "v24@0:8@16",
+            "selector": "customizeRootView:"
+          },
+          {
+            "address": "0x33f700",
+            "encoding": "@40@0:8@16@24@32",
+            "selector": "createRootViewWithBridge:moduleName:initProps:"
+          },
+          {
+            "address": "0x33f794",
+            "encoding": "q16@0:8",
+            "selector": "defaultColorSpace"
+          },
+          {
+            "address": "0x33f79c",
+            "encoding": "@16@0:8",
+            "selector": "bundleURL"
+          },
+          {
+            "address": "0x33f7cc",
+            "encoding": "@16@0:8",
+            "selector": "thirdPartyFabricComponents"
+          },
+          {
+            "address": "0x33f86c",
+            "encoding": "v24@0:8@16",
+            "selector": "hostDidStart:"
+          },
+          {
+            "address": "0x33f870",
+            "encoding": "@16@0:8",
+            "selector": "unstableModulesRequiringMainQueueSetup"
+          },
+          {
+            "address": "0x33f910",
+            "encoding": "@24@0:8r*16",
+            "selector": "getModuleProvider:"
+          },
+          {
+            "address": "0x33fa18",
+            "encoding": "{shared_ptr<facebook::react::TurboModule>=^{TurboModule}^{__shared_weak_count}}40@0:8r^v16{shared_ptr<facebook::react::CallInvoker>=^{CallInvoker}^{__shared_weak_count}}24",
+            "selector": "getTurboModule:jsInvoker:"
+          },
+          {
+            "address": "0x33fa24",
+            "encoding": "B16@0:8",
+            "selector": "newArchEnabled"
+          },
+          {
+            "address": "0x33fa2c",
+            "encoding": "B16@0:8",
+            "selector": "bridgelessEnabled"
+          },
+          {
+            "address": "0x33fa34",
+            "encoding": "B16@0:8",
+            "selector": "fabricEnabled"
+          },
+          {
+            "address": "0x33fa3c",
+            "encoding": "B16@0:8",
+            "selector": "turboModuleEnabled"
+          },
+          {
+            "address": "0x33fa44",
+            "encoding": "#24@0:8r*16",
+            "selector": "getModuleClassFromName:"
+          },
+          {
+            "address": "0x33fa4c",
+            "encoding": "@24@0:8#16",
+            "selector": "getModuleInstanceFromClass:"
+          },
+          {
+            "address": "0x33fa54",
+            "encoding": "v40@0:8@16@?24@?32",
+            "selector": "loadSourceForBridge:onProgress:onComplete:"
+          },
+          {
+            "address": "0x33fb14",
+            "encoding": "@16@0:8",
+            "selector": "dependencyProvider"
+          },
+          {
+            "address": "0x33fb24",
+            "encoding": "v24@0:8@16",
+            "selector": "setDependencyProvider:"
+          },
+          {
+            "address": "0x33fb38",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x4bdae0",
+        "class": "RCTHost",
+        "class_methods": [
+          {
+            "address": "0x2b26f0",
+            "encoding": "v16@0:8",
+            "selector": "initialize"
+          }
+        ],
+        "field_names": [
+          "_instance",
+          "_hostDelegate",
+          "_turboModuleManagerDelegate",
+          "_contextContainerHandler",
+          "_oldDelegateBundleURL",
+          "_bundleURL",
+          "_bundleManager",
+          "_bundleURLProvider",
+          "_jsEngineProvider",
+          "_launchOptions",
+          "_attachedSurfaces",
+          "_moduleRegistry",
+          "_devMenuConfiguration",
+          "_inspectorHostDelegate",
+          "_inspectorTarget",
+          "_inspectorPageId",
+          "_runtimeDelegate"
+        ],
+        "methods": [
+          {
+            "address": "0x2b26f4",
+            "encoding": "@56@0:8@16@24@32@?40@48",
+            "selector": "initWithBundleURL:hostDelegate:turboModuleManagerDelegate:jsEngineProvider:launchOptions:"
+          },
+          {
+            "address": "0x2b27e0",
+            "encoding": "@56@0:8@?16@24@32@?40@48",
+            "selector": "initWithBundleURLProvider:hostDelegate:turboModuleManagerDelegate:jsEngineProvider:launchOptions:"
+          },
+          {
+            "address": "0x2b2960",
+            "encoding": "@72@0:8@?16@24@32@?40@48@56@64",
+            "selector": "initWithBundleURLProvider:hostDelegate:turboModuleManagerDelegate:jsEngineProvider:launchOptions:bundleConfiguration:devMenuConfiguration:"
+          },
+          {
+            "address": "0x2b2ec4",
+            "encoding": "v16@0:8",
+            "selector": "start"
+          },
+          {
+            "address": "0x2b32b4",
+            "encoding": "@36@0:8@16i24@28",
+            "selector": "createSurfaceWithModuleName:mode:initialProperties:"
+          },
+          {
+            "address": "0x2b34b4",
+            "encoding": "@32@0:8@16@24",
+            "selector": "createSurfaceWithModuleName:initialProperties:"
+          },
+          {
+            "address": "0x2b34d8",
+            "encoding": "@16@0:8",
+            "selector": "moduleRegistry"
+          },
+          {
+            "address": "0x2b34e0",
+            "encoding": "@16@0:8",
+            "selector": "surfacePresenter"
+          },
+          {
+            "address": "0x2b34e8",
+            "encoding": "@16@0:8",
+            "selector": "bundleManager"
+          },
+          {
+            "address": "0x2b34f0",
+            "encoding": "v40@0:8@16@24@32",
+            "selector": "callFunctionOnJSModule:method:args:"
+          },
+          {
+            "address": "0x2b34f8",
+            "encoding": "v16@0:8",
+            "selector": "didReceiveReloadCommand"
+          },
+          {
+            "address": "0x2b3500",
+            "encoding": "v16@0:8",
+            "selector": "dealloc"
+          },
+          {
+            "address": "0x2b35ac",
+            "encoding": "@16@0:8",
+            "selector": "unstableModulesRequiringMainQueueSetup"
+          },
+          {
+            "address": "0x2b3644",
+            "encoding": "B84@0:8@16@24@32@40@48@56Q64B72@76",
+            "selector": "instance:didReceiveJSErrorStack:message:originalMessage:name:componentStack:exceptionId:isFatal:extraData:"
+          },
+          {
+            "address": "0x2b37d8",
+            "encoding": "v32@0:8@16^{Runtime=^^?}24",
+            "selector": "instance:didInitializeRuntime:"
+          },
+          {
+            "address": "0x2b3888",
+            "encoding": "v40@0:8@16@?24@?32",
+            "selector": "loadBundleAtURL:onProgress:onComplete:"
+          },
+          {
+            "address": "0x2b3994",
+            "encoding": "v32@0:8{shared_ptr<facebook::react::ContextContainer>=^{ContextContainer}^{__shared_weak_count}}16",
+            "selector": "didCreateContextContainer:"
+          },
+          {
+            "address": "0x2b3a4c",
+            "encoding": "v32@0:8@16@24",
+            "selector": "registerSegmentWithId:path:"
+          },
+          {
+            "address": "0x2b3a54",
+            "encoding": "v24@0:8@?16",
+            "selector": "setBundleURLProvider:"
+          },
+          {
+            "address": "0x2b3aa8",
+            "encoding": "v24@0:8@16",
+            "selector": "setContextContainerHandler:"
+          },
+          {
+            "address": "0x2b3ab4",
+            "encoding": "v16@0:8",
+            "selector": "reload"
+          },
+          {
+            "address": "0x2b3abc",
+            "encoding": "v24@0:8@16",
+            "selector": "_attachSurface:"
+          },
+          {
+            "address": "0x2b3b38",
+            "encoding": "@16@0:8",
+            "selector": "_getAttachedSurfaces"
+          },
+          {
+            "address": "0x2b3bc4",
+            "encoding": "{shared_ptr<facebook::react::JSRuntimeFactory>=^{JSRuntimeFactory}^{__shared_weak_count}}16@0:8",
+            "selector": "_provideJSEngine"
+          },
+          {
+            "address": "0x2b3c68",
+            "encoding": "v24@0:8@16",
+            "selector": "_setBundleURL:"
+          },
+          {
+            "address": "0x2b3d58",
+            "encoding": "v20@0:8B16",
+            "selector": "_reloadWithShouldRestartSurfaces:"
+          },
+          {
+            "address": "0x2b4084",
+            "encoding": "^v16@0:8",
+            "selector": "inspectorTarget"
+          },
+          {
+            "address": "0x2b408c",
+            "encoding": "@16@0:8",
+            "selector": "runtimeDelegate"
+          },
+          {
+            "address": "0x2b40a4",
+            "encoding": "v24@0:8@16",
+            "selector": "setRuntimeDelegate:"
+          },
+          {
+            "address": "0x2b40b0",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          },
+          {
+            "address": "0x2b4190",
+            "encoding": "@16@0:8",
+            "selector": ".cxx_construct"
+          }
+        ]
+      },
+      {
+        "address": "0x4bdb80",
+        "class": "RCTInstance",
+        "class_methods": [],
+        "field_names": [
+          "_reactInstance",
+          "_jsRuntimeFactory",
+          "_appTMMDelegate",
+          "_delegate",
+          "_surfacePresenter",
+          "_performanceLogger",
+          "_displayLink",
+          "_turboModuleManager",
+          "_invalidationMutex",
+          "_valid",
+          "_jsThreadManager",
+          "_launchOptions",
+          "_waitUntilModuleSetupComplete",
+          "_bridgeModuleDecorator",
+          "_devMenuConfigurationDecorator",
+          "_parentInspectorTarget"
+        ],
+        "methods": [
+          {
+            "address": "0x2b5784",
+            "encoding": "@80@0:8@16{shared_ptr<facebook::react::JSRuntimeFactory>=^{JSRuntimeFactory}^{__shared_weak_count}}24@40@48@56^v64@72",
+            "selector": "initWithDelegate:jsRuntimeFactory:bundleManager:turboModuleManagerDelegate:moduleRegistry:parentInspectorTarget:launchOptions:"
+          },
+          {
+            "address": "0x2b5930",
+            "encoding": "@88@0:8@16{shared_ptr<facebook::react::JSRuntimeFactory>=^{JSRuntimeFactory}^{__shared_weak_count}}24@40@48@56^v64@72@80",
+            "selector": "initWithDelegate:jsRuntimeFactory:bundleManager:turboModuleManagerDelegate:moduleRegistry:parentInspectorTarget:launchOptions:devMenuConfiguration:"
+          },
+          {
+            "address": "0x2b5e4c",
+            "encoding": "v16@0:8",
+            "selector": "dealloc"
+          },
+          {
+            "address": "0x2b5f04",
+            "encoding": "v40@0:8@16@24@32",
+            "selector": "callFunctionOnJSModule:method:args:"
+          },
+          {
+            "address": "0x2b60a4",
+            "encoding": "v16@0:8",
+            "selector": "invalidate"
+          },
+          {
+            "address": "0x2b6240",
+            "encoding": "v32@0:8@16@24",
+            "selector": "registerSegmentWithId:path:"
+          },
+          {
+            "address": "0x2b6324",
+            "encoding": "#24@0:8r*16",
+            "selector": "getModuleClassFromName:"
+          },
+          {
+            "address": "0x2b6380",
+            "encoding": "@24@0:8#16",
+            "selector": "getModuleInstanceFromClass:"
+          },
+          {
+            "address": "0x2b6410",
+            "encoding": "{shared_ptr<facebook::react::TurboModule>=^{TurboModule}^{__shared_weak_count}}40@0:8r^v16{shared_ptr<facebook::react::CallInvoker>=^{CallInvoker}^{__shared_weak_count}}24",
+            "selector": "getTurboModule:jsInvoker:"
+          },
+          {
+            "address": "0x2b6538",
+            "encoding": "@24@0:8@16",
+            "selector": "extraModulesForBridge:"
+          },
+          {
+            "address": "0x2b65d4",
+            "encoding": "@24@0:8r*16",
+            "selector": "getModuleProvider:"
+          },
+          {
+            "address": "0x2b6670",
+            "encoding": "v16@0:8",
+            "selector": "_start"
+          },
+          {
+            "address": "0x2b87e0",
+            "encoding": "v24@0:8@16",
+            "selector": "_attachBridgelessAPIsToModule:"
+          },
+          {
+            "address": "0x2b8aa8",
+            "encoding": "v24@0:8^v16",
+            "selector": "callFunctionOnBufferedRuntimeExecutor:"
+          },
+          {
+            "address": "0x2b8c7c",
+            "encoding": "v24@0:8@16",
+            "selector": "handleBundleLoadingError:"
+          },
+          {
+            "address": "0x2b8f10",
+            "encoding": "v24@0:8@16",
+            "selector": "_loadJSBundle:"
+          },
+          {
+            "address": "0x2b91dc",
+            "encoding": "v16@0:8",
+            "selector": "_logOldArchitectureWarnings"
+          },
+          {
+            "address": "0x2b93b0",
+            "encoding": "v24@0:8@16",
+            "selector": "_loadScriptFromSource:"
+          },
+          {
+            "address": "0x2b96b8",
+            "encoding": "v32@0:8r^v16^{Runtime=^^?}24",
+            "selector": "_handleJSError:withRuntime:"
+          },
+          {
+            "address": "0x2b9df4",
+            "encoding": "v16@0:8",
+            "selector": "_handleMemoryWarning"
+          },
+          {
+            "address": "0x2b9e10",
+            "encoding": "@16@0:8",
+            "selector": "surfacePresenter"
+          },
+          {
+            "address": "0x2b9e18",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          },
+          {
+            "address": "0x2b9ec8",
+            "encoding": "@16@0:8",
+            "selector": ".cxx_construct"
+          }
+        ]
+      },
+      {
+        "address": "0x4bf610",
+        "class": "RCTReactNativeFactory",
+        "class_methods": [],
+        "field_names": [
+          "_bundleConfiguration",
+          "_bridge",
+          "_rootViewFactory",
+          "_bridgeAdapter",
+          "_delegate",
+          "_devMenuConfiguration"
+        ],
+        "methods": [
+          {
+            "address": "0x33fb4c",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithDelegate:"
+          },
+          {
+            "address": "0x33fb54",
+            "encoding": "@32@0:8@16q24",
+            "selector": "initWithDelegate:releaseLevel:"
+          },
+          {
+            "address": "0x33fca4",
+            "encoding": "v32@0:8@16@24",
+            "selector": "startReactNativeWithModuleName:inWindow:"
+          },
+          {
+            "address": "0x33fcb0",
+            "encoding": "v40@0:8@16@24@32",
+            "selector": "startReactNativeWithModuleName:inWindow:launchOptions:"
+          },
+          {
+            "address": "0x33fcbc",
+            "encoding": "v48@0:8@16@24@32@40",
+            "selector": "startReactNativeWithModuleName:inWindow:initialProperties:launchOptions:"
+          },
+          {
+            "address": "0x33fec0",
+            "encoding": "q16@0:8",
+            "selector": "defaultColorSpace"
+          },
+          {
+            "address": "0x33ff4c",
+            "encoding": "@16@0:8",
+            "selector": "bundleURL"
+          },
+          {
+            "address": "0x33fff4",
+            "encoding": "@16@0:8",
+            "selector": "bundleConfiguration"
+          },
+          {
+            "address": "0x340040",
+            "encoding": "^v16@0:8",
+            "selector": "createJSRuntimeFactory"
+          },
+          {
+            "address": "0x34008c",
+            "encoding": "B16@0:8",
+            "selector": "newArchEnabled"
+          },
+          {
+            "address": "0x340094",
+            "encoding": "B16@0:8",
+            "selector": "fabricEnabled"
+          },
+          {
+            "address": "0x34009c",
+            "encoding": "B16@0:8",
+            "selector": "turboModuleEnabled"
+          },
+          {
+            "address": "0x3400a4",
+            "encoding": "B16@0:8",
+            "selector": "bridgelessEnabled"
+          },
+          {
+            "address": "0x3400ac",
+            "encoding": "#24@0:8r*16",
+            "selector": "getModuleClassFromName:"
+          },
+          {
+            "address": "0x340154",
+            "encoding": "@24@0:8r*16",
+            "selector": "getModuleProvider:"
+          },
+          {
+            "address": "0x3401f0",
+            "encoding": "{shared_ptr<facebook::react::TurboModule>=^{TurboModule}^{__shared_weak_count}}40@0:8r^v16{shared_ptr<facebook::react::CallInvoker>=^{CallInvoker}^{__shared_weak_count}}24",
+            "selector": "getTurboModule:jsInvoker:"
+          },
+          {
+            "address": "0x340334",
+            "encoding": "@24@0:8#16",
+            "selector": "getModuleInstanceFromClass:"
+          },
+          {
+            "address": "0x34042c",
+            "encoding": "@24@0:8@16",
+            "selector": "extraModulesForBridge:"
+          },
+          {
+            "address": "0x3404e4",
+            "encoding": "@16@0:8",
+            "selector": "thirdPartyFabricComponents"
+          },
+          {
+            "address": "0x340630",
+            "encoding": "v24@0:8@16",
+            "selector": "hostDidStart:"
+          },
+          {
+            "address": "0x3406c8",
+            "encoding": "@16@0:8",
+            "selector": "unstableModulesRequiringMainQueueSetup"
+          },
+          {
+            "address": "0x3407c0",
+            "encoding": "@16@0:8",
+            "selector": "createRCTRootViewFactory"
+          },
+          {
+            "address": "0x340f00",
+            "encoding": "v24@0:8q16",
+            "selector": "_setUpFeatureFlags:"
+          },
+          {
+            "address": "0x3410e8",
+            "encoding": "v24@0:8@16",
+            "selector": "setBundleConfiguration:"
+          },
+          {
+            "address": "0x3410f4",
+            "encoding": "@16@0:8",
+            "selector": "bridge"
+          },
+          {
+            "address": "0x3410fc",
+            "encoding": "v24@0:8@16",
+            "selector": "setBridge:"
+          },
+          {
+            "address": "0x341108",
+            "encoding": "@16@0:8",
+            "selector": "rootViewFactory"
+          },
+          {
+            "address": "0x341110",
+            "encoding": "v24@0:8@16",
+            "selector": "setRootViewFactory:"
+          },
+          {
+            "address": "0x34111c",
+            "encoding": "@16@0:8",
+            "selector": "bridgeAdapter"
+          },
+          {
+            "address": "0x341124",
+            "encoding": "v24@0:8@16",
+            "selector": "setBridgeAdapter:"
+          },
+          {
+            "address": "0x341130",
+            "encoding": "@16@0:8",
+            "selector": "delegate"
+          },
+          {
+            "address": "0x341148",
+            "encoding": "v24@0:8@16",
+            "selector": "setDelegate:"
+          },
+          {
+            "address": "0x341154",
+            "encoding": "@16@0:8",
+            "selector": "devMenuConfiguration"
+          },
+          {
+            "address": "0x34115c",
+            "encoding": "v24@0:8@16",
+            "selector": "setDevMenuConfiguration:"
+          },
+          {
+            "address": "0x341168",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x4bf6b0",
+        "class": "RCTRootViewFactory",
+        "class_methods": [],
+        "field_names": [
+          "_contextContainer",
+          "_runtimeScheduler",
+          "_turboModuleManagerDelegate",
+          "_hostDelegate",
+          "_configuration",
+          "_bridge",
+          "_reactHost",
+          "_bridgeAdapter"
+        ],
+        "methods": [
+          {
+            "address": "0x34192c",
+            "encoding": "@40@0:8@16@24@32",
+            "selector": "initWithTurboModuleDelegate:hostDelegate:configuration:"
+          },
+          {
+            "address": "0x341a74",
+            "encoding": "@32@0:8@16@24",
+            "selector": "initWithConfiguration:andTurboModuleManagerDelegate:"
+          },
+          {
+            "address": "0x341b1c",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithConfiguration:"
+          },
+          {
+            "address": "0x341b24",
+            "encoding": "@32@0:8@16@24",
+            "selector": "viewWithModuleName:initialProperties:"
+          },
+          {
+            "address": "0x341c24",
+            "encoding": "@24@0:8@16",
+            "selector": "viewWithModuleName:"
+          },
+          {
+            "address": "0x341cfc",
+            "encoding": "v40@0:8@16@24@32",
+            "selector": "initializeReactHostWithLaunchOptions:bundleConfiguration:devMenuConfiguration:"
+          },
+          {
+            "address": "0x341da8",
+            "encoding": "@40@0:8@16@24@32",
+            "selector": "viewWithModuleName:initialProperties:launchOptions:"
+          },
+          {
+            "address": "0x341ec8",
+            "encoding": "@56@0:8@16@24@32@40@48",
+            "selector": "viewWithModuleName:initialProperties:launchOptions:bundleConfiguration:devMenuConfiguration:"
+          },
+          {
+            "address": "0x342080",
+            "encoding": "@32@0:8@16@24",
+            "selector": "createBridgeWithDelegate:launchOptions:"
+          },
+          {
+            "address": "0x342108",
+            "encoding": "@40@0:8@16@24@32",
+            "selector": "createRootViewWithBridge:moduleName:initProps:"
+          },
+          {
+            "address": "0x34219c",
+            "encoding": "{unique_ptr<facebook::react::JSExecutorFactory, std::default_delete<facebook::react::JSExecutorFactory>>={__compressed_pair<facebook::react::JSExecutorFactory *, std::default_delete<facebook::react::JSExecutorFactory>>=^{JSExecutorFactory}}}24@0:8@16",
+            "selector": "jsExecutorFactoryForBridge:"
+          },
+          {
+            "address": "0x3426bc",
+            "encoding": "v24@0:8@16",
+            "selector": "createBridgeIfNeeded:"
+          },
+          {
+            "address": "0x3427d8",
+            "encoding": "v16@0:8",
+            "selector": "createBridgeAdapterIfNeeded"
+          },
+          {
+            "address": "0x342978",
+            "encoding": "v40@0:8@16@24@32",
+            "selector": "createReactHostIfNeeded:bundleConfiguration:devMenuConfiguration:"
+          },
+          {
+            "address": "0x342a68",
+            "encoding": "@24@0:8@16",
+            "selector": "createReactHost:"
+          },
+          {
+            "address": "0x342b38",
+            "encoding": "@40@0:8@16@24@32",
+            "selector": "createReactHost:bundleConfiguration:devMenuConfiguration:"
+          },
+          {
+            "address": "0x342e10",
+            "encoding": "{shared_ptr<facebook::react::JSRuntimeFactory>=^{JSRuntimeFactory}^{__shared_weak_count}}16@0:8",
+            "selector": "createJSRuntimeFactory"
+          },
+          {
+            "address": "0x342ecc",
+            "encoding": "@24@0:8@16",
+            "selector": "extraModulesForBridge:"
+          },
+          {
+            "address": "0x342f7c",
+            "encoding": "@24@0:8@16",
+            "selector": "extraLazyModuleClassesForBridge:"
+          },
+          {
+            "address": "0x34302c",
+            "encoding": "@24@0:8@16",
+            "selector": "sourceURLForBridge:"
+          },
+          {
+            "address": "0x3430f4",
+            "encoding": "B32@0:8@16@24",
+            "selector": "bridge:didNotFindModule:"
+          },
+          {
+            "address": "0x3431c0",
+            "encoding": "v32@0:8@16@?24",
+            "selector": "loadSourceForBridge:withBlock:"
+          },
+          {
+            "address": "0x343284",
+            "encoding": "v40@0:8@16@?24@?32",
+            "selector": "loadSourceForBridge:onProgress:onComplete:"
+          },
+          {
+            "address": "0x343374",
+            "encoding": "@16@0:8",
+            "selector": "bundleURL"
+          },
+          {
+            "address": "0x3433d4",
+            "encoding": "@16@0:8",
+            "selector": "bridge"
+          },
+          {
+            "address": "0x3433dc",
+            "encoding": "v24@0:8@16",
+            "selector": "setBridge:"
+          },
+          {
+            "address": "0x3433e8",
+            "encoding": "@16@0:8",
+            "selector": "reactHost"
+          },
+          {
+            "address": "0x3433f0",
+            "encoding": "v24@0:8@16",
+            "selector": "setReactHost:"
+          },
+          {
+            "address": "0x3433fc",
+            "encoding": "@16@0:8",
+            "selector": "bridgeAdapter"
+          },
+          {
+            "address": "0x343404",
+            "encoding": "v24@0:8@16",
+            "selector": "setBridgeAdapter:"
+          },
+          {
+            "address": "0x343410",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          },
+          {
+            "address": "0x343478",
+            "encoding": "@16@0:8",
+            "selector": ".cxx_construct"
+          }
+        ]
+      }
+    ],
+    "Twitch": [
+      {
+        "address": "0x105d31ab0",
+        "class": "TwitchRNExpoHostBootstrap",
+        "class_methods": [],
+        "field_names": [
+          "_expoAppContext"
+        ],
+        "methods": [
+          {
+            "address": "0x1000086a0",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x10000873c",
+            "encoding": "v24@0:8@16",
+            "selector": "hostDidStart:"
+          },
+          {
+            "address": "0x1000087a8",
+            "encoding": "v32@0:8@16^{Runtime=^^?}24",
+            "selector": "host:didInitializeRuntime:"
+          },
+          {
+            "address": "0x100008934",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x105eb3ab8",
+        "class": "_TtC6Twitch12TwitchRNHost",
+        "class_methods": [],
+        "field_names": [
+          "factory",
+          "factoryDelegate",
+          "feedSurface",
+          "profileSurface",
+          "_appRouter",
+          "_graphQL",
+          "_feedLaunchCover",
+          "presentedTheatre",
+          "presentedRecapsCuration",
+          "presentedBrowseCategory",
+          "isMinimizeInFlight",
+          "isDrivingCastSession",
+          "_accountManager",
+          "_analyticsController",
+          "lastTheatreArgs",
+          "pictureInPictureObserversRegistered",
+          "clipQueryCancellable",
+          "profileClipsQueryCancellable",
+          "channelClipPlayerPageSize",
+          "channelClipsTask",
+          "clipDismissObserver",
+          "profileEditNavigationController",
+          "profileEditSourceSurface",
+          "$__lazy_storage_$_clipsPager",
+          "modViewController",
+          "recapsComposerFetch",
+          "weeklyRewardsDataSource",
+          "onTheatrePlayIntentChange",
+          "programmaticSuspendReason",
+          "clipEditorCoordinator",
+          "isTheatreParkedBehindFloat",
+          "pendingReopenAfterDismiss",
+          "pendingParkedSwitch",
+          "pendingParkedSwitchExpiry",
+          "onTheatrePresentationChange",
+          "lastPublishedTheatrePresentation",
+          "theatrePresentationCoalesceDepth",
+          "onTheatreMinimizeOutcome",
+          "pendingMinimizeFallback",
+          "onDockStateChange",
+          "onTheatreRestoredToFullScreen",
+          "onTheatrePlaybackActiveChange",
+          "onFeedVisibilityChange",
+          "onStoriesFullyViewed",
+          "onFeedDeepLink",
+          "activityState",
+          "onActivityStateChange",
+          "channelProfileStateRegistry",
+          "onChannelProfileStateChange",
+          "onChannelProfileHeaderAction",
+          "channelProfileHeaderTaps",
+          "pendingFeedDeepLink",
+          "feedIsListening",
+          "coldLaunchClip",
+          "onOpenDevTools",
+          "pendingOpenDevTools",
+          "onStoryMutation",
+          "storyMutationSubscriptions",
+          "isTheatreDocked",
+          "isRestoringFromPictureInPicture",
+          "theatrePresentationContent",
+          "didStartPrewarm"
+        ],
+        "methods": []
+      },
+      {
+        "address": "0x105da35e8",
+        "class": "_TtC6Twitch13SceneDelegate",
+        "class_methods": [],
+        "field_names": [
+          "window",
+          "_accountManager",
+          "_appRouter",
+          "_date",
+          "_feedLaunchCover",
+          "deferredDeepLinkMatchingController",
+          "hasEnteredBackground",
+          "maybeURLForAnalytics",
+          "deferredDeepLinkMatchingTask"
+        ],
+        "methods": [
+          {
+            "address": "0x1030b1190",
+            "encoding": "@16@0:8",
+            "selector": "window"
+          },
+          {
+            "address": "0x1030b11a0",
+            "encoding": "v24@0:8@16",
+            "selector": "setWindow:"
+          },
+          {
+            "address": "0x1030b14b8",
+            "encoding": "v40@0:8@16@24@32",
+            "selector": "scene:willConnectToSession:options:"
+          },
+          {
+            "address": "0x1030b1900",
+            "encoding": "v24@0:8@16",
+            "selector": "sceneDidDisconnect:"
+          },
+          {
+            "address": "0x1030b1904",
+            "encoding": "v24@0:8@16",
+            "selector": "sceneDidBecomeActive:"
+          },
+          {
+            "address": "0x1030b1950",
+            "encoding": "v24@0:8@16",
+            "selector": "sceneWillResignActive:"
+          },
+          {
+            "address": "0x1030b1954",
+            "encoding": "v24@0:8@16",
+            "selector": "sceneWillEnterForeground:"
+          },
+          {
+            "address": "0x1030b19ac",
+            "encoding": "v24@0:8@16",
+            "selector": "sceneDidEnterBackground:"
+          },
+          {
+            "address": "0x1030b2b1c",
+            "encoding": "v32@0:8@16@24",
+            "selector": "scene:openURLContexts:"
+          },
+          {
+            "address": "0x1030b2bc4",
+            "encoding": "v40@0:8@16@24@?32",
+            "selector": "windowScene:performActionForShortcutItem:completionHandler:"
+          },
+          {
+            "address": "0x1030b3ba8",
+            "encoding": "v32@0:8@16@24",
+            "selector": "scene:continueUserActivity:"
+          },
+          {
+            "address": "0x1030b3fe0",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x1030b4034",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x105da34f8",
+        "class": "_TtC6Twitch13TWAppDelegate",
+        "class_methods": [
+          {
+            "address": "0x101bb4d54",
+            "encoding": "B16@0:8",
+            "selector": "isInUITestEnvironment"
+          },
+          {
+            "address": "0x101bb4d5c",
+            "encoding": "B16@0:8",
+            "selector": "disableAnimationsForUITests"
+          },
+          {
+            "address": "0x101bb4e18",
+            "encoding": "B16@0:8",
+            "selector": "useMockChromecastManager"
+          }
+        ],
+        "field_names": [
+          "$__lazy_storage_$_chromecastManager",
+          "isFreshInstall",
+          "themeManager",
+          "maybeURLForAnalytics",
+          "branchDiscoveryPath",
+          "hangAnalytics",
+          "_appRouter"
+        ],
+        "methods": [
+          {
+            "address": "0x10400ab88",
+            "encoding": "v16@0:8",
+            "selector": "setUpSharePlay"
+          },
+          {
+            "address": "0x103d07860",
+            "encoding": "v16@0:8",
+            "selector": "loadInitialAccountData"
+          },
+          {
+            "address": "0x103d078c0",
+            "encoding": "v20@0:8B16",
+            "selector": "logoutUserWithUserInitiated:"
+          },
+          {
+            "address": "0x1034b7acc",
+            "encoding": "v16@0:8",
+            "selector": "prepareLiveDependencies"
+          },
+          {
+            "address": "0x10328ad70",
+            "encoding": "v16@0:8",
+            "selector": "createAudioSession"
+          },
+          {
+            "address": "0x10302613c",
+            "encoding": "v16@0:8",
+            "selector": "synchronizeAnalyticsDestination"
+          },
+          {
+            "address": "0x102625e5c",
+            "encoding": "v16@0:8",
+            "selector": "configureGraphQL"
+          },
+          {
+            "address": "0x102625e6c",
+            "encoding": "v24@0:8@16",
+            "selector": "configureWithHttpManager:"
+          },
+          {
+            "address": "0x102625eb0",
+            "encoding": "v16@0:8",
+            "selector": "setUpMobileShield"
+          },
+          {
+            "address": "0x1024e308c",
+            "encoding": "v16@0:8",
+            "selector": "cancelAppLaunchTracking"
+          },
+          {
+            "address": "0x1024e3090",
+            "encoding": "v16@0:8",
+            "selector": "trackAppInit"
+          },
+          {
+            "address": "0x1024e3094",
+            "encoding": "v16@0:8",
+            "selector": "attachDeviceIdentifierToCrashLogs"
+          },
+          {
+            "address": "0x102477b50",
+            "encoding": "v16@0:8",
+            "selector": "setUpAnalytics"
+          },
+          {
+            "address": "0x102477b84",
+            "encoding": "v32@0:8@16@24",
+            "selector": "handleBranchAppOpenAnalyticsWithURL:branchParams:"
+          },
+          {
+            "address": "0x102477d6c",
+            "encoding": "v16@0:8",
+            "selector": "handleFirstAppOpenAnalytics"
+          },
+          {
+            "address": "0x102477d70",
+            "encoding": "v16@0:8",
+            "selector": "subscribeToAnalyticsNotifications"
+          },
+          {
+            "address": "0x1024784bc",
+            "encoding": "v24@0:8@16",
+            "selector": "handleWillTrackEventNotification:"
+          },
+          {
+            "address": "0x101f7e154",
+            "encoding": "v24@0:8@16",
+            "selector": "tw_buildMenuWith:"
+          },
+          {
+            "address": "0x101bb4d64",
+            "encoding": "B16@0:8",
+            "selector": "isRunningUnitTests"
+          },
+          {
+            "address": "0x101694d80",
+            "encoding": "v16@0:8",
+            "selector": "startAppLaunchLatencyMetricKitMonitoring"
+          },
+          {
+            "address": "0x1015f7170",
+            "encoding": "v16@0:8",
+            "selector": "registerMiniExperimentManagerDelegate"
+          },
+          {
+            "address": "0x101360b24",
+            "encoding": "v16@0:8",
+            "selector": "trackStartFollowTabCompositeQuery"
+          },
+          {
+            "address": "0x100eb8d48",
+            "encoding": "v16@0:8",
+            "selector": "setUpAppPerformanceMonitoring"
+          },
+          {
+            "address": "0x100d19b6c",
+            "encoding": "v16@0:8",
+            "selector": "makeKeychainItemBackgroundAccessible"
+          },
+          {
+            "address": "0x1006f4634",
+            "encoding": "v16@0:8",
+            "selector": "startInterceptingLogs"
+          },
+          {
+            "address": "0x100607198",
+            "encoding": "v16@0:8",
+            "selector": "loadUITestsOverriddenRemoteSettingsIfNeeded"
+          },
+          {
+            "address": "0x10060719c",
+            "encoding": "v16@0:8",
+            "selector": "loadUITestsOverriddenExperimentsIfNeeded"
+          },
+          {
+            "address": "0x10029172c",
+            "encoding": "v16@0:8",
+            "selector": "setupGameBroadcastingSettings"
+          },
+          {
+            "address": "0x1030add6c",
+            "encoding": "B32@0:8@16@24",
+            "selector": "application:willFinishLaunchingWithOptions:"
+          },
+          {
+            "address": "0x1030aeaec",
+            "encoding": "B32@0:8@16@24",
+            "selector": "application:didFinishLaunchingWithOptions:"
+          },
+          {
+            "address": "0x1030aeb94",
+            "encoding": "v24@0:8@16",
+            "selector": "applicationDidReceiveMemoryWarning:"
+          },
+          {
+            "address": "0x1030aebd0",
+            "encoding": "v24@0:8@16",
+            "selector": "applicationWillTerminate:"
+          },
+          {
+            "address": "0x1030aebd4",
+            "encoding": "v32@0:8@16@24",
+            "selector": "application:didRegisterForRemoteNotificationsWithDeviceToken:"
+          },
+          {
+            "address": "0x1030aec70",
+            "encoding": "v32@0:8@16@24",
+            "selector": "application:didFailToRegisterForRemoteNotificationsWithError:"
+          },
+          {
+            "address": "0x1030aecec",
+            "encoding": "v24@0:8@16",
+            "selector": "buildMenuWithBuilder:"
+          },
+          {
+            "address": "0x1030aee70",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x1030aee90",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x105d35bf0",
+        "class": "_TtC6Twitch18RootViewController",
+        "class_methods": [],
+        "field_names": [
+          "childViewController"
+        ],
+        "methods": [
+          {
+            "address": "0x100178f58",
+            "encoding": "@16@0:8",
+            "selector": "childViewController"
+          },
+          {
+            "address": "0x1001787c8",
+            "encoding": "v24@0:8@16",
+            "selector": "setChildViewController:"
+          },
+          {
+            "address": "0x100178c18",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithChildViewController:"
+          },
+          {
+            "address": "0x100178ca8",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithCoder:"
+          },
+          {
+            "address": "0x100178cec",
+            "encoding": "v16@0:8",
+            "selector": "viewDidLoad"
+          },
+          {
+            "address": "0x100178f50",
+            "encoding": "@16@0:8",
+            "selector": "childViewControllerForStatusBarStyle"
+          },
+          {
+            "address": "0x100178f4c",
+            "encoding": "@16@0:8",
+            "selector": "childViewControllerForStatusBarHidden"
+          },
+          {
+            "address": "0x100178f54",
+            "encoding": "@16@0:8",
+            "selector": "childViewControllerForHomeIndicatorAutoHidden"
+          },
+          {
+            "address": "0x100178f5c",
+            "encoding": "@16@0:8",
+            "selector": "childViewControllerForScreenEdgesDeferringSystemGestures"
+          },
+          {
+            "address": "0x100178de8",
+            "encoding": "B16@0:8",
+            "selector": "shouldAutorotate"
+          },
+          {
+            "address": "0x100178df8",
+            "encoding": "Q16@0:8",
+            "selector": "supportedInterfaceOrientations"
+          },
+          {
+            "address": "0x100178e08",
+            "encoding": "{UIEdgeInsets=dddd}16@0:8",
+            "selector": "tw_floatingViewLayoutInsets"
+          },
+          {
+            "address": "0x100178e18",
+            "encoding": "v16@0:8",
+            "selector": "setNeedsStatusBarAppearanceUpdate"
+          },
+          {
+            "address": "0x100178e2c",
+            "encoding": "v16@0:8",
+            "selector": "setNeedsUpdateOfScreenEdgesDeferringSystemGestures"
+          },
+          {
+            "address": "0x100178e40",
+            "encoding": "v16@0:8",
+            "selector": "setNeedsUpdateOfHomeIndicatorAutoHidden"
+          },
+          {
+            "address": "0x100178ef0",
+            "encoding": "@32@0:8@16@24",
+            "selector": "initWithNibName:bundle:"
+          },
+          {
+            "address": "0x100178f1c",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x105e0f680",
+        "class": "_TtC6Twitch22StandardAccountManager",
+        "class_methods": [],
+        "field_names": [
+          "notificationCenter",
+          "_analyticsController",
+          "application",
+          "_appRouter",
+          "cachedHasSavedAccessTokenValue",
+          "crashAnalytics",
+          "currentUserRequestCancellable",
+          "_httpManager",
+          "_keychain",
+          "_graphQL",
+          "_userDefaults",
+          "pushNotificationsController",
+          "notificationSettingsController",
+          "logger",
+          "anonymousAgeConfirmation",
+          "ageConfirmedUsernameKey",
+          "authenticatorSubscription",
+          "authFailureSubscription",
+          "authenticationState",
+          "authenticationActionQueue",
+          "isProcessingAuthenticationActionQueue"
+        ],
+        "methods": []
+      },
+      {
+        "address": "0x105dae248",
+        "class": "_TtC6Twitch23TwitchRNFactoryDelegate",
+        "class_methods": [],
+        "field_names": [],
+        "methods": [
+          {
+            "address": "0x1033ac4c0",
+            "encoding": "@16@0:8",
+            "selector": "bundleURL"
+          },
+          {
+            "address": "0x1033c8890",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          }
+        ]
+      },
+      {
+        "address": "0x105dc86a8",
+        "class": "_TtC6Twitch9AppRouter",
+        "class_methods": [],
+        "field_names": [
+          "userJustSignedUp",
+          "pendingFamilyCenterLinkRequest",
+          "isPresentingFamilyCenterPortal",
+          "isObservingUserNotifications",
+          "attachedState",
+          "updateTwoFactorAuthNavigationController",
+          "addPhoneNumberNavigationController",
+          "coldLaunchRoutedAwayFromHome",
+          "launchDestinationClaim",
+          "__accountManager",
+          "__analyticsController",
+          "__blockedUsersManager",
+          "__graphQL",
+          "__httpManager",
+          "__loginNetworker",
+          "_chatController",
+          "_themeManager",
+          "_deferredActionsQueue",
+          "_subscriptions",
+          "_appState",
+          "presentedGuestStarRouter"
+        ],
+        "methods": [
+          {
+            "address": "0x103f8e0d4",
+            "encoding": "v24@0:8@16",
+            "selector": "presentAlertViewController:"
+          },
+          {
+            "address": "0x103f8e0d8",
+            "encoding": "v24@0:8@16",
+            "selector": "presentAlertController:"
+          },
+          {
+            "address": "0x1039aaecc",
+            "encoding": "v16@0:8",
+            "selector": "updateTwoFactorAuthViewControllerCancelled"
+          },
+          {
+            "address": "0x1039aaf1c",
+            "encoding": "v16@0:8",
+            "selector": "addPhoneNumberViewControllerCancelled"
+          },
+          {
+            "address": "0x1039a89bc",
+            "encoding": "v24@0:8@16",
+            "selector": "userIsUnavailable:"
+          },
+          {
+            "address": "0x1039a8d10",
+            "encoding": "v24@0:8@16",
+            "selector": "userCredentialsDidChange:"
+          },
+          {
+            "address": "0x1039a9860",
+            "encoding": "v24@0:8@16",
+            "selector": "userIsAvailable:"
+          },
+          {
+            "address": "0x1039aa77c",
+            "encoding": "v24@0:8@16",
+            "selector": "userUpdated:"
+          },
+          {
+            "address": "0x1039aadf8",
+            "encoding": "v16@0:8",
+            "selector": "applicationDidEnterForeground"
+          },
+          {
+            "address": "0x1039aae2c",
+            "encoding": "v16@0:8",
+            "selector": "applicationDidEnterBackground"
+          },
+          {
+            "address": "0x1039a6064",
+            "encoding": "v16@0:8",
+            "selector": "_presentStreamManager"
+          },
+          {
+            "address": "0x1039a5aa0",
+            "encoding": "v24@0:8@16",
+            "selector": "_handleCreatorHomeTabUserLogoButtonTapped:"
+          },
+          {
+            "address": "0x1039a5aa8",
+            "encoding": "v24@0:8@16",
+            "selector": "_handleCreatorContentTabUserLogoButtonTapped:"
+          },
+          {
+            "address": "0x1039a5c1c",
+            "encoding": "v24@0:8@16",
+            "selector": "_handleInsightsTabUserLogoButtonTapped:"
+          },
+          {
+            "address": "0x1039a5c68",
+            "encoding": "v24@0:8@16",
+            "selector": "_handleBriefsTabUserLogoButtonTapped:"
+          },
+          {
+            "address": "0x1039a3d78",
+            "encoding": "v16@0:8",
+            "selector": "presentSearchScreen"
+          },
+          {
+            "address": "0x1039a1808",
+            "encoding": "v16@0:8",
+            "selector": "presentNotificationCenter"
+          },
+          {
+            "address": "0x10399fc60",
+            "encoding": "v24@0:8@16",
+            "selector": "handleShortcutItem:"
+          },
+          {
+            "address": "0x10399fbc0",
+            "encoding": "v16@0:8",
+            "selector": "cancelButtontapped"
+          },
+          {
+            "address": "0x10399f5cc",
+            "encoding": "v24@0:8@16",
+            "selector": "presentChallengeGatesWithNotification:"
+          },
+          {
+            "address": "0x10399df84",
+            "encoding": "B16@0:8",
+            "selector": "isLoggedIn"
+          },
+          {
+            "address": "0x10363b87c",
+            "encoding": "v16@0:8",
+            "selector": "_socialBarButtonTapped"
+          },
+          {
+            "address": "0x101f8b4f0",
+            "encoding": "v16@0:8",
+            "selector": "switchModesButtonTapped"
+          },
+          {
+            "address": "0x101175d24",
+            "encoding": "v16@0:8",
+            "selector": "presentAccountReactivationAlert"
+          },
+          {
+            "address": "0x10084a8a0",
+            "encoding": "v24@0:8@16",
+            "selector": "productViewControllerDidFinish:"
+          },
+          {
+            "address": "0x10399ddac",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x10399ddcc",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      }
+    ],
+    "TwitchKit": [
+      {
+        "address": "0x4d1538",
+        "class": "_TtC9TwitchKit19HTTPAccessTokenAuth",
+        "class_methods": [
+          {
+            "address": "0x2e3e2c",
+            "encoding": "@16@0:8",
+            "selector": "failedAuthorizationCheckNotification"
+          },
+          {
+            "address": "0x2e4454",
+            "encoding": "B16@0:8",
+            "selector": "supportsSecureCoding"
+          }
+        ],
+        "field_names": [
+          "accessToken",
+          "accessTokenCodingKey"
+        ],
+        "methods": [
+          {
+            "address": "0x2e3e6c",
+            "encoding": "@16@0:8",
+            "selector": "accessToken"
+          },
+          {
+            "address": "0x2e4000",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithAccessToken:"
+          },
+          {
+            "address": "0x2e4090",
+            "encoding": "@16@0:8",
+            "selector": "description"
+          },
+          {
+            "address": "0x2e4148",
+            "encoding": "@16@0:8",
+            "selector": "debugDescription"
+          },
+          {
+            "address": "0x2e425c",
+            "encoding": "@24@0:8@16",
+            "selector": "headersForRequest:"
+          },
+          {
+            "address": "0x2e4334",
+            "encoding": "v56@0:8@16@24@32@40@?48",
+            "selector": "handleUnauthorizedResponse:body:forTask:token:completion:"
+          },
+          {
+            "address": "0x2e44d0",
+            "encoding": "v24@0:8@16",
+            "selector": "encodeWithCoder:"
+          },
+          {
+            "address": "0x2e4700",
+            "encoding": "@24@0:8@16",
+            "selector": "initWithCoder:"
+          },
+          {
+            "address": "0x2e4724",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x2e4750",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      },
+      {
+        "address": "0x4dca40",
+        "class": "_TtC9TwitchKit25TwitchInterceptorProvider",
+        "class_methods": [],
+        "field_names": [
+          "store",
+          "client",
+          "batcher",
+          "mockManager",
+          "clientIntegrityManager"
+        ],
+        "methods": []
+      },
+      {
+        "address": "0x4dc290",
+        "class": "_TtC9TwitchKit31AuthorizationRequestInterceptor",
+        "class_methods": [],
+        "field_names": [
+          "twitchIdentifier"
+        ],
+        "methods": []
+      },
+      {
+        "address": "0x4dc330",
+        "class": "_TtC9TwitchKit32AuthorizationResponseInterceptor",
+        "class_methods": [],
+        "field_names": [
+          "twitchIdentifier"
+        ],
+        "methods": []
+      },
+      {
+        "address": "0x4d1178",
+        "class": "_TtC9TwitchKit9TKGraphQL",
+        "class_methods": [
+          {
+            "address": "0x2cd9b4",
+            "encoding": "@16@0:8",
+            "selector": "sharedInstance"
+          },
+          {
+            "address": "0x2cda8c",
+            "encoding": "v16@0:8",
+            "selector": "reset"
+          }
+        ],
+        "field_names": [
+          "apolloClient",
+          "deviceIdentifier",
+          "endpoint",
+          "mockManager",
+          "urlSessionClient",
+          "interceptorProvider",
+          "clientIntegrityManager"
+        ],
+        "methods": [
+          {
+            "address": "0x2c285c",
+            "encoding": "@36@0:8I16@20@28",
+            "selector": "updateStreamInfoforUserID:withTitle:gameName:"
+          },
+          {
+            "address": "0x2cdb90",
+            "encoding": "@16@0:8",
+            "selector": "deviceIdentifier"
+          },
+          {
+            "address": "0x2cdc5c",
+            "encoding": "v24@0:8@16",
+            "selector": "setDeviceIdentifier:"
+          },
+          {
+            "address": "0x2ce540",
+            "encoding": "@16@0:8",
+            "selector": "init"
+          },
+          {
+            "address": "0x2ce56c",
+            "encoding": "v16@0:8",
+            "selector": ".cxx_destruct"
+          }
+        ]
+      }
+    ]
+  },
+  "verified_calls": {
+    "React": [
+      {
+        "instruction": "0x341f18",
+        "resolved_name": "objc:initializeReactHostWithLaunchOptions:bundleConfiguration:devMenuConfiguration:",
+        "role": "root request initializes host",
+        "target": "0x350260"
+      },
+      {
+        "instruction": "0x2b3134",
+        "resolved_name": "objc:initWithDelegate:jsRuntimeFactory:bundleManager:turboModuleManagerDelegate:moduleRegistry:parentInspectorTarget:launchOptions:devMenuConfiguration:",
+        "role": "host creates runtime instance",
+        "target": "0x34f8c0"
+      },
+      {
+        "instruction": "0x33f6f8",
+        "resolved_name": null,
+        "role": "default Hermes factory",
+        "target": "0xd9970"
+      },
+      {
+        "instruction": "0x2b2594",
+        "resolved_name": null,
+        "role": "Hermes runtime implementation",
+        "target": "0x2b0228"
+      },
+      {
+        "instruction": "0x2b0784",
+        "resolved_name": "__ZN8facebook6hermes17makeHermesRuntimeERKN6hermes2vm13RuntimeConfigE",
+        "role": "Hermes runtime allocation",
+        "target": "0x347b48"
+      }
+    ],
+    "Twitch": [
+      {
+        "instruction": "0x1030b150c",
+        "resolved_name": null,
+        "role": "scene connection worker",
+        "target": "0x1030b4fbc"
+      },
+      {
+        "instruction": "0x1030b5628",
+        "resolved_name": "objc:initWithWindowScene:",
+        "role": "scene window creation",
+        "target": "0x1051369c0"
+      },
+      {
+        "instruction": "0x1030b56e0",
+        "resolved_name": "objc:makeKeyAndVisible",
+        "role": "window presentation",
+        "target": "0x10513a4a0"
+      },
+      {
+        "instruction": "0x1039adc2c",
+        "resolved_name": "objc:setRootViewController:",
+        "role": "root installation",
+        "target": "0x105148280"
+      },
+      {
+        "instruction": "0x1030adccc",
+        "resolved_name": null,
+        "role": "startup RN eligibility",
+        "target": "0x1033e5a80"
+      },
+      {
+        "instruction": "0x1030adcec",
+        "resolved_name": null,
+        "role": "startup RN warmup",
+        "target": "0x1033c0174"
+      },
+      {
+        "instruction": "0x1033c01bc",
+        "resolved_name": null,
+        "role": "warmup factory access",
+        "target": "0x1033bf864"
+      },
+      {
+        "instruction": "0x1033bfb04",
+        "resolved_name": "objc:initWithDelegate:",
+        "role": "RN factory construction",
+        "target": "0x105135000"
+      },
+      {
+        "instruction": "0x1033c01e0",
+        "resolved_name": "objc:recordReactHostStart",
+        "role": "host-start metric",
+        "target": "0x10513eca0"
+      },
+      {
+        "instruction": "0x1033c026c",
+        "resolved_name": "objc:viewWithModuleName:initialProperties:",
+        "role": "warmup root-view request",
+        "target": "0x10514f9a0"
+      },
+      {
+        "instruction": "0x1033c02a4",
+        "resolved_name": "objc:setFrame:",
+        "role": "warmup frame assignment",
+        "target": "0x105144f00"
+      },
+      {
+        "instruction": "0x10075b68c",
+        "resolved_name": "_$s9TwitchKit19HTTPAccessTokenAuthC06accessD0ACSS_tcfc",
+        "role": "native HTTP auth construction",
+        "target": "0x10511d2b0"
+      },
+      {
+        "instruction": "0x10075b8d0",
+        "resolved_name": "_$s6PMHTTP11HTTPManagerC11defaultAuthAA8HTTPAuth_pSgvs",
+        "role": "native HTTP default auth assignment",
+        "target": "0x105118258"
+      },
+      {
+        "instruction": "0x100756144",
+        "resolved_name": null,
+        "role": "saved-token login during refresh",
+        "target": "0x100754c08"
+      },
+      {
+        "instruction": "0x1025e0854",
+        "resolved_name": "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryCMa",
+        "role": "native stream-access query",
+        "target": "0x105110170"
+      },
+      {
+        "instruction": "0x1025e0958",
+        "resolved_name": "_$s9TwitchKit14TWApolloClientV14fetchAsPromise5query11cachePolicy5queue7mapping12Tomorrowland0G0Vyq_q0_Gx_6Apollo05CacheJ0OSo012OS_dispatch_K0C0aN00A13GraphQLResultOyq_q0_GATy4DataQzAR0aR7QLErrorVGct0N3API0R7QLQueryRzAR0rU8ProtocolR0_r1_lF",
+        "role": "native playback query execution",
+        "target": "0x10511c518"
+      }
+    ],
+    "TwitchKit": [
+      {
+        "instruction": "0x25cf44",
+        "resolved_name": "_$s6PMHTTP4HTTPAA11HTTPManagerCvg",
+        "role": "GraphQL reads shared HTTP manager",
+        "target": "0x43e378"
+      },
+      {
+        "instruction": "0x25cf4c",
+        "resolved_name": "_$s6PMHTTP11HTTPManagerC11defaultAuthAA8HTTPAuth_pSgvg",
+        "role": "GraphQL reads native authentication",
+        "target": "0x43e174"
+      },
+      {
+        "instruction": "0x25cf78",
+        "resolved_name": null,
+        "role": "GraphQL obtains OAuth headers",
+        "target": "0x2e3b7c"
+      },
+      {
+        "instruction": "0x2ce7ec",
+        "resolved_name": "_$s6Apollo16URLSessionClientC20sessionConfiguration13callbackQueue0D11DescriptionACSo012NSURLSessionE0C_So011NSOperationG0CSgSSSgtcfc",
+        "role": "native URLSession construction",
+        "target": "0x43e0e4"
+      },
+      {
+        "instruction": "0x2ce9d0",
+        "resolved_name": "_$s6Apollo28RequestChainNetworkTransportC19interceptorProvider11endpointURL17additionalHeaders18autoPersistQueries18requestBodyCreator09useGETForN00rS19PersistedQueryRetry27sendEnhancedClientAwarenessAcA011InterceptorG0_p_10Foundation0I0VSDyS2SGSbAA0bpQ0_pS3btcfc",
+        "role": "native Apollo network transport",
+        "target": "0x43e138"
+      },
+      {
+        "instruction": "0x2e4a1c",
+        "resolved_name": null,
+        "role": "unauthorized notification",
+        "target": "0x2e3c60"
+      }
+    ]
+  },
+  "warmup_module": "TwitchRNWarmup"
+}

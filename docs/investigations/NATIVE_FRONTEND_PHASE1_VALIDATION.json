@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "branch": "feat/native-frontend",
+  "base": "f5cacb0e45fb0617b2f44c536cd25f9129763951",
+  "base_commits_ahead_of_origin_main": 47,
+  "runtime_source_changed": false,
+  "python": "3.14.4",
+  "native_execution": false,
+  "authenticated_requests": false,
+  "native_frontend_ipa_created": false,
+  "zero_hermes_device_proof": "pending",
+  "inspector": {
+    "path": "tools/inspect_native_frontend.py",
+    "sha256": "ffed5de849b95f8cba0c37c03bfb2080ba4a89aaeb7064279ea6ad2f54d581f8",
+    "verified_call_relationships": 27,
+    "deterministic_regeneration": true,
+    "unrecognized_ipa_refused": true
+  },
+  "inventory": {
+    "path": "docs/investigations/TWITCH_32_NATIVE_FRONTEND_INVENTORY.json",
+    "sha256": "ca4e5b2aeefbb16b490c60e25cf0926132068faed13b644b3838adf84e229593"
+  },
+  "host_suite": {
+    "command": [
+      "make",
+      "test"
+    ],
+    "cwd": "/home/bananas/Agent-Stuff/streamside/repo",
+    "environment": {
+      "ZIG": "/home/bananas/Agent-Stuff/streamside/repo/build/toolchains/zig-0.14.0/zig",
+      "PYTHONPATH": "/home/bananas/Agent-Stuff/streamside/toolchains/python",
+      "PATH_prefix": "/home/bananas/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "TAS_RN_DONOR": "/home/bananas/Agent-Stuff/streamside/donors/twitch-31.6.2/index.ios.bundle",
+      "TAS_HERMESC": "/home/bananas/Agent-Stuff/streamside/toolchains/hermes-build/bin/hermesc",
+      "TAS_HERMES_SNAPSHOT_RUNNER": "/home/bananas/Agent-Stuff/streamside/toolchains/hermes-build/bin/streamside-snapshot-runner",
+      "TAS_HERMES_SOURCE": "/home/bananas/Agent-Stuff/streamside/toolchains/hermes-source"
+    },
+    "total": 220,
+    "passed": 218,
+    "skipped": 2,
+    "failures": 0,
+    "errors": 0,
+    "skip_reasons": [
+      "Apple Foundation/Xcode",
+      "Apple ImageIO/Xcode"
+    ],
+    "donor_scope": "31.6 inherited regression baseline, not 32.0 compatibility",
+    "log": "/home/bananas/Agent-Stuff/streamside/artifacts/native-frontend-phase1/streamside-native32-host-tests-configured.log",
+    "log_sha256": "5bd710be9565129a28a6eb586f885f9d49684b7ccfb1a9a5cbbfe666a6f8f95f"
+  },
+  "initial_unconfigured_attempt": {
+    "failures": 52,
+    "errors": 3,
+    "skipped": 22,
+    "cause": "Required Zig/Node/private-input toolchain environment not configured",
+    "log": "/home/bananas/Agent-Stuff/streamside/artifacts/native-frontend-phase1/streamside-native32-host-tests.log",
+    "log_sha256": "d22adf60811d1760f3d07f0bd854cd1a8454de7be16cee97f7ca5030539512e2"
+  },
+  "documentation_check": {
+    "command": [
+      "make",
+      "docs-check"
+    ],
+    "status": "passed",
+    "exit_code": 0,
+    "log": "/home/bananas/Agent-Stuff/streamside/artifacts/native-frontend-phase1/docs-check.log",
+    "log_sha256": "8e6339fcf00e9b0851adbeaeafa00dd60c9cf17b79aa68db0aec5deb2b00a710"
+  }
+}

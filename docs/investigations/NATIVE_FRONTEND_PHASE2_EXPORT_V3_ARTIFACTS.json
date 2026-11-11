@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-11-11T21:41:54.114099+00:00",
+  "branch": "feat/native-frontend",
+  "build": {
+    "schema": 1,
+    "proof_id": "fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4",
+    "source_revision": "ebbad865fa8228497bf5b8e29c9aac571f63def4",
+    "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "zig": "0.14.0",
+    "inspection": {
+      "abi_entries": 19,
+      "probe_entries": 25,
+      "all_retained_donor_entries_verified": true,
+      "original_hbc_unchanged": true
+    },
+    "device_validation": "not performed",
+    "artifacts": {
+      "baseline": {
+        "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-frontend-export-v3/StreamsideNativeProof-Twitch32-baseline.ipa",
+        "bytes": 196413132,
+        "sha256": "128340ab2cdbab9e047f2f6c4ca016d922c6451cd72171142d7d25483c561656",
+        "framework_sha256": "fef1c3e6b04e3c1ced603ace5427272d4f9ec85b078bf0f3dd118271950fbbb6",
+        "modified_images": {
+          "Payload/Twitch.app/Twitch": "4c28402856764e0fd4203499fdcdcb9e688f3e547eef7f62244eacc8531606f8",
+          "Payload/Twitch.app/Frameworks/React.framework/React": "f079b9c628a52327c58728617d6428ad7cecefd1b72c37532311dcfacadfb5da",
+          "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "b1e9e53e22018799809ee0e0c99b469e6f143a6cf84b4c33150dd648bc8c872d",
+          "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "02218045382ef2cd306b2fbe744a413497ec9fdf7e98a3b79ea248971cd09286"
+        },
+        "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+      },
+      "native": {
+        "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-frontend-export-v3/StreamsideNativeProof-Twitch32-native.ipa",
+        "bytes": 196417386,
+        "sha256": "aa652dfa2a9b0ebedc5a8ea79a093866b9dba04f98fd10a174f9ca30c70af52c",
+        "framework_sha256": "2ee0f22f42ecf8654d7b62c6de555ca663143d416a06165d562f756c0770ceeb",
+        "modified_images": {
+          "Payload/Twitch.app/Twitch": "8aefa8fe5959418f5ec0df1f65d6b74740a751f3adbc37b458fb45f732570834",
+          "Payload/Twitch.app/Frameworks/React.framework/React": "f079b9c628a52327c58728617d6428ad7cecefd1b72c37532311dcfacadfb5da",
+          "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "b1e9e53e22018799809ee0e0c99b469e6f143a6cf84b4c33150dd648bc8c872d",
+          "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "02218045382ef2cd306b2fbe744a413497ec9fdf7e98a3b79ea248971cd09286"
+        },
+        "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+      }
+    }
+  },
+  "checks": {
+    "native_frontend_host_tests": {
+      "total": 23,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/ssn-test-deps:/home/bananas/Agent-Stuff/streamside/toolchains/python python3 -m unittest discover -s tests/native_frontend -v"
+    },
+    "packaging_exit_code": 0,
+    "build_log_sha256": "a2cb70396639a976c0b311c15c4b749cdc50f5419d0ec66e0da23f6730f60737",
+    "compiled_export_filename_presence": {
+      "baseline": {
+        "baseline-latest.json": true,
+        "baseline-previous.json": true,
+        "native-latest.json": false,
+        "native-previous.json": false
+      },
+      "native": {
+        "native-latest.json": true,
+        "native-previous.json": true,
+        "baseline-latest.json": false,
+        "baseline-previous.json": false
+      }
+    },
+    "git_diff_check_exit_code": 0,
+    "legacy_regression": "Not repeated for this export-only change.",
+    "repeat_build": "Not repeated for this correction.",
+    "documentation_initial": "Failed because the follow-up Markdown link was checked before its JSON receipt was written. Receipt now written before final check.",
+    "documentation_final": {
+      "command": "make docs-check",
+      "exit_code": 0,
+      "output": "python3 tools/check_docs.py\nChecked 87 Markdown files, 804 explicit references, and current version metadata: 0 error(s)."
+    }
+  },
+  "retention": "Existing reports remain untouched; each Export report action attaches only its own flavor latest/previous files. Baseline cannot export a native failure report through this interface.",
+  "device_validation": "Not performed for replacement pair; verify share-sheet attachments with opposite-flavor reports already retained, matching baseline calibration and signed-out handling."
+}

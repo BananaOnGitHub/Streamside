@@ -21,3 +21,7 @@ Packaging checks include exact donor/ABI admission and retained-entry verificati
 On device, install the replacement baseline over the current app with the same signing settings, open Diagnostics with the two-finger hold and export a fresh positive-control report. Only baseline files should be offered, even if native reports already exist in the container. Sign out through Twitch's normal Settings, install the matching native replacement over it, and export after the signed-out restart checks. Only native files should be offered. Preserve the two exports separately; comparisons need the separately saved baseline report.
 
 The revised export cannot recover native JSON through the baseline if the native app cannot reach its own Export action. The native reports remain retained locally. Preserve the iOS crash report and report that access limitation; do not interpret an inaccessible native report as zero activity. [Device instructions](NATIVE_FRONTEND_PHASE2_DEVICE_TEST.md) describe this limit.
+
+## Packaged correction
+
+Built source `ebbad865fa8228497bf5b8e29c9aac571f63def4`; proof `fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4`. Both IPAs were packaged successfully and the compiled filename checks passed in both directions. All 23 existing native frontend host tests passed with no skips. The [exact artifact/check receipt](NATIVE_FRONTEND_PHASE2_EXPORT_V3_ARTIFACTS.json) records SHA256 hashes, sizes, donor identity and validation limits. The corrected iOS share-sheet behavior still requires device confirmation.

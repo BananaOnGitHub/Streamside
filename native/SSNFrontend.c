@@ -45,7 +45,7 @@ static id row(id self,SEL cmd,id table,id index) {
         return cell(table,SSN_NATIVE?ssn_state_text():"The baseline uses Twitch's original frontend",SSN_NATIVE?"Refresh to check the current account and request real data through Twitch's native client.":NULL);
     }
     if(r==0) return cell(table,"Refresh",SSN_NATIVE?"Checks the existing account, then loads followed channels.":"Update runtime counters.");
-    if(r==1) return cell(table,"Export report","Share the current and previous numeric diagnostic reports.");
+    if(r==1) return cell(table,"Export report",SSN_NATIVE?"Share this native build's latest and previous reports.":"Share this baseline build's latest and previous reports.");
     return cell(table,"Return to Twitch",NULL);
 }
 static void export_report(id sender) {
@@ -54,7 +54,11 @@ static void export_report(id sender) {
     const char *latest=ssn_report_path();
     char directory[1024]; snprintf(directory,sizeof(directory),"%s",latest);
     char *end=strrchr(directory,'/'); if(end) *end=0;
-    static const char *names[]={"native-latest.json","native-previous.json","baseline-latest.json","baseline-previous.json"};
+#if SSN_NATIVE
+    static const char *names[]={"native-latest.json","native-previous.json"};
+#else
+    static const char *names[]={"baseline-latest.json","baseline-previous.json"};
+#endif
     for(unsigned i=0;i<sizeof(names)/sizeof(*names);i++) {
         char path[1200]; snprintf(path,sizeof(path),"%s/%s",directory,names[i]);
         id name=ns(path);

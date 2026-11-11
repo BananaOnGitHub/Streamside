@@ -1,0 +1,9 @@
+{
+  "status": "reported_sequence_passed_pending_device_observation_review",
+  "failures": [],
+  "limits": [
+    "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+  ],
+  "memory_difference_bytes": -283787672,
+  "constructor_to_active_difference_ms": -345
+}

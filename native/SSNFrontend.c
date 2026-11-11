@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <dispatch/dispatch.h>
 static Class page_class;
-static id page,root,window,baseline_button;
+static id page,root,window;
 static unsigned ui_generation;
 static id cell(id table,const char *title,const char *detail) {
     id value=((id(*)(id,SEL,uintptr_t,id))objc_msgSend)(m0(c("UITableViewCell"),"alloc"),ss("initWithStyle:reuseIdentifier:"),3,nil);
@@ -85,15 +85,18 @@ static id make_page(void) {
     return value;
 }
 static void open_baseline(id self,SEL cmd,id sender) {
-    (void)self;(void)cmd;(void)sender;
-    if(m0(root,"presentingViewController")) return;
-    ((void(*)(id,SEL,id,BOOL,id))objc_msgSend)(m0(window,"rootViewController"),ss("presentViewController:animated:completion:"),root,YES,nil);
+    (void)self;(void)cmd;
+    /* UILongPressGestureRecognizer sends several states; present once on began. */
+    if(num(sender,"state")!=1 || m0(root,"presentingViewController")) return;
+    id presenter=m0(window,"rootViewController");
+    for(unsigned i=0;i<16 && m0(presenter,"presentedViewController");i++)
+        presenter=m0(presenter,"presentedViewController");
+    ((void(*)(id,SEL,id,BOOL,id))objc_msgSend)(presenter,ss("presentViewController:animated:completion:"),root,YES,nil);
     ssn_ui_changed();
 }
 static void update(void *context) {
     if((unsigned)(uintptr_t)context!=ui_generation) return;
     ssn_ui_changed();
-    if(baseline_button) v1(window,"bringSubviewToFront:",baseline_button);
     dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW,2000000000),dispatch_get_main_queue(),context,update);
 }
 void ssn_ui_changed(void) { if(page) v0(m0(page,"tableView"),"reloadData"); }
@@ -114,12 +117,16 @@ void ssn_ui_attach(id app_window) {
     ((void(*)(id,SEL,double))objc_msgSend)(m0(page,"tableView"),ss("setEstimatedRowHeight:"),100);
     if(SSN_NATIVE) v1(window,"setRootViewController:",root);
     else {
-        baseline_button=objc_retain(((id(*)(id,SEL,long))objc_msgSend)(c("UIButton"),ss("buttonWithType:"),1));
-        ((void(*)(id,SEL,id,uintptr_t))objc_msgSend)(baseline_button,ss("setTitle:forState:"),ns("Diagnostics"),0);
-        ((void(*)(id,SEL,SSNRect))objc_msgSend)(baseline_button,ss("setFrame:"),(SSNRect){16,64,130,44});
-        v1(baseline_button,"setBackgroundColor:",m0(c("UIColor"),"systemBackgroundColor"));
-        ((void(*)(id,SEL,id,SEL,uintptr_t))objc_msgSend)(baseline_button,ss("addTarget:action:forControlEvents:"),page,ss("openProof:"),64);
-        v1(window,"addSubview:",baseline_button);
+        /* No overlay may cover Twitch's account/settings controls. A two-finger
+         * hold offers diagnostic access without reserving a tappable rectangle. */
+        id gesture=((id(*)(id,SEL,id,SEL))objc_msgSend)(m0(c("UILongPressGestureRecognizer"),"alloc"),ss("initWithTarget:action:"),page,ss("openProof:"));
+        ((void(*)(id,SEL,uintptr_t))objc_msgSend)(gesture,ss("setNumberOfTouchesRequired:"),2);
+        ((void(*)(id,SEL,double))objc_msgSend)(gesture,ss("setMinimumPressDuration:"),1.0);
+        ((void(*)(id,SEL,BOOL))objc_msgSend)(gesture,ss("setCancelsTouchesInView:"),NO);
+        ((void(*)(id,SEL,BOOL))objc_msgSend)(gesture,ss("setDelaysTouchesBegan:"),NO);
+        ((void(*)(id,SEL,BOOL))objc_msgSend)(gesture,ss("setDelaysTouchesEnded:"),NO);
+        v1(window,"addGestureRecognizer:",gesture);
+        objc_release(gesture);
     }
     ssn_scaffold_ready(); ssn_report(); ui_generation++;
     dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW,2000000000),dispatch_get_main_queue(),(void*)(uintptr_t)ui_generation,update);

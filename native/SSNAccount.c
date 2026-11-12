@@ -8,6 +8,9 @@
 #include <stdatomic.h>
 #include <dispatch/dispatch.h>
 #include "SSNSwiftABI.h"
+#if SSN_SWIFTUI
+#include "SSNFeed.h"
+#endif
 static const void *user_type,*current_type,*identity_type,*string_type,*array_type,*page_type;
 static const void *account_promise_type,*follows_promise_type,*tuple_type,*set_type,*objc_type;
 static Bridge bridge;
@@ -40,7 +43,7 @@ static const void *metadata(const char *symbol) {
 }
 static id failed_value(void) { return m0(c("NSNull"),"new"); }
 static id mapping_failure(void) { atomic_store(&mapping_fault,true); ssn_failure(3); return failed_value(); }
-static id user_dictionary(const void *value) {
+id ssn_user_dictionary(const void *value) {
     void *identity=allocate(identity_type); if(!identity) return mapping_failure();
     user_identity(identity,value);
     Words2 raw=identity_name(identity),display=identity_display(identity);
@@ -60,7 +63,7 @@ static id user_dictionary(const void *value) {
 }
 static id SW map_account(const void *value,void *context CTX) {
     (void)context; void *user=allocate(user_type); if(!user) return mapping_failure();
-    current_user(user,value); id result=user_dictionary(user); destroy(user,user_type); return result;
+    current_user(user,value); id result=ssn_user_dictionary(user); destroy(user,user_type); return result;
 }
 static id SW map_follows(const void *value,void *context CTX) {
     (void)context;
@@ -74,7 +77,7 @@ static id SW map_follows(const void *value,void *context CTX) {
         if(!user || !dynamic_cast(user,&boxed,objc_type,user_type,0)) {
             free(user); objc_release(source); objc_release(result); return mapping_failure();
         }
-        id item=user_dictionary(user); destroy(user,user_type);
+        id item=ssn_user_dictionary(user); destroy(user,user_type);
         if(!kind(item,"NSDictionary")) { objc_release(item); objc_release(source); objc_release(result); return mapping_failure(); }
         v1(result,"addObject:",item); objc_release(item);
     }
@@ -151,10 +154,26 @@ void ssn_account_changed(void) {
 static void poll(void *context);
 static bool request(bool follows) {
     const void *type=follows?follows_promise_type:account_promise_type;
+#if SSN_SWIFTUI
+    if(follows) {
+        const void *error=dlsym(RTLD_DEFAULT,"$s12TwitchApollo0A12GraphQLErrorVN");
+        type=ssn_feed_promise_type((PairMeta)ssn_resolve("$s12Tomorrowland7PromiseVMa"),error);
+    }
+#endif
     void *value=allocate(type); if(!value) return false;
-    if(follows) follow_request(value,50,nil_cursor.a,nil_cursor.b,nil_cursor.c,empty_set,graph);
+    if(follows) {
+#if SSN_SWIFTUI
+        ssn_feed_request(value,graph);
+#else
+        follow_request(value,50,nil_cursor.a,nil_cursor.b,nil_cursor.c,empty_set,graph);
+#endif
+    }
     else current_request(value,graph);
-    id promise=promise_objc(follows?map_follows:map_account,NULL,map_error,NULL,type,objc_type,objc_type,value);
+    Map mapper=map_follows;
+#if SSN_SWIFTUI
+    mapper=ssn_feed_map;
+#endif
+    id promise=promise_objc(follows?mapper:map_account,NULL,map_error,NULL,type,objc_type,objc_type,value);
     destroy(value,type);
     if(!kind(promise,"TWLPromise")) { objc_release(promise); return false; }
     active_promise=promise; checking_follows=follows; waiting_ticks=0;

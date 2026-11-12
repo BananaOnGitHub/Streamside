@@ -59,7 +59,7 @@ class SwiftCalls(unittest.TestCase):
                 if context is not None:self.assertEqual(u.reg_read(UC_ARM64_REG_X20),context,'swiftself/context must use X20')
                 if out is not None:self.assertEqual(u.reg_read(UC_ARM64_REG_X8),out,'indirect result must use X8')
                 ret=u.reg_read(UC_ARM64_REG_X30)
-                u.reg_write(UC_ARM64_REG_X0,0xabcdef01);u.reg_write(UC_ARM64_REG_X0+1,0xabcdef02)
+                u.reg_write(UC_ARM64_REG_X0,0xabcdef01);u.reg_write(UC_ARM64_REG_X0+1,0xabcdef02);u.reg_write(UC_ARM64_REG_X0+2,0xabcdef03)
                 u.reg_write(UC_ARM64_REG_PC,ret)
         u.hook_add(UC_HOOK_CODE,hook)
         u.emu_start(base+self.symbols['_'+name],end,count=2000)
@@ -77,5 +77,18 @@ class SwiftCalls(unittest.TestCase):
         self.assertEqual(u.reg_read(UC_ARM64_REG_X0),0xabcdef01);self.assertEqual(u.reg_read(UC_ARM64_REG_X0+1),0xabcdef02)
     def test_model_getter_indirect_result(self):self.call('call_getter',[0x1234,0x5678],[],context=0x5678,out=0x1234)
 
+    def test_personal_sections_native_self_nil_name_sort_and_set(self):
+        self.call('call_personal',[0x1234,0x5678,44],[0,0,0,44],context=0x5678,out=0x1234)
+    def test_sections_passes_complete_direct_response(self):
+        self.call('call_sections',[11,22],[11,22])
+    def test_generic_trackable_item_metadata_and_native_self(self):
+        self.call('call_item',[0x1234,0x4321,0x5678],[0x4321],context=0x5678,out=0x1234)
+    def test_thumbnails_three_word_result(self):
+        u=self.call('call_thumbnails',[0x304000,0x5678],[],context=0x5678)
+        self.assertEqual(bytes(u.mem_read(0x304000,24)),struct.pack('<3Q',0xabcdef01,0xabcdef02,0xabcdef03))
+    def test_thumbnail_url_size_and_three_value_words(self):
+        self.call('call_thumbnail_url',[0x1234,11,22,33],[2,11,22,33],out=0x1234)
+    def test_viewer_count_context(self):
+        self.call('call_integer',[0x5678],[],context=0x5678)
 
 if __name__=='__main__':unittest.main()

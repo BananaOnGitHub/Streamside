@@ -4,92 +4,127 @@ import Combine
 
 struct StreamsideShell: View {
     @ObservedObject var services: NativeServices
+    @State private var settings = false
     @State private var diagnostics = false
-    @State private var confirmSignOut = false
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Account") { accountContent }
                 if services.state.session == .authenticated {
+                    let feed = FollowedFeed(services.state.channels)
                     Section {
                         if services.state.phase == 3 {
                             ProgressView("Loading followed channels")
-                        } else if services.state.channels.isEmpty {
-                            Text("No followed channels returned.").foregroundStyle(.secondary)
+                        } else if feed.live.isEmpty {
+                            Label("No followed channels are live right now", systemImage: "moon")
+                                .foregroundStyle(.secondary)
                         } else {
-                            ForEach(services.state.channels) { channel in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(channel.displayName).font(.headline)
-                                    Text("@\(channel.username)").font(.subheadline).foregroundStyle(.secondary)
-                                }
-                                .accessibilityElement(children: .combine)
+                            ForEach(feed.live) { channel in
+                                LiveChannelRow(channel: channel, images: services.images,
+                                               generation: services.imageGeneration)
                             }
                         }
-                    } header: { Text("Followed channels") }
-                      footer: { Text("Showing the first 50. Live status is unavailable in this build.") }
+                    } header: { Text("Live · \(feed.live.count)") }
+                    if !feed.offline.isEmpty {
+                        Section {
+                            DisclosureGroup("Offline (\(feed.offline.count))") {
+                                ForEach(feed.offline) { channel in
+                                    OfflineChannelRow(channel: channel, images: services.images,
+                                                      generation: services.imageGeneration)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Section { AccountPanel(services: services) }
+                }
+                if let message = services.refreshMessage {
+                    Section { Text(message).font(.footnote).foregroundStyle(.secondary) }
                 }
                 if let error = services.actionError {
-                    Section { Text(error).foregroundStyle(.red).accessibilityAddTraits(.isStaticText) }
+                    Section { Text(error).foregroundStyle(.red) }
                 }
             }
-            .navigationTitle("Streamside")
-            .refreshable { services.refresh() }
+            .listStyle(.plain)
+            .navigationTitle("Followed Streams")
+            .navigationBarTitleDisplayMode(.inline)
+            .refreshable { await services.refresh() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { diagnostics = true } label: { Label("Diagnostics", systemImage: "waveform.path.ecg") }
-                        .accessibilityIdentifier("streamside.diagnostics")
+                    if services.state.session == .authenticated {
+                        Button { settings = true } label: { Label("Account and diagnostics", systemImage: "gearshape") }
+                    } else {
+                        Button { diagnostics = true } label: { Label("Diagnostics", systemImage: "waveform.path.ecg") }
+                    }
                 }
             }
-            .sheet(isPresented: $diagnostics) {
-                DiagnosticsView(services: services, baseline: false)
-            }
-            .confirmationDialog("Sign out of Twitch?", isPresented: $confirmSignOut, titleVisibility: .visible) {
-                Button("Sign out", role: .destructive) { services.signOut() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("You can sign in again using Twitch’s native authentication screen.")
+            .sheet(isPresented: $settings) { AccountSettings(services: services) }
+            .sheet(isPresented: $diagnostics) { DiagnosticsView(services: services, baseline: false) }
+            .onChange(of: services.state.session) { session in
+                if session == .signedOut { settings = false }
             }
         }
     }
+}
 
-    @ViewBuilder private var accountContent: some View {
-        switch services.state.session {
-        case .authenticated:
-            if let account = services.state.account {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(account.displayName).font(.headline)
-                        Text("@\(account.username)").foregroundStyle(.secondary)
+private struct AccountPanel: View {
+    @ObservedObject var services: NativeServices
+    @State private var confirmSignOut = false
+    var body: some View {
+        Group {
+            switch services.state.session {
+            case .authenticated:
+                if let account = services.state.account {
+                    Label {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(account.displayName).font(.headline)
+                            Text("@\(account.username)").foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "person.crop.circle") }
+                    Button("Refresh") { Task { await services.refresh() } }.disabled(services.state.isBusy)
+                    if services.state.canSignOut {
+                        Button("Sign out", role: .destructive) { confirmSignOut = true }
                     }
-                } icon: { Image(systemName: "person.crop.circle") }
-                Button("Refresh") { services.refresh() }.disabled(services.state.isBusy)
-                if services.state.canSignOut {
-                    Button("Sign out", role: .destructive) { confirmSignOut = true }
-                } else {
-                    Text("Sign-out is unavailable. See diagnostics.").foregroundStyle(.secondary)
                 }
-            }
-        case .restoring, .checkingAccount:
-            ProgressView("Checking your existing account")
-        case .signingOut:
-            ProgressView("Signing out")
-        case .signedOut:
-            Label("Welcome to Streamside", systemImage: "person.crop.circle")
-                .font(.headline)
-            Text("You’re signed out. Sign in using Twitch’s existing authentication.")
-                .foregroundStyle(.secondary)
-            Button("Sign in") { services.signIn() }.disabled(!services.canSignIn)
-            if !services.canSignIn {
-                Text("Waiting for Twitch’s native sign-in screen. See diagnostics if it remains unavailable.")
+            case .restoring, .checkingAccount: ProgressView("Checking your existing account")
+            case .signingOut: ProgressView("Signing out")
+            case .signedOut:
+                Label("Welcome to Streamside", systemImage: "person.crop.circle").font(.headline)
+                Text("You’re signed out. Sign in using Twitch’s existing authentication.")
                     .foregroundStyle(.secondary)
+                Button("Sign in") { services.signIn() }.disabled(!services.canSignIn)
+                if !services.canSignIn {
+                    Text("Waiting for Twitch’s native sign-in screen. See diagnostics if it remains unavailable.")
+                        .foregroundStyle(.secondary)
+                }
+                Button("Check for an existing account") { Task { await services.refresh() } }
+            case .failure:
+                Text("Your account could not be verified. Check your connection and try again.")
+                Button("Check account") { Task { await services.refresh() } }
+            case .unavailable:
+                Text("Account services are unavailable. Open diagnostics for details.")
             }
-            Button("Check for an existing account") { services.refresh() }
-        case .failure:
-            Text("Your account could not be verified. Check your connection and try again.")
-            Button("Check account") { services.refresh() }
-        case .unavailable:
-            Text("Account services are unavailable. Open diagnostics for details.")
+        }
+        .confirmationDialog("Sign out of Twitch?", isPresented: $confirmSignOut, titleVisibility: .visible) {
+            Button("Sign out", role: .destructive) { services.signOut() }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("You can sign in again using Twitch’s native authentication screen.") }
+    }
+}
+
+private struct AccountSettings: View {
+    @ObservedObject var services: NativeServices
+    @Environment(\.dismiss) private var dismiss
+    @State private var diagnostics = false
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Account") { AccountPanel(services: services) }
+                Section { Button("Diagnostics") { diagnostics = true } }
+            }
+            .navigationTitle("Account")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .sheet(isPresented: $diagnostics) { DiagnosticsView(services: services, baseline: false) }
         }
     }
 }

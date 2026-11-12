@@ -37,14 +37,14 @@ def main():
                             repository=os.environ.get('GITHUB_REPOSITORY'))
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
     common=['-target','arm64-apple-ios16.4','-isysroot',sdk,'-Os','-fblocks','-Wall','-Wextra','-Werror',
-            '-fvisibility=hidden','-Inative','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
+            '-fvisibility=hidden','-DSSN_SWIFTUI=1','-Inative','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
     swift=['native/swift/'+p.name for p in sorted((root/'native/swift').glob('*.swift'))]
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-O','-swift-version','5','-warnings-as-errors',
          '-module-name','StreamsideNativeProof','-import-objc-header','native/SSNNativeBridge.h',
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+swift)
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNNativeBridge.m','SSNWindowOwnership.m']:
+    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
         run(['xcrun','clang']+common+(['-fobjc-arc'] if name=='SSNWindowOwnership.m' else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
@@ -53,7 +53,7 @@ def main():
     run(['xcrun','clang']+common+['-c','tests/native_frontend/abi_calls.c','-o','output/apple-abi.o'])
     binary='output/StreamsideNativeProof'
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-emit-library','-o',binary]+objects+
-        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine',
+        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO',
          '-Xlinker','-install_name','-Xlinker','@rpath/StreamsideNativeProof.framework/StreamsideNativeProof',
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'])
     run(['codesign','--force','--sign','-','--timestamp=none',binary])

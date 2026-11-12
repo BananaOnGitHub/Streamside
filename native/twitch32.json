@@ -9,7 +9,8 @@
     "TwitchKit": "f9cf2a880924bfcef7b46a7f64887fb835c28f5aa7e1593c6d5fa31bd1711401",
     "TwitchIdentity": "5129aa20a21789e1c72f28bd10250a4192da009229d2c866af44cb58fc2d6f03",
     "TwitchCore": "ad7772a3a86e6ff364007a1d29301734e82c0755a074e73c878ce18112b3ec44",
-    "Tomorrowland": "b3f4e1d8d59b43e8ef35e1cd072a0b18aa9d70b8a9093d7183581b53b9c571a1"
+    "Tomorrowland": "b3f4e1d8d59b43e8ef35e1cd072a0b18aa9d70b8a9093d7183581b53b9c571a1",
+    "TwitchAnalyticsCore": "34c8a53f14073ecca79c042f9fe9552164b2ad8e84ec51bff1ea27f3cc51977e"
   },
   "layout": {
     "Twitch": {
@@ -334,6 +335,111 @@
       "image": "TwitchCore",
       "address": 240940,
       "bytes": "f44fbea9fd7b01a9fd43009193d242a9"
+    },
+    "_$s9TwitchKit9TKGraphQLC16personalSections25currentPlayingChannelName5order14blockedUserIDs12Tomorrowland7PromiseVyAC08PersonalF8ResponseV0A6Apollo0A12GraphQLErrorVGSSSg_AA28FollowedLiveStreamsSortOrderOShys6UInt32VGtF": {
+      "image": "TwitchKit",
+      "address": 2787672,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+    },
+    "_$s9TwitchKit9TKGraphQLC24PersonalSectionsResponseVMa": {
+      "image": "TwitchKit",
+      "address": 2795528,
+      "bytes": "a01000d000002d91010080d2c0035fd6"
+    },
+    "_$s9TwitchKit9TKGraphQLC24PersonalSectionsResponseV4liveSay0A13AnalyticsCore13TrackableItemVy0aJ010LiveStreamVGGvg": {
+      "image": "TwitchKit",
+      "address": 954244,
+      "bytes": "c65b0d1480620039c0035fd6ffc301d1"
+    },
+    "_$s9TwitchKit9TKGraphQLC24PersonalSectionsResponseV7offlineSay0A13AnalyticsCore13TrackableItemVy0aJ04UserVGGvg": {
+      "image": "TwitchKit",
+      "address": 113716,
+      "bytes": "e00301aa99901014a82500f0007144f9"
+    },
+    "_$s9TwitchKit28FollowedLiveStreamsSortOrderO8rawValueSSvg": {
+      "image": "TwitchKit",
+      "address": 2793052,
+      "bytes": "081c001289ac8cd2890ca0f20960fdf2"
+    },
+    "_$s10TwitchCore10LiveStreamVMa": {
+      "image": "TwitchCore",
+      "address": 249536,
+      "bytes": "e80300aae90200d0200940f9600000b4"
+    },
+    "_$s10TwitchCore4GameVMa": {
+      "image": "TwitchCore",
+      "address": 164392,
+      "bytes": "e80300aa8903009020f145f9600000b4"
+    },
+    "_$s10TwitchCore10ThumbnailsVMa": {
+      "image": "TwitchCore",
+      "address": 418192,
+      "bytes": "600100d000e01e91010080d2c0035fd6"
+    },
+    "_$s10TwitchCore10LiveStreamV11broadcasterAA4UserVvg": {
+      "image": "TwitchCore",
+      "address": 249816,
+      "bytes": "f44fbea9fd7b01a9fd430091f30308aa"
+    },
+    "_$s10TwitchCore10LiveStreamV5titleSSvg": {
+      "image": "TwitchCore",
+      "address": 16932,
+      "bytes": "f44fbea9fd7b01a9fd430091935241a9"
+    },
+    "_$s10TwitchCore10LiveStreamV12viewersCountSivg": {
+      "image": "TwitchCore",
+      "address": 249448,
+      "bytes": "801240f9c0035fd6801640f981c24039"
+    },
+    "_$s10TwitchCore10LiveStreamV9createdAt10Foundation4DateVvg": {
+      "image": "TwitchCore",
+      "address": 250684,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "_$s10TwitchCore10LiveStreamV4gameAA4GameVSgvg": {
+      "image": "TwitchCore",
+      "address": 249592,
+      "bytes": "f44fbea9fd7b01a9fd430091f30308aa"
+    },
+    "_$s10TwitchCore10LiveStreamV10thumbnailsAA10ThumbnailsVvg": {
+      "image": "TwitchCore",
+      "address": 250560,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "_$s10TwitchCore10LiveStreamV19currentUserCanWatchSbvg": {
+      "image": "TwitchCore",
+      "address": 249752,
+      "bytes": "fd7bbfa9fd030091000080d2c7ffff97"
+    },
+    "_$s10TwitchCore10LiveStreamV19thumbnailBlurReasonAA09ThumbnailfG0Ovg": {
+      "image": "TwitchCore",
+      "address": 250444,
+      "bytes": "fd7bbfa9fd030091000080d21affff97"
+    },
+    "_$s10TwitchCore4UserV13profileImagesAA10ThumbnailsVvg": {
+      "image": "TwitchCore",
+      "address": 424936,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "_$s10TwitchCore4GameV11displayNameSSvg": {
+      "image": "TwitchCore",
+      "address": 16976,
+      "bytes": "f44fbea9fd7b01a9fd430091935242a9"
+    },
+    "_$s10TwitchCore10ThumbnailsVy10Foundation3URLVSgAA9ThumbnailV4SizeOcig": {
+      "image": "TwitchCore",
+      "address": 396844,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
+    "_$s19TwitchAnalyticsCore13TrackableItemVMa": {
+      "image": "TwitchAnalyticsCore",
+      "address": 204896,
+      "bytes": "240000f084902f915af3ff17e10300aa"
+    },
+    "_$s19TwitchAnalyticsCore13TrackableItemV4itemxvg": {
+      "image": "TwitchAnalyticsCore",
+      "address": 204312,
+      "bytes": "e10314aa020840f949805ff8230940f9"
     }
   },
   "gate": {
@@ -379,6 +485,49 @@
       "encoding": "v20@0:8B16",
       "address": 4358961344,
       "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    }
+  },
+  "feed_contract": {
+    "request": "personalSections(currentPlayingChannelName:nil, order:recommended, blockedUserIDs:empty native Set)",
+    "sort_raw_tag": 0,
+    "sort_raw_value": "recommended",
+    "response_direct_words": 2,
+    "trackable_metadata_arguments": [
+      "type metadata",
+      "Equatable conformance from swift_conformsToProtocol"
+    ],
+    "trackable_descriptor": {
+      "image": "TwitchAnalyticsCore",
+      "address": 236516,
+      "generic_parameters": 1,
+      "requirements": 1,
+      "key_arguments": 2,
+      "requirement": "$sSQMp"
+    },
+    "thumbnail_medium_tag": 2,
+    "thumbnail_small_tag": 1,
+    "unblurred_thumbnail_tag": 2,
+    "enum_descriptors": {
+      "Thumbnail.Size": {
+        "image": "TwitchCore",
+        "address": 552352,
+        "cases": [
+          "tiny",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "ThumbnailBlurReason": {
+        "image": "TwitchCore",
+        "address": 552076,
+        "cases": [
+          "sexualThemes",
+          "adultContent",
+          "blurNotRequired",
+          "unknown"
+        ]
+      }
     }
   }
 }

@@ -34,6 +34,35 @@ import Foundation
             precondition(!AuthenticationReturn.shouldReturn(session: NativeServiceState(phase: phase).session))
         }
         precondition(!AuthenticationReturn.shouldReturn(session: .signingOut))
-        print("PASS: authenticated, signed-out, account-change, failure, logout and loading presentation boundaries")
+        var gate = RefreshGate()
+        precondition(gate.begin(now: 100))
+        precondition(!gate.begin(now: 106), "Concurrent refresh bypassed the gate")
+        gate.finish()
+        precondition(!gate.begin(now: 104.999), "Five-second cooldown was bypassed")
+        precondition(gate.begin(now: 105))
+        gate.finish()
+        var live = FollowedChannel(username: "live", displayName: "Live")
+        live.isLive = true; live.viewerCount = 100
+        var bigger = FollowedChannel(username: "big", displayName: "Big")
+        bigger.isLive = true; bigger.viewerCount = 200
+        let offline = FollowedChannel(username: "offline", displayName: "Offline")
+        let stale = FollowedChannel(username: "LIVE", displayName: "Stale offline duplicate")
+        let feed = FollowedFeed([offline, live, bigger, stale, live])
+        precondition(feed.live.map { $0.username } == ["big", "live"])
+        precondition(feed.offline.map { $0.username } == ["offline"])
+        let mapped = FollowedChannel(snapshot: ["username":"fixture", "isLive":"1", "title":"Title", "category":"Category", "viewerCount":"1234", "startedAt":"100", "thumbnailRestricted":"1", "thumbnailURL":"https://static-cdn.jtvnw.net/image.jpg"])
+        precondition(mapped?.viewerCount == 1234 && mapped?.thumbnailURL == nil)
+        precondition(mapped?.startedAt == Date(timeIntervalSince1970: 100))
+        precondition(FollowedChannel(snapshot:["username":"fixture"]) == nil, "Unknown status became offline")
+        precondition(FollowedChannel(snapshot:["username":"fixture","isLive":"1","viewerCount":"-1"])?.viewerCount == nil)
+        precondition(StreamElapsed.label(seconds: 3601) == "1:00:01")
+        precondition(StreamElapsed.seconds(startedAt: Date(timeIntervalSince1970: 200), now: Date(timeIntervalSince1970: 100)) == 0)
+        for text in ["https://static-cdn.jtvnw.net/preview.jpg", "https://static-cdn.jtvnw.net/avatar.png"] {
+            precondition(ChannelImagePolicy.allowed(URL(string:text)!))
+        }
+        for text in ["http://static-cdn.jtvnw.net/image.jpg", "https://jtvnw.net.attacker.invalid/image.jpg", "https://user:pass@static-cdn.jtvnw.net/image.jpg", "https://static-cdn.jtvnw.net:8443/image.jpg", "file:///private/image.jpg"] {
+            precondition(!ChannelImagePolicy.allowed(URL(string:text)!))
+        }
+        print("PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy")
     }
 }

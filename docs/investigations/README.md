@@ -54,3 +54,5 @@ and updating navigation.
 - [Twitch 31.6.2 candidate](TWITCH_31_6_2_CANDIDATE.md): build 18 uses the unchanged exact-body integration; host/package checks and unsigned IPA identity, pending device validation.
 
 - [SwiftUI authentication ownership trial](SWIFTUI_AUTHENTICATION_OWNERSHIP.md): persistent window ownership and native account-state handoff. [Device review](SWIFTUI_NATIVE_DEVICE_REVIEW_3.md) records the successful native login return, zero monitored runtime entries, restart restoration, and subsequent background/foreground evidence.
+
+- [Native followed-stream list trial](SWIFTUI_FOLLOWED_STREAMS.md): authenticated live/offline feed, compact SwiftUI rows, bounded image refresh and accessible duration pills.

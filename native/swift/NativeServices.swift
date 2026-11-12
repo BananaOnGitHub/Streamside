@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 protocol AccountService: ObservableObject {
     var state: NativeServiceState { get }
-    func refresh()
+    func refresh() async
     func signOut()
 }
 
@@ -23,6 +23,11 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var actionError: String?
     @Published private(set) var rootOwner = 0
     @Published var canSignIn = false
+    @Published private(set) var isRefreshing = false
+    @Published private(set) var refreshMessage: String?
+    @Published private(set) var imageGeneration: UInt64 = 0
+    private var refreshGate = RefreshGate()
+    let images = ChannelImageCache()
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
 
@@ -44,8 +49,7 @@ final class NativeServices: ObservableObject, AccountService {
             next.account = StreamsideAccount(username: name, displayName: account["displayName"] ?? name)
         }
         next.channels = (snapshot["channels"] as? [[String: String]] ?? []).compactMap {
-            guard let name = $0["username"], !name.isEmpty else { return nil }
-            return FollowedChannel(username: name, displayName: $0["displayName"] ?? name)
+            FollowedChannel(snapshot: $0)
         }
         next.enforceSessionBoundary()
         state = next
@@ -66,7 +70,23 @@ final class NativeServices: ObservableObject, AccountService {
             actionError = "Twitch’s native sign-in screen is not ready. Refresh and export diagnostics if this persists."
         }
     }
-    func refresh() { actionError = nil; bridge.refresh(); reloadSnapshot() }
+    func refresh() async {
+        actionError = nil
+        guard !state.isBusy, refreshGate.begin(now: ProcessInfo.processInfo.systemUptime) else {
+            let remaining = Int(ceil(refreshGate.remaining(now: ProcessInfo.processInfo.systemUptime)))
+            refreshMessage = remaining > 0 ? "Allow five seconds between refreshes." : "Refresh is already in progress."
+            return
+        }
+        isRefreshing = true; refreshMessage = nil; imageGeneration &+= 1
+        defer { isRefreshing = false; refreshGate.finish() }
+        bridge.refresh(); reloadSnapshot()
+        // Donor requests own cancellation and the 30s service timeout. This only
+        // keeps the standard pull-to-refresh indicator alive until they settle.
+        for _ in 0..<320 {
+            if !state.isBusy { break }
+            do { try await Task.sleep(nanoseconds: 100_000_000) } catch { break }
+        }
+    }
     func signOut() {
         actionError = nil
         if !bridge.beginSignOut() { actionError = "Sign-out is unavailable. Check diagnostics before trying again." }

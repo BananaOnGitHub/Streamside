@@ -23,3 +23,11 @@ typedef SW void (*FollowRequest)(void * OUT,intptr_t,uintptr_t,uintptr_t,uintptr
 typedef SW void (*Destroy)(void*,const void*);
 typedef SW unsigned (*GetTag)(const void*,unsigned,const void*);
 typedef SW void (*StoreTag)(void*,unsigned,unsigned,const void*);
+
+/* Inspected Twitch 32 feed ABI; all use swiftcall, not guessed C layouts. */
+typedef SW void (*PersonalRequest)(void * OUT,uintptr_t,uintptr_t,uint8_t,uintptr_t,id CTX);
+typedef SW uintptr_t (*SectionsGetter)(uintptr_t,uintptr_t);
+typedef SW void (*ItemGetter)(void * OUT,const void*,const void * CTX);
+typedef SW Words3 (*ThumbnailsGetter)(const void * CTX);
+typedef SW void (*ThumbnailGetter)(void * OUT,uint8_t,uintptr_t,uintptr_t,uintptr_t);
+typedef SW intptr_t (*IntegerGetter)(const void * CTX);

@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "source_revision": "a454012f11c9bf47e2eea272eec8dacfc54412ca",
+  "proof_id": "c9d05e19ae05c8e63627e12221afc4c3187a4151e35b5de80df8b2223c9db808",
+  "archive": {
+    "bytes": 7369,
+    "sha256": "15685cf358c00bd14748044c630ea3744ff93f807d2a584d07ebf0a220952104",
+    "raw_archive_retained_outside_git": true
+  },
+  "reports": [
+    {
+      "name": "native-latest 2.json",
+      "bytes": 1260,
+      "sha256": "e23a6df39213af36a47f442477d6c6c862ad82b9571a71e6f276b4097453bbd7"
+    },
+    {
+      "name": "native-latest 3.json",
+      "bytes": 1262,
+      "sha256": "b6b174621724744b4b4ccb818fbdd892e9733fefaef73fbe635bc1b2525b0146"
+    },
+    {
+      "name": "native-latest 4.json",
+      "bytes": 1262,
+      "sha256": "e4fad837b7cf319fb2ebf03b061d732abb0e14345c5d50c3a08d230c7e68be7d"
+    },
+    {
+      "name": "baseline-previous.json",
+      "bytes": 1249,
+      "sha256": "5555a456627200b2cbc4eefcfc3957d3836f9349342586e93862ea2bb216db62"
+    },
+    {
+      "name": "native-latest.json",
+      "bytes": 1259,
+      "sha256": "f09cd9bfb6abf19d60c4fc3ddab0a7617cc5b9b47379993c386e8bbbd2ac1cf8"
+    },
+    {
+      "name": "baseline-latest.json",
+      "bytes": 1265,
+      "sha256": "3e732fd1e16088b0069efd1729711a5f2ec758bc25b8618407fd5ce036965502"
+    }
+  ],
+  "stage_labels": [
+    "Before logout",
+    "Logged-out welcome",
+    "After Twitch login",
+    "After entering a stream with chat"
+  ],
+  "native_launch_sequence": 7,
+  "account_states": [
+    4,
+    1,
+    4,
+    4
+  ],
+  "returned_channels": [
+    50,
+    0,
+    50,
+    50
+  ],
+  "root_ownership": [
+    1,
+    2,
+    2,
+    2
+  ],
+  "uptime_ms": [
+    18425,
+    67683,
+    130700,
+    329862
+  ],
+  "twitch_holder_counts": [
+    0,
+    0,
+    0,
+    1
+  ],
+  "guarded_probe_count": 24,
+  "all_guarded_probes_zero": true,
+  "all_images_armed": true,
+  "no_recorded_failures": true,
+  "matching_baseline_positive_control": true,
+  "strict_relaunch_comparison": {
+    "status": "evidence_incomplete_or_failed",
+    "failures": [
+      "Distinct native process launches not established",
+      "Foreground/background/reopen sequence incomplete"
+    ],
+    "limits": [
+      "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+    ],
+    "memory_difference_bytes": -69779432,
+    "constructor_to_active_difference_ms": 34
+  },
+  "limits": [
+    "Four cumulative snapshots from one native launch, not four app restarts.",
+    "Stream/chat was an extra donor-interface observation, not a Streamside playback/chat implementation or acceptance test.",
+    "The first-party Twitch username/password path succeeded in the observed route; other providers/challenges are untested. A return to SwiftUI after full restart is user-reported; the restart report remains pending."
+  ],
+  "login_method_tester_confirmed": "Twitch username/password",
+  "restart_tester_observation": "Full close/reopen returns to the SwiftUI interface; tester has an additional report that has not yet been supplied.",
+  "restart_instrumented_verification": "Pending the exported report from that new launch"
+}

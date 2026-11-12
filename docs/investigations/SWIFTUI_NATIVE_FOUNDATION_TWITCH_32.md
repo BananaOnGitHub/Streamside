@@ -104,3 +104,18 @@ Implementation revision: `607f5954670ff7e98d8e5873928c3a14524f0f40`. Proof: `0f5
 | Native | 196479929 | `b9f5c836e728f82e109ed1c71679f3b3ab6de408cd86d6fd1d6c8f204b45ff9b` |
 
 Files are in `build/native-swiftui/`. Original UIKit IPAs and earlier development/device records remain intact. A later documentation-receipt commit does not alter these compiled source/proof identities.
+
+## Later device evidence for a donor-native login route
+
+[The logout/login device review](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md) now demonstrates
+one first-party Twitch login route usable in native mode: account state clears
+on logout, then the native GraphQL adapter retrieves account/follows after the
+tester logs in through Twitch's own replacement interface, with zero guarded
+RN/Hermes/worklet entries. This supplies compatibility evidence for that observed
+donor-native route, independently of the RN hosted-portal findings above.
+The tester identifies the successful method as Twitch username/password and
+reports that SwiftUI returns after a full restart; the additional restart report
+is pending. A SwiftUI-controlled presentation/completion handoff remains open.
+Other providers and verification/recovery challenges remain untested. The original compiled
+foundation, historical build findings and original limitations remain scoped to
+their recorded candidate.

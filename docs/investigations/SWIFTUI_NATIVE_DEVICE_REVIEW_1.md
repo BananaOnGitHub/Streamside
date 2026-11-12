@@ -140,3 +140,14 @@ remains local. Prior device candidates and reports remain unchanged.
 | --- | --- | --- |
 | Baseline | 196477933 | `17c85a7209dc97fe73809bb1277fcbe05e6922df23d84f9c776601af7b21837b` |
 | Native | 196482220 | `2dfc1a2f4ebceb5dffbd792ff88f32e3976f4f68840cdbefa032b965ec8d2083` |
+
+## Follow-up device result
+
+[The next device review](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md) supplies the missing
+post-logout and post-login reports for this replacement build. It records actual
+root replacement, signed-out state followed by successful native account/follows
+requests, and zero guarded RN/Hermes/worklet entries in one recorded native launch.
+An extra donor stream/chat visit reaches only the explicitly permitted native
+holder entry. The original pre-logout evidence and its limits above are unchanged;
+the reported SwiftUI return after restart still awaits its exported report, and
+controlled SwiftUI login ownership remains implementation work.

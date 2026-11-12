@@ -25,7 +25,24 @@
   "deb_variants": 2,
   "release_packaging": true,
   "device_validation": "Not run; original downloaded candidates unchanged",
-  "ci_execution": "Not run; workflow paths updated, local corresponding steps passed",
+  "ci_execution": {
+    "revision": "4a610f7c0bead320f5e2da79ea70c810f762df96",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43129344967",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "build",
+        "conclusion": "success",
+        "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43129344967/job/130889312053"
+      },
+      {
+        "name": "foundation-cache",
+        "conclusion": "success",
+        "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43129344967/job/130889312468"
+      }
+    ],
+    "limits": "CI has no private donor or pinned Hermes runner; local mandatory donor/Hermes checks are separate evidence."
+  },
   "generated_artifacts": [
     {
       "path": "artifacts/dist/SHA256SUMS",

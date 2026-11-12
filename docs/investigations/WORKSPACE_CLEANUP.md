@@ -84,3 +84,18 @@ CI status is recorded separately. The accepted workflow then exposed two host
 tests relying on the local compiler fallback because CI only added Zig to PATH.
 CI now explicitly exports `ZIG` for those existing compiler-dependent tests.
 Physical-device behavior was not revalidated.
+
+## GitHub validation
+
+[Build run 43129344967](https://github.com/BananaOnGitHub/Streamside/actions/runs/43129344967)
+passed on source revision `4a610f7c0bead320f5e2da79ea70c810f762df96`:
+both the Linux build/test/package/upload job and the macOS Foundation HTTP job
+succeeded. [The captured job result](evidence/workspace-history/cleanup-validation/ci-success.json)
+records the run identity and steps. The prior missing-compiler failure log is
+preserved alongside it. CI lacks the private donor/pinned Hermes runner, so it
+does not replace the successful mandatory local checks reported above.
+
+All 161 archived records and five retained IPAs were rehashed against their
+original identities after cleanup. No `build/` or `dist/` directory remains in
+the checkout. The branch history and UIKit checkpoint tag were published;
+original development branches were not rewritten.

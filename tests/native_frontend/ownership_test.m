@@ -52,6 +52,8 @@ void ssn_report(void) {}
     CHECK(!SSNInstallWindowOwnership(window,root) && !armed);
     window.rootViewController=donor;
     CHECK(window.rootViewController==donor && blocked==0);
+    other.rootViewController=root;
+    CHECK(other.rootViewController==root && blocked==0);
 #endif
     CHECK(failures==0);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,500000000),dispatch_get_main_queue(),^{

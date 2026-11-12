@@ -114,3 +114,13 @@ failures are zero, runtime monitoring is complete and calibrated, and all guarde
 RN/Hermes/worklet entries remain zero. The allowed native `twitch_holder` remains
 reported separately. Social sign-in, verification challenges, invalid sessions and
 other provider routes require separate testing; password success does not cover them.
+
+## Apple validation attempts
+
+[Run 43156050297](https://github.com/BananaOnGitHub/Streamside/actions/runs/43156050297)
+at `9cd05478e8d30a7597119ef7f6d1ca5717a04df1` compiled and linked the baseline
+framework and passed pure Swift model tests. It failed while compiling the new
+simulator fixture: its other-window variable was unused in baseline mode under
+warnings-as-errors. No components or IPA were distributed from this failed run.
+The fixture now exercises baseline other-window routing as well. Failure logs were
+retained outside the repository; this record preserves the meaningful outcome.

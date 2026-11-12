@@ -96,7 +96,7 @@ class ComponentAdmission(unittest.TestCase):
     def test_failed_model_or_toolchain_validation_is_rejected(self):
         path = self.directory / "native/compiler.json"
         compiler = json.loads(path.read_text())
-        for key, value in [("model_tests", "FAILED"), ("xcode", "different")]:
+        for key, value in [("model_tests", "FAILED"), ("xcode", "different"), ("uikit_ownership_tests", {})]:
             with self.subTest(key=key):
                 changed = dict(compiler, **{key: value})
                 path.write_text(json.dumps(changed))

@@ -79,4 +79,3 @@ not by manually editing fingerprints. The earlier receipt remains archived.
 The ordinary build/package smoke checks do not create a new native frontend IPA.
 The Apple VM was not needed for this cleanup; its prior build results remain
 historical evidence. CI itself and physical-device behavior were not revalidated.
-

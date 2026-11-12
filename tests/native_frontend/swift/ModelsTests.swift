@@ -25,6 +25,15 @@ import Foundation
         loading.enforceSessionBoundary()
         precondition(loading.account == account && loading.channels.isEmpty && loading.isBusy)
         precondition(NativeServiceState(phase: 1).session == .signedOut)
+        for phase in [0, 1, 2, 6, 7, 8, 9] {
+            let session = NativeServiceState(phase: phase, account: account).session
+            precondition(!AuthenticationReturn.shouldReturn(session: session))
+        }
+        for phase in [3, 4, 5] {
+            precondition(AuthenticationReturn.shouldReturn(session: NativeServiceState(phase: phase, account: account).session))
+            precondition(!AuthenticationReturn.shouldReturn(session: NativeServiceState(phase: phase).session))
+        }
+        precondition(!AuthenticationReturn.shouldReturn(session: .signingOut))
         print("PASS: authenticated, signed-out, account-change, failure, logout and loading presentation boundaries")
     }
 }

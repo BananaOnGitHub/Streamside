@@ -48,7 +48,7 @@ struct StreamsideShell: View {
                 Button("Sign out", role: .destructive) { services.signOut() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Sign-in is not available in this test build. You will need Twitch's normal login to sign in again.")
+                Text("You can sign in again using Twitch’s native authentication screen.")
             }
         }
     }
@@ -77,8 +77,13 @@ struct StreamsideShell: View {
         case .signedOut:
             Label("Welcome to Streamside", systemImage: "person.crop.circle")
                 .font(.headline)
-            Text("You’re signed out. Sign-in is not available in this test build.")
+            Text("You’re signed out. Sign in using Twitch’s existing authentication.")
                 .foregroundStyle(.secondary)
+            Button("Sign in") { services.signIn() }.disabled(!services.canSignIn)
+            if !services.canSignIn {
+                Text("Waiting for Twitch’s native sign-in screen. See diagnostics if it remains unavailable.")
+                    .foregroundStyle(.secondary)
+            }
             Button("Check for an existing account") { services.refresh() }
         case .failure:
             Text("Your account could not be verified. Check your connection and try again.")

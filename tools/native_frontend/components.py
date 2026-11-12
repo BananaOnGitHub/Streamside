@@ -104,6 +104,9 @@ def verify(directory, revision=None):
             raise ValueError("Component toolchain mismatch")
         if not compiler.get("model_tests", "").startswith("PASS:") or compiler.get("codesign") != "ad-hoc; IPA still requires device-authorized re-signing":
             raise ValueError("Apple model/signature validation missing")
+        uikit = compiler.get("uikit_ownership_tests", {})
+        if uikit.get("result") != "PASS" or uikit.get("receipt") != dict(passed=True, native=mode=="native", blocked=2 if mode=="native" else 0, failures=0):
+            raise ValueError("UIKit ownership simulator validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
         if plistlib.loads((framework / "Info.plist").read_bytes()) != framework_info(mode, manifest["proof_id"], expected_revision):
             raise ValueError("Framework metadata mismatch")

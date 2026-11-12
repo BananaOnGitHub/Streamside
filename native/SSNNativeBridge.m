@@ -5,6 +5,8 @@
 #import "SSNSwiftUI-Swift.h"
 
 NSNotificationName const SSNNativeServiceDidChange = @"SSNNativeServiceDidChange";
+void SSNNavigationEvent(unsigned event) { ssn_navigation_event(event); ssn_report(); }
+BOOL SSNNavigationPermitted(void) { return SSN_NATIVE && ssn_navigation_guarded() && ssn_armed() && !ssn_failed(); }
 static NSInteger signout_state;
 static unsigned signout_ticks;
 void SSNSwiftUIReady(void) { ssn_presentation((unsigned)[SSNSwiftUIHost rootOwner]); ssn_scaffold_ready(); ssn_report(); }
@@ -14,6 +16,7 @@ void ssn_ui_changed(void) {
         dispatch_async(dispatch_get_main_queue(), ^{ ssn_ui_changed(); });
         return;
     }
+    [SSNSwiftUIHost accountStateChanged];
     [[NSNotificationCenter defaultCenter] postNotificationName:SSNNativeServiceDidChange object:nil];
 }
 void ssn_ui_attach(id app_window) {

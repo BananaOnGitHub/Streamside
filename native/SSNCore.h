@@ -16,6 +16,10 @@ void ssn_transition(bool foreground);
 void ssn_scaffold_ready(void);
 /* 0 unobserved, 1 Streamside root, 2 another root, 3 missing root. Not RN classification. */
 void ssn_presentation(unsigned owner);
+/* Bounded numeric navigation evidence: suppressed roots, auth opens, verified returns, failures, closes. */
+void ssn_navigation_armed(void);
+bool ssn_navigation_guarded(void);
+void ssn_navigation_event(unsigned event);
 bool ssn_calibrated(void);
 bool ssn_armed(void);
 bool ssn_failed(void);

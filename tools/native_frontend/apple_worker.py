@@ -2,6 +2,8 @@
 import hashlib
 import json
 import os
+import platform
+import plistlib
 from pathlib import Path
 import subprocess
 import sys
@@ -15,7 +17,7 @@ def main():
             raise ValueError('Transferred build input mismatch: '+name)
     output=root/'output';output.mkdir(exist_ok=True)
     def run(args):
-        result=subprocess.run(args,cwd=root,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        result=subprocess.run(args,cwd=root,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=240)
         with (output/'build.log').open('a') as log:log.write(str(args)+'\n'+result.stdout+'\n')
         if result.returncode:raise RuntimeError(result.stdout)
         return result.stdout.strip()
@@ -42,9 +44,9 @@ def main():
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+swift)
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNNativeBridge.m']:
+    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
-        run(['xcrun','clang']+common+['-c','native/'+name,'-o',obj])
+        run(['xcrun','clang']+common+(['-fobjc-arc'] if name=='SSNWindowOwnership.m' else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
     # Compile the existing ABI caller fixture with the Apple compiler as well;
     # Ubuntu emulates its argument registers against the existing ABI tests.
@@ -58,8 +60,52 @@ def main():
     run(['codesign','--verify','--strict',binary])
     run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
     info['model_tests']=run([str(output/'models-tests')])
+    info['uikit_ownership_tests']=test_window_ownership(root, output, config, run)
     info['codesign']='ad-hoc; IPA still requires device-authorized re-signing'
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
+
+
+def test_window_ownership(root, output, config, run):
+    """Run the production window hook with real UIKit; no donor or account."""
+    simulator_sdk=run(['xcrun','--sdk','iphonesimulator','--show-sdk-path'])
+    architecture='arm64' if platform.machine()=='arm64' else 'x86_64'
+    stage=root/'ownership-simulator';stage.mkdir()
+    # Isolate the production setter from the donor integration. This is the
+    # exact owned Objective-C class selector used by the compiled Swift host.
+    (stage/'SSNSwiftUI-Swift.h').write_text(
+        '#import <UIKit/UIKit.h>\n@interface SSNSwiftUIHost : NSObject\n'
+        '+ (void)retainAuthenticationRoot:(UIViewController *)root;\n@end\n')
+    bundle=stage/'OwnershipTest.app';bundle.mkdir()
+    bundle_id='dev.streamside.ownershiptest'
+    (bundle/'Info.plist').write_bytes(plistlib.dumps(dict(
+        CFBundleIdentifier=bundle_id,CFBundleExecutable='OwnershipTest',
+        CFBundleName='OwnershipTest',CFBundlePackageType='APPL',CFBundleVersion='1',
+        CFBundleShortVersionString='1.0',MinimumOSVersion='16.4',
+        LSRequiresIPhoneOS=True,UIDeviceFamily=[1,2],UILaunchScreen={})))
+    run(['xcrun','clang','-target',architecture+'-apple-ios16.4-simulator','-isysroot',simulator_sdk,
+         '-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-DSSN_NATIVE='+str(int(config['mode']=='native')),
+         '-Inative','-Igenerated','-I'+str(stage),
+         'native/SSNWindowOwnership.m','tests/native_frontend/ownership_test.m',
+         '-framework','UIKit','-framework','Foundation','-o',str(bundle/'OwnershipTest')])
+    run(['codesign','--force','--sign','-','--timestamp=none',str(bundle)])
+    runtimes=json.loads(run(['xcrun','simctl','list','runtimes','--json']))['runtimes']
+    runtime=next(r['identifier'] for r in runtimes if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-'))
+    types=json.loads(run(['xcrun','simctl','list','devicetypes','--json']))['devicetypes']
+    device_type=next(t['identifier'] for t in types if t['name'].startswith('iPhone 17 Pro'))
+    device=run(['xcrun','simctl','create','Streamside ownership test',device_type,runtime])
+    try:
+        run(['xcrun','simctl','boot',device])
+        run(['xcrun','simctl','bootstatus',device,'-b'])
+        run(['xcrun','simctl','install',device,str(bundle)])
+        run(['xcrun','simctl','launch','--console',device,bundle_id])
+        container=Path(run(['xcrun','simctl','get_app_container',device,bundle_id,'data']))
+        receipt=json.loads((container/'Documents/ownership-test.json').read_text())
+        if receipt != dict(passed=True,native=config['mode']=='native',blocked=2 if config['mode']=='native' else 0,failures=0):
+            raise ValueError('UIKit ownership test failed: '+str(receipt))
+        return dict(result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+    finally:
+        run(['xcrun','simctl','shutdown',device])
+        run(['xcrun','simctl','delete',device])
 
 
 if __name__=='__main__':main()

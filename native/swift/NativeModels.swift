@@ -48,3 +48,11 @@ struct NativeServiceState {
         if phase != 4 && phase != 5 { channels = [] }
     }
 }
+
+// Native currentUser verification produces .authenticated before follows finish.
+// A notification, saved token presence, or stale account alone is insufficient.
+enum AuthenticationReturn {
+    static func shouldReturn(session: SessionPresentation) -> Bool {
+        session == .authenticated
+    }
+}

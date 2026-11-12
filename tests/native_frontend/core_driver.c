@@ -10,6 +10,11 @@ int main(int argc,char **argv) {
         return 3;
     }
     if(!strcmp(argv[2],"replaced")) { ssn_presentation(1); ssn_presentation(2); }
+    if(!strcmp(argv[2],"navigation")) {
+        ssn_navigation_armed();
+        for(unsigned i=0;i<5;i++) ssn_navigation_event(i);
+        ssn_navigation_event(99);
+    }
     ssn_service(SSN_READY,2);ssn_scaffold_ready();ssn_transition(true);ssn_transition(false);ssn_transition(true);ssn_report();
     return 0;
 }

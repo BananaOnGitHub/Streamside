@@ -22,6 +22,7 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var runtimeCounts: [RuntimeObservation] = []
     @Published private(set) var actionError: String?
     @Published private(set) var rootOwner = 0
+    @Published var canSignIn = false
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
 
@@ -58,6 +59,13 @@ final class NativeServices: ObservableObject, AccountService {
         if next.signOutState == 2 { actionError = "Sign-out could not be confirmed. Check your account and try again." }
     }
 
+    func actionUnavailable() { actionError = "Native navigation ownership is unavailable. Export diagnostics." }
+    func signIn() {
+        actionError = nil
+        if !SSNSwiftUIHost.beginSignIn() {
+            actionError = "Twitch’s native sign-in screen is not ready. Refresh and export diagnostics if this persists."
+        }
+    }
     func refresh() { actionError = nil; bridge.refresh(); reloadSnapshot() }
     func signOut() {
         actionError = nil

@@ -1,8 +1,11 @@
 #import <Foundation/Foundation.h>
+#import "SSNWindowOwnership.h"
 
 NS_ASSUME_NONNULL_BEGIN
 FOUNDATION_EXPORT NSNotificationName const SSNNativeServiceDidChange;
 FOUNDATION_EXPORT void SSNSwiftUIReady(void);
+FOUNDATION_EXPORT void SSNNavigationEvent(unsigned event);
+FOUNDATION_EXPORT BOOL SSNNavigationPermitted(void);
 
 /* Owned Objective-C boundary. Snapshots are presentation-only copies: no token,
  * donor Swift value, protocol witness, or request object crosses into SwiftUI. */

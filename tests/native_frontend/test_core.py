@@ -67,6 +67,14 @@ class CoreEvidence(unittest.TestCase):
             self.assertTrue(all(value==0 for value in report['probes'].values()))
             self.assertEqual(report['failures'],0)
 
+    def test_navigation_evidence_is_bounded_and_failure_is_explicit(self):
+        with tempfile.TemporaryDirectory() as d:
+            _,report=self.run_core(1,'navigation',Path(d))
+            self.assertEqual(report['navigation_guard_armed'],1)
+            self.assertEqual(report['navigation_events'],[1,1,1,1,1])
+            self.assertEqual(report['failures'],1<<11)
+            self.assertTrue(all(value==0 for value in report['probes'].values()))
+
     def test_comparison_rejects_host_and_missing_observations(self):
         with tempfile.TemporaryDirectory() as d:
             _,baseline=self.run_core(0,'positive',Path(d));_,native=self.run_core(1,'armed',Path(d))

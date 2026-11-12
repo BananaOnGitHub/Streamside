@@ -67,3 +67,70 @@ The first CI attempt at `616108a` failed before Apple compilation because a dupl
 receipt-check insertion broke Python indentation in component staging. The staging
 copy was removed; the admission check remains in verification. No package comes
 from that failed source. Local checks and replacement CI are rerun for the fix.
+
+
+## Validated replacement build
+
+Compiled and packaged source is `cad1e034dcca4f6efb076214527656e635b7a5b9`,
+following implementation `616108a` and its staging correction. Proof is
+`93a53512e6e17a566445da550236b3ff4a2978804ddba7fd1319648f73d1562c`.
+[Artifact receipts](SWIFTUI_FEED_CONTINUITY_ARTIFACTS.json) record exact IPA,
+framework, modified-image and manifest hashes, source/toolchain identities and
+validation scopes. Both IPAs were independently rehashed after packaging.
+
+[Apple Actions 43263263754](https://github.com/BananaOnGitHub/Streamside/actions/runs/43263263754)
+succeeded with pinned Xcode 26.6 / 17F113, Swift 6.3.3, iPhoneOS SDK 26.5. Both
+frameworks compiled/linked and passed signature verification; both model tests,
+UIKit window ownership fixtures and production-clock simulator fixtures passed.
+The latter independently confirmed real ticks, pause and resume/catch-up via UIKit
+notifications. It does not render or inspect the duration-pill digit animation.
+Apple ABI 12, component admission 9, core 7, Foundation 1 and synthetic comparison
+5 tests passed. Local native regression checks passed 46/46 after the correction;
+the native C account adapter also compiled warning-free for both SwiftUI and
+preserved UIKit configurations. Documentation checks passed.
+
+[Linux Actions 43263263999](https://github.com/BananaOnGitHub/Streamside/actions/runs/43263263999)
+succeeded: 224 tests, 220 passed and four skipped (Apple Foundation/ImageIO, missing
+legacy exact donor/Hermes runner). Those skips remain explicit. Local packaging
+revalidated the exact Twitch 32.0 donor and 40 ABI entries, installed the existing
+25 probes, verified retained donor contents and unchanged HBC, and checked output
+images/ZIP contents. Baseline IPA is 196585748 bytes; native IPA is 196594113 bytes.
+The donor and signing material stayed out of CI. Both IPAs need local Feather
+re-signing with the established application/keychain identity.
+
+Reproduction uses a source/proof-compatible clean checkout and external output:
+
+```sh
+gh run download 43263263754 --name swiftui-components-cad1e034dcca4f6efb076214527656e635b7a5b9 --dir ../artifacts/ci/cad1e034dcca4f6efb076214527656e635b7a5b9
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/cad1e034dcca4f6efb076214527656e635b7a5b9
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/cad1e034dcca4f6efb076214527656e635b7a5b9 --mode both --output ../artifacts/native-frontend/swiftui/feed-continuity-rebuild
+```
+
+Actions artifacts expire; rerun the pinned source workflow when necessary. Every
+replacement assembly receives its own hash. Build outputs remain outside the repo.
+
+## Device check for this replacement
+
+1. Sign/install the matching baseline in Feather, preserving the established app
+   identity. Open Twitch and export baseline reports using the two-finger hold.
+   This source proof needs its own positive control.
+2. Replace it with the native IPA using that same identity. Open a live followed
+   stream list and watch the small timers for at least five seconds. They should
+   count every second and animate digits. With Reduce Motion on, they should keep
+   counting with no digit transition.
+3. Scroll down, expand Offline, background for ten seconds, then return. The list,
+   images and disclosure should stay present while metadata refreshes. Timers
+   should immediately catch up. Pull to refresh; content should remain visible.
+4. Open the gear, enable Two-line stream titles and close settings. Check long
+   titles take two lines. Hold a title for one second, read/scroll the entire popup
+   and tap Done. Reopen the app and confirm the preference remains enabled.
+5. Sign out once to confirm account/feed data clears immediately, then sign in
+   through Twitch and confirm return to SwiftUI. Export after this sequence and
+   background/return; fully close/reopen and export again, keeping both latest and
+   previous JSON from each export. Check calibrated/armed monitoring, zero entry
+   counts/failures and root ownership 1.
+
+These replacement device checks are pending. Compilation and the clock simulator
+pass do not establish smooth digit animation, gesture/scroll behavior, live-account
+background retention, invalid-session behavior or account-switch safety on iPhone.
+The prior device report remains evidence for d534 only, not this replacement.

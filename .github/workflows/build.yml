@@ -4,21 +4,31 @@ on:
   push:
     branches: ["**"]
     tags: ["[0-9]*"]
+    paths:
+      - '.github/workflows/build.yml'
+      - 'build.sh'
+      - 'Makefile'
+      - 'VERSION'
+      - 'entitlements.plist'
+      - 'src/**'
+      - 'stubs/**'
+      - 'packaging/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'diagnostics/**'
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  foundation-cache:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-      - name: Test real Foundation cache-first and HTTP revalidation
-        run: make test-foundation-cache
+concurrency:
+  group: linux-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
+jobs:
   build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
 
     steps:

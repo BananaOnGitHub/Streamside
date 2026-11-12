@@ -1,6 +1,7 @@
 """Compile only transferred sources on macOS. No donor or Git database required."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -24,6 +25,14 @@ def main():
           'macos':run(['sw_vers']),'target':'arm64-apple-ios16.4','mode':config['mode'],
           'proof_id':config['proof_id'],'source_revision':config['source_revision'],
           'transferred_inputs':config['inputs']}
+    expected=config['toolchain']
+    if info['xcode'] != 'Xcode '+expected['xcode_version']+'\nBuild version '+expected['xcode_build']:
+        raise ValueError('Selected Xcode does not match native/apple-toolchain.json: '+info['xcode'])
+    if info['sdk_version'] != expected['iphoneos_sdk']:
+        raise ValueError('Selected iPhoneOS SDK does not match the pinned toolchain')
+    info['runner_image']=dict(version=os.environ.get('ImageVersion'),name=os.environ.get('ImageOS'))
+    info['github_run']=dict(id=os.environ.get('GITHUB_RUN_ID'),attempt=os.environ.get('GITHUB_RUN_ATTEMPT'),
+                            repository=os.environ.get('GITHUB_REPOSITORY'))
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
     common=['-target','arm64-apple-ios16.4','-isysroot',sdk,'-Os','-fblocks','-Wall','-Wextra','-Werror',
             '-fvisibility=hidden','-Inative','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]

@@ -1,0 +1,100 @@
+name: Native SwiftUI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - 'native/**'
+      - 'tools/native_frontend/**'
+      - 'tools/macho.py'
+      - 'tools/workspace_paths.py'
+      - 'tests/native_frontend/**'
+      - 'tests/test_foundation_cache.py'
+      - 'tests/native/foundation*.m'
+      - 'src/**'
+      - '.github/workflows/native-swiftui.yml'
+      - 'Makefile'
+  pull_request:
+    paths:
+      - 'native/**'
+      - 'tools/native_frontend/**'
+      - 'tools/macho.py'
+      - 'tools/workspace_paths.py'
+      - 'tests/native_frontend/**'
+      - 'tests/test_foundation_cache.py'
+      - 'tests/native/foundation*.m'
+      - 'src/**'
+      - '.github/workflows/native-swiftui.yml'
+      - 'Makefile'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-swiftui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apple:
+    # Internal PRs already have a push run; fork PRs get their own read-only run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: macos-26
+    timeout-minutes: 15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile and validate Streamside components
+        run: python3 tools/native_frontend/components.py build --output "$RUNNER_TEMP/streamside-components"
+      - name: Test Foundation HTTP integration
+        run: make test-foundation-cache
+      - name: Test synthetic report comparisons
+        run: python3 -m unittest discover -s tests/native_frontend -p test_comparison.py -v
+      - name: Upload distributable components
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftui-components-${{ github.sha }}
+          path: ${{ runner.temp }}/streamside-components/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve bounded failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftui-failure-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/streamside-components/failure.json
+            ${{ runner.temp }}/streamside-components/*/build.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  abi:
+    needs: apple
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install unicorn==2.1.4
+      - uses: actions/download-artifact@v4
+        with:
+          name: swiftui-components-${{ github.sha }}
+          path: ${{ runner.temp }}/streamside-components
+      - name: Verify component identities and Apple-compiled Swift ABI calls
+        run: |
+          python3 tools/native_frontend/components.py verify --output "$RUNNER_TEMP/streamside-components"
+          SSN_ABI_OBJECT="$RUNNER_TEMP/streamside-components/native/apple-abi.o" python3 -m unittest discover -s tests/native_frontend -p test_abi.py -v
+      - name: Test component admission
+        run: python3 -m unittest discover -s tests/native_frontend -p test_components.py -v
+      - name: Test native diagnostic core
+        run: python3 -m unittest discover -s tests/native_frontend -p test_core.py -v

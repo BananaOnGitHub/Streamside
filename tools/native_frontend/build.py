@@ -17,6 +17,7 @@ from workspace_paths import ARTIFACTS_DIR
 from macho import inject_load_dylib, loaded_dylibs, encryption_ids, dylib_id
 from probes import patch, generate_header
 from validate import validate_abi
+from identity import source_identity
 
 FRAMEWORK = 'StreamsideNativeProof'
 LOAD = f'@rpath/{FRAMEWORK}.framework/{FRAMEWORK}'
@@ -24,16 +25,6 @@ LOAD = f'@rpath/{FRAMEWORK}.framework/{FRAMEWORK}'
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
-
-
-def source_identity(frontend="swiftui"):
-    h = hashlib.sha256(frontend.encode()+b"\0")
-    h.update((ROOT/"tools/workspace_paths.py").read_bytes())
-    for directory in ['native', 'tools/native_frontend']:
-        for path in sorted((ROOT / directory).rglob('*')):
-            if path.is_file() and path.suffix in {'.c', '.h', '.m', '.swift', '.json', '.py', '.tbd'}:
-                h.update(str(path.relative_to(ROOT)).encode() + b'\0' + path.read_bytes())
-    return h.hexdigest()
 
 
 def donor(ipa, plan):

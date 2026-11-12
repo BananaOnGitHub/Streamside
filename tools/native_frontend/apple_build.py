@@ -2,7 +2,6 @@
 
 Uses SSH's existing configuration. Never opens, copies or changes key files.
 """
-import hashlib
 import io
 import json
 from pathlib import Path
@@ -14,17 +13,8 @@ import tarfile
 
 def compile_apple(root,directory,mode,proof,revision,host):
     if not re.fullmatch(r'[A-Za-z0-9_.@-]+',host):raise ValueError('Invalid SSH host alias')
-    inputs={}
-    names=['native/'+name for name in ['SSNCore.c','SSNCore.h','SSNIntegration.c','SSNIntegration.h',
-           'SSNAccount.c','SSNSwiftABI.h','SSNObjC.h','SSNNativeBridge.h','SSNNativeBridge.m']]
-    names += [str(p.relative_to(root)) for p in sorted((root/'native/swift').glob('*.swift'))]
-    names += ['tools/native_frontend/apple_worker.py','tests/native_frontend/abi_calls.c',
-              'tests/native_frontend/swift/ModelsTests.swift']
-    for name in names:inputs[name]=(root/name).read_bytes()
-    inputs['generated/SSNBuild.h']=(directory/'SSNBuild.h').read_bytes()
-    config=dict(mode=mode,proof_id=proof,source_revision=revision,
-                inputs={n:hashlib.sha256(b).hexdigest() for n,b in inputs.items()})
-    inputs['config.json']=(json.dumps(config,indent=2)+'\n').encode()
+    from apple_inputs import build_inputs
+    inputs=build_inputs(root,directory/'SSNBuild.h',mode,proof,revision)
     buffer=io.BytesIO()
     with tarfile.open(fileobj=buffer,mode='w:gz') as tar:
         for name,data in inputs.items():

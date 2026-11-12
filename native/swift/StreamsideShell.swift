@@ -135,9 +135,7 @@ private struct AccountSettings: View {
                     }
                     VStack(alignment: .leading, spacing: 10) {
                         LabeledContent("Live ring cycle", value: LivePingCycle.label(index: pingIndex))
-                        Slider(value: Binding(get: { Double(LivePingCycle.normalized(pingIndex)) }, set: { pingIndex = Int($0.rounded()) }), in: 0...6, step: 1)
-                            .accessibilityLabel("Live ring cycle")
-                            .accessibilityValue(LivePingCycle.label(index: pingIndex))
+                        CycleSlider(index: $pingIndex)
                         HStack(spacing: 0) {
                             ForEach(LivePingCycle.labels, id: \.self) { label in
                                 Text(label).font(.caption2).frame(maxWidth: .infinity)

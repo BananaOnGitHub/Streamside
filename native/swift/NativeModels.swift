@@ -159,3 +159,24 @@ enum LivePingCycle {
         return ((time.truncatingRemainder(dividingBy: cycle) + cycle).truncatingRemainder(dividingBy: cycle)) / cycle
     }
 }
+
+// Selection changes, rather than raw drag callbacks, are the haptic boundary.
+// The extra 0.12-stop dead band prevents repeated toggling at a midpoint.
+struct CycleDetentSelection {
+    private(set) var index: Int
+    init(index: Int) { self.index = LivePingCycle.normalized(index) }
+    mutating func move(to position: Double) -> Bool {
+        guard position.isFinite else { return false }
+        let bounded = min(6, max(0, position))
+        let candidate = Int(bounded.rounded())
+        guard candidate != index, abs(bounded - Double(index)) >= 0.62 else { return false }
+        index = candidate
+        return true
+    }
+    mutating func step(increasing: Bool) -> Bool {
+        let next = increasing ? min(6, index + 1) : max(0, index - 1)
+        guard next != index else { return false }
+        index = next
+        return true
+    }
+}

@@ -100,6 +100,29 @@ import Foundation
         precondition(LivePingCycle.progress(at: 2.5, cycle: 2.5) == 0)
         precondition(LivePingCycle.progress(at: -1.25, cycle: 2.5) == 0.5)
         precondition(LivePingCycle.progress(at: .infinity, cycle: 0) == 0)
+        // A held endpoint must never produce repeated accepted selections.
+        for endpoint in [0, 6] {
+            var detent = CycleDetentSelection(index: endpoint)
+            var ticks = 0
+            for step in 0..<1000 {
+                let offset = Double(step % 7 - 3) * 0.025
+                if detent.move(to: Double(endpoint) + offset) { ticks += 1 }
+                precondition(!detent.step(increasing: endpoint == 6))
+            }
+            precondition(ticks == 0 && detent.index == endpoint, "Endpoint jitter emitted a tick")
+        }
+        var detent = CycleDetentSelection(index: 2)
+        precondition(!detent.move(to: 2.5))
+        precondition(detent.move(to: 2.63) && detent.index == 3)
+        for position in [2.48, 2.52, 2.4, 2.6] { precondition(!detent.move(to: position)) }
+        precondition(detent.move(to: 2.37) && detent.index == 2)
+        precondition(detent.move(to: 100) && detent.index == 6)
+        precondition(!detent.move(to: 100) && !detent.move(to: .infinity) && !detent.move(to: .nan))
+        precondition(detent.move(to: -100) && detent.index == 0)
+        for value in 1...6 { precondition(detent.step(increasing: true) && detent.index == value) }
+        precondition(!detent.step(increasing: true))
+        for value in (0...5).reversed() { precondition(detent.step(increasing: false) && detent.index == value) }
+        precondition(!detent.step(increasing: false))
         print("PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy")
     }
 }

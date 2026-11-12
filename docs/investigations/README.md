@@ -62,3 +62,5 @@ and updating navigation.
 - [Silent account updates and compact title popover](SWIFTUI_SILENT_REFRESH.md) — follow-up to the failed background-continuity device check.
 
 - [Native live-list interaction polish](SWIFTUI_LIVE_LIST_POLISH.md) — truncation-aware haptics, Settings and configurable live-ring animation.
+
+- [Cycle slider endpoint feedback correction](SWIFTUI_CYCLE_SLIDER_FIX.md) — deduplicated selection ticks and endpoint/midpoint jitter regression checks.

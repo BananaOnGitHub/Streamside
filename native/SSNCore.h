@@ -6,7 +6,7 @@ typedef struct { const char *name,*image; uintptr_t offset; uint32_t opcode; boo
 typedef struct { const char *name; uintptr_t cave,slot; } SSNImageSpec;
 #include "SSNBuild.h"
 enum { SSN_RESTORING, SSN_SIGNED_OUT, SSN_LOADING_ACCOUNT, SSN_LOADING_FOLLOWS,
-       SSN_READY, SSN_EMPTY, SSN_REQUEST_FAILED, SSN_ABI_FAILED, SSN_SESSION_CHANGED, SSN_MONITOR_FAILED };
+       SSN_READY, SSN_EMPTY, SSN_REQUEST_FAILED, SSN_ABI_FAILED, SSN_SESSION_CHANGED, SSN_MONITOR_FAILED, SSN_FEED_FAILED };
 void ssn_core_start(const char *directory);
 void ssn_probe_hit(unsigned index);
 void ssn_arm_image(unsigned index, bool valid);

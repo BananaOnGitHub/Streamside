@@ -137,3 +137,15 @@ supplied native variant. Pure Swift tests also exercise optional struct, nil, UR
 and Date Foundation bridging used by the mapper. No interface or runtime guard
 policy changed. This supersedes the initial in-progress component build for
 packaging; final CI and artifact identities are recorded below when available.
+
+
+### Feed failure boundary
+
+A follow-up adds explicit feed failure state 10: when currentUser has verified the
+account but feed retrieval fails or times out, the account remains available and
+the list shows a retry state. Native account-change notifications still immediately
+clear account/list presentation. ABI/mapping faults remain failures; an empty result
+is not substituted for a failed request. Existing state numbers are unchanged.
+The refresh indicator's wait bound covers both sequential native request stages.
+Restricted preview placeholders use one eye-slash symbol. Earlier in-progress
+component builds are superseded; final packaging requires this follow-up revision.

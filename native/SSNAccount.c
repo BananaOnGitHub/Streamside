@@ -190,7 +190,15 @@ static void poll(void *context) {
     id promise=active_promise; active_promise=nil;
     if(!done) v0(promise,"requestCancel");
     if(!authorized()||error||!done||!(checking_follows?kind(value,"NSArray"):kind(value,"NSDictionary"))) {
-        clear(); ssn_service(atomic_load(&mapping_fault)?SSN_ABI_FAILED:(authorized()?SSN_REQUEST_FAILED:SSN_SIGNED_OUT),0);
+        bool broken=atomic_load(&mapping_fault)||ssn_failed();
+#if SSN_SWIFTUI
+        if(checking_follows && account && authorized() && !broken) {
+            /* A failed feed request does not erase the preceding verified
+             * account. Native account-change signals still clear everything. */
+            objc_release(channels);channels=nil;ssn_service(SSN_FEED_FAILED,0);
+        } else
+#endif
+        { clear();ssn_service(broken?SSN_ABI_FAILED:(authorized()?SSN_REQUEST_FAILED:SSN_SIGNED_OUT),0); }
     } else if(checking_follows) {
         channels=objc_retain(value); ssn_service(num(channels,"count")?SSN_READY:SSN_EMPTY,(unsigned)num(channels,"count"));
     } else {

@@ -81,8 +81,8 @@ final class NativeServices: ObservableObject, AccountService {
         defer { isRefreshing = false; refreshGate.finish() }
         bridge.refresh(); reloadSnapshot()
         // Donor requests own cancellation and the 30s service timeout. This only
-        // keeps the standard pull-to-refresh indicator alive until they settle.
-        for _ in 0..<320 {
+        // covers both sequential native stages while keeping the indicator alive.
+        for _ in 0..<640 {
             if !state.isBusy { break }
             do { try await Task.sleep(nanoseconds: 100_000_000) } catch { break }
         }

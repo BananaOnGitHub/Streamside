@@ -34,6 +34,10 @@ import Foundation
             precondition(!AuthenticationReturn.shouldReturn(session: NativeServiceState(phase: phase).session))
         }
         precondition(!AuthenticationReturn.shouldReturn(session: .signingOut))
+        var feedFailure = NativeServiceState(phase: 10, account: account, channels: channels)
+        feedFailure.enforceSessionBoundary()
+        precondition(feedFailure.session == .authenticated && feedFailure.account == account && feedFailure.channels.isEmpty)
+        precondition(NativeServiceState(phase: 10).session == .failure)
         // Exercise the Foundation optional/value bridging used by the native
         // mapper, without assuming Optional, Date or URL memory layouts.
         struct CategoryFixture: Equatable { let title: String; let code: Int }

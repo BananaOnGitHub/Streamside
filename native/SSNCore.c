@@ -52,7 +52,8 @@ const char *ssn_state_text(void) {
         "Checking existing Twitch account…","Loading followed channels…","Followed channels loaded",
         "No followed channels returned","Native request failed; session not verified",
         "Native service compatibility check failed; requests disabled","Account changed; old results cleared",
-        "Runtime monitoring incomplete; native requests paused"};
+        "Runtime monitoring incomplete; native requests paused",
+        "Account verified; followed-channel request failed"};
     unsigned s=ssn_state(); return s<sizeof(text)/sizeof(*text)?text[s]:"Unknown state";
 }
 void ssn_service(unsigned s,unsigned count) { atomic_store(&state,s); atomic_store(&rows,count); }

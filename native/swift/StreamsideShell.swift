@@ -15,6 +15,9 @@ struct StreamsideShell: View {
                     Section {
                         if services.state.phase == 3 {
                             ProgressView("Loading followed channels")
+                        } else if services.state.phase == 10 {
+                            Label("Couldn’t load followed channels", systemImage: "exclamationmark.triangle")
+                            Button("Try again") { Task { await services.refresh() } }
                         } else if feed.live.isEmpty {
                             Label("No followed channels are live right now", systemImage: "moon")
                                 .foregroundStyle(.secondary)

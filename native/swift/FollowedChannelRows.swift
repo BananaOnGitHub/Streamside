@@ -6,13 +6,14 @@ private struct RemoteChannelImage: View {
     let images: ChannelImageCache
     let generation: UInt64
     var avatar = false
+    var restricted = false
     @State private var image: UIImage?
     private var requestID: String { "\(generation)|\(url?.absoluteString ?? "")" }
     var body: some View {
         ZStack {
             Color(uiColor: .secondarySystemBackground)
             if let image { Image(uiImage: image).resizable().scaledToFill() }
-            else { Image(systemName: avatar ? "person.fill" : "photo").foregroundStyle(.secondary) }
+            else { Image(systemName: avatar ? "person.fill" : restricted ? "eye.slash" : "photo").foregroundStyle(.secondary) }
         }
         .clipped()
         .task(id: requestID) {
@@ -49,16 +50,11 @@ struct LiveChannelRow: View {
         .accessibilityValue("Live")
     }
     private var thumbnail: some View {
-        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation)
+        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, restricted: channel.thumbnailRestricted)
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .overlay(alignment: .bottomTrailing) {
                 if let started = channel.startedAt {
                     StreamTimePill(startedAt: started, active: scenePhase == .active).padding(4)
-                }
-            }
-            .overlay {
-                if channel.thumbnailRestricted {
-                    Image(systemName: "eye.slash").foregroundStyle(.secondary)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))

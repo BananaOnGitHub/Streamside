@@ -29,7 +29,7 @@ class Comparison(unittest.TestCase):
         self.previous['probes']['rn_factory']=1
         self.assertTrue(compare(self.baseline,self.native,self.previous)['failures'])
     def test_different_build_donor_device_and_failed_account_reject(self):
-        for key,value in [('proof_id','different'),('donor_sha256','different'),('hardware','different'),('account_list_state',6),('armed_mask',7),('failures',1)]:
+        for key,value in [('proof_id','different'),('donor_sha256','different'),('hardware','different'),('account_list_state',6),('account_list_state',10),('armed_mask',7),('failures',1)]:
             native=copy.deepcopy(self.native);native[key]=value
             with self.subTest(key=key):self.assertTrue(compare(self.baseline,native,self.previous)['failures'])
 

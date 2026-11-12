@@ -49,7 +49,7 @@ enum SessionPresentation: Equatable {
         switch phase {
         case 1: return .signedOut
         case 2: return .checkingAccount
-        case 3, 4, 5: return hasAccount ? .authenticated : .failure
+        case 3, 4, 5, 10: return hasAccount ? .authenticated : .failure
         case 6: return .failure
         case 7, 9: return .unavailable
         default: return .restoring

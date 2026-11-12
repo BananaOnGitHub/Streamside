@@ -48,7 +48,9 @@ TwitchAnalyticsCore and these inspected boundaries:
 - Thumbnails is returned as three direct words. Its indexed URL getter takes the
   size tag before these words and writes an indirect Optional<URL> result. The
   inspected enum descriptor maps tiny/small/medium/large to tags 0/1/2/3.
-  Profiles request small images and live previews medium images.
+  Profiles prefer small images and live previews medium images; a missing variant
+  falls back to another URL supplied by the native Thumbnails value. No CDN path
+  or image size is synthesized from a username.
 - Native `currentUserCanWatch` and `thumbnailBlurReason` are preserved. The latter
   enum's actual case order is sexualThemes, adultContent, blurNotRequired, unknown;
   only tag 2 with watch permission supplies a preview URL. Restricted previews
@@ -124,3 +126,14 @@ elapsed formatting and the image URL policy. Apple CI compilation and these mode
 tests, final linking/packaging, and actual device feed/image/accessibility behavior
 are pending at the initial implementation commit. Synthetic fixtures are confined
 to tests and are not successful authenticated device results.
+
+
+### Sparse-thumbnail follow-up
+
+The initial source is `439440c129848dffcdf30b0ae77f668e847c9b2a`.
+Before packaging, image selection was hardened for sidebar responses containing
+only some native size variants. Missing preferred small/medium URLs now use another
+supplied native variant. Pure Swift tests also exercise optional struct, nil, URL
+and Date Foundation bridging used by the mapper. No interface or runtime guard
+policy changed. This supersedes the initial in-progress component build for
+packaging; final CI and artifact identities are recorded below when available.

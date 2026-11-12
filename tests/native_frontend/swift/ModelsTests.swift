@@ -34,6 +34,16 @@ import Foundation
             precondition(!AuthenticationReturn.shouldReturn(session: NativeServiceState(phase: phase).session))
         }
         precondition(!AuthenticationReturn.shouldReturn(session: .signingOut))
+        // Exercise the Foundation optional/value bridging used by the native
+        // mapper, without assuming Optional, Date or URL memory layouts.
+        struct CategoryFixture: Equatable { let title: String; let code: Int }
+        let category = CategoryFixture(title: "Fixture", code: 1)
+        let boxedCategory = Optional.some(category) as AnyObject
+        let absentCategory = Optional<CategoryFixture>.none as AnyObject
+        precondition(boxedCategory as? CategoryFixture == category)
+        precondition(absentCategory is NSNull)
+        precondition((Date(timeIntervalSince1970: 100) as AnyObject) is NSDate)
+        precondition((Optional.some(URL(string: "https://static-cdn.jtvnw.net/image.jpg")!) as AnyObject) is NSURL)
         var gate = RefreshGate()
         precondition(gate.begin(now: 100))
         precondition(!gate.begin(now: 106), "Concurrent refresh bypassed the gate")

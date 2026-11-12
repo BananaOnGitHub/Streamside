@@ -50,14 +50,20 @@ static id string_value(StringGetter getter,const void *value,size_t limit) {
 }
 static id image_url(const void *value,ThumbnailsGetter getter,uint8_t size) {
     Words3 thumbnails=getter(value);
-    void *url=storage(url_optional);
-    if(!url) { release_value(&thumbnails,thumb_type); return nil; }
-    thumbnail_url(url,size,thumbnails.a,thumbnails.b,thumbnails.c);
-    id result=bridge(url,url_optional); dispose(url,url_optional);
-    release_value(&thumbnails,thumb_type);
-    id text=kind(result,"NSURL")?m0(result,"absoluteString"):nil;
-    text=kind(text,"NSString")&&num(text,"length")<=2048?objc_retain(text):nil;
-    objc_release(result); return text;
+    /* Sidebar fragments can supply fewer variants than a full channel query.
+     * Prefer the row-sized native URL, then use another supplied native size. */
+    uint8_t sizes[4]={size,size==1?0:1,size==1?2:0,3};
+    id text=nil;
+    for(unsigned i=0;i<4 && !text;i++) {
+        void *url=storage(url_optional);
+        if(!url) break;
+        thumbnail_url(url,sizes[i],thumbnails.a,thumbnails.b,thumbnails.c);
+        id result=bridge(url,url_optional);dispose(url,url_optional);
+        id candidate=kind(result,"NSURL")?m0(result,"absoluteString"):nil;
+        if(kind(candidate,"NSString")&&num(candidate,"length")<=2048) text=objc_retain(candidate);
+        objc_release(result);
+    }
+    release_value(&thumbnails,thumb_type);return text;
 }
 
 static bool initialize(PairMeta promise,const void *error) {

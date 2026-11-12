@@ -28,7 +28,7 @@ endpoint overdrag and non-finite coordinates cannot accept a new selection.
 There is exactly one explicit UISelectionFeedbackGenerator.selectionChanged call
 per accepted and committed selection. No feedback is sent for grabbing a thumb,
 stationary holds, release, duplicate callbacks or an attempted VoiceOver adjustment
-past an endpoint. Only the first touch prepares feedback; prepare does not request
+past an endpoint. Touch start and accepted transitions prepare feedback; prepare does not request
 a pulse. Fast movement can skip unselected intermediate stops rather than queueing
 a burst of ticks. Apple's [selection feedback guidance](https://developer.apple.com/documentation/uikit/uiselectionfeedbackgenerator)
 is the public API boundary; actual motor output is device/system dependent.
@@ -49,3 +49,65 @@ production selection functions in both builds. These are acceptance/feedback-gat
 checks, not physical Taptic measurements or actual drag-gesture execution. Apple
 compilation and replacement packaging are pending at the initial implementation
 checkpoint. Physical endpoint holding/jittering still requires the device test.
+
+
+## Successful build and packages
+
+Compiled/packaged source: `866bd92d7322d71cc7413d82a7a1e49298e1666f`.
+[Artifact receipts](SWIFTUI_CYCLE_SLIDER_FIX_ARTIFACTS.json) record proof, exact
+source/donor/toolchain identities, independently verified IPA hashes and framework/
+modified-image/manifest hashes. Outputs remain outside the source checkout.
+
+[Apple Actions 43324820685](https://github.com/BananaOnGitHub/Streamside/actions/runs/43324820685)
+succeeded with pinned Xcode 26.6 / 17F113, Swift 6.3.3 and iPhoneOS SDK 26.5.
+Both frameworks compiled/linked and passed signature verification. Both Apple
+model programs passed the new endpoint/midpoint acceptance tests, and existing
+real UIKit ownership, clock, title-measurement and haptic-pattern fixtures passed.
+ABI 12, component admission 9, core 8, Foundation 1 and synthetic comparison 5
+checks passed. Local native checks passed 47/47.
+
+[Linux Actions 43324820563](https://github.com/BananaOnGitHub/Streamside/actions/runs/43324820563)
+succeeded: 224 tests, 220 passed and four skipped (Apple Foundation/ImageIO and
+missing legacy donor/Hermes runner). Documentation checks pass. Neither this
+workflow nor the simulator measures actual Taptic output or replays finger input
+through the new SwiftUI gesture. Physical endpoint validation remains pending.
+
+Local assembly re-admitted the exact Twitch 32.0 donor, 40 native ABI entries and
+unchanged 25 probes, verified retained donor contents and unchanged HBC, and checked
+output ZIP/images. No donor, IPA or signing credential went to public CI. Both
+IPAs require Feather signing with the established application/keychain identity.
+Public release documentation and earlier trial outcomes remain unchanged.
+
+Reproduction (source/proof-compatible checkout, empty external output):
+
+```sh
+gh run download 43324820685 --name swiftui-components-866bd92d7322d71cc7413d82a7a1e49298e1666f --dir ../artifacts/ci/866bd92d7322d71cc7413d82a7a1e49298e1666f
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/866bd92d7322d71cc7413d82a7a1e49298e1666f
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/866bd92d7322d71cc7413d82a7a1e49298e1666f --mode both --output ../artifacts/native-frontend/swiftui/cycle-slider-rebuild
+```
+
+Rebuild the pinned source workflow after component expiration. Replacement
+assemblies receive their own identities; earlier hashes are not overwritten.
+
+## Device regression check
+
+1. Sign/install the matching baseline with Feather, open Twitch and export reports.
+   Replace it with the native IPA using the same identity. The new source proof
+   needs its own baseline positive control.
+2. Open Settings. Drag to 0.5s, hold and move slightly for several seconds, then
+   repeat at Off. An actual arrival at a changed selection should tick once;
+   holding/jittering/releasing there should not tick again. Touching an endpoint
+   already selected should have no selection feedback at all.
+3. Move between adjacent stops and jitter around a midpoint. Expect one tick per
+   accepted new stop with no threshold chatter. Verify all labels/choices still
+   select correctly and survive reopening. VoiceOver attempts beyond the ends
+   should not request another selection tick. Reduce Motion must keep the control
+   greyed/disabled and preserve the saved choice.
+4. Check title-preview haptics still work separately, then refresh and background/
+   return and export. Require calibrated/armed monitoring, root ownership 1, zero
+   failures and zero guarded RN/Hermes/worklet entry counts. Preserve reports and
+   the observed reproduction if the endpoint motor spam persists.
+
+No new device success is claimed until that endpoint hold-and-jitter check is
+performed. The fix removes the automatic stepped-control feedback path and tests
+its owned selection gate; it does not assert an SDK-internal haptic trace.

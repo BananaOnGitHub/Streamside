@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "source_revision": "866bd92d7322d71cc7413d82a7a1e49298e1666f",
+  "packaging_revision": "866bd92d7322d71cc7413d82a7a1e49298e1666f",
+  "proof_id": "7fb3db6e53bc12db9ddcfe538d74bc009badc2590703221f18895e72d6418b9d",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "inspection": {
+    "abi_entries": 40,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "component_manifest_sha256": "89156b077b9043de46ad6e8d7110f23199d410b27d002279346bb0cb090b2c5e",
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/cycle-slider-866bd92",
+  "local_full_manifest_sha256": "fddbe56fe7ebff07be1eac68050e3a8cbe64ff56004dbc9c3a6a0aab4f5481f6",
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "validation": {
+    "host_native": {
+      "run": 47,
+      "passed": 47
+    },
+    "apple_model_tests": {
+      "baseline": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+      "native": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy"
+    },
+    "uikit_simulator": {
+      "baseline": {
+        "title_interaction_receipt": {
+          "title_measurement": true,
+          "haptic_pattern": true
+        },
+        "clock_receipt": {
+          "passed": true,
+          "ticking": true,
+          "paused": true,
+          "resumed": true
+        },
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 0,
+          "blocked": 0,
+          "failures": 0
+        }
+      },
+      "native": {
+        "title_interaction_receipt": {
+          "title_measurement": true,
+          "haptic_pattern": true
+        },
+        "clock_receipt": {
+          "passed": true,
+          "ticking": true,
+          "paused": true,
+          "resumed": true
+        },
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 1,
+          "blocked": 2,
+          "failures": 0
+        }
+      }
+    },
+    "apple_abi": {
+      "run": 12,
+      "passed": 12
+    },
+    "component_admission": {
+      "run": 9,
+      "passed": 9
+    },
+    "core": {
+      "run": 8,
+      "passed": 8
+    },
+    "foundation": {
+      "run": 1,
+      "passed": 1
+    },
+    "comparison": {
+      "run": 5,
+      "passed": 5
+    },
+    "linux": {
+      "run": 224,
+      "passed": 220,
+      "skipped": 4
+    },
+    "docs": {
+      "errors": 0
+    }
+  },
+  "workflow_runs": {
+    "swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43324820685",
+    "linux": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43324820563"
+  },
+  "artifacts": {
+    "baseline": {
+      "bytes": 196635102,
+      "sha256": "b7c2736cb49e512f0fb59daf559603db12a8f2cfc6e34605510c129e24f94d1d",
+      "framework_sha256": "6ce665dfb999e78d9558ae41a20cc7b3f8d722b4af1900c4016bd04c1c9035dc",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "8d7b23607333a90c2ed158b856bf02fe6804a760cf16489924038618bd513368",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "1aeb431a366b6d6cd48b3a0502e55cfb3465020d344afee42ee6c0aaa73ee0de",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "d051fe819486004e2a26210e4bc4c099da0214e3e9f13279206144567d914a28",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "e83a1861c3d9ee9a7841039ae374c4c48e43e564aac3304fbb2549b2baeafa8c"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+    },
+    "native": {
+      "bytes": 196644199,
+      "sha256": "0d568a1ecad356b9f6fb5259e4a604dd58ea5f47464c3ca0a638c5f640c012eb",
+      "framework_sha256": "f0faa72d5613d36a2152fb95ce1ef2425331426a1da45d0c18976ed13ec3498d",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "68b4cc5dacac42d588325cf0d0af1f1c723a8f2dff9d344b3ddb30a68713edfc",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "1aeb431a366b6d6cd48b3a0502e55cfb3465020d344afee42ee6c0aaa73ee0de",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "d051fe819486004e2a26210e4bc4c099da0214e3e9f13279206144567d914a28",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "e83a1861c3d9ee9a7841039ae374c4c48e43e564aac3304fbb2549b2baeafa8c"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+    }
+  },
+  "workflow_logs": {
+    "linux": {
+      "path": "../artifacts/ci/cycle-slider-linux-workflow.log",
+      "sha256": "39d943323b142a1189186784c7c193c18bb072a539331f34793a9aa676dec487"
+    },
+    "swiftui": {
+      "path": "../artifacts/ci/cycle-slider-swiftui-workflow.log",
+      "sha256": "d79b9c5a91861283b09bb36d6073000f7177d76c973e626f7642c736d39da140"
+    }
+  }
+}

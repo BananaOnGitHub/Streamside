@@ -1,0 +1,372 @@
+{
+  "schema": 1,
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "native_image_sha256": "f256c2a8576f4bafb26d4bd8f3c36470c0a6fc779e06fd1e254bbefa059875f1",
+  "scope": "Static class metadata only; does not identify the route executed on device",
+  "classes": [
+    {
+      "class": "_TtC6Twitch13LoggedOutView",
+      "address": "0x105daaec8",
+      "field_names": [
+        "delegate",
+        "isLoading",
+        "backgroundView",
+        "$__lazy_storage_$_headerVerticalCenteringView",
+        "headerStackView",
+        "titleLabel",
+        "buttonsStackView",
+        "$__lazy_storage_$_loginButton",
+        "$__lazy_storage_$_signupButton",
+        "contentStackView",
+        "_contentStackViewHeightConstraint",
+        "$__lazy_storage_$__contentStackViewFullHeightConstraint",
+        "$__lazy_storage_$__contentStackViewMinimumHeightConstraint",
+        "$__lazy_storage_$_loadingIndicator"
+      ],
+      "methods": [
+        {
+          "selector": "initWithCoder:",
+          "encoding": "@24@0:8@16",
+          "address": "0x1032eec30"
+        },
+        {
+          "selector": "traitCollectionDidChange:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1032eec54"
+        },
+        {
+          "selector": "loginTapped",
+          "encoding": "v16@0:8",
+          "address": "0x1032eefb0"
+        },
+        {
+          "selector": "signupTapped",
+          "encoding": "v16@0:8",
+          "address": "0x1032ef124"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1032ef24c"
+        }
+      ],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch14LoginNetworker",
+      "address": "0x105eb6068",
+      "field_names": [
+        "_accountManager",
+        "_analyticsController",
+        "calendar",
+        "_graphQL",
+        "httpCookieStorage",
+        "_httpManager",
+        "_mobileShield",
+        "accessTokenSubscription"
+      ],
+      "methods": [],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch16TabBarController",
+      "address": "0x105d83840",
+      "field_names": [
+        "themeManager",
+        "_accountManager",
+        "_appRouter",
+        "debugViewController",
+        "didSelectViewController",
+        "$__lazy_storage_$_createTabNewIndicator",
+        "hasAppeared"
+      ],
+      "methods": [
+        {
+          "selector": "delegate",
+          "encoding": "@16@0:8",
+          "address": "0x1021713a8"
+        },
+        {
+          "selector": "setDelegate:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1021713b4"
+        },
+        {
+          "selector": "supportedInterfaceOrientations",
+          "encoding": "Q16@0:8",
+          "address": "0x1021713b8"
+        },
+        {
+          "selector": "tw_floatingViewLayoutInsets",
+          "encoding": "{UIEdgeInsets=dddd}16@0:8",
+          "address": "0x102171440"
+        },
+        {
+          "selector": "childViewControllerForStatusBarStyle",
+          "encoding": "@16@0:8",
+          "address": "0x102173bf0"
+        },
+        {
+          "selector": "childViewControllerForStatusBarHidden",
+          "encoding": "@16@0:8",
+          "address": "0x102173bec"
+        },
+        {
+          "selector": "childViewControllerForHomeIndicatorAutoHidden",
+          "encoding": "@16@0:8",
+          "address": "0x102173bf4"
+        },
+        {
+          "selector": "selectedViewController",
+          "encoding": "@16@0:8",
+          "address": "0x1021716bc"
+        },
+        {
+          "selector": "setSelectedViewController:",
+          "encoding": "v24@0:8@16",
+          "address": "0x10217170c"
+        },
+        {
+          "selector": "initWithCoder:",
+          "encoding": "@24@0:8@16",
+          "address": "0x102171b8c"
+        },
+        {
+          "selector": "themeChanged",
+          "encoding": "v16@0:8",
+          "address": "0x102171c78"
+        },
+        {
+          "selector": "viewDidLayoutSubviews",
+          "encoding": "v16@0:8",
+          "address": "0x102172198"
+        },
+        {
+          "selector": "viewWillAppear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x1021722f4"
+        },
+        {
+          "selector": "viewWillDisappear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x102172414"
+        },
+        {
+          "selector": "presentViewController:animated:completion:",
+          "encoding": "v36@0:8@16B24@?28",
+          "address": "0x1021725a4"
+        },
+        {
+          "selector": "setNeedsStatusBarAppearanceUpdate",
+          "encoding": "v16@0:8",
+          "address": "0x10217265c"
+        },
+        {
+          "selector": "setNeedsUpdateOfHomeIndicatorAutoHidden",
+          "encoding": "v16@0:8",
+          "address": "0x102172670"
+        },
+        {
+          "selector": "setNeedsUpdateOfScreenEdgesDeferringSystemGestures",
+          "encoding": "v16@0:8",
+          "address": "0x102172684"
+        },
+        {
+          "selector": "traitCollectionDidChange:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1021727b8"
+        },
+        {
+          "selector": "tabBarController:shouldSelectViewController:",
+          "encoding": "B32@0:8@16@24",
+          "address": "0x102172988"
+        },
+        {
+          "selector": "tabBarController:didSelectViewController:",
+          "encoding": "v32@0:8@16@24",
+          "address": "0x1021729e4"
+        },
+        {
+          "selector": "initWithTabs:",
+          "encoding": "@24@0:8@16",
+          "address": "0x102173264"
+        },
+        {
+          "selector": "initWithNibName:bundle:",
+          "encoding": "@32@0:8@16@24",
+          "address": "0x102173290"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1021732bc"
+        }
+      ],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch23LoggedOutCategoriesView",
+      "address": "0x105daa280",
+      "field_names": [
+        "rowsAndLabels",
+        "contentStackView"
+      ],
+      "methods": [
+        {
+          "selector": "initWithCoder:",
+          "encoding": "@24@0:8@16",
+          "address": "0x1032cf860"
+        },
+        {
+          "selector": "traitCollectionDidChange:",
+          "encoding": "v24@0:8@16",
+          "address": "0x1032cf9dc"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1032cfee8"
+        }
+      ],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch23LoggedOutViewController",
+      "address": "0x105d9bb58",
+      "field_names": [
+        "delegate",
+        "authorizationStatus",
+        "$__lazy_storage_$_loggedOutView",
+        "signupWebviewViewController",
+        "hasOfferedPasskeyLogin",
+        "passkeyLogger",
+        "_accountManager",
+        "_graphQLAPI",
+        "_graphQL",
+        "_analyticsController",
+        "passkeyLoginSessionID",
+        "passkeyAnalytics",
+        "initialAuthMode",
+        "hiddenSilentLoginPortal",
+        "didCompleteSilentPasskeyLogin",
+        "loginAnalyticsController",
+        "location"
+      ],
+      "methods": [
+        {
+          "selector": "authorizationController:didCompleteWithAuthorization:",
+          "encoding": "v32@0:8@16@24",
+          "address": "0x102e93730"
+        },
+        {
+          "selector": "authorizationController:didCompleteWithError:",
+          "encoding": "v32@0:8@16@24",
+          "address": "0x102e939bc"
+        },
+        {
+          "selector": "presentationAnchorForAuthorizationController:",
+          "encoding": "@24@0:8@16",
+          "address": "0x102e93a18"
+        },
+        {
+          "selector": "refreshAuthorizationStatus",
+          "encoding": "v16@0:8",
+          "address": "0x102e90500"
+        },
+        {
+          "selector": "viewDidLoad",
+          "encoding": "v16@0:8",
+          "address": "0x102e907ac"
+        },
+        {
+          "selector": "viewWillAppear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x102e90a90"
+        },
+        {
+          "selector": "viewDidAppear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x102e91530"
+        },
+        {
+          "selector": "transitionToLoggedOutView",
+          "encoding": "v16@0:8",
+          "address": "0x102e924f4"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x102e92850"
+        }
+      ],
+      "class_methods": []
+    },
+    {
+      "class": "_TtC6Twitch31LoginVerificationViewController",
+      "address": "0x105d3a928",
+      "field_names": [
+        "delegate",
+        "isLoading",
+        "verificationError",
+        "showResendCodeButton",
+        "scrollableStackContainerView",
+        "standardTextField",
+        "titleLabel",
+        "subtitleLabel",
+        "spacer",
+        "$__lazy_storage_$_linkableInfoTextView",
+        "passportErrorView",
+        "buttonStackView",
+        "submitButton",
+        "resendCodeButton",
+        "$__lazy_storage_$_loadingView",
+        "loginUserInfo",
+        "fetchedUserID",
+        "context",
+        "source",
+        "undeleteUser",
+        "_accountManager",
+        "_analyticsController"
+      ],
+      "methods": [
+        {
+          "selector": "submitButtonTapped",
+          "encoding": "v16@0:8",
+          "address": "0x100656904"
+        },
+        {
+          "selector": "resendCodeButtonTapped",
+          "encoding": "v16@0:8",
+          "address": "0x100656c38"
+        },
+        {
+          "selector": "dismissKeyboard",
+          "encoding": "v16@0:8",
+          "address": "0x100656c6c"
+        },
+        {
+          "selector": "viewDidLoad",
+          "encoding": "v16@0:8",
+          "address": "0x1006536bc"
+        },
+        {
+          "selector": "viewDidAppear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x100654ad8"
+        },
+        {
+          "selector": "viewWillDisappear:",
+          "encoding": "v20@0:8B16",
+          "address": "0x1006552bc"
+        },
+        {
+          "selector": ".cxx_destruct",
+          "encoding": "v16@0:8",
+          "address": "0x1006559a8"
+        }
+      ],
+      "class_methods": []
+    }
+  ],
+  "native_services_executed": false
+}

@@ -47,11 +47,14 @@ compile-time native mode changed to baseline within the process.
 The host only replaces the window root during the initial scene connection. The
 validated donor logout adapter preserves Twitch's native account/routing behavior;
 that routing can subsequently take presentation away from the Streamside root.
+The precise root/window/process mechanism has not been captured yet; a root
+replacement is a supported explanation rather than a measured device fact.
 The old window gesture was installed only in baseline mode. The native toolbar's
 Diagnostics button therefore disappears with its root. This explains the evidence
 gap without assuming a JavaScript runtime.
 
-Static inspection of the exact donor additionally confirms native Objective-C
+[Static inspection of the exact donor](evidence/swiftui-device-1/native-login-metadata.json)
+additionally confirms native Objective-C
 metadata for `LoggedOutViewController`, `LoggedOutView`, `LoggedOutCategoriesView`,
 `TabBarController`, `LoginNetworker` and `LoginVerificationViewController` in Twitch.
 These classes make a native legacy route plausible; their presence does not map

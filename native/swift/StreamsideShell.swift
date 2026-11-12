@@ -15,16 +15,13 @@ struct StreamsideShell: View {
                     Section {
                         if services.state.phase == 3 {
                             ProgressView("Loading followed channels")
-                        } else if services.state.phase == 10 {
-                            Label("Couldn’t load followed channels", systemImage: "exclamationmark.triangle")
-                            Button("Try again") { Task { await services.refresh() } }
-                        } else if feed.live.isEmpty {
+                        } else if feed.live.isEmpty && services.state.phase != 10 {
                             Label("No followed channels are live right now", systemImage: "moon")
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(feed.live) { channel in
                                 LiveChannelRow(channel: channel, images: services.images,
-                                               generation: services.imageGeneration)
+                                               generation: services.imageGeneration, clock: services.clock)
                             }
                         }
                     } header: { Text("Live · \(feed.live.count)") }
@@ -40,6 +37,12 @@ struct StreamsideShell: View {
                     }
                 } else {
                     Section { AccountPanel(services: services) }
+                }
+                if services.state.session == .authenticated && services.state.phase == 10 {
+                    Section {
+                        Text(services.state.channels.isEmpty ? "Couldn’t load followed channels." : "Couldn’t update followed channels. Showing the last loaded list.")
+                        Button("Try again") { Task { await services.refresh() } }
+                    }
                 }
                 if let message = services.refreshMessage {
                     Section { Text(message).font(.footnote).foregroundStyle(.secondary) }
@@ -119,9 +122,17 @@ private struct AccountSettings: View {
     @ObservedObject var services: NativeServices
     @Environment(\.dismiss) private var dismiss
     @State private var diagnostics = false
+    @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     var body: some View {
         NavigationStack {
             List {
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    Section("Followed streams") {
+                        Toggle("Two-line stream titles", isOn: $twoLineTitles)
+                        Text("Hold a stream title for one second to read it in full.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
                 Section("Account") { AccountPanel(services: services) }
                 Section { Button("Diagnostics") { diagnostics = true } }
             }

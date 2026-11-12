@@ -63,17 +63,18 @@ struct NativeServiceState {
     var channels: [FollowedChannel] = []
     var signOutState = 0
     var canSignOut = false
+    var refreshing = false
     var session: SessionPresentation {
         SessionPresentation.resolve(phase: phase, hasAccount: account != nil, signOutState: signOutState)
     }
     var isBusy: Bool {
-        session == .checkingAccount || session == .restoring || session == .signingOut || phase == 3
+        refreshing || session == .checkingAccount || session == .restoring || session == .signingOut || phase == 3
     }
     // State changes immediately remove presentation data; a saved diagnostic
     // file from another process can never supply account/channel UI content.
     mutating func enforceSessionBoundary() {
         if session != .authenticated { account = nil; channels = [] }
-        if phase != 4 && phase != 5 { channels = [] }
+        if phase != 4 && phase != 5 && phase != 10 { channels = [] }
     }
 }
 
@@ -134,5 +135,12 @@ enum ChannelImagePolicy {
         guard url.scheme == "https", url.user == nil, url.password == nil,
               url.port == nil || url.port == 443, let host = url.host?.lowercased() else { return false }
         return host == "jtvnw.net" || host.hasSuffix(".jtvnw.net")
+    }
+}
+
+enum FeedPreferences {
+    static let twoLineTitlesKey = "dev.streamside.feed.twoLineTitles"
+    static func titleLines(twoLines: Bool, phone: Bool, accessible: Bool) -> Int {
+        accessible ? 3 : (phone && twoLines ? 2 : 1)
     }
 }

@@ -107,6 +107,8 @@ def verify(directory, revision=None):
         uikit = compiler.get("uikit_ownership_tests", {})
         if uikit.get("result") != "PASS" or uikit.get("receipt") != dict(passed=True, native=mode=="native", blocked=2 if mode=="native" else 0, failures=0):
             raise ValueError("UIKit ownership simulator validation missing or failed")
+        if uikit.get("clock_receipt") != dict(passed=True, ticking=True, paused=True, resumed=True):
+            raise ValueError("UIKit lifecycle clock validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
         if plistlib.loads((framework / "Info.plist").read_bytes()) != framework_info(mode, manifest["proof_id"], expected_revision):
             raise ValueError("Framework metadata mismatch")
@@ -144,7 +146,9 @@ def build(output):
                 (local / "build.log").write_bytes((stage / "output/build.log").read_bytes() + (result.stdout if result.returncode else b""))
             if result.returncode:
                 raise RuntimeError("Apple compilation/linking/validation failed for " + mode + "; see " + str(local / "build.log"))
-            framework = local / (FRAMEWORK + ".framework")
+            if uikit.get("clock_receipt") != dict(passed=True, ticking=True, paused=True, resumed=True):
+            raise ValueError("UIKit lifecycle clock validation missing or failed")
+        framework = local / (FRAMEWORK + ".framework")
             framework.mkdir()
             for name in FILES - {"SSNBuild.h", "build.log", f"{FRAMEWORK}.framework/Info.plist", f"{FRAMEWORK}.framework/{FRAMEWORK}"}:
                 shutil.copy2(stage / "output" / name, local / name)

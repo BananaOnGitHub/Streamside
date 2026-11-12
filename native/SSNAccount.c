@@ -142,6 +142,7 @@ static bool initialize(void) {
     graph=objc_retain(m0((id)g,"sharedInstance"));
     available=graph!=nil; return available;
 }
+bool ssn_account_refreshing(void) { return active_promise!=nil; }
 id ssn_account_info(void) { return account; }
 id ssn_followed_channels(void) { return channels; }
 static bool authorized(void) { return m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth")!=nil; }
@@ -195,14 +196,23 @@ static void poll(void *context) {
         if(checking_follows && account && authorized() && !broken) {
             /* A failed feed request does not erase the preceding verified
              * account. Native account-change signals still clear everything. */
-            objc_release(channels);channels=nil;ssn_service(SSN_FEED_FAILED,0);
+            ssn_service(SSN_FEED_FAILED,(unsigned)num(channels,"count"));
         } else
 #endif
         { clear();ssn_service(broken?SSN_ABI_FAILED:(authorized()?SSN_REQUEST_FAILED:SSN_SIGNED_OUT),0); }
     } else if(checking_follows) {
-        channels=objc_retain(value); ssn_service(num(channels,"count")?SSN_READY:SSN_EMPTY,(unsigned)num(channels,"count"));
+        objc_release(channels); channels=objc_retain(value); ssn_service(num(channels,"count")?SSN_READY:SSN_EMPTY,(unsigned)num(channels,"count"));
     } else {
-        account=objc_retain(value); ssn_service(SSN_LOADING_FOLLOWS,0);
+        /* Current-user verification must not transfer another account's feed.
+         * Authoritative account notifications already cancel and clear; this
+         * comparison also covers an account change observed by refresh first. */
+        id previous=m1(account,"objectForKey:",ns("username"));
+        id next=m1(value,"objectForKey:",ns("username"));
+        if(!previous || !((BOOL(*)(id,SEL,id))objc_msgSend)(previous,ss("isEqualToString:"),next)) {
+            objc_release(channels); channels=nil;
+        }
+        objc_release(account); account=objc_retain(value);
+        if(!channels) ssn_service(SSN_LOADING_FOLLOWS,0);
         if(!request(true)) { clear(); ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); }
     }
     objc_release(promise); ssn_report(); ssn_ui_changed();
@@ -210,9 +220,16 @@ static void poll(void *context) {
 void ssn_account_refresh(void) {
     if(!SSN_NATIVE) return;
     if(!ssn_armed()) { ssn_failure(0); ssn_service(SSN_MONITOR_FAILED,0); ssn_ui_changed(); ssn_report(); return; }
-    ssn_account_changed();
+    /* Ordinary foreground/manual refresh keeps verified presentation data.
+     * Real account events still use ssn_account_changed(), which clears it.
+     * Incrementing the request generation rejects cancelled/stale completions. */
+    generation++; waiting_ticks=0;
+    if(active_promise) { v0(active_promise,"requestCancel"); objc_release(active_promise); active_promise=nil; }
     if(!initialize()) { ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); }
-    else if(!authorized()) ssn_service(SSN_SIGNED_OUT,0);
-    else { ssn_service(SSN_LOADING_ACCOUNT,0); if(!request(false)) { ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); } }
+    else if(!authorized()) { clear(); ssn_service(SSN_SIGNED_OUT,0); }
+    else {
+        if(!account) ssn_service(SSN_LOADING_ACCOUNT,0);
+        if(!request(false)) { clear(); ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); }
+    }
     ssn_ui_changed(); ssn_report();
 }

@@ -56,7 +56,7 @@ static void check_signout(void) {
     BOOL masked=signout_state!=0 || ssn_state()==SSN_SIGNED_OUT || ssn_state()==SSN_SESSION_CHANGED;
     return @{@"phase":@(ssn_state()),@"account":masked?@{}:(ssn_account_info()?:@{}),
              @"channels":masked?@[]:(ssn_followed_channels()?:@[]),
-             @"nativeMode":@(SSN_NATIVE),@"rootOwner":@(owner),@"signOutState":@(signout_state),
+             @"refreshing":@(ssn_account_refreshing()),@"nativeMode":@(SSN_NATIVE),@"rootOwner":@(owner),@"signOutState":@(signout_state),
              @"canSignOut":@(SSN_NATIVE && ssn_armed() && !ssn_failed() && ssn_logout_target()!=nil),
              @"summary":@(summary),@"runtimeCounts":runtime};
 }

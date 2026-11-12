@@ -36,8 +36,23 @@ import Foundation
         precondition(!AuthenticationReturn.shouldReturn(session: .signingOut))
         var feedFailure = NativeServiceState(phase: 10, account: account, channels: channels)
         feedFailure.enforceSessionBoundary()
-        precondition(feedFailure.session == .authenticated && feedFailure.account == account && feedFailure.channels.isEmpty)
+        precondition(feedFailure.session == .authenticated && feedFailure.account == account && feedFailure.channels == channels)
         precondition(NativeServiceState(phase: 10).session == .failure)
+        var refreshing = NativeServiceState(phase: 4, account: account, channels: channels, refreshing: true)
+        refreshing.enforceSessionBoundary()
+        precondition(refreshing.isBusy && refreshing.account == account && refreshing.channels == channels)
+        refreshing.phase = 8 // Authoritative account invalidation always wins.
+        refreshing.enforceSessionBoundary()
+        precondition(refreshing.account == nil && refreshing.channels.isEmpty)
+        for phone in [true, false] {
+            for twoLines in [true, false] {
+                precondition(FeedPreferences.titleLines(twoLines: twoLines, phone: phone, accessible: false) == (phone && twoLines ? 2 : 1))
+                precondition(FeedPreferences.titleLines(twoLines: twoLines, phone: phone, accessible: true) == 3)
+            }
+        }
+        let start = Date(timeIntervalSince1970: 100)
+        precondition(StreamElapsed.seconds(startedAt: start, now: start.addingTimeInterval(1)) == 1)
+        precondition(StreamElapsed.seconds(startedAt: start, now: start.addingTimeInterval(81)) == 81, "Resume must include elapsed background time")
         // Exercise the Foundation optional/value bridging used by the native
         // mapper, without assuming Optional, Date or URL memory layouts.
         struct CategoryFixture: Equatable { let title: String; let code: Int }

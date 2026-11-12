@@ -1,0 +1,30 @@
+{
+  "zip_sha256": "29594347bf6564f77044853a78ab263df792556ac8fe2cf485e83507e577d294",
+  "reports": {
+    "baseline-previous.json": {
+      "sha256": "5e134eda9bafe3c8e9b5f344ba35cb41de4bfa12d1d4af184f97cf6ec26e1473"
+    },
+    "native-latest.json": {
+      "sha256": "56d0f58a4e8d02d7cb9095f30a72badd24de5e92e30b61335d1b8354ddb091d5"
+    },
+    "baseline-latest.json": {
+      "sha256": "d24854fd05c4b25342ef0e828883cd47a86454c72178b482427f89d8b997ac6a"
+    },
+    "native-previous.json": {
+      "sha256": "e2524359225948b8b65836af49b60fe0395ace2e261677a201b3a6b38dde1c9e"
+    }
+  },
+  "reviewed_source": "d534f4e7d9e2a72696513c05961b6f383bdbcb35",
+  "proof_id": "670f17c623c4de9593f516e9973f36a8fbf0894244a21b1e43d5beaae90ba05e",
+  "matching_positive_control": true,
+  "all_25_native_counts_zero": true,
+  "native_ready_count": 100,
+  "native_foregrounds": 4,
+  "native_backgrounds": 2,
+  "excluded_restart_report": "native-previous.json belongs to 1c059c1 / f072ea03, not the current feed build",
+  "user_observed_failures": [
+    "Timers not ticking or animating",
+    "Feed disappears during background/foreground refresh"
+  ],
+  "scope": "Snapshot assertions and user observations; no matching feed-build restart evidence or visual timer verification"
+}

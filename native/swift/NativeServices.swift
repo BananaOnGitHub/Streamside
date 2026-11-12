@@ -28,6 +28,7 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var imageGeneration: UInt64 = 0
     private var refreshGate = RefreshGate()
     let images = ChannelImageCache()
+    let clock = StreamClock()
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
 
@@ -41,6 +42,7 @@ final class NativeServices: ObservableObject, AccountService {
     func reloadSnapshot() {
         let snapshot = bridge.snapshot()
         var next = NativeServiceState()
+        next.refreshing = (snapshot["refreshing"] as? NSNumber)?.boolValue ?? false
         next.phase = (snapshot["phase"] as? NSNumber)?.intValue ?? 9
         next.signOutState = (snapshot["signOutState"] as? NSNumber)?.intValue ?? 0
         next.canSignOut = (snapshot["canSignOut"] as? NSNumber)?.boolValue ?? false

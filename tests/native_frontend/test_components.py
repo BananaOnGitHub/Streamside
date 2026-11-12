@@ -42,7 +42,7 @@ class ComponentAdmission(unittest.TestCase):
             compiler = dict(source_revision=self.revision, proof_id=proof, mode=mode, transferred_inputs=config["inputs"],
                             xcode="Xcode " + pin["xcode_version"] + "\nBuild version " + pin["xcode_build"], sdk_version=pin["iphoneos_sdk"],
                             model_tests="PASS: synthetic fixture",
-                            uikit_ownership_tests=dict(result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
+                            uikit_ownership_tests=dict(clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
             (directory / "compiler.json").write_text(json.dumps(compiler))
             (directory / (FRAMEWORK + ".framework") / "Info.plist").write_bytes(plistlib.dumps(framework_info(mode, proof, self.revision)))
             (directory / (FRAMEWORK + ".framework") / FRAMEWORK).write_bytes(binary)

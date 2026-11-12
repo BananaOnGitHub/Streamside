@@ -56,3 +56,5 @@ and updating navigation.
 - [SwiftUI authentication ownership trial](SWIFTUI_AUTHENTICATION_OWNERSHIP.md): persistent window ownership and native account-state handoff. [Device review](SWIFTUI_NATIVE_DEVICE_REVIEW_3.md) records the successful native login return, zero monitored runtime entries, restart restoration, and subsequent background/foreground evidence.
 
 - [Native followed-stream list trial](SWIFTUI_FOLLOWED_STREAMS.md): authenticated live/offline feed, compact SwiftUI rows, bounded image refresh and accessible duration pills.
+
+- [Native feed continuity and title controls](SWIFTUI_FEED_CONTINUITY.md) — timer/background fixes, device evidence, and title preferences.

@@ -88,6 +88,16 @@ def test_window_ownership(root, output, config, run):
          'native/SSNWindowOwnership.m','tests/native_frontend/ownership_test.m',
          '-framework','UIKit','-framework','Foundation','-o',str(bundle/'OwnershipTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(bundle)])
+    clock_bundle=stage/'ClockTest.app';clock_bundle.mkdir()
+    clock_id='dev.streamside.clocktest'
+    clock_plist=plistlib.loads((bundle/'Info.plist').read_bytes())
+    clock_plist.update(CFBundleIdentifier=clock_id,CFBundleExecutable='ClockTest',CFBundleName='ClockTest')
+    (clock_bundle/'Info.plist').write_bytes(plistlib.dumps(clock_plist))
+    run(['xcrun','swiftc','-target',architecture+'-apple-ios16.4-simulator','-sdk',simulator_sdk,
+         '-swift-version','5','-warnings-as-errors','-parse-as-library',
+         'native/swift/StreamClock.swift','tests/native_frontend/swift/ClockTests.swift',
+         '-o',str(clock_bundle/'ClockTest')])
+    run(['codesign','--force','--sign','-','--timestamp=none',str(clock_bundle)])
     runtimes=json.loads(run(['xcrun','simctl','list','runtimes','--json']))['runtimes']
     runtime=next(r['identifier'] for r in runtimes if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-'))
     types=json.loads(run(['xcrun','simctl','list','devicetypes','--json']))['devicetypes']
@@ -102,7 +112,13 @@ def test_window_ownership(root, output, config, run):
         receipt=json.loads((container/'Documents/ownership-test.json').read_text())
         if receipt != dict(passed=True,native=config['mode']=='native',blocked=2 if config['mode']=='native' else 0,failures=0):
             raise ValueError('UIKit ownership test failed: '+str(receipt))
-        return dict(result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+        run(['xcrun','simctl','install',device,str(clock_bundle)])
+        run(['xcrun','simctl','launch','--console',device,clock_id])
+        clock_container=Path(run(['xcrun','simctl','get_app_container',device,clock_id,'data']))
+        clock_receipt=json.loads((clock_container/'Documents/clock-test.json').read_text())
+        if clock_receipt != dict(passed=True,ticking=True,paused=True,resumed=True):
+            raise ValueError('UIKit lifecycle clock test failed: '+str(clock_receipt))
+        return dict(clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
     finally:
         run(['xcrun','simctl','shutdown',device])
         run(['xcrun','simctl','delete',device])

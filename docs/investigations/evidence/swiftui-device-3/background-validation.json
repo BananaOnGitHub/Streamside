@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "background_foreground_followup_verified",
+  "source_revision": "1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035",
+  "proof_id": "f072ea03b43c891af10727131e4f8f024ec5917efc44cebf07719940ebc73ce6",
+  "report": {
+    "name": "native-latest 6.json",
+    "bytes": 1319,
+    "sha256": "982be9174c32f0dc170f5834d4ecc169c64d103701d1038ee087b4ecec2cd2cc"
+  },
+  "baseline_report": "baseline-latest.json",
+  "previously_reviewed_restart_report": "native-latest 5.json",
+  "observed": {
+    "launch_sequence": 15,
+    "uptime_ms": 68279,
+    "foregrounds": 3,
+    "backgrounds": 2,
+    "root_owner": 1,
+    "navigation_guard_armed": 1,
+    "account_list_state": 4,
+    "returned_channel_count": 50,
+    "phys_footprint_bytes": 79087984
+  },
+  "validated": {
+    "matching_source_donor_device_and_positive_control": true,
+    "all_images_armed": true,
+    "no_failures": true,
+    "all_25_monitored_native_entry_counts_zero": true,
+    "account_and_50_follows_ready": true,
+    "swiftui_root_retained": true,
+    "background_and_foreground_observed_in_same_process": true
+  },
+  "original_strict_sequence_comparison": {
+    "status": "evidence_incomplete_or_failed",
+    "failures": [
+      "Foreground/background/reopen sequence incomplete"
+    ],
+    "limits": [
+      "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+    ],
+    "memory_difference_bytes": -293503408,
+    "constructor_to_active_difference_ms": -406
+  },
+  "resolution": "The missing background/foreground observation is now supplied in launch 15. Login/refresh is evidenced in launch 13, full restart in launch 14, and background/foreground in launch 15. This is combined matching-build scenario coverage, not a claim that the original single-sequence comparison passed.",
+  "limits": [
+    "This report does not contain a login presentation or verified-return event; those remain evidenced by launch 13.",
+    "No subsequent restart after launch 15 was supplied or requested. The earlier launch 13 to 14 restart evidence is preserved.",
+    "Other providers, challenges, manual cancellation/retry, invalid sessions and other scenes/window replacement remain outside this tested scope."
+  ]
+}

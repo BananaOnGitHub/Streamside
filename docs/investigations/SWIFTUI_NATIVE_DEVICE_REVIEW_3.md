@@ -1,5 +1,9 @@
 # SwiftUI device review: persistent ownership during authentication
 
+The later [background/foreground follow-up](#backgroundforeground-follow-up-report-6)
+resolves the missing event observation. The initial review and its original strict
+comparison outcome are preserved below.
+
 This reviews the [authentication ownership trial](SWIFTUI_AUTHENTICATION_OWNERSHIP.md),
 compiled and packaged at `1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035`, proof
 `f072ea03b43c891af10727131e4f8f024ec5917efc44cebf07719940ebc73ce6`.
@@ -107,3 +111,43 @@ established here. No Streamside playback/chat feature is implemented or accepted
 
 This review changes evidence only. It preserves the source, probe guard policy,
 packaged IPA identities and strict comparison requirements; no new build is needed.
+
+
+## Background/foreground follow-up: report 6
+
+The supplied [report 6](<evidence/swiftui-device-3/native-latest 6.json>) records
+launch 15 at 68.279 seconds, with **3 foreground activations and 2 background
+transitions in that process**. Its SHA-256 is
+`982be9174c32f0dc170f5834d4ecc169c64d103701d1038ee087b4ecec2cd2cc`.
+The [follow-up validation receipt](evidence/swiftui-device-3/background-validation.json)
+preserves its identity, exact assertions and the relationship to earlier evidence.
+
+The report matches the source, proof, donor, device and OS of the positive-control
+baseline and reports 1–5. All four probe images are armed (`15`), baseline calibration
+is confirmed, failure bits are zero and **all 25 monitored entry counts are zero**.
+SwiftUI remains the root (`1`), the navigation guard remains armed (`1`), and the
+native account/list state is ready (`4`) with 50 followed channels. Its five
+navigation event counts are zero: this process records restored-account use and
+lifecycle transitions; it does not repeat the earlier login presentation. The
+physical footprint snapshot is 79087984 bytes, approximately 75.42 MiB, without a
+new performance claim.
+
+This resolves the missing instrumented background/foreground observation. Taken
+together, the matching-build reports cover the observed logout/login/refresh in
+launch 13, account/follows restoration after full close/reopen in launch 14, and
+background/foreground use with restored account/follows in launch 15. The monitored
+runtime guards and zero entry counts remain intact in each supplied native sample.
+No new package or repeat login is needed for this follow-up check.
+
+The original strict single-sequence comparison remains unchanged: its launch 13
+input still lacks a background count and its exact incomplete result remains in
+`validation.json`. This review does not change counters, reverse process order,
+weaken that checker, or describe the separate scenarios as one continuous launch.
+No later restart after launch 15 is supplied. The background gap is resolved by a
+separate matching-build device observation, alongside the already retained restart
+evidence, rather than by claiming the old comparison has become a pass.
+
+The broader limits above still apply: other providers, verification/recovery,
+manual cancellation/retry, invalid-session behavior, account switching and other
+scenes or whole-window replacement are not established. This follow-up changes
+only investigation records and preserves the original source and IPA identities.

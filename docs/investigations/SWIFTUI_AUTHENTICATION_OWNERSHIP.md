@@ -184,3 +184,14 @@ positive control. A distinct restart restores the account and follows as well.
 The original build-time device-pending status above is preserved. The full strict
 lifecycle comparison remains incomplete because the supplied snapshots contain no
 recorded background transition; the review preserves that gap and the exact result.
+
+
+### Background follow-up
+
+[Report 6 and its review](SWIFTUI_NATIVE_DEVICE_REVIEW_3.md#backgroundforeground-follow-up-report-6)
+subsequently supply the missing event observation: launch 15 records two background
+transitions and three foreground activations, with restored account/50 follows,
+SwiftUI ownership, complete calibrated monitoring, no failures and all 25 entry
+counts zero. The matching-build tested scenarios now cover login/refresh, restart,
+and background/foreground in separate launches. The original single-sequence
+comparison's incomplete result is preserved; it is not rewritten into a pass.

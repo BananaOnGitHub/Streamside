@@ -17,7 +17,7 @@ class SwiftCalls(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temp=tempfile.TemporaryDirectory();directory=Path(cls.temp.name)
-        zig=Path(os.environ.get('ZIG',ROOT/'build/toolchains/zig-0.14.0/zig')).resolve()
+        zig=Path(os.environ.get('ZIG',ROOT.parent/'toolchains/zig-0.14.0/zig')).resolve()
         prebuilt=os.environ.get('SSN_ABI_OBJECT')
         if prebuilt:
             cls.object=Path(prebuilt).resolve()

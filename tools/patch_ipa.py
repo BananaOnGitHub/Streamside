@@ -13,12 +13,14 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
+    from .workspace_paths import BUILD_DIR
     from .app_icons import apply_icon_info, load_icons
     from .artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from .macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
     from .verify_ipa import LEGACY_FILES, LEGACY_FRAMEWORKS, verify_archive
     from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:  # Direct execution from tools/patch_ipa.py.
+    from workspace_paths import BUILD_DIR
     from app_icons import apply_icon_info, load_icons
     from artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact
     from macho import MachOError, encryption_ids, inject_load_dylib, remove_load_dylibs
@@ -178,8 +180,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="decrypted Twitch IPA supplied by the user")
     default_framework = Path(FRAMEWORK_NAME)
-    if not default_framework.is_dir() and (Path("build") / FRAMEWORK_NAME).is_dir():
-        default_framework = Path("build") / FRAMEWORK_NAME
+    if not default_framework.is_dir():
+        default_framework = BUILD_DIR / FRAMEWORK_NAME
     parser.add_argument("--framework", type=Path, default=default_framework)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--force", action="store_true")

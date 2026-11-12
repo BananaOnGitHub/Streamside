@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "base_revision": "319a2f61c4ff3861394382fecd665a1382a4facc",
+  "host_tests": {
+    "total": 223,
+    "passed": 221,
+    "skipped": 2,
+    "skips": [
+      "Apple Foundation",
+      "Apple ImageIO"
+    ]
+  },
+  "native_frontend_tests": {
+    "total": 25,
+    "passed": 25
+  },
+  "output_path_tests": {
+    "total": 3,
+    "passed": 3,
+    "included_in_host_total": true
+  },
+  "hermes_both_profiles": true,
+  "snapshot_acceptance_count": 32,
+  "native_build_and_verification": true,
+  "deb_variants": 2,
+  "release_packaging": true,
+  "device_validation": "Not run; original downloaded candidates unchanged",
+  "ci_execution": "Not run; workflow paths updated, local corresponding steps passed",
+  "generated_artifacts": [
+    {
+      "path": "artifacts/dist/SHA256SUMS",
+      "bytes": 485,
+      "sha256": "ebea3338aeae829ddf8908a6cad6b760e77c2e903342f7e745b1d8b9fd5e86ae"
+    },
+    {
+      "path": "artifacts/dist/Streamside-3.1.0.zip",
+      "bytes": 2775766,
+      "sha256": "12e6f2e6f83346d5bd4df73451f444d280e2c9f68cf7428247146059ba39a2a8"
+    },
+    {
+      "path": "artifacts/dist/Streamside.dylib",
+      "bytes": 726096,
+      "sha256": "f21082911849c3dff82da63959132c23034e06835b2eb71c0cd58532a1192195"
+    },
+    {
+      "path": "artifacts/dist/Streamside.dylib.macho.json",
+      "bytes": 1085,
+      "sha256": "e5730d4b88109e4b887561d1c19959694ffefb4ba18b250a41017c98189847e7"
+    },
+    {
+      "path": "artifacts/dist/Streamside.framework.zip",
+      "bytes": 281978,
+      "sha256": "c180069fc76b5e21921e49fcecc1c6b3050332c5ad1251b99b0c94c7b98d1ce2"
+    },
+    {
+      "path": "artifacts/dist/dev.tas.twitchadblock_3.1.0_iphoneos-arm.deb",
+      "bytes": 220144,
+      "sha256": "822c1e3bbe51d80a8adfa2abc86cdb885b6383ac86194ab1012b748e1f0d86da"
+    },
+    {
+      "path": "artifacts/dist/dev.tas.twitchadblock_3.1.0_iphoneos-arm64.deb",
+      "bytes": 220368,
+      "sha256": "700f9debe311bf54a559c9735d548866a773eaf0f7fc5313bd3feee2e4eab5f6"
+    }
+  ]
+}

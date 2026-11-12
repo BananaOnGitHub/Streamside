@@ -3,6 +3,9 @@ set -eu
 
 cd "$(dirname "$0")"
 
+ARTIFACTS_ROOT="$(python3 -c 'from tools.workspace_paths import ARTIFACTS_DIR; print(ARTIFACTS_DIR)')"
+NATIVE_BUILD_ROOT="$ARTIFACTS_ROOT/build"
+
 ZIG="${ZIG:-$(command -v zig || true)}"
 if [ -z "$ZIG" ]; then
     echo "error: Zig 0.14.0 is required (set ZIG=/path/to/zig)" >&2
@@ -12,8 +15,8 @@ fi
 ZIG_REAL="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$ZIG")"
 ZIG_LIB="${ZIG_LIB:-$(dirname "$ZIG_REAL")/lib}"
 IOS_STUBS="${IOS_STUBS:-$PWD/stubs}"
-LOCAL_CACHE="${ZIG_LOCAL_CACHE_DIR:-$PWD/build/cache}"
-GLOBAL_CACHE="${ZIG_GLOBAL_CACHE_DIR:-$PWD/build/global-cache}"
+LOCAL_CACHE="${ZIG_LOCAL_CACHE_DIR:-$NATIVE_BUILD_ROOT/cache}"
+GLOBAL_CACHE="${ZIG_GLOBAL_CACHE_DIR:-$NATIVE_BUILD_ROOT/global-cache}"
 EMOTE_DIAGNOSTIC="${EMOTE_DIAGNOSTIC:-0}"
 IMAGE_DEMAND_DIAGNOSTIC="${IMAGE_DEMAND_DIAGNOSTIC:-0}"
 case "$IMAGE_DEMAND_DIAGNOSTIC" in 0|1) ;; *) echo 'IMAGE_DEMAND_DIAGNOSTIC must be 0 or 1' >&2; exit 1 ;; esac
@@ -22,13 +25,13 @@ case "$EMOTE_DIAGNOSTIC" in 0|1) ;; *) echo 'EMOTE_DIAGNOSTIC must be 0 or 1' >&
 # A diagnostic build cannot precede its own compiled snapshot validation.
 # This gate is independent of any request for device reports or scrolling tests.
 if [ "$IMAGE_DEMAND_DIAGNOSTIC" = 1 ]; then
-    python3 tools/validate_rn_snapshot.py --check "${RN_SNAPSHOT_VALIDATION:-$PWD/build/snapshot-validation.json}"
+    python3 tools/validate_rn_snapshot.py --check "${RN_SNAPSHOT_VALIDATION:-$NATIVE_BUILD_ROOT/snapshot-validation.json}"
 fi
 
 python3 tools/generate_investigation_registry.py --check
 python3 tools/validate_investigation_runtime.py --check "${INVESTIGATION_VALIDATION:-$PWD/diagnostics/validation/hermes-v1.json}"
 
-mkdir -p build "$LOCAL_CACHE" "$GLOBAL_CACHE"
+mkdir -p "$NATIVE_BUILD_ROOT" "$LOCAL_CACHE" "$GLOBAL_CACHE"
 
 build_binary() {
     output_path="$1"
@@ -52,18 +55,18 @@ build_binary() {
 
 # Jailbreak package: keep the clean identity and a large in-place signature
 # reservation for injection frameworks that replace the ad-hoc signature.
-build_binary build/Streamside.dylib @rpath/Streamside.dylib Streamside
-python3 tools/align_macho_segments.py build/Streamside.dylib
-python3 tools/reserve_codesign_space.py build/Streamside.dylib --size 65536
-python3 tools/verify_webp_native.py build/Streamside.dylib
-python3 tools/artifact_guard.py record build/Streamside.dylib
+build_binary "$NATIVE_BUILD_ROOT/Streamside.dylib" @rpath/Streamside.dylib Streamside
+python3 tools/align_macho_segments.py "$NATIVE_BUILD_ROOT/Streamside.dylib"
+python3 tools/reserve_codesign_space.py "$NATIVE_BUILD_ROOT/Streamside.dylib" --size 65536
+python3 tools/verify_webp_native.py "$NATIVE_BUILD_ROOT/Streamside.dylib"
+python3 tools/artifact_guard.py record "$NATIVE_BUILD_ROOT/Streamside.dylib"
 
 # Sideload package: clean identity, same normalized layout as the working build.
 # Record a fingerprint ONLY after normalization, compaction and validation.
-mkdir -p build/Streamside.framework
-build_binary build/Streamside.framework/Streamside @rpath/Streamside.framework/Streamside Streamside
-python3 tools/align_macho_segments.py build/Streamside.framework/Streamside
-python3 tools/shrink_adhoc_signature.py build/Streamside.framework/Streamside
-cp packaging/StreamsideFramework-Info.plist build/Streamside.framework/Info.plist
-python3 tools/verify_webp_native.py build/Streamside.framework/Streamside
-python3 tools/artifact_guard.py record build/Streamside.framework --framework
+mkdir -p "$NATIVE_BUILD_ROOT/Streamside.framework"
+build_binary "$NATIVE_BUILD_ROOT/Streamside.framework/Streamside" @rpath/Streamside.framework/Streamside Streamside
+python3 tools/align_macho_segments.py "$NATIVE_BUILD_ROOT/Streamside.framework/Streamside"
+python3 tools/shrink_adhoc_signature.py "$NATIVE_BUILD_ROOT/Streamside.framework/Streamside"
+cp packaging/StreamsideFramework-Info.plist "$NATIVE_BUILD_ROOT/Streamside.framework/Info.plist"
+python3 tools/verify_webp_native.py "$NATIVE_BUILD_ROOT/Streamside.framework/Streamside"
+python3 tools/artifact_guard.py record "$NATIVE_BUILD_ROOT/Streamside.framework" --framework

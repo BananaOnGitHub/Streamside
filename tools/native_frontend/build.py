@@ -13,6 +13,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
+from workspace_paths import ARTIFACTS_DIR
 from macho import inject_load_dylib, loaded_dylibs, encryption_ids, dylib_id
 from probes import patch, generate_header
 from validate import validate_abi
@@ -27,6 +28,7 @@ def sha(data):
 
 def source_identity(frontend="swiftui"):
     h = hashlib.sha256(frontend.encode()+b"\0")
+    h.update((ROOT/"tools/workspace_paths.py").read_bytes())
     for directory in ['native', 'tools/native_frontend']:
         for path in sorted((ROOT / directory).rglob('*')):
             if path.is_file() and path.suffix in {'.c', '.h', '.m', '.swift', '.json', '.py', '.tbd'}:
@@ -152,7 +154,7 @@ def main():
     parser.add_argument('--zig',default=os.environ.get('ZIG'))
     parser.add_argument('--frontend',choices=['swiftui','uikit'],default='swiftui')
     parser.add_argument('--apple-build-host',help='Existing SSH alias for the macOS Xcode builder')
-    parser.add_argument('--output',type=Path,default=ROOT/'build/native-frontend')
+    parser.add_argument('--output',type=Path,help='Output directory outside the repository; defaults under ../artifacts/native-frontend')
     parser.add_argument('--mode',choices=['baseline','native','both'],default='both')
     args=parser.parse_args()
     if args.frontend=='uikit':
@@ -164,6 +166,9 @@ def main():
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     if subprocess.check_output(['git','status','--porcelain','--untracked-files=normal'],cwd=ROOT,text=True).strip(): revision+='-dirty'
     proof=source_identity(args.frontend);plan=json.loads((ROOT/'native/twitch32.json').read_text())
+    if args.output is None: args.output=ARTIFACTS_DIR/'native-frontend'/args.frontend/(revision[:12]+'-'+proof[:12])
+    args.output=args.output.resolve()
+    if args.output==ROOT or ROOT in args.output.parents: parser.error('--output must be outside the repository')
     images=donor(args.donor,plan);args.output.mkdir(parents=True,exist_ok=True)
     manifest=dict(schema=1,proof_id=proof,source_revision=revision,donor_sha256=plan['donor_sha256'],
                   frontend=args.frontend,zig='0.14.0' if args.frontend=='uikit' else None,inspection=dict(abi_entries=len(plan['abi']),probe_entries=len(plan['probes']),

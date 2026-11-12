@@ -8,11 +8,13 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 try:
+    from .workspace_paths import BUILD_DIR
     from .app_icons import load_icons, verify_icons
     from .artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
     from .macho import LC_LOAD_DYLIB, dylib_loads, encryption_ids
     from .verify_macho import FRAMEWORK_IDENTITY
 except ImportError:
+    from workspace_paths import BUILD_DIR
     from app_icons import load_icons, verify_icons
     from artifact_guard import APP_DISPLAY_NAME, BINARY_NAME, FRAMEWORK_NAME, checked_artifact, compare_packaged
     from macho import LC_LOAD_DYLIB, dylib_loads, encryption_ids
@@ -73,7 +75,7 @@ def verify_ipa(path: Path, framework: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("ipa", type=Path)
-    parser.add_argument("--framework", type=Path, default=Path("build/Streamside.framework"))
+    parser.add_argument("--framework", type=Path, default=BUILD_DIR / "Streamside.framework")
     args = parser.parse_args()
     try:
         verify_ipa(args.ipa, args.framework)

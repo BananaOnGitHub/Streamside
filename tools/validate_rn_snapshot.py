@@ -15,6 +15,10 @@ from pathlib import Path
 import struct
 import subprocess
 import tempfile
+try:
+    from .workspace_paths import BUILD_DIR
+except ImportError:
+    from workspace_paths import BUILD_DIR
 ROOT=Path(__file__).resolve().parent.parent
 RUNTIME_COMMIT='40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c'
 DONOR_SHA='20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458'
@@ -196,6 +200,6 @@ def validate(a):
         print('Actual grafted Hermes snapshot generation and native acceptance passed; 32 bounded snapshots accepted.')
         check_gate(a.record)
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--check',type=Path);p.add_argument('--record',type=Path,default=ROOT/'build/snapshot-validation.json');p.add_argument('--donor',type=Path);p.add_argument('--zig',type=Path);p.add_argument('--hermesc',type=Path);p.add_argument('--runner',type=Path);p.add_argument('--runtime-source',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--check',type=Path);p.add_argument('--record',type=Path,default=BUILD_DIR/'snapshot-validation.json');p.add_argument('--donor',type=Path);p.add_argument('--zig',type=Path);p.add_argument('--hermesc',type=Path);p.add_argument('--runner',type=Path);p.add_argument('--runtime-source',type=Path);a=p.parse_args()
     if a.check:check_gate(a.check)
     else:validate(a)

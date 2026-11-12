@@ -20,6 +20,11 @@ except ImportError:
     from artifact_guard import (BINARY_NAME, FRAMEWORK_NAME, checked_artifact,
                                 compare_packaged, receipt_path)
 
+try:
+    from .workspace_paths import BUILD_DIR, DIST_DIR
+except ImportError:
+    from workspace_paths import BUILD_DIR, DIST_DIR
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -64,21 +69,21 @@ def checked_zip(output: Path, files: list[tuple[Path, str]],
 
 def main() -> int:
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    dylib = ROOT / "build" / "Streamside.dylib"
-    framework = ROOT / "build" / FRAMEWORK_NAME
+    dylib = BUILD_DIR / "Streamside.dylib"
+    framework = BUILD_DIR / FRAMEWORK_NAME
     framework_binary = framework / BINARY_NAME
     framework_info = framework / "Info.plist"
     if not dylib.is_file():
-        raise SystemExit("build/Streamside.dylib is missing; run make build first")
+        raise SystemExit(f"{dylib} is missing; run make build first")
     if not framework_binary.is_file() or not framework_info.is_file():
-        raise SystemExit("build/Streamside.framework is incomplete; run make build first")
+        raise SystemExit(f"{framework} is incomplete; run make build first")
     verified_dylib, _info = checked_artifact(dylib, False)
     verified_framework, verified_info = checked_artifact(framework, True)
     if plistlib.loads(verified_info).get("CFBundleShortVersionString") != version:
         raise ValueError("framework version differs from release VERSION")
 
-    dist = ROOT / "dist"
-    dist.mkdir(exist_ok=True)
+    dist = DIST_DIR
+    dist.mkdir(parents=True, exist_ok=True)
     release_dylib = dist / "Streamside.dylib"
     shutil.copy2(dylib, release_dylib)
     compare_packaged(release_dylib.read_bytes(), verified_dylib, False)
@@ -106,6 +111,7 @@ def main() -> int:
         (ROOT / "tools" / "artifact_guard.py", "tools/artifact_guard.py"),
         (ROOT / "tools" / "verify_macho.py", "tools/verify_macho.py"),
         (ROOT / "tools" / "verify_ipa.py", "tools/verify_ipa.py"),
+        (ROOT / "tools" / "workspace_paths.py", "tools/workspace_paths.py"),
         (ROOT / "tools" / "app_icons.py", "tools/app_icons.py"),
     ]
     files.extend((ROOT / "packaging" / "app-icons" / name, f"packaging/app-icons/{name}")

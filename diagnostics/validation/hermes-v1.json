@@ -37,7 +37,7 @@
     "tests/fixtures/investigation_viewport.js": "332d5a8ff75e797892be8f82d5f6cfb9262a48789759245df3803b42217e733a",
     "tests/native/hermes_snapshot_runner.cpp": "e1fe15a3857c6bc437cd3f2fc027ad0f711465d08734effc9e719f7f26d2c06b",
     "tests/native/investigation_report.c": "3687862bc1e0a2df4c4ec8d89cd007c597b9e651c41f8d2de5db2b49b0889af3",
-    "tests/test_investigation_hardening.py": "1fb97a6fb929cce21a3699e6a019a8eaa9db59f336792b732fd130ed255627ac",
+    "tests/test_investigation_hardening.py": "03ac91e8175e26c93dd5b799f59811110ca31c8d646cac2913f48ebe21fb0818",
     "tests/test_investigation_overlay.py": "5fe93b9d839ebb20697b72a3cdc9fd6ee97415c8799a8d373e650663f3f1be15",
     "tests/test_investigation_report.py": "56fba6405ab77a7cae1185d80ccb807f276b7611642fa8e40872175c314e0d77",
     "tests/test_investigation_startup.py": "6ba77755bd6b578187fe1450df2dd2c5c296a71c4b958325ed1d417d3a91dfe4",
@@ -47,7 +47,7 @@
     "tools/rn_graft.py": "edc91c7df14960e5f7591c71f45fddecdd75a84cf7c77dd5a88d1e6444a20a3d",
     "tools/validate_investigation_getters.py": "05c268d2b2885e0c6e72547d736e76167d658d0b8202496893514ebcf9ebb3cc",
     "tools/validate_investigation_runtime.py": "a92ce30da6db26c43ea08301bbae1d5db7967d701ecfdfc30002ed34623802f1",
-    "tools/validate_rn_snapshot.py": "9e1860f11a547563b798a320625d9738ca2cec207467caa1630acc73097dd442"
+    "tools/validate_rn_snapshot.py": "e151748fbbdd93008c09e77e76d9288ac0cc78bc349da50417460fcd17ee8abb"
   },
   "profiles": [
     {

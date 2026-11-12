@@ -10,7 +10,7 @@ def execute(source, linked=(), blocks=False):
     with tempfile.TemporaryDirectory() as tmp:
         path=Path(tmp)/"case.c"; exe=Path(tmp)/"case"; path.write_text(source)
         if blocks:
-            zig=os.environ.get("ZIG") or str(ROOT/"build/toolchains/zig-0.14.0/zig")
+            zig=os.environ.get("ZIG") or str(ROOT.parent/"toolchains/zig-0.14.0/zig")
             compiler=[zig,"cc","-fblocks"]
         else: compiler=["cc"]
         subprocess.run(compiler+["-std=c11","-Wall","-Wextra","-Werror","-Wno-cast-function-type",

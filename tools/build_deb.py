@@ -14,6 +14,11 @@ try:
 except ImportError:
     from artifact_guard import checked_artifact, compare_packaged
 
+try:
+    from .workspace_paths import BUILD_DIR, DIST_DIR
+except ImportError:
+    from workspace_paths import BUILD_DIR, DIST_DIR
+
 ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_ID = "dev.tas.twitchadblock"
 PACKAGE_NAME = "Twitch Streamside"
@@ -38,13 +43,13 @@ def control(version: str, architecture: str) -> str:
     )
 
 def build_variant(version: str, scheme: str, prefix: Path, architecture: str) -> Path:
-    dylib = ROOT / "build" / "Streamside.dylib"
+    dylib = BUILD_DIR / "Streamside.dylib"
     filter_plist = ROOT / "packaging" / "Streamside.plist"
     if not dylib.is_file():
-        raise SystemExit("build/Streamside.dylib is missing; run make build first")
+        raise SystemExit(f"{dylib} is missing; run make build first")
     verified_binary, _info = checked_artifact(dylib, False)
-    dist = ROOT / "dist"
-    dist.mkdir(exist_ok=True)
+    dist = DIST_DIR
+    dist.mkdir(parents=True, exist_ok=True)
     output = dist / f"{PACKAGE_ID}_{version}_{architecture}.deb"
     with tempfile.TemporaryDirectory(prefix=f"tas-{scheme}-") as directory:
         package_root = Path(directory)

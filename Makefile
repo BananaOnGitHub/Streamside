@@ -1,3 +1,8 @@
+STREAMSIDE_ARTIFACTS_DIR ?= $(abspath ../artifacts)
+export STREAMSIDE_ARTIFACTS_DIR
+NATIVE_BUILD_DIR := $(STREAMSIDE_ARTIFACTS_DIR)/build
+NATIVE_DIST_DIR := $(STREAMSIDE_ARTIFACTS_DIR)/dist
+
 .PHONY: all build test test-rn-virtualization test-foundation-cache verify clean deb release ipa docs-check
 
 all: build
@@ -23,8 +28,8 @@ test-rn-virtualization:
 	python3 tools/validate_rn_snapshot.py --donor "$(TAS_RN_DONOR)" --zig "$(ZIG)" --hermesc "$(TAS_HERMESC)" --runner "$(TAS_HERMES_SNAPSHOT_RUNNER)" --runtime-source "$(TAS_HERMES_SOURCE)"
 
 verify: build
-	python3 tools/artifact_guard.py check build/Streamside.dylib
-	python3 tools/artifact_guard.py check build/Streamside.framework --framework
+	python3 tools/artifact_guard.py check "$(NATIVE_BUILD_DIR)/Streamside.dylib"
+	python3 tools/artifact_guard.py check "$(NATIVE_BUILD_DIR)/Streamside.framework" --framework
 
 deb: verify
 	python3 tools/build_deb.py
@@ -33,11 +38,11 @@ deb: verify
 ipa: verify test
 	@test -n "$(INPUT_IPA)" || (echo 'set INPUT_IPA=/path/to/decrypted.ipa' >&2; exit 1)
 	@test -n "$(OUTPUT_IPA)" || (echo 'set OUTPUT_IPA=/path/to/output.ipa' >&2; exit 1)
-	python3 tools/patch_ipa.py "$(INPUT_IPA)" --framework build/Streamside.framework --output "$(OUTPUT_IPA)"
-	python3 tools/verify_ipa.py "$(OUTPUT_IPA)" --framework build/Streamside.framework
+	python3 tools/patch_ipa.py "$(INPUT_IPA)" --framework "$(NATIVE_BUILD_DIR)/Streamside.framework" --output "$(OUTPUT_IPA)"
+	python3 tools/verify_ipa.py "$(OUTPUT_IPA)" --framework "$(NATIVE_BUILD_DIR)/Streamside.framework"
 
 clean:
-	rm -rf build dist
+	python3 -c 'import shutil; from tools.workspace_paths import BUILD_DIR, DIST_DIR; [shutil.rmtree(p) for p in (BUILD_DIR, DIST_DIR) if p.exists()]'
 
 release: verify test deb
 	python3 tools/package_release.py

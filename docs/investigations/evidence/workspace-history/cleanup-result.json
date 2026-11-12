@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "evidence_revision": "319a2f61c4ff3861394382fecd665a1382a4facc",
+  "retained_ipa_sha256": {
+    "native-swiftui/StreamsideNativeProof-Twitch32-baseline.ipa": "e6e6a317be5f352fc2a0bbccd3dc4433e34faf2c1515cb9876fed20bccdf1b2d",
+    "native-swiftui/StreamsideNativeProof-Twitch32-native.ipa": "b9f5c836e728f82e109ed1c71679f3b3ab6de408cd86d6fd1d6c8f204b45ff9b",
+    "native-frontend-export-v3/StreamsideNativeProof-Twitch32-baseline.ipa": "128340ab2cdbab9e047f2f6c4ca016d922c6451cd72171142d7d25483c561656",
+    "native-frontend-export-v3/StreamsideNativeProof-Twitch32-native.ipa": "aa652dfa2a9b0ebedc5a8ea79a093866b9dba04f98fd10a174f9ca30c70af52c",
+    "Streamside-3.1.0-build.24-modular-diagnostics.ipa": "1d7179fc899c32c297803623a2e1808838e3262c56bded4021e00ec14e87d530"
+  },
+  "removed": [
+    {
+      "path": "artifacts/Streamside-3.1.0-build.19-modular-diagnostics.ipa",
+      "bytes": 194519142
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.20-modular-diagnostics.ipa",
+      "bytes": 194521114
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa",
+      "bytes": 194521113
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa",
+      "bytes": 194522261
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa",
+      "bytes": 194524568
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+      "bytes": 194526063
+    },
+    {
+      "path": "artifacts/checkout-build-history",
+      "bytes": 1107588163
+    },
+    {
+      "path": "artifacts/native-frontend-phase1",
+      "bytes": 220777
+    },
+    {
+      "path": "artifacts/native-frontend-export-v3/cache",
+      "bytes": 315359
+    },
+    {
+      "path": "artifacts/native-frontend-export-v3/global-cache",
+      "bytes": 35649743
+    },
+    {
+      "path": "artifacts/BUILD23_TESTING.md",
+      "bytes": 2451
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.19-modular-diagnostics.ipa.sha256",
+      "bytes": 116
+    },
+    {
+      "path": "artifacts/BUILD21_TESTING.md",
+      "bytes": 1308
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa.sha256",
+      "bytes": 116
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa.sha256",
+      "bytes": 116
+    },
+    {
+      "path": "artifacts/build21-validation.json",
+      "bytes": 1997
+    },
+    {
+      "path": "artifacts/BUILD22_TESTING.md",
+      "bytes": 1442
+    },
+    {
+      "path": "artifacts/DEVICE_TESTING.md",
+      "bytes": 1836
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.20-modular-diagnostics.ipa.sha256",
+      "bytes": 116
+    },
+    {
+      "path": "artifacts/BUILD20_TESTING.md",
+      "bytes": 1274
+    },
+    {
+      "path": "artifacts/v1-hardening-2026-10-26-validation.json",
+      "bytes": 2397
+    },
+    {
+      "path": "artifacts/build22-validation.json",
+      "bytes": 2128
+    },
+    {
+      "path": "artifacts/build19-validation.json",
+      "bytes": 2186
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa.sha256",
+      "bytes": 116
+    },
+    {
+      "path": "artifacts/build23-validation.json",
+      "bytes": 2468
+    },
+    {
+      "path": "artifacts/build20-validation.json",
+      "bytes": 1799
+    }
+  ],
+  "removed_bytes": 2310930169,
+  "compiler_path": "toolchains/zig-0.14.0/zig",
+  "repo_build_exists": false,
+  "restored": [
+    {
+      "path": "artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+      "bytes": 194526063,
+      "sha256": "1d7179fc899c32c297803623a2e1808838e3262c56bded4021e00ec14e87d530",
+      "reason": "Cleanup selection also removed intended legacy rollback. Repackaged original donor with preserved build-24 framework; restored package is byte-identical to original."
+    }
+  ],
+  "net_removed_bytes": 2116404106
+}

@@ -1,0 +1,4 @@
+dpkg-deb: building package 'dev.tas.twitchadblock' in '/home/bananas/Agent-Stuff/streamside/artifacts/dist/dev.tas.twitchadblock_3.1.0_iphoneos-arm.deb'.
+dpkg-deb: building package 'dev.tas.twitchadblock' in '/home/bananas/Agent-Stuff/streamside/artifacts/dist/dev.tas.twitchadblock_3.1.0_iphoneos-arm64.deb'.
+/home/bananas/Agent-Stuff/streamside/artifacts/dist/dev.tas.twitchadblock_3.1.0_iphoneos-arm.deb
+/home/bananas/Agent-Stuff/streamside/artifacts/dist/dev.tas.twitchadblock_3.1.0_iphoneos-arm64.deb

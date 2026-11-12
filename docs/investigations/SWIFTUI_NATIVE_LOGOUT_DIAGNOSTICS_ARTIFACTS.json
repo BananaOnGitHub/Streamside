@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "source_revision": "a454012f11c9bf47e2eea272eec8dacfc54412ca",
+  "packaging_revision": "0b3cd9d7cd82c7c046eb2e81fbb3e95651285e0c",
+  "proof_id": "c9d05e19ae05c8e63627e12221afc4c3187a4151e35b5de80df8b2223c9db808",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "component_manifest_sha256": "751f4a49d0b9b5aaf40ce4b4d51d334e4f959cbd92dfc3fc61ec39ad1940ad90",
+  "tests": {
+    "native_host_total": 35,
+    "native_host_passed": 35,
+    "swiftui_apple_compile_and_model_tests": "passed",
+    "apple_compiled_abi_tests": "passed",
+    "foundation": "passed",
+    "component_admission": "passed",
+    "linux_zig_and_docs": "passed"
+  },
+  "runs": {
+    "native_swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43146193145",
+    "linux_zig": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43146193135",
+    "docs": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43146193127"
+  },
+  "local_packaging": {
+    "retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true,
+    "framework_hashes_match_ci": true
+  },
+  "artifacts": {
+    "baseline": {
+      "path": "artifacts/native-frontend/swiftui/logout-diagnostics-a454012/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196477933,
+      "sha256": "17c85a7209dc97fe73809bb1277fcbe05e6922df23d84f9c776601af7b21837b",
+      "framework_sha256": "b7380f011819837c16b101f80c6193e337387913c093864830c0cf6fade661e0"
+    },
+    "native": {
+      "path": "artifacts/native-frontend/swiftui/logout-diagnostics-a454012/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196482220,
+      "sha256": "2dfc1a2f4ebceb5dffbd792ff88f32e3976f4f68840cdbefa032b965ec8d2083",
+      "framework_sha256": "0202506bb3432bfe2c6610b8213dcfff1b4f044854142882f5cd71135e0713b3"
+    }
+  },
+  "physical_device_validation": "Not performed for this replacement build; earlier supplied native report was captured before logout",
+  "limits": [
+    "Window gesture follows root replacement on the original window; a new window/process may require another attachment path.",
+    "Root ownership is sampled, not a runtime classifier or continuous transition trace.",
+    "Existing guards remain enforced; no native login compatibility is inferred."
+  ]
+}

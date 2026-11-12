@@ -113,3 +113,30 @@ restart, and whether normal login can become a supported native service path.
 Fresh native login and complete RN-free authentication remain unproven. The
 original [SwiftUI findings](SWIFTUI_NATIVE_FOUNDATION_TWITCH_32.md) and
 [CI validation](SWIFTUI_CI_AND_TOOLING_AUDIT.md) retain their original scopes.
+
+## Diagnostic replacement build receipt
+
+Implementation `a454012f11c9bf47e2eea272eec8dacfc54412ca`, local packaging revision
+`0b3cd9d7cd82c7c046eb2e81fbb3e95651285e0c`, proof
+`c9d05e19ae05c8e63627e12221afc4c3187a4151e35b5de80df8b2223c9db808`.
+All 35 native host tests passed, including preserved runtime-guard and privacy
+checks plus a synthetic check that root replacement and runtime counters remain
+separate facts. [SwiftUI/Apple/ABI CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43146193145),
+[Linux/Zig CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43146193135)
+and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43146193127)
+passed. The Apple job compiled and linked both modes with the pinned toolchain,
+ran model/Foundation tests and verified ad-hoc signatures; the downstream job
+ran Apple-compiled ABI, component and native-core checks. No iOS gesture/root
+takeover/login execution was tested by those checks.
+
+Ubuntu assembled both packages from the downloaded components and exact donor,
+verified retained donor entries/HBC and checked framework hashes against CI.
+[The artifact receipt](SWIFTUI_NATIVE_LOGOUT_DIAGNOSTICS_ARTIFACTS.json) records exact
+identities and pending physical-device limits. The local folder is
+`artifacts/native-frontend/swiftui/logout-diagnostics-a454012/`; Feather signing
+remains local. Prior device candidates and reports remain unchanged.
+
+| Candidate | Bytes | IPA SHA-256 |
+| --- | --- | --- |
+| Baseline | 196477933 | `17c85a7209dc97fe73809bb1277fcbe05e6922df23d84f9c776601af7b21837b` |
+| Native | 196482220 | `2dfc1a2f4ebceb5dffbd792ff88f32e3976f4f68840cdbefa032b965ec8d2083` |

@@ -20,6 +20,8 @@ void ssn_presentation(unsigned owner);
 void ssn_navigation_armed(void);
 bool ssn_navigation_guarded(void);
 void ssn_navigation_event(unsigned event);
+void ssn_account_observed(unsigned event,bool preserved);
+void ssn_account_data_cleared(void);
 bool ssn_calibrated(void);
 bool ssn_armed(void);
 bool ssn_failed(void);

@@ -1,0 +1,35 @@
+{
+  "zip_sha256": "783ffe13bcc2520e4c68e50bb30bb5a4daf7172db04c8dca3d30a5ec225c997b",
+  "reports": {
+    "baseline-previous.json": {
+      "sha256": "2ad2c63f1f887806186b8ac9996952aac998d6190d4ecf86f308f6b1e2a4b480"
+    },
+    "native-latest.json": {
+      "sha256": "c0d3b83d292f14f28cd479512cd901583febc3cf1b5a9f87a14a35d5491fe1b0"
+    },
+    "baseline-latest.json": {
+      "sha256": "5b7e12f9459594389b56aa48a83dfc65348a9f8c0788f79f4e366c621c390837"
+    },
+    "native-previous.json": {
+      "sha256": "7a6d1714a5f6f88e25e1e030ef91d8fc6e8f4b0f51311ee0ed615fe2c97610bb"
+    }
+  },
+  "reviewed_source": "cad1e034dcca4f6efb076214527656e635b7a5b9",
+  "proof_id": "93a53512e6e17a566445da550236b3ff4a2978804ddba7fd1319648f73d1562c",
+  "matching_positive_control": true,
+  "all_25_native_counts_zero": true,
+  "native_ready_count": 100,
+  "native_foregrounds": 4,
+  "native_backgrounds": 3,
+  "native_launch": 17,
+  "native_uptime_ms": 203925,
+  "user_observations": {
+    "timer_ticking_animation": "works",
+    "background_continuity": "fails; feed disappears and reloads",
+    "requested_timer_font": "system",
+    "requested_title_presentation": "small anchored popup above stream"
+  },
+  "excluded_previous_reports": "baseline-previous/native-previous belong to older d534f4e; not matching cad1 restart evidence",
+  "reference_image_sha256": "20f414c0ddb8e656f7115e9e107ca7a2d6b1bd806061be26c052cc5165ec3788",
+  "scope": "Snapshot assertions plus user observations. No account-notification trace exists in this build; per-event cause of clearing is not proven. Reference screenshot demonstrates desired Frosty behavior, not Streamside test output."
+}

@@ -58,3 +58,5 @@ and updating navigation.
 - [Native followed-stream list trial](SWIFTUI_FOLLOWED_STREAMS.md): authenticated live/offline feed, compact SwiftUI rows, bounded image refresh and accessible duration pills.
 
 - [Native feed continuity and title controls](SWIFTUI_FEED_CONTINUITY.md) — timer/background fixes, device evidence, and title preferences.
+
+- [Silent account updates and compact title popover](SWIFTUI_SILENT_REFRESH.md) — follow-up to the failed background-continuity device check.

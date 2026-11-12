@@ -5,6 +5,7 @@ void ssn_integration_start(void);
 void ssn_ui_attach(id window);
 void ssn_ui_changed(void);
 void ssn_account_refresh(void);
+void ssn_account_event(unsigned event);
 bool ssn_account_refreshing(void);
 id ssn_account_info(void);
 id ssn_followed_channels(void);

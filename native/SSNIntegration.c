@@ -51,7 +51,7 @@ static void added(const struct mach_header *header,intptr_t slide) {
 }
 static void after_restore(void *unused) {
     (void)unused;
-    if(num(m0(c("UIApplication"),"sharedApplication"),"applicationState")==0) ssn_account_refresh();
+    if(num(m0(c("UIApplication"),"sharedApplication"),"applicationState")==0 && !ssn_account_refreshing()) ssn_account_refresh();
 }
 static void connect_scene(id self,SEL cmd,id scene,id session,id options) {
     ((void(*)(id,SEL,id,id,id))original_connect)(self,cmd,scene,session,options);
@@ -67,12 +67,16 @@ static void background(id self,SEL cmd,id notification) {
     (void)self;(void)cmd;(void)notification; ssn_transition(false);
 }
 static void account_change_main(void *unused) {
-    (void)unused; ssn_account_changed();
+    ssn_account_event((unsigned)(uintptr_t)unused);
     dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW,500000000),dispatch_get_main_queue(),NULL,after_restore);
 }
 static void account_change(id self,SEL cmd,id notification) {
-    (void)self;(void)cmd;(void)notification;
-    dispatch_async_f(dispatch_get_main_queue(),NULL,account_change_main);
+    (void)self;(void)notification;
+    const char *selectors[]={"accountUpdated:","accountAvailable:","accountLogin:","accountLogout:","accountToken:"};
+    for(unsigned i=0;i<5;i++) if(cmd==ss(selectors[i])) {
+        dispatch_async_f(dispatch_get_main_queue(),(void*)(uintptr_t)i,account_change_main); return;
+    }
+    ssn_failure(2);
 }
 static void observe(id name,const char *selector) {
     if(!kind(name,"NSString")) { ssn_failure(2); return; }
@@ -95,7 +99,8 @@ void ssn_integration_start(void) {
     if(!observer_class) { ssn_failure(2); return; }
     class_addMethod(observer_class,ss("active:"),(IMP)active,"v24@0:8@16");
     class_addMethod(observer_class,ss("background:"),(IMP)background,"v24@0:8@16");
-    class_addMethod(observer_class,ss("account:"),(IMP)account_change,"v24@0:8@16");
+    const char *account_selectors[]={"accountUpdated:","accountAvailable:","accountLogin:","accountLogout:","accountToken:"};
+    for(unsigned i=0;i<5;i++) class_addMethod(observer_class,ss(account_selectors[i]),(IMP)account_change,"v24@0:8@16");
     objc_registerClassPair(observer_class); observer=m0((id)observer_class,"new");
     observe(ns("UIApplicationDidBecomeActiveNotification"),"active:");
     observe(ns("UIApplicationDidEnterBackgroundNotification"),"background:");
@@ -107,7 +112,7 @@ void ssn_integration_start(void) {
     for(unsigned i=0;i<sizeof(symbols)/sizeof(*symbols);i++) {
         id (__attribute__((swiftcall)) *getter)(void)=ssn_resolve(symbols[i]);
         if(!getter) { ssn_failure(2); continue; }
-        id name=getter(); observe(name,"account:"); objc_release(name);
+        id name=getter(); observe(name,account_selectors[i]); objc_release(name);
     }
     ssn_report();
 }

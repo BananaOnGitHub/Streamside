@@ -3,6 +3,7 @@
  * are synthesized. See the Phase 2 ABI record and compiler register checks. */
 #include "SSNIntegration.h"
 #include "SSNCore.h"
+#include "SSNSessionPolicy.h"
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <stdatomic.h>
@@ -20,7 +21,7 @@ static StringGetter identity_name,identity_display;
 static PromiseObjC promise_objc;
 static CurrentRequest current_request;
 static FollowRequest follow_request;
-static id account,channels,graph,active_promise;
+static id account,channels,graph,active_promise,request_auth,verified_auth;
 static uint64_t generation;
 static unsigned waiting_ticks;
 static bool initialized,available,checking_follows;
@@ -145,12 +146,27 @@ static bool initialize(void) {
 bool ssn_account_refreshing(void) { return active_promise!=nil; }
 id ssn_account_info(void) { return account; }
 id ssn_followed_channels(void) { return channels; }
-static bool authorized(void) { return m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth")!=nil; }
-static void clear(void) { objc_release(account); account=nil; objc_release(channels); channels=nil; }
+static id authorization(void) { return m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth"); }
+static bool authorized(void) { return authorization()!=nil; }
+static void clear(void) {
+    if(account || channels) ssn_account_data_cleared();
+    objc_release(account); account=nil; objc_release(channels); channels=nil;
+    objc_release(verified_auth); verified_auth=nil; objc_release(request_auth); request_auth=nil;
+}
 void ssn_account_changed(void) {
     generation++; waiting_ticks=0; clear();
     if(active_promise) { v0(active_promise,"requestCancel"); objc_release(active_promise); active_promise=nil; }
     ssn_service(SSN_SESSION_CHANGED,0); ssn_ui_changed();
+}
+void ssn_account_event(unsigned event) {
+    /* Only compare opaque object identity with the authorization that supplied
+     * the successful currentUser result. Presence alone cannot retain a session.
+     * Login/logout/token changes always invalidate, including same-object cases. */
+    bool preserve=SSN_NATIVE && account && verified_auth &&
+        ssn_preserve_account_event(event,authorization()==verified_auth);
+    ssn_account_observed(event,preserve);
+    if(!preserve) ssn_account_changed();
+    ssn_report();
 }
 static void poll(void *context);
 static bool request(bool follows) {
@@ -169,7 +185,10 @@ static bool request(bool follows) {
         follow_request(value,50,nil_cursor.a,nil_cursor.b,nil_cursor.c,empty_set,graph);
 #endif
     }
-    else current_request(value,graph);
+    else {
+        objc_release(request_auth); request_auth=objc_retain(authorization());
+        current_request(value,graph);
+    }
     Map mapper=map_follows;
 #if SSN_SWIFTUI
     mapper=ssn_feed_map;
@@ -190,10 +209,10 @@ static void poll(void *context) {
     }
     id promise=active_promise; active_promise=nil;
     if(!done) v0(promise,"requestCancel");
-    if(!authorized()||error||!done||!(checking_follows?kind(value,"NSArray"):kind(value,"NSDictionary"))) {
+    if(!authorized()||authorization()!=request_auth||error||!done||!(checking_follows?kind(value,"NSArray"):kind(value,"NSDictionary"))) {
         bool broken=atomic_load(&mapping_fault)||ssn_failed();
 #if SSN_SWIFTUI
-        if(checking_follows && account && authorized() && !broken) {
+        if(checking_follows && account && authorized() && authorization()==verified_auth && authorization()==request_auth && !broken) {
             /* A failed feed request does not erase the preceding verified
              * account. Native account-change signals still clear everything. */
             ssn_service(SSN_FEED_FAILED,(unsigned)num(channels,"count"));
@@ -209,8 +228,10 @@ static void poll(void *context) {
         id previous=m1(account,"objectForKey:",ns("username"));
         id next=m1(value,"objectForKey:",ns("username"));
         if(!previous || !((BOOL(*)(id,SEL,id))objc_msgSend)(previous,ss("isEqualToString:"),next)) {
+            if(channels) ssn_account_data_cleared();
             objc_release(channels); channels=nil;
         }
+        objc_release(verified_auth); verified_auth=objc_retain(request_auth);
         objc_release(account); account=objc_retain(value);
         if(!channels) ssn_service(SSN_LOADING_FOLLOWS,0);
         if(!request(true)) { clear(); ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); }
@@ -228,6 +249,7 @@ void ssn_account_refresh(void) {
     if(!initialize()) { ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); }
     else if(!authorized()) { clear(); ssn_service(SSN_SIGNED_OUT,0); }
     else {
+        if(account && authorization()!=verified_auth) clear();
         if(!account) ssn_service(SSN_LOADING_ACCOUNT,0);
         if(!request(false)) { clear(); ssn_service(SSN_ABI_FAILED,0); ssn_failure(3); }
     }

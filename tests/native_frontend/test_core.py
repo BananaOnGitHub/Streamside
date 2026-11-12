@@ -75,6 +75,16 @@ class CoreEvidence(unittest.TestCase):
             self.assertEqual(report['failures'],1<<11)
             self.assertTrue(all(value==0 for value in report['probes'].values()))
 
+    def test_information_refresh_preserves_only_verified_context_and_records_boundaries(self):
+        with tempfile.TemporaryDirectory() as d:
+            result,report=self.run_core(1,'account-events',Path(d))
+            self.assertEqual(result.returncode,0)
+            self.assertEqual(report['account_events'],[2,2,2,2,2])
+            self.assertEqual(report['account_updates_retained'],2)
+            self.assertEqual(report['account_data_clears'],2)
+            self.assertEqual(report['failures'],0)
+            self.assertTrue(all(value==0 for value in report['probes'].values()))
+
     def test_comparison_rejects_host_and_missing_observations(self):
         with tempfile.TemporaryDirectory() as d:
             _,baseline=self.run_core(0,'positive',Path(d));_,native=self.run_core(1,'armed',Path(d))

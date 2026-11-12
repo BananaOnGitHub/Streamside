@@ -18,7 +18,7 @@ static _Atomic uint64_t counts[SSN_PROBE_COUNT];
 static _Atomic unsigned armed_mask, failures, state, rows, foregrounds, backgrounds, presentation_owner;
 static _Atomic uint64_t started_ns, visible_ms, first_active_ms, launch_sequence;
 static _Atomic unsigned navigation_armed;
-static _Atomic uint64_t navigation_events[5];
+static _Atomic uint64_t navigation_events[5],account_events[5],account_updates_retained,account_data_clears;
 static uint64_t peak_footprint;
 static bool baseline_verified;
 static char report_path[1024], calibration_path[1024];
@@ -64,6 +64,12 @@ void ssn_navigation_event(unsigned event) {
     if(event<5) atomic_fetch_add(&navigation_events[event],1);
     if(event==3) ssn_failure(11);
 }
+void ssn_account_observed(unsigned event,bool preserved) {
+    if(event>=5) return;
+    atomic_fetch_add(&account_events[event],1);
+    if(preserved) atomic_fetch_add(&account_updates_retained,1);
+}
+void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }
 void ssn_scaffold_ready(void) { if(!visible_ms) visible_ms=(clock_ns()-started_ns)/1000000; }
 void ssn_transition(bool foreground) {
     if(foreground) { atomic_fetch_add(&foregrounds,1); if(!first_active_ms) first_active_ms=(clock_ns()-started_ns)/1000000; } else atomic_fetch_add(&backgrounds,1);
@@ -130,7 +136,9 @@ void ssn_report(void) {
     ADD("\"ui_root_owner\":%u,",atomic_load(&presentation_owner));
     ADD("\"navigation_guard_armed\":%u,\"navigation_events\":[",atomic_load(&navigation_armed));
     for(unsigned i=0;i<5;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&navigation_events[i]));
-    ADD("],");
+    ADD("],\"account_events\":[");
+    for(unsigned i=0;i<5;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&account_events[i]));
+    ADD("],\"account_updates_retained\":%llu,\"account_data_clears\":%llu,",(unsigned long long)atomic_load(&account_updates_retained),(unsigned long long)atomic_load(&account_data_clears));
     ADD("\"account_list_state\":%u,\"returned_channel_count\":%u,\"memory_available\":%s,\"phys_footprint_bytes\":%llu,\"resident_bytes\":%llu,\"hardware\":\"%s\",\"os_kernel\":\"%s\",\"probes\":{",ssn_state(),atomic_load(&rows),memory_available?"true":"false",(unsigned long long)footprint,(unsigned long long)resident,hardware,os);
     for(unsigned i=0;i<SSN_PROBE_COUNT;i++) ADD("%s\"%s\":%llu",i?",":"",ssn_specs[i].name,(unsigned long long)ssn_count(i));
     ADD("}}\n");
@@ -159,11 +167,11 @@ void ssn_summary(char *buffer,size_t size) {
         (atomic_load(&failures)&16)?"Native diagnostic window was unavailable":
         (atomic_load(&failures)&(1u<<11))?"Native navigation ownership failed":
         (atomic_load(&failures)&(1u<<9))?"Diagnostic file could not be saved":"";
-    snprintf(buffer,size,"%s\n%s\n%s\nRN factory %llu · host %llu\nSurface entries %llu · bundle entries %llu\nHermes VM %llu · worklet VM %llu\nNavigation guard %u · root requests blocked %llu\nSign-in opened %llu · verified returns %llu · failures %llu · closes %llu\nEntry counts; unknown coverage is never zero activity.",
+    snprintf(buffer,size,"%s\n%s\n%s\nRN factory %llu · host %llu\nSurface entries %llu · bundle entries %llu\nHermes VM %llu · worklet VM %llu\nNavigation guard %u · root requests blocked %llu\nSign-in opened %llu · verified returns %llu · failures %llu · closes %llu\nAccount updates retained %llu · data clears %llu\nEntry counts; unknown coverage is never zero activity.",
         SSN_NATIVE?"Native frontend candidate":"Instrumented Twitch baseline",status,failure,
         (unsigned long long)ssn_count(4),(unsigned long long)ssn_count(6),(unsigned long long)(ssn_count(8)+ssn_count(9)),
         (unsigned long long)ssn_count(12),(unsigned long long)ssn_count(24),(unsigned long long)ssn_count(22),atomic_load(&navigation_armed),
         (unsigned long long)atomic_load(&navigation_events[0]),(unsigned long long)atomic_load(&navigation_events[1]),
         (unsigned long long)atomic_load(&navigation_events[2]),(unsigned long long)atomic_load(&navigation_events[3]),
-        (unsigned long long)atomic_load(&navigation_events[4]));
+        (unsigned long long)atomic_load(&navigation_events[4]),(unsigned long long)atomic_load(&account_updates_retained),(unsigned long long)atomic_load(&account_data_clears));
 }

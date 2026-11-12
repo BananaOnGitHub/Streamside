@@ -51,9 +51,10 @@ struct LiveChannelRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityValue("Live")
         .accessibilityAction(named: "Show full stream title") { showFullTitle = true }
-        .sheet(isPresented: $showFullTitle) {
+        .popover(isPresented: $showFullTitle, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             FullStreamTitle(channel: channel)
-                .presentationDetents([.medium, .large])
+                .presentationCompactAdaptation(.popover)
+                .presentationBackground(.regularMaterial)
         }
     }
     private var thumbnail: some View {
@@ -121,7 +122,7 @@ private struct StreamTimePill: View {
     }
     @ViewBuilder private func timerLabel(elapsed: Int) -> some View {
         let label = Text(StreamElapsed.label(seconds: elapsed))
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .font(.system(size: 10, weight: .medium))
             .monospacedDigit()
             .contentTransition(reduceMotion ? .identity : .numericText(countsDown: false))
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: elapsed)
@@ -138,17 +139,19 @@ private struct StreamTimePill: View {
 
 private struct FullStreamTitle: View {
     let channel: FollowedChannel
-    @Environment(\.dismiss) private var dismiss
+    private var title: some View {
+        Text(channel.title.isEmpty ? "Live stream" : channel.title)
+            .font(.body).textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                Text(channel.title.isEmpty ? "Live stream" : channel.title)
-                    .font(.body).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding()
-            }
-            .navigationTitle(channel.displayName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        ViewThatFits(in: .vertical) {
+            title
+            ScrollView { title }
         }
+        .frame(idealWidth: 300, maxWidth: 320, maxHeight: 220)
+        .padding(14)
+        .accessibilityLabel("Full stream title")
     }
 }

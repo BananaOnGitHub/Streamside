@@ -21,6 +21,7 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var diagnosticSummary = "Waiting for diagnostics"
     @Published private(set) var runtimeCounts: [RuntimeObservation] = []
     @Published private(set) var actionError: String?
+    @Published private(set) var rootOwner = 0
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
 
@@ -47,6 +48,7 @@ final class NativeServices: ObservableObject, AccountService {
         }
         next.enforceSessionBoundary()
         state = next
+        rootOwner = (snapshot["rootOwner"] as? NSNumber)?.intValue ?? 0
         diagnosticSummary = snapshot["summary"] as? String ?? "Diagnostics unavailable"
         runtimeCounts = (snapshot["runtimeCounts"] as? [[String: Any]] ?? []).compactMap {
             guard let name = $0["name"] as? String, let count = $0["count"] as? NSNumber else { return nil }

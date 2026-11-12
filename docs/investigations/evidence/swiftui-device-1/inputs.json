@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "candidate_source_revision": "026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c",
+  "inputs": [
+    {
+      "name": "1-Pasted-Image-1.jpg",
+      "bytes": 107252,
+      "sha256": "71686b940dbfc14f5be865adb807bd555bddd5100722200bcbe92248cc0e9b4f"
+    },
+    {
+      "name": "2-Pasted-Image-2.jpg",
+      "bytes": 30202,
+      "sha256": "c559100f7cc4515d5bed97c3966aeb91b3e2711f8b965d7241066c92330058bb"
+    },
+    {
+      "name": "3-nativetesting.zip",
+      "bytes": 5019,
+      "sha256": "2372a93846f11376fd56f4ddbb0fa99fc9476a36a6e10594d3fe6c7e45c432ce"
+    }
+  ],
+  "reports": [
+    {
+      "name": "baseline-previous.json",
+      "bytes": 1242,
+      "sha256": "357a0199989d5f56497c3b687809388a30827e283f3d6672d6915e6c77e95630",
+      "mode": "baseline",
+      "proof_id": "fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4",
+      "source_revision": "ebbad865fa8228497bf5b8e29c9aac571f63def4"
+    },
+    {
+      "name": "native-latest.json",
+      "bytes": 1242,
+      "sha256": "106ad1246090fea4faa0f624ef6dd290e9dc99c2c8f9a58d685b5ebf4b9a55b0",
+      "mode": "native",
+      "proof_id": "2babc0a0891d8ca8b77cd199f660616d955c25d51bf694f499be6b08041cc9c3",
+      "source_revision": "026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c"
+    },
+    {
+      "name": "baseline-latest.json",
+      "bytes": 1249,
+      "sha256": "4cc714a44c8b7c8d22b14c6f4c6c74238c99434f2884163851ec78d07e4dbe8b",
+      "mode": "baseline",
+      "proof_id": "2babc0a0891d8ca8b77cd199f660616d955c25d51bf694f499be6b08041cc9c3",
+      "source_revision": "026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c"
+    },
+    {
+      "name": "native-previous.json",
+      "bytes": 1240,
+      "sha256": "89b4ec55723d2f4a2840898d02c18812e85acbb43980e1566a1eeaac32ee03b3",
+      "mode": "native",
+      "proof_id": "fd31c4949b225acd45657e117e7dd5a1890658ecad6a286f22179e3819e86ad4",
+      "source_revision": "ebbad865fa8228497bf5b8e29c9aac571f63def4"
+    }
+  ],
+  "screenshots_committed": false,
+  "raw_archive_committed": false
+}

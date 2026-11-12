@@ -15,7 +15,7 @@
 #error Build must explicitly choose baseline or native
 #endif
 static _Atomic uint64_t counts[SSN_PROBE_COUNT];
-static _Atomic unsigned armed_mask, failures, state, rows, foregrounds, backgrounds;
+static _Atomic unsigned armed_mask, failures, state, rows, foregrounds, backgrounds, presentation_owner;
 static _Atomic uint64_t started_ns, visible_ms, first_active_ms, launch_sequence;
 static uint64_t peak_footprint;
 static bool baseline_verified;
@@ -54,6 +54,7 @@ const char *ssn_state_text(void) {
     unsigned s=ssn_state(); return s<sizeof(text)/sizeof(*text)?text[s]:"Unknown state";
 }
 void ssn_service(unsigned s,unsigned count) { atomic_store(&state,s); atomic_store(&rows,count); }
+void ssn_presentation(unsigned owner) { atomic_store(&presentation_owner,owner<=3?owner:0); }
 void ssn_scaffold_ready(void) { if(!visible_ms) visible_ms=(clock_ns()-started_ns)/1000000; }
 void ssn_transition(bool foreground) {
     if(foreground) { atomic_fetch_add(&foregrounds,1); if(!first_active_ms) first_active_ms=(clock_ns()-started_ns)/1000000; } else atomic_fetch_add(&backgrounds,1);
@@ -117,6 +118,7 @@ void ssn_report(void) {
     ADD("\"armed_mask\":%u,\"failures\":%u,\"baseline_positive_control\":%s,\"baseline_calibrated\":%s,",atomic_load(&armed_mask),atomic_load(&failures),positive?"true":"false",baseline_verified?"true":"false");
     ADD("\"launch_sequence\":%llu,\"first_active_ms\":%llu,\"peak_observed_footprint_bytes\":%llu,",(unsigned long long)launch_sequence,(unsigned long long)first_active_ms,(unsigned long long)peak_footprint);
     ADD("\"uptime_ms\":%llu,\"diagnostic_scaffold_ready_ms\":%llu,\"foregrounds\":%u,\"backgrounds\":%u,",(unsigned long long)((clock_ns()-started_ns)/1000000),(unsigned long long)visible_ms,atomic_load(&foregrounds),atomic_load(&backgrounds));
+    ADD("\"ui_root_owner\":%u,",atomic_load(&presentation_owner));
     ADD("\"account_list_state\":%u,\"returned_channel_count\":%u,\"memory_available\":%s,\"phys_footprint_bytes\":%llu,\"resident_bytes\":%llu,\"hardware\":\"%s\",\"os_kernel\":\"%s\",\"probes\":{",ssn_state(),atomic_load(&rows),memory_available?"true":"false",(unsigned long long)footprint,(unsigned long long)resident,hardware,os);
     for(unsigned i=0;i<SSN_PROBE_COUNT;i++) ADD("%s\"%s\":%llu",i?",":"",ssn_specs[i].name,(unsigned long long)ssn_count(i));
     ADD("}}\n");

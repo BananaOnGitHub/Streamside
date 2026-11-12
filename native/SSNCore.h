@@ -14,6 +14,8 @@ void ssn_failure(unsigned code);
 void ssn_service(unsigned state, unsigned count);
 void ssn_transition(bool foreground);
 void ssn_scaffold_ready(void);
+/* 0 unobserved, 1 Streamside root, 2 another root, 3 missing root. Not RN classification. */
+void ssn_presentation(unsigned owner);
 bool ssn_calibrated(void);
 bool ssn_armed(void);
 bool ssn_failed(void);

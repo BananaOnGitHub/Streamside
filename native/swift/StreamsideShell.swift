@@ -95,11 +95,24 @@ struct DiagnosticsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var export: ReportExport?
 
+    private var rootOwnerText: String {
+        switch services.rootOwner {
+        case 1: return "Streamside SwiftUI"
+        case 2: return "Twitch / another controller"
+        case 3: return "Missing"
+        default: return "Unobserved"
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section("Status") {
                     Text(services.diagnosticSummary).font(.body.monospaced())
+                    Text("Window root: \(rootOwnerText)")
+                    if !baseline && services.rootOwner == 2 {
+                        Text("Twitch replaced the Streamside interface. Appearance does not identify its runtime; use the entry counts below.")
+                    }
                     if baseline {
                         Text("This baseline runs Twitch's original interface and JavaScript runtimes.")
                     }

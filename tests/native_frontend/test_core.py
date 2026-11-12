@@ -60,6 +60,13 @@ class CoreEvidence(unittest.TestCase):
             self.assertNotIn('username',report);self.assertNotIn('tokens',report);self.assertNotIn('channels',report)
             self.assertFalse(report['memory_available']);self.assertFalse(report['baseline_calibrated'])
 
+    def test_replaced_root_is_reported_separately_from_runtime_activity(self):
+        with tempfile.TemporaryDirectory() as d:
+            _,report=self.run_core(1,'replaced',Path(d))
+            self.assertEqual(report['ui_root_owner'],2)
+            self.assertTrue(all(value==0 for value in report['probes'].values()))
+            self.assertEqual(report['failures'],0)
+
     def test_comparison_rejects_host_and_missing_observations(self):
         with tempfile.TemporaryDirectory() as d:
             _,baseline=self.run_core(0,'positive',Path(d));_,native=self.run_core(1,'armed',Path(d))

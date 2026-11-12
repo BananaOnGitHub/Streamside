@@ -9,6 +9,7 @@ int main(int argc,char **argv) {
         for(unsigned i=0;i<SSN_PROBE_COUNT;i++) if(!strcmp(ssn_specs[i].name,"hermes_engine")) ssn_probe_hit(i);
         return 3;
     }
+    if(!strcmp(argv[2],"replaced")) { ssn_presentation(1); ssn_presentation(2); }
     ssn_service(SSN_READY,2);ssn_scaffold_ready();ssn_transition(true);ssn_transition(false);ssn_transition(true);ssn_report();
     return 0;
 }

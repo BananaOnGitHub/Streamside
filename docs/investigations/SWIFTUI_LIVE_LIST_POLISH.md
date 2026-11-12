@@ -78,3 +78,16 @@ Component admission requires the new interaction receipts. This does not claim
 hardware haptic feedback, exact popover appearance, beacon rendering or gesture
 cancellation has been physically tested for the replacement source. Apple build
 and final package validation are pending at this implementation checkpoint.
+
+
+### Apple compiler correction
+
+The first Apple attempt at `786b76a` failed during Swift compilation because the
+haptic engine object (not Sendable) was captured into an actor-hop task. The bounded
+failure log is preserved in external CI artifacts and
+[run 43309340468](https://github.com/BananaOnGitHub/Streamside/actions/runs/43309340468).
+No IPA comes from this source. The callback now sends only an object identifier,
+a success flag and a generation token to the main actor, which retrieves its own
+engine there. Cancellation changes the generation so a late callback for a prior
+hold cannot start feedback, including a repeat hold on the same row. Compiler
+warnings are not suppressed. Replacement Apple compilation and fixtures are rerun.

@@ -11,6 +11,7 @@ final class TitleHaptics {
     private var player: CHHapticPatternPlayer?
     private var pending: Task<Void, Never>?
     private var owner: UUID?
+    private var generation = UUID()
     private var lifecycle: AnyCancellable?
     private let impact = UIImpactFeedbackGenerator(style: .medium)
 
@@ -42,6 +43,7 @@ final class TitleHaptics {
         impact.impactOccurred(intensity: 0.65)
     }
     private func cancelAll() {
+        generation = UUID()
         pending?.cancel(); pending = nil; owner = nil
         try? player?.stop(atTime: CHHapticTimeImmediate)
         player = nil
@@ -76,10 +78,14 @@ final class TitleHaptics {
                 self.engine = engine
             }
             guard let engine else { return }
-            engine.start { [weak self, weak engine] error in
-                Task { @MainActor [weak self, weak engine] in
-                    guard let self, let engine, error == nil, self.owner == owner,
-                          UIApplication.shared.applicationState == .active else { return }
+            let engineID = ObjectIdentifier(engine)
+            let requestGeneration = generation
+            engine.start { [weak self] error in
+                let started = error == nil
+                Task { @MainActor [weak self] in
+                    guard let self, let engine = self.engine, started,
+                          ObjectIdentifier(engine) == engineID, self.generation == requestGeneration,
+                          self.owner == owner, UIApplication.shared.applicationState == .active else { return }
                     do {
                         let player = try engine.makePlayer(with: Self.rampPattern())
                         try player.start(atTime: CHHapticTimeImmediate)

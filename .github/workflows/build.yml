@@ -47,6 +47,7 @@ jobs:
       - name: Add Zig to PATH
         run: |
           echo "/tmp/zig" >> "$GITHUB_PATH"
+          echo "ZIG=/tmp/zig/zig" >> "$GITHUB_ENV"
 
       - name: Verify version tag
         if: startsWith(github.ref, 'refs/tags/')

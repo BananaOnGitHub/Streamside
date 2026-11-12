@@ -80,4 +80,7 @@ The ordinary build/package smoke checks do not create a new native frontend IPA.
 The Apple VM was not needed for this cleanup; its prior build results remain
 historical evidence. The first updated CI workflow was rejected before jobs started. Artifact-root
 selection was moved into a setup step using the runner environment; subsequent
-CI status is recorded separately. Physical-device behavior was not revalidated.
+CI status is recorded separately. The accepted workflow then exposed two host
+tests relying on the local compiler fallback because CI only added Zig to PATH.
+CI now explicitly exports `ZIG` for those existing compiler-dependent tests.
+Physical-device behavior was not revalidated.

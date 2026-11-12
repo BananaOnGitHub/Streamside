@@ -1,0 +1,242 @@
+./build.sh
+WebP native definitions verified: build/Streamside.dylib
+record: build/Streamside.dylib
+WebP native definitions verified: build/Streamside.framework/Streamside
+record: build/Streamside.framework
+python3 tools/artifact_guard.py check build/Streamside.dylib
+check: build/Streamside.dylib
+python3 tools/artifact_guard.py check build/Streamside.framework --framework
+check: build/Streamside.framework
+python3 -m unittest discover -s tests -v
+test_checked_in_sizes_have_no_alpha_or_custom_appearance_variants (test_app_icons.AppIconTests.test_checked_in_sizes_have_no_alpha_or_custom_appearance_variants) ... ok
+test_direct_cli_patching_and_verification_use_the_same_icon_contract (test_app_icons.AppIconTests.test_direct_cli_patching_and_verification_use_the_same_icon_contract) ... ok
+test_finished_ipa_icons_assets_extensions_and_repatching (test_app_icons.AppIconTests.test_finished_ipa_icons_assets_extensions_and_repatching) ... ok
+test_icon_corruption_during_packaging_preserves_existing_output (test_app_icons.AppIconTests.test_icon_corruption_during_packaging_preserves_existing_output) ... ok
+test_independent_verifier_rejects_missing_icons_and_old_asset_selectors (test_app_icons.AppIconTests.test_independent_verifier_rejects_missing_icons_and_old_asset_selectors) ... ok
+test_malformed_primary_metadata_is_refused (test_app_icons.AppIconTests.test_malformed_primary_metadata_is_refused) ... ok
+test_missing_wrong_size_transparent_truncated_or_corrupt_png_is_refused (test_app_icons.AppIconTests.test_missing_wrong_size_transparent_truncated_or_corrupt_png_is_refused) ... ok
+test_partial_metadata_and_no_icons_are_supported (test_app_icons.AppIconTests.test_partial_metadata_and_no_icons_are_supported) ... ok
+test_primary_selectors_are_changed_but_native_metadata_is_not (test_app_icons.AppIconTests.test_primary_selectors_are_changed_but_native_metadata_is_not) ... ok
+test_16k_gap_or_overlap_is_not_accepted (test_artifact_guard.LayoutContractTests.test_16k_gap_or_overlap_is_not_accepted) ... ok
+test_even_a_valid_resigned_binary_cannot_replace_build_bytes (test_artifact_guard.LayoutContractTests.test_even_a_valid_resigned_binary_cannot_replace_build_bytes) ... ok
+test_every_segment_offset_and_size_is_checked (test_artifact_guard.LayoutContractTests.test_every_segment_offset_and_size_is_checked) ... ok
+test_normalization_restores_ranges_and_then_is_byte_identical (test_artifact_guard.LayoutContractTests.test_normalization_restores_ranges_and_then_is_byte_identical) ... ok
+test_normalized_fixture_and_compact_signature_pass (test_artifact_guard.LayoutContractTests.test_normalized_fixture_and_compact_signature_pass) ... ok
+test_recreates_unrounded_release_regression (test_artifact_guard.LayoutContractTests.test_recreates_unrounded_release_regression) ... ok
+test_signature_cannot_overlap_linkedit_table (test_artifact_guard.LayoutContractTests.test_signature_cannot_overlap_linkedit_table) ... ok
+test_signature_must_be_aligned_inside_linkedit_and_end_at_eof (test_artifact_guard.LayoutContractTests.test_signature_must_be_aligned_inside_linkedit_and_end_at_eof) ... ok
+test_signature_padding_and_bounds_and_slot_count (test_artifact_guard.LayoutContractTests.test_signature_padding_and_bounds_and_slot_count) ... ok
+test_stale_exec_range_identifier_and_code_hash_fail (test_artifact_guard.LayoutContractTests.test_stale_exec_range_identifier_and_code_hash_fail) ... ok
+test_wrong_install_name_and_duplicate_identity_fail (test_artifact_guard.LayoutContractTests.test_wrong_install_name_and_duplicate_identity_fail) ... ok
+test_distribution_zip_readback_enforces_build_bytes (test_artifact_guard.PackagingContractTests.test_distribution_zip_readback_enforces_build_bytes) ... ok
+test_migrates_full_legacy_framework_and_repatches_idempotently (test_artifact_guard.PackagingContractTests.test_migrates_full_legacy_framework_and_repatches_idempotently) ... ok
+test_missing_receipt_wrong_hash_or_changed_info_fails_direct_patcher (test_artifact_guard.PackagingContractTests.test_missing_receipt_wrong_hash_or_changed_info_fails_direct_patcher) ... ok
+test_packaging_corruption_fails_and_preserves_existing_output (test_artifact_guard.PackagingContractTests.test_packaging_corruption_fails_and_preserves_existing_output) ... ok
+test_weak_or_duplicate_main_load_is_rejected (test_artifact_guard.PackagingContractTests.test_weak_or_duplicate_main_load_is_rejected) ... ok
+test_streamside_app_name_is_the_distribution_contract (test_artifact_guard.VersionContractTests.test_streamside_app_name_is_the_distribution_contract) ... ok
+test_version_metadata_is_synchronized (test_artifact_guard.VersionContractTests.test_version_metadata_is_synchronized) ... ok
+test_actual_annotation_conditions_and_policy_matrix (test_cache_annotation.CacheAnnotationTests.test_actual_annotation_conditions_and_policy_matrix) ... ok
+test_actual_annotation_counters_with_demand_diagnostics (test_cache_annotation.CacheAnnotationTests.test_actual_annotation_counters_with_demand_diagnostics) ... ok
+test_comparison_accounting_bounds_and_unchanged_annotation (test_cache_header_probe.CacheHeaderProbeTests.test_comparison_accounting_bounds_and_unchanged_annotation) ... ok
+test_production_cache_first_lifecycle (test_cache_protocol.CacheProtocolTests.test_production_cache_first_lifecycle) ... ok
+test_production_cache_first_with_demand_probes (test_cache_protocol.CacheProtocolTests.test_production_cache_first_with_demand_probes) ... ok
+test_network_provenance_original_clock_and_expiration (test_cache_receipt.CacheReceiptTests.test_network_provenance_original_clock_and_expiration) ... ok
+test_receipt_diagnostics_preserve_the_same_lifecycle (test_cache_receipt.CacheReceiptTests.test_receipt_diagnostics_preserve_the_same_lifecycle) ... ok
+test_capability_gates_and_relocated_weak_delegate_storage (test_catalog_compatibility.CatalogCompatibilityTests.test_capability_gates_and_relocated_weak_delegate_storage) ... ok
+test_button_drags_can_scroll_the_suggestion_strip (test_composer.ComposerTests.test_button_drags_can_scroll_the_suggestion_strip) ... ok
+test_keyboard_corrections_validate_snapshots_without_replacing_live_text (test_composer.ComposerTests.test_keyboard_corrections_validate_snapshots_without_replacing_live_text) ... ok
+test_native_editor_serializes_codes_and_preserves_other_attachments (test_composer.ComposerTests.test_native_editor_serializes_codes_and_preserves_other_attachments) ... ok
+test_native_library_recents_scroll_by_default_and_preserve_section_navigation (test_composer.ComposerTests.test_native_library_recents_scroll_by_default_and_preserve_section_navigation) ... ok
+test_native_sticky_headers_keep_their_pin_and_handoff_positions (test_composer.ComposerTests.test_native_sticky_headers_keep_their_pin_and_handoff_positions) ... ok
+test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched (test_composer.ComposerTests.test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched) ... ok
+test_recent_history_refresh_never_wires_uikit_scroll_indicators (test_composer.ComposerTests.test_recent_history_refresh_never_wires_uikit_scroll_indicators) ... ok
+test_suggestions_move_out_of_chat_bounds_into_the_owning_scene (test_composer.ComposerTests.test_suggestions_move_out_of_chat_bounds_into_the_owning_scene) ... ok
+test_utf16_edits_and_completion_boundaries (test_composer.ComposerTests.test_utf16_edits_and_completion_boundaries) ... ok
+test_browser_handoff_waits_for_owned_sheet_dismissal (test_composer_details.ComposerDetailsTests.test_browser_handoff_waits_for_owned_sheet_dismissal) ... ok
+test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime (test_composer_details.ComposerDetailsTests.test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime) ... ok
+test_hold_details_menu_suppression_native_fallback_and_lifecycle (test_composer_details.ComposerDetailsTests.test_hold_details_menu_suppression_native_fallback_and_lifecycle) ... ok
+test_first_open_settles_native_recents_without_scrolling_or_reloading (test_composer_library.LibraryTests.test_first_open_settles_native_recents_without_scrolling_or_reloading) ... ok
+test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset (test_composer_library.LibraryTests.test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset) ... ok
+test_reparented_lazy_footer_installs_and_repairs_without_timer_tick (test_composer_library.LibraryTests.test_reparented_lazy_footer_installs_and_repairs_without_timer_tick) ... ok
+test_zero_section_startup_does_not_cull_later_native_recents (test_composer_library.LibraryTests.test_zero_section_startup_does_not_cull_later_native_recents) ... ok
+test_animation_timing_refresh_deletion_and_visibility (test_composer_preview.PreviewTests.test_animation_timing_refresh_deletion_and_visibility) ... ok
+test_fast_webp_keeps_timeline_during_decode_miss_and_preserves_long_hold (test_composer_preview.PreviewTests.test_fast_webp_keeps_timeline_during_decode_miss_and_preserves_long_hold) ... ok
+test_final_frame_long_hold_and_float_precision_are_preserved (test_composer_preview.PreviewTests.test_final_frame_long_hold_and_float_precision_are_preserved) ... ok
+test_immediate_placeholders_image_hydration_and_both_backspace_paths (test_composer_preview.PreviewTests.test_immediate_placeholders_image_hydration_and_both_backspace_paths) ... ok
+test_independent_suggestion_and_composer_frame_cache_windows (test_composer_preview.PreviewTests.test_independent_suggestion_and_composer_frame_cache_windows) ... ok
+test_loading_placeholder_is_a_fully_transparent_rgba_pixel (test_composer_preview.PreviewTests.test_loading_placeholder_is_a_fully_transparent_rgba_pixel) ... ok
+test_category_rings_overwrite_export_limits_and_truncation (test_diagnostic_config.DiagnosticConfigurationTests.test_category_rings_overwrite_export_limits_and_truncation) ... ok
+test_compact_settings_custom_visibility_detail_and_reverted_restart_state (test_diagnostic_config.DiagnosticConfigurationTests.test_compact_settings_custom_visibility_detail_and_reverted_restart_state) ... ok
+test_disabled_collection_does_not_dereference_or_retain_details (test_diagnostic_config.DiagnosticConfigurationTests.test_disabled_collection_does_not_dereference_or_retain_details) ... ok
+test_disabled_demand_probe_never_reads_requests_or_installs_native_hooks (test_diagnostic_config.DiagnosticConfigurationTests.test_disabled_demand_probe_never_reads_requests_or_installs_native_hooks) ... /tmp/tmptiy20s5p/demand.c: In function ‘m0’:
+/tmp/tmptiy20s5p/demand.c:133:42: warning: function called through a non-compatible type
+  133 | static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
+      |                                         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c: In function ‘m1’:
+/tmp/tmptiy20s5p/demand.c:134:47: warning: function called through a non-compatible type
+  134 | static id m1(id o,const char *s,id a){return ((id (*)(id,SEL,id))objc_msgSend)(o,sel_registerName(s),a);}
+      |                                              ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c: In function ‘integer’:
+/tmp/tmptiy20s5p/demand.c:135:58: warning: function called through a non-compatible type
+  135 | static unsigned long integer(id o,const char *s){return ((unsigned long (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
+      |                                                         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c: In function ‘responds’:
+/tmp/tmptiy20s5p/demand.c:137:55: warning: function called through a non-compatible type
+  137 | static bool responds(id o,const char *s){return o && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(o,sel_registerName("respondsToSelector:"),sel_registerName(s));}
+      |                                                      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c: In function ‘tas_demand_request’:
+/tmp/tmptiy20s5p/demand.c:239:18: warning: function called through a non-compatible type
+  239 |         id name=((id (*)(id,SEL,unsigned long))objc_msgSend)(keys,sel_registerName("objectAtIndex:"),i);
+      |                 ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c: In function ‘tas_demand_mark_url’:
+/tmp/tmptiy20s5p/demand.c:266:10: warning: function called through a non-compatible type
+  266 |         ((id (*)(id,SEL,unsigned))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedInt:"),scope),1);
+      |         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c: In function ‘metrics’:
+/tmp/tmptiy20s5p/demand.c:279:17: warning: function called through a non-compatible type
+  279 |         id row=((id (*)(id,SEL,unsigned long))objc_msgSend)(rows,sel_registerName("objectAtIndex:"),i);
+      |                ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmptiy20s5p/demand.c:282:40: warning: function called through a non-compatible type
+  282 |         double elapsed=start && end ? ((double (*)(id,SEL,id))objc_msgSend)(end,sel_registerName("timeIntervalSinceDate:"),start):-1;
+      |                                       ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ok
+test_playback_protocol_still_intercepts_and_completes_with_logging_disabled (test_diagnostic_config.DiagnosticConfigurationTests.test_playback_protocol_still_intercepts_and_completes_with_logging_disabled) ... ok
+test_presets_defaults_validation_and_independent_categories (test_diagnostic_config.DiagnosticConfigurationTests.test_presets_defaults_validation_and_independent_categories) ... ok
+test_settings_save_launch_apply_and_actual_report_category_routing (test_diagnostic_config.DiagnosticConfigurationTests.test_settings_save_launch_apply_and_actual_report_category_routing) ... ok
+test_all_absolute_schemes_and_protocol_relative_links_are_offline (test_docs.LinkTests.test_all_absolute_schemes_and_protocol_relative_links_are_offline) ... ok
+test_annotation_escapes_workflow_command_characters (test_docs.LinkTests.test_annotation_escapes_workflow_command_characters) ... ok
+test_code_comments_escaped_links_and_footnotes_are_not_paths (test_docs.LinkTests.test_code_comments_escaped_links_and_footnotes_are_not_paths) ... ok
+test_collisions_include_preexisting_numbered_heading (test_docs.LinkTests.test_collisions_include_preexisting_numbered_heading) ... ok
+test_encoded_delimiters_and_angle_destination_with_title (test_docs.LinkTests.test_encoded_delimiters_and_angle_destination_with_title) ... ok
+test_encoded_path_and_utf8_fragment (test_docs.LinkTests.test_encoded_path_and_utf8_fragment) ... ok
+test_github_slug_formatting_punctuation_unicode (test_docs.LinkTests.test_github_slug_formatting_punctuation_unicode) ... ok
+test_historical_links_use_immutable_external_scope_but_archive_is_checked (test_docs.LinkTests.test_historical_links_use_immutable_external_scope_but_archive_is_checked) ... ok
+test_linked_image_checks_both_destinations (test_docs.LinkTests.test_linked_image_checks_both_destinations) ... ok
+test_malformed_destinations (test_docs.LinkTests.test_malformed_destinations) ... ok
+test_markdown_and_html_images (test_docs.LinkTests.test_markdown_and_html_images) ... ok
+test_missing_target_and_anchor_report_origin_line (test_docs.LinkTests.test_missing_target_and_anchor_report_origin_line) ... ok
+test_nested_list_links_are_checked (test_docs.LinkTests.test_nested_list_links_are_checked) ... ok
+test_nested_relative_paths_and_directory (test_docs.LinkTests.test_nested_relative_paths_and_directory) ... ok
+test_parentheses_and_escaped_parentheses (test_docs.LinkTests.test_parentheses_and_escaped_parentheses) ... ok
+test_reference_failure_points_to_use_site (test_docs.LinkTests.test_reference_failure_points_to_use_site) ... ok
+test_reference_full_collapsed_shortcut_and_unused (test_docs.LinkTests.test_reference_full_collapsed_shortcut_and_unused) ... ok
+test_root_paths_queries_empty_destinations_and_explicit_html_anchors (test_docs.LinkTests.test_root_paths_queries_empty_destinations_and_explicit_html_anchors) ... ok
+test_same_document_and_cross_document_headings (test_docs.LinkTests.test_same_document_and_cross_document_headings) ... ok
+test_source_test_script_asset_references (test_docs.LinkTests.test_source_test_script_asset_references) ... ok
+test_symlink_and_parent_escape_are_refused (test_docs.LinkTests.test_symlink_and_parent_escape_are_refused) ... ok
+test_undefined_reference (test_docs.LinkTests.test_undefined_reference) ... ok
+test_cli_returns_failure_and_actionable_annotations (test_docs.RepositoryTests.test_cli_returns_failure_and_actionable_annotations) ... ok
+test_git_inventory_excludes_ignored_build_outputs_but_includes_archive_and_new_docs (test_docs.RepositoryTests.test_git_inventory_excludes_ignored_build_outputs_but_includes_archive_and_new_docs) ... ok
+test_current_metadata_agrees (test_docs.VersionTests.test_current_metadata_agrees) ... ok
+test_distinct_build_number_is_not_public_version (test_docs.VersionTests.test_distinct_build_number_is_not_public_version) ... ok
+test_historical_donor_release_and_artifact_labels_do_not_participate (test_docs.VersionTests.test_historical_donor_release_and_artifact_labels_do_not_participate) ... ok
+test_missing_invalid_and_nonstring_metadata_fail_cleanly (test_docs.VersionTests.test_missing_invalid_and_nonstring_metadata_fail_cleanly) ... ok
+test_short_bundle_and_report_drift_are_errors (test_docs.VersionTests.test_short_bundle_and_report_drift_are_errors) ... ok
+test_large_sets_failure_categories_pending_state_and_privacy (test_emote_fetch.EmoteFetchTests.test_large_sets_failure_categories_pending_state_and_privacy) ... ok
+test_webp_preference_independent_of_animation_and_gif_png_fallback (test_emote_fetch.EmoteFetchTests.test_webp_preference_independent_of_animation_and_gif_png_fallback) ... ok
+test_request_owns_room_until_completion_and_releases_every_exit (test_emote_fetch_lifetime.EmoteFetchLifetimeTests.test_request_owns_room_until_completion_and_releases_every_exit) ... ok
+test_provider_headers_and_repeated_native_bounds (test_emote_geometry.EmoteGeometryTests.test_provider_headers_and_repeated_native_bounds) ... ok
+test_original_results_body_match_poster_reuse_expiry_and_weak_identity (test_emote_image_probe.ImageProvenanceTests.test_original_results_body_match_poster_reuse_expiry_and_weak_identity) ... ok
+test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged (test_emote_images.EmoteImageTests.test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged) ... ok
+test_disk_cache_identity_survives_relaunch_order_changes (test_emote_images.EmoteImageTests.test_disk_cache_identity_survives_relaunch_order_changes) ... ok
+test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links (test_emote_images.EmoteImageTests.test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links) ... ok
+test_thumbnail_playback_survives_refresh_eviction_and_stale_completion (test_emote_images.EmoteImageTests.test_thumbnail_playback_survives_refresh_eviction_and_stale_completion) ... ok
+test_display_order_combines_cases_providers_and_scopes_without_changing_lookup (test_emote_picker.EmotePickerTests.test_display_order_combines_cases_providers_and_scopes_without_changing_lookup) ... ok
+test_native_definitions_identity_scope_and_original_message_preservation (test_emote_presentation.EmotePresentationTests.test_native_definitions_identity_scope_and_original_message_preservation) ... ok
+test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds (test_emote_probe.EmoteProbeTests.test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds) ... ok
+test_token_map_sender_bridge_and_scoped_image_frames (test_emote_ui.EmoteUITests.test_token_map_sender_bridge_and_scoped_image_frames) ... ok
+test_actual_http_cache_hit_under_eight_stalled_transfers_and_304 (test_foundation_cache.FoundationCacheTests.test_actual_http_cache_hit_under_eight_stalled_transfers_and_304) ... skipped 'requires Apple Foundation and Xcode command-line tools'
+test_freshness_parser (test_http_cache.HTTPCacheTests.test_freshness_parser) ... ok
+test_aggregate_identity_bounds_native_lifetime_and_privacy (test_image_demand.ImageDemandTests.test_aggregate_identity_bounds_native_lifetime_and_privacy) ... ok
+test_committed_image_lifecycle_same_source_callbacks_and_unmount (test_image_demand.ImageDemandTests.test_committed_image_lifecycle_same_source_callbacks_and_unmount) ... ok
+test_bounds_with_demand_diagnostics (test_image_overflow.OverflowTests.test_bounds_with_demand_diagnostics) ... ok
+test_hard_bounds_variants_expiry_and_lookup_spill (test_image_overflow.OverflowTests.test_hard_bounds_variants_expiry_and_lookup_spill) ... ok
+test_preinitialization_spills_and_absolute_consumer_bound (test_image_overflow.OverflowTests.test_preinitialization_spills_and_absolute_consumer_bound) ... ok
+test_preinitialization_with_demand_diagnostics (test_image_overflow.OverflowTests.test_preinitialization_with_demand_diagnostics) ... ok
+test_recovery_priority_cancellation_cache_and_immediate_completion (test_image_overflow.OverflowTests.test_recovery_priority_cancellation_cache_and_immediate_completion) ... ok
+test_recovery_with_demand_diagnostics (test_image_overflow.OverflowTests.test_recovery_with_demand_diagnostics) ... ok
+test_picker_insertion_preserves_twitch_responder_and_completion_range (test_legacy_chat.LegacyChatTests.test_picker_insertion_preserves_twitch_responder_and_completion_range) ... ok
+test_repeated_and_wrapped_emotes_use_displayed_layer_identity (test_legacy_chat.LegacyChatTests.test_repeated_and_wrapped_emotes_use_displayed_layer_identity) ... ok
+test_passive_forwarding_snapshots_bounds_and_privacy (test_legacy_palette_probe.LegacyPaletteProbeTests.test_passive_forwarding_snapshots_bounds_and_privacy) ... ok
+test_mixed_results_native_ids_and_presentation_only_suppression (test_native_picker.NativePickerTests.test_mixed_results_native_ids_and_presentation_only_suppression) ... ok
+test_native_table_data_source_is_not_overridden (test_native_picker.NativePickerTests.test_native_table_data_source_is_not_overridden) ... ok
+test_current_tree_includes_root_guides_moved_notices_and_archive (test_package_documentation.DocumentationPackageTests.test_current_tree_includes_root_guides_moved_notices_and_archive) ... ok
+test_missing_notice_is_refused (test_package_documentation.DocumentationPackageTests.test_missing_notice_is_refused) ... ok
+test_process_local_labels_never_expose_inputs (test_privacy.PrivacyTests.test_process_local_labels_never_expose_inputs) ... ok
+test_async_delivery_cancellation_recursion_errors_and_hls_rewrite (test_protocol.ProtocolTests.test_async_delivery_cancellation_recursion_errors_and_hls_rewrite) ... ok
+test_demand_probes_preserve_production_lifecycle_and_bounds (test_protocol.ProtocolTests.test_demand_probes_preserve_production_lifecycle_and_bounds) ... ok
+test_four_shapes_share_registry_ratios_and_all_native_url_modes (test_provider_presentation_route.ProviderPresentationRouteTests.test_four_shapes_share_registry_ratios_and_all_native_url_modes) ... ok
+test_history_changes_wait_until_the_next_menu_open (test_recent_snapshot.RecentSnapshotTests.test_history_changes_wait_until_the_next_menu_open) ... ok
+test_scoped_codes_native_aliases_unicode_and_queued_edits (test_rn_backspace.RNBackspaceTests.test_scoped_codes_native_aliases_unicode_and_queued_edits) ... ok
+test_deadline_active_dismissal_and_diagnostic_failure (test_rn_calculation_boundary.CalculationBoundaryTests.test_deadline_active_dismissal_and_diagnostic_failure) ... ok
+test_exact_forwarding_budgets_metrics_and_restoration (test_rn_calculation_boundary.CalculationBoundaryTests.test_exact_forwarding_budgets_metrics_and_restoration) ... ok
+test_accepted_edit_invalidates_queued_cursor_but_veto_and_fallback_do_not (test_rn_composer_ui.RNComposerUITests.test_accepted_edit_invalidates_queued_cursor_but_veto_and_fallback_do_not) ... ok
+test_cursor_guard_requires_both_selection_abis_and_retries (test_rn_composer_ui.RNComposerUITests.test_cursor_guard_requires_both_selection_abis_and_retries) ... ok
+test_deferred_details_live_identity_metadata_teardown_and_one_haptic (test_rn_composer_ui.RNComposerUITests.test_deferred_details_live_identity_metadata_teardown_and_one_haptic) ... ok
+test_exact_abi_preference_retry_and_idempotent_hooks (test_rn_composer_ui.RNComposerUITests.test_exact_abi_preference_retry_and_idempotent_hooks) ... ok
+test_first_download_starts_original_attachment_without_retyping (test_rn_composer_ui.RNComposerUITests.test_first_download_starts_original_attachment_without_retyping) ... ok
+test_gif_preflight_body_budget_complete_blocks_timing_and_transport_gate (test_rn_composer_ui.RNComposerUITests.test_gif_preflight_body_budget_complete_blocks_timing_and_transport_gate) ... ok
+test_hold_admission_hit_bounds_native_text_ime_modal_and_priority (test_rn_composer_ui.RNComposerUITests.test_hold_admission_hit_bounds_native_text_ime_modal_and_priority) ... ok
+test_independent_clocks_reconciliation_ime_deletion_visibility_and_teardown (test_rn_composer_ui.RNComposerUITests.test_independent_clocks_reconciliation_ime_deletion_visibility_and_teardown) ... ok
+test_late_native_selection_after_recognition_requires_its_original_draft (test_rn_composer_ui.RNComposerUITests.test_late_native_selection_after_recognition_requires_its_original_draft) ... ok
+test_late_suggestion_cursor_prop_checks_live_draft_and_preserves_native_props (test_rn_composer_ui.RNComposerUITests.test_late_suggestion_cursor_prop_checks_live_draft_and_preserves_native_props) ... ok
+test_native_cold_image_layout_only_for_live_identity_and_changed_aspect (test_rn_composer_ui.RNComposerUITests.test_native_cold_image_layout_only_for_live_identity_and_changed_aspect) ... ok
+test_native_emoticon_image_aspect_arrival_scale_and_guarded_fallback (test_rn_composer_ui.RNComposerUITests.test_native_emoticon_image_aspect_arrival_scale_and_guarded_fallback) ... ok
+test_native_height_baseline_wide_narrow_identity_bridge_and_fallback (test_rn_composer_ui.RNComposerUITests.test_native_height_baseline_wide_narrow_identity_bridge_and_fallback) ... ok
+test_native_image_setter_requires_exact_abi_and_installs_once (test_rn_composer_ui.RNComposerUITests.test_native_image_setter_requires_exact_abi_and_installs_once) ... ok
+test_optional_menu_hooks_refuse_unknown_abi_and_retry_existing_methods (test_rn_composer_ui.RNComposerUITests.test_optional_menu_hooks_refuse_unknown_abi_and_retry_existing_methods) ... ok
+test_provider_menu_suppression_and_original_native_fallback (test_rn_composer_ui.RNComposerUITests.test_provider_menu_suppression_and_original_native_fallback) ... ok
+test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft (test_rn_composer_ui.RNComposerUITests.test_unconfirmed_prediction_and_ime_never_rebuild_or_replay_draft) ... ok
+test_webp_decode_miss_keeps_clock_and_retries_current_frame (test_rn_composer_ui.RNComposerUITests.test_webp_decode_miss_keeps_clock_and_retries_current_frame) ... ok
+test_webp_independent_clocks_long_hold_visibility_and_teardown (test_rn_composer_ui.RNComposerUITests.test_webp_independent_clocks_long_hold_visibility_and_teardown) ... ok
+test_composer_preview_map_draft_native_identity_provider_precedence_scope_and_bounds (test_rn_incoming.RNIncomingTests.test_composer_preview_map_draft_native_identity_provider_precedence_scope_and_bounds) ... ok
+test_demand_only_bridge_registration_export_and_exact_abi (test_rn_incoming.RNIncomingTests.test_demand_only_bridge_registration_export_and_exact_abi) ... ok
+test_hook_abi_ownership_and_retry_idempotence (test_rn_incoming.RNIncomingTests.test_hook_abi_ownership_and_retry_idempotence) ... ok
+test_horizontal_picker_bridge_modes_scope_bounds_and_metadata (test_rn_incoming.RNIncomingTests.test_horizontal_picker_bridge_modes_scope_bounds_and_metadata) ... ok
+test_incoming_identity_metadata_unicode_room_scope_and_redirect (test_rn_incoming.RNIncomingTests.test_incoming_identity_metadata_unicode_room_scope_and_redirect) ... ok
+test_library_snapshots_recents_identity_room_admission_and_inline_off (test_rn_incoming.RNIncomingTests.test_library_snapshots_recents_identity_room_admission_and_inline_off) ... ok
+test_local_display_array_static_unicode_native_overlap_and_scope (test_rn_incoming.RNIncomingTests.test_local_display_array_static_unicode_native_overlap_and_scope) ... ok
+test_local_module_registration_availability_exports_disabled_and_idempotence (test_rn_incoming.RNIncomingTests.test_local_module_registration_availability_exports_disabled_and_idempotence) ... ok
+test_local_preview_room_native_ranges_unicode_metadata_redirect_and_refusals (test_rn_incoming.RNIncomingTests.test_local_preview_room_native_ranges_unicode_metadata_redirect_and_refusals) ... ok
+test_native_composer_url_transport_mapping_callbacks_errors_and_fallback (test_rn_incoming.RNIncomingTests.test_native_composer_url_transport_mapping_callbacks_errors_and_fallback) ... ok
+test_provider_info_admission_exact_identity_alias_history_and_snapshot (test_rn_incoming.RNIncomingTests.test_provider_info_admission_exact_identity_alias_history_and_snapshot) ... ok
+test_rn_reload_uses_explicit_channel_and_retires_catalog (test_rn_incoming.RNIncomingTests.test_rn_reload_uses_explicit_channel_and_retires_catalog) ... ok
+test_source_hook_abi_disabled_refusal_identity_and_source_owned_cache (test_rn_incoming.RNIncomingTests.test_source_hook_abi_disabled_refusal_identity_and_source_owned_cache) ... ok
+test_url_transport_owned_methods_exact_abi_disabled_and_retry (test_rn_incoming.RNIncomingTests.test_url_transport_owned_methods_exact_abi_disabled_and_retry) ... ok
+test_width_aliases_redirect_freeze_fallback_collisions_and_history (test_rn_incoming.RNIncomingTests.test_width_aliases_redirect_freeze_fallback_collisions_and_history) ... ok
+test_fractional_columns_and_identity_on_first_open_and_fresh_reopen (test_rn_library.RNLibraryTests.test_fractional_columns_and_identity_on_first_open_and_fresh_reopen) ... ok
+test_open_snapshot_filters_geometry_navigation_and_fallback (test_rn_library.RNLibraryTests.test_open_snapshot_filters_geometry_navigation_and_fallback) ... ok
+test_reload_settings_scope_subpages_disabled_and_native_props (test_rn_library.RNLibraryTests.test_reload_settings_scope_subpages_disabled_and_native_props) ... ok
+test_stage_sampling_identity_geometry_and_bounded_cleanup (test_rn_library_boundary.LibraryBoundaryTests.test_stage_sampling_identity_geometry_and_bounded_cleanup) ... ok
+test_provider_routing_and_sheet_handoff (test_rn_popup.RNPopupTests.test_provider_routing_and_sheet_handoff) ... ok
+test_grafted_bytecode_generates_and_delivers_real_snapshots (test_rn_snapshot_runtime.SnapshotGateTests.test_grafted_bytecode_generates_and_delivers_real_snapshots) ... skipped 'Matching Hermes runner required; release gate cannot skip runtime validation'
+test_missing_failed_and_stale_records_block_build_gate (test_rn_snapshot_runtime.SnapshotGateTests.test_missing_failed_and_stale_records_block_build_gate) ... ok
+test_missing_failed_partial_or_wrong_donor_virtualization_evidence_blocks_gate (test_rn_snapshot_runtime.SnapshotGateTests.test_missing_failed_partial_or_wrong_donor_virtualization_evidence_blocks_gate) ... ok
+test_settings_module_matches_real_donor_registration_not_factory_number (test_rn_snapshot_runtime.SnapshotGateTests.test_settings_module_matches_real_donor_registration_not_factory_number) ... skipped 'Exact Twitch donor required'
+test_modes_scope_selection_live_settings_and_plain_text_insertion (test_rn_strip.RNStripTests.test_modes_scope_selection_live_settings_and_plain_text_insertion) ... ok
+test_native_selection_keeps_its_original_draft_across_late_renders (test_rn_strip.RNStripTests.test_native_selection_keeps_its_original_draft_across_late_renders) ... ok
+test_composer_call_frame_live_state_native_map_and_exception_fallback (test_rn_width.RNWidthTests.test_composer_call_frame_live_state_native_map_and_exception_fallback) ... ok
+test_emitted_styles_native_identity_square_wide_narrow_and_enlarged (test_rn_width.RNWidthTests.test_emitted_styles_native_identity_square_wide_narrow_and_enlarged) ... ok
+test_exact_admission_immutable_body_headers_footer_and_fallback (test_rn_width.RNWidthTests.test_exact_admission_immutable_body_headers_footer_and_fallback) ... ok
+test_local_call_frame_regression_and_exception_fallback (test_rn_width.RNWidthTests.test_local_call_frame_regression_and_exception_fallback) ... ok
+test_local_shim_own_scope_fallback_and_native_object_identity (test_rn_width.RNWidthTests.test_local_shim_own_scope_fallback_and_native_object_identity) ... ok
+test_patches_synthetic_ipa_without_touching_assets (test_tools.IPAPatcherTests.test_patches_synthetic_ipa_without_touching_assets) ... ok
+test_refuses_encrypted_ipa (test_tools.IPAPatcherTests.test_refuses_encrypted_ipa) ... ok
+test_injects_once (test_tools.MachOTests.test_injects_once) ... ok
+test_refuses_missing_padding (test_tools.MachOTests.test_refuses_missing_padding) ... ok
+test_removes_donor_load_command (test_tools.MachOTests.test_removes_donor_load_command) ... ok
+test_complete_structure_canvas_bounds_and_frame_caps (test_webp_animation.WebPAnimationTests.test_complete_structure_canvas_bounds_and_frame_caps) ... ok
+test_inner_bitstream_cannot_exceed_declared_frame_budget (test_webp_animation.WebPAnimationTests.test_inner_bitstream_cannot_exceed_declared_frame_budget) ... ok
+test_native_adapter_factory_cache_lifecycle_and_provider_scope (test_webp_animation.WebPAnimationTests.test_native_adapter_factory_cache_lifecycle_and_provider_scope) ... WebP factory, async frame misses, cache bounds, provider scope, callback/cancel ownership and native fallback passed
+ok
+test_real_asset_timing_shapes_and_arbitrary_holds (test_webp_animation.WebPAnimationTests.test_real_asset_timing_shapes_and_arbitrary_holds) ... ok
+test_short_frame_browser_normalization_and_static_webp (test_webp_animation.WebPAnimationTests.test_short_frame_browser_normalization_and_static_webp) ... ok
+test_subrectangle_blend_and_disposal_flags_are_accepted (test_webp_animation.WebPAnimationTests.test_subrectangle_blend_and_disposal_flags_are_accepted) ... ok
+test_animation_count_canvas_and_lossless_frame_pixels (test_webp_imageio.AppleWebPTests.test_animation_count_canvas_and_lossless_frame_pixels) ... skipped 'Apple ImageIO/Xcode required'
+
+----------------------------------------------------------------------
+Ran 193 tests in 18.071s
+
+OK (skipped=4)
+Compiled snapshot pipeline gate passed (host Hermes + production native handler).
+Compiled snapshot pipeline gate passed (host Hermes + production native handler).

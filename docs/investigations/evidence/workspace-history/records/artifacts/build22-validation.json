@@ -1,0 +1,46 @@
+{
+  "candidate": "3.1.0-build.22",
+  "source_commit": "e893730d4b9e15f403ab7e58f8b60a02e61dc230",
+  "branch": "feat/modular-diagnostic-runtime",
+  "ipa": {
+    "path": "/home/bananas/Agent-Stuff/streamside/artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa",
+    "bytes": 194522261,
+    "sha256": "170b3ed918ae4e434588e4ad7462f74f22fb1f49a55a328678fe136022a3a34b",
+    "unsigned": true,
+    "verified": true
+  },
+  "framework_sha256": "47d062c216df5ad0bc82a7a43a100ad770a658b80fac4e3a13b1b0a3cc2cbc5d",
+  "preserved_native_identities": {
+    "Twitch": {
+      "text_sha256": "890c6daabeeeb69be3308337ef61d63deba489e396824d4774c1a8ebd84576f5",
+      "uuid": "34613ae5d1e03658876de5e4d1cec6a6"
+    },
+    "Frameworks/React.framework/React": {
+      "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+      "uuid": "ee15b752fb4635f2b0bba46636572385"
+    },
+    "Frameworks/hermesvm.framework/hermesvm": {
+      "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+      "uuid": "be274a2347cc3f5a9e988474553df5a8"
+    }
+  },
+  "original_hbc_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+  "compiled_validation_receipt_sha256": "c9b6c6801ed57aeb6cc21c20fcc6ea8b50208614a5be581eafb0bf8a3f06bf57",
+  "tests": {
+    "total": 212,
+    "passed": 210,
+    "skipped": 2,
+    "skips": [
+      "Apple Foundation",
+      "Apple ImageIO"
+    ],
+    "compiled_Hermes_both_predecessors": true,
+    "overlay_ownership_hit_testing_layout_capture_teardown_facade": true,
+    "packaging": true
+  },
+  "device_feedback": {
+    "build21": "Dormant/Armed working; capture action visible in settings but absent in chat",
+    "build22": "pending device test"
+  },
+  "scope": "The opted-in capture action owns a non-key UIWindow in the originating scene instead of belonging to the settings window hierarchy. Host regression covers settings dismissal/app-root replacement, pass-through hit testing, rotation geometry, capture ordering and lifecycle teardown. Actual iOS compositing, keyboard focus, accessibility and touch delivery remain unverified."
+}

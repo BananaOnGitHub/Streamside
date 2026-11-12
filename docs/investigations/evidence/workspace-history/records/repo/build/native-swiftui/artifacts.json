@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "proof_id": "0f59f958f85511f00e97d888d0e20e1cbb3de2d018f9dafeac30c2dbdd37a382",
+  "source_revision": "607f5954670ff7e98d8e5873928c3a14524f0f40",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "zig": null,
+  "inspection": {
+    "abi_entries": 19,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "artifacts": {
+    "baseline": {
+      "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-swiftui/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196475822,
+      "sha256": "e6e6a317be5f352fc2a0bbccd3dc4433e34faf2c1515cb9876fed20bccdf1b2d",
+      "framework_sha256": "e43e6875ab6718c4aafe0ccc2126305c1ec6b9b315984d9d06da6f6fb34bbd4b",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "035243f76fef6c40c8d3a7aa48e762e45a32fb987bb0f5bdb158ce0a0f214935",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "aaf3d83cc1a826f8895645d1221e42cd4d79210d4b3ff60841a7df3099bb2714",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "42e4ee99fd246c5c523f0512d1d4c1d8410e0691d0ae3a2b4a91ce696654f13d",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "90062001adc7d51b2eb94da5c4e1ccb55a93af9caa8a3b9b46488c13e0d5f5f1"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "apple_compilation": {
+        "xcode": "Xcode 26.6\nBuild version 17F113",
+        "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: x86_64-apple-macosx26.0",
+        "sdk_path": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk",
+        "sdk_version": "26.5",
+        "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241",
+        "target": "arm64-apple-ios16.4",
+        "mode": "baseline",
+        "proof_id": "0f59f958f85511f00e97d888d0e20e1cbb3de2d018f9dafeac30c2dbdd37a382",
+        "source_revision": "607f5954670ff7e98d8e5873928c3a14524f0f40",
+        "transferred_inputs": {
+          "native/SSNCore.c": "3d68f4abad56e6ee581ffa439a28cf7d5aa9521fc6ba558a6f1b264f2bc0e7f0",
+          "native/SSNCore.h": "5ecbcceb93b8a68ae157cca42534c76b416793e5a86f78d32ed659d4e5ea3042",
+          "native/SSNIntegration.c": "b66f43773ddd1006e568a0af931eacfea20d1ebedee5aa25c6f279d58e70d721",
+          "native/SSNIntegration.h": "a53e66d269c593c11a3b4033502db7e049d6c804c5d23c6d11fdaa92b1bdab22",
+          "native/SSNAccount.c": "f01b0bd04a5548928bd80bcdc5eef7955b631a0e97acc0d8b5bfeb5cc999a583",
+          "native/SSNSwiftABI.h": "9223f6bec67194c7c7d79b6083dc5f6441c6866134877844d2a14c9ae7e94fae",
+          "native/SSNObjC.h": "deef6ac7fc595cf084e7e06b6ef1d2f05ad4caa67ff2bf4ea80d6a109bf8b68d",
+          "native/SSNNativeBridge.h": "ce49ad6503df51947c019b2bbd64aa13b78dbeb4dbb7a0e18e13dacb822cd4f7",
+          "native/SSNNativeBridge.m": "e87b16ac86c91b4d7263dfa52ef2330e75fb9a162fc2d275a7ddbc52c1b547bb",
+          "native/swift/NativeModels.swift": "ec0395d250526e2be36f607f8a95aa21c6be4b941c1e7cd9eb975461ac6f0141",
+          "native/swift/NativeServices.swift": "8617b827899ff61fa17eec08b91562bd1a416b31bcaf9dec97ebcb130f517f67",
+          "native/swift/StreamsideShell.swift": "bdf374f8380756c975ac413af9ba1d4a35f07c9821883ede592670113b12a4bf",
+          "native/swift/SwiftUIHost.swift": "16d2bb86cb67c5a82d41483587453ae9d7fc90dc5df1eddd3043d021c21b9f5e",
+          "tools/native_frontend/apple_worker.py": "4dbd4e07cd9a4b4796fc160ec346f6d981d0a0f77c0204fc863be3bb22302909",
+          "tests/native_frontend/abi_calls.c": "57459d566012bb6e463655efda6404b64e25fca90a97d7f9982913152fb33a23",
+          "tests/native_frontend/swift/ModelsTests.swift": "d315d55ebc0435ddeee91cce5ae5a0f1c8cfbe359f132f6570e401b836b3d5b9",
+          "generated/SSNBuild.h": "dcf143ba809851b47f17ef50b663fe9ac8eed9eb788b2f3dbbebdc6d3aff4f0c"
+        },
+        "model_tests": "PASS: authenticated, signed-out, account-change, failure, logout and loading presentation boundaries",
+        "codesign": "ad-hoc; IPA still requires device-authorized re-signing"
+      }
+    },
+    "native": {
+      "path": "/home/bananas/Agent-Stuff/streamside/repo/build/native-swiftui/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196479929,
+      "sha256": "b9f5c836e728f82e109ed1c71679f3b3ab6de408cd86d6fd1d6c8f204b45ff9b",
+      "framework_sha256": "f180be2853bff58d2aca7c87ed1c21da50b13f7729ae1686a4def743df77f124",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "b353b7bca60f339b6774f93755173e7b37bf0257163bb4df2ac43dc581daabd9",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "aaf3d83cc1a826f8895645d1221e42cd4d79210d4b3ff60841a7df3099bb2714",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "42e4ee99fd246c5c523f0512d1d4c1d8410e0691d0ae3a2b4a91ce696654f13d",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "90062001adc7d51b2eb94da5c4e1ccb55a93af9caa8a3b9b46488c13e0d5f5f1"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "apple_compilation": {
+        "xcode": "Xcode 26.6\nBuild version 17F113",
+        "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: x86_64-apple-macosx26.0",
+        "sdk_path": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk",
+        "sdk_version": "26.5",
+        "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241",
+        "target": "arm64-apple-ios16.4",
+        "mode": "native",
+        "proof_id": "0f59f958f85511f00e97d888d0e20e1cbb3de2d018f9dafeac30c2dbdd37a382",
+        "source_revision": "607f5954670ff7e98d8e5873928c3a14524f0f40",
+        "transferred_inputs": {
+          "native/SSNCore.c": "3d68f4abad56e6ee581ffa439a28cf7d5aa9521fc6ba558a6f1b264f2bc0e7f0",
+          "native/SSNCore.h": "5ecbcceb93b8a68ae157cca42534c76b416793e5a86f78d32ed659d4e5ea3042",
+          "native/SSNIntegration.c": "b66f43773ddd1006e568a0af931eacfea20d1ebedee5aa25c6f279d58e70d721",
+          "native/SSNIntegration.h": "a53e66d269c593c11a3b4033502db7e049d6c804c5d23c6d11fdaa92b1bdab22",
+          "native/SSNAccount.c": "f01b0bd04a5548928bd80bcdc5eef7955b631a0e97acc0d8b5bfeb5cc999a583",
+          "native/SSNSwiftABI.h": "9223f6bec67194c7c7d79b6083dc5f6441c6866134877844d2a14c9ae7e94fae",
+          "native/SSNObjC.h": "deef6ac7fc595cf084e7e06b6ef1d2f05ad4caa67ff2bf4ea80d6a109bf8b68d",
+          "native/SSNNativeBridge.h": "ce49ad6503df51947c019b2bbd64aa13b78dbeb4dbb7a0e18e13dacb822cd4f7",
+          "native/SSNNativeBridge.m": "e87b16ac86c91b4d7263dfa52ef2330e75fb9a162fc2d275a7ddbc52c1b547bb",
+          "native/swift/NativeModels.swift": "ec0395d250526e2be36f607f8a95aa21c6be4b941c1e7cd9eb975461ac6f0141",
+          "native/swift/NativeServices.swift": "8617b827899ff61fa17eec08b91562bd1a416b31bcaf9dec97ebcb130f517f67",
+          "native/swift/StreamsideShell.swift": "bdf374f8380756c975ac413af9ba1d4a35f07c9821883ede592670113b12a4bf",
+          "native/swift/SwiftUIHost.swift": "16d2bb86cb67c5a82d41483587453ae9d7fc90dc5df1eddd3043d021c21b9f5e",
+          "tools/native_frontend/apple_worker.py": "4dbd4e07cd9a4b4796fc160ec346f6d981d0a0f77c0204fc863be3bb22302909",
+          "tests/native_frontend/abi_calls.c": "57459d566012bb6e463655efda6404b64e25fca90a97d7f9982913152fb33a23",
+          "tests/native_frontend/swift/ModelsTests.swift": "d315d55ebc0435ddeee91cce5ae5a0f1c8cfbe359f132f6570e401b836b3d5b9",
+          "generated/SSNBuild.h": "dcf143ba809851b47f17ef50b663fe9ac8eed9eb788b2f3dbbebdc6d3aff4f0c"
+        },
+        "model_tests": "PASS: authenticated, signed-out, account-change, failure, logout and loading presentation boundaries",
+        "codesign": "ad-hoc; IPA still requires device-authorized re-signing"
+      }
+    }
+  }
+}

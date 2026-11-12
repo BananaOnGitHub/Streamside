@@ -1,0 +1,25 @@
+# Build 22: in-chat capture action
+
+Sign/install `Streamside-3.1.0-build.22-modular-diagnostics.ipa`, fully close
+Twitch and relaunch. Open a stream, then Diagnostics → Investigations.
+
+1. Arm, enable **In-chat Capture button**, then return to chat.
+2. Check that **Capture** remains visible above chat. Tap it; capture should
+   return to Armed without opening settings or a report.
+3. Check that scrolling/taps outside the button work. With the composer open,
+   check that showing/tapping the button preserves the keyboard and draft.
+4. Stop or background Twitch; the button should disappear. It remains opt-in
+   after a new Arm. Optional: rotate and check its safe-area position.
+
+The action now owns an explicitly non-key window in the original app scene.
+It does not belong to the settings page/window content. The whole-screen
+background passes touches through; only the button accepts them. No app-window
+search, focus command, transcript insertion or polling timer is added.
+
+212 host tests ran: 210 passed and two Apple-only checks were skipped.
+Compiled Hermes, native artifact, documentation and package checks passed.
+Actual device behavior remains pending. Earlier candidate artifacts are intact.
+
+Source commit: `e893730d4b9e15f403ab7e58f8b60a02e61dc230`.
+IPA SHA-256: `170b3ed918ae4e434588e4ad7462f74f22fb1f49a55a328678fe136022a3a34b`.
+Framework SHA-256: `47d062c216df5ad0bc82a7a43a100ad770a658b80fac4e3a13b1b0a3cc2cbc5d`.

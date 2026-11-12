@@ -1,0 +1,47 @@
+{
+  "candidate": "3.1.0-build.21",
+  "source_commit": "2ccd4ed6fed1cd8fa1febd605998d63f72887e45",
+  "branch": "feat/modular-diagnostic-runtime",
+  "ipa": {
+    "path": "/home/bananas/Agent-Stuff/streamside/artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa",
+    "bytes": 194521113,
+    "sha256": "95063dae49543302df8288f52049f3469499248b862c6bcf503db439f381f3b4",
+    "unsigned": true,
+    "verified": true
+  },
+  "framework_sha256": "30ba38969ef1a32bae0bad022bbcc7a87c83ca69bbf4e03bbdf33bf29e45077d",
+  "preserved_native_identities": {
+    "Twitch": {
+      "text_sha256": "890c6daabeeeb69be3308337ef61d63deba489e396824d4774c1a8ebd84576f5",
+      "uuid": "34613ae5d1e03658876de5e4d1cec6a6"
+    },
+    "Frameworks/React.framework/React": {
+      "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+      "uuid": "ee15b752fb4635f2b0bba46636572385"
+    },
+    "Frameworks/hermesvm.framework/hermesvm": {
+      "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+      "uuid": "be274a2347cc3f5a9e988474553df5a8"
+    }
+  },
+  "original_hbc_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+  "compiled_validation_receipt_sha256": "c1e7dd3ff43fead07d0c919b33ed03b7c754c4edf35767e2f9f24071a89fcb68",
+  "tests": {
+    "total": 211,
+    "passed": 209,
+    "skipped": 2,
+    "skips": [
+      "Apple Foundation",
+      "Apple ImageIO"
+    ],
+    "compiled_Hermes_both_predecessors": true,
+    "legacy_global_alias_absent": true,
+    "both_startup_orders": true,
+    "packaging": true
+  },
+  "device_feedback": {
+    "build20": "Unsupported: native-stage=8 profile-bits=255 source-stage=3 startup-mask=256 startup-calls=1 ready-calls=0",
+    "build21": "pending device test"
+  },
+  "scope": "Corrects the free global identifier dependency. The old graft reproduces the device failure signature in pinned Hermes without that alias; the corrected graft passes. Device startup resolution remains unconfirmed."
+}

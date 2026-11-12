@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>StreamsideNativeProof</string>
+	<key>CFBundleIdentifier</key>
+	<string>dev.streamside.nativeproof</string>
+	<key>CFBundleName</key>
+	<string>StreamsideNativeProof</string>
+	<key>CFBundlePackageType</key>
+	<string>FMWK</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.3</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>MinimumOSVersion</key>
+	<string>16.4</string>
+	<key>SSNFrontend</key>
+	<string>swiftui</string>
+	<key>SSNMode</key>
+	<string>native</string>
+	<key>SSNProofID</key>
+	<string>460a02eea90d633c45b9c74471f0393626cbd1f88f0219404befa2ebd9cdbf3f</string>
+	<key>SSNSourceRevision</key>
+	<string>59c1936c1e0a69f20b4b7ba9ac2d6330c4ca2940-dirty</string>
+</dict>
+</plist>

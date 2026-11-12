@@ -1,0 +1,11 @@
+test_current_user_indirect_result_and_native_self (test_abi.SwiftCalls.test_current_user_indirect_result_and_native_self) ... ok
+test_followed_users_limit_cursor_set_self_and_result (test_abi.SwiftCalls.test_followed_users_limit_cursor_set_self_and_result) ... ok
+test_mapping_closure_value_and_context (test_abi.SwiftCalls.test_mapping_closure_value_and_context) ... ok
+test_model_getter_indirect_result (test_abi.SwiftCalls.test_model_getter_indirect_result) ... ok
+test_promise_mapping_closures_metadata_and_self (test_abi.SwiftCalls.test_promise_mapping_closures_metadata_and_self) ... ok
+test_string_pair_direct_result (test_abi.SwiftCalls.test_string_pair_direct_result) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.011s
+
+OK

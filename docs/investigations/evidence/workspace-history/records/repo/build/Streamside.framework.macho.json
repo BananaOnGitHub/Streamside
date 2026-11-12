@@ -1,0 +1,53 @@
+{
+  "artifact": {
+    "identity": "@rpath/Streamside.framework/Streamside",
+    "info_sha256": "8c62d56ae1ae97eb0f7be4886a78e643cb8d79eb6214b13b1fc719ec3a79c3f7",
+    "segments": [
+      {
+        "fileoff": 0,
+        "filesize": 540672,
+        "name": "__TEXT",
+        "vmaddr": 0,
+        "vmsize": 540672
+      },
+      {
+        "fileoff": 540672,
+        "filesize": 16384,
+        "name": "__DATA_CONST",
+        "vmaddr": 540672,
+        "vmsize": 16384
+      },
+      {
+        "fileoff": 557056,
+        "filesize": 16384,
+        "name": "__DATA",
+        "vmaddr": 557056,
+        "vmsize": 4849664
+      },
+      {
+        "fileoff": 573440,
+        "filesize": 88912,
+        "name": "__LINKEDIT",
+        "vmaddr": 5406720,
+        "vmsize": 98304
+      }
+    ],
+    "sha256": "11c41e383062ad117f8f882f7c10b2d2312a447c777e4a3df825c8b298733a6c",
+    "signature": {
+      "declared": 1788,
+      "directories": [
+        {
+          "code_limit": 660560,
+          "exec_base": 0,
+          "exec_limit": 540672,
+          "identifier": "Streamside"
+        }
+      ],
+      "offset": 660560,
+      "reserved": 1792
+    },
+    "size": 662352,
+    "version": "3.1.0"
+  },
+  "schema": 1
+}

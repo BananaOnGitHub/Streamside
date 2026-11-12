@@ -1,0 +1,1046 @@
+{
+  "schema": 1,
+  "source_head_before_cleanup": "6af4e2da268d4506e454b8841ab6b5b11a61c009",
+  "files": [
+    {
+      "path": "repo/build/Streamside.dylib",
+      "bytes": 726096,
+      "sha256": "f21082911849c3dff82da63959132c23034e06835b2eb71c0cd58532a1192195"
+    },
+    {
+      "path": "repo/build/Streamside.dylib.macho.json",
+      "bytes": 1085,
+      "sha256": "e5730d4b88109e4b887561d1c19959694ffefb4ba18b250a41017c98189847e7"
+    },
+    {
+      "path": "repo/build/Streamside.framework/Info.plist",
+      "bytes": 891,
+      "sha256": "8c62d56ae1ae97eb0f7be4886a78e643cb8d79eb6214b13b1fc719ec3a79c3f7"
+    },
+    {
+      "path": "repo/build/Streamside.framework/Streamside",
+      "bytes": 662352,
+      "sha256": "11c41e383062ad117f8f882f7c10b2d2312a447c777e4a3df825c8b298733a6c"
+    },
+    {
+      "path": "repo/build/Streamside.framework.macho.json",
+      "bytes": 1202,
+      "sha256": "921538dccdca2faab762440fb00c1815348f1c7fed14213b4d8d510190e41673"
+    },
+    {
+      "path": "repo/build/build20-docs.log",
+      "bytes": 94,
+      "sha256": "e131866626b3bc4b69f1bae9583143b8302df09e7e855e89ee3cbc1239912e13"
+    },
+    {
+      "path": "repo/build/build20-hermes.log",
+      "bytes": 5264,
+      "sha256": "98b9e6bbbfed0a51aa37cefa99933986b672ea1bb8e7a0051983215a557c6f04"
+    },
+    {
+      "path": "repo/build/build20-ipa.log",
+      "bytes": 285,
+      "sha256": "93e3330547c0f662e789cffd9bb3a24a3bc124a90537582a51215f702ba683cb"
+    },
+    {
+      "path": "repo/build/build20-native.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/build20-payload.log",
+      "bytes": 1273,
+      "sha256": "9efdccffda71b98384b6cbe919af0fe06c5cb6443e2a59390cef31480acb56b7"
+    },
+    {
+      "path": "repo/build/build20-startup-tests.log",
+      "bytes": 260,
+      "sha256": "b6084e32a07f251503bb23064151e5e288ce7433b4d191084f796274ffa3bfd5"
+    },
+    {
+      "path": "repo/build/build20-tests.log",
+      "bytes": 145530,
+      "sha256": "57c91a192f0f3d4dc0057c70a6637977327657e6e09ec39f1d43358fd9656139"
+    },
+    {
+      "path": "repo/build/build21-docs.log",
+      "bytes": 122,
+      "sha256": "d93ec8c63aae0fd7899d37086cda2e6fb5c06d51d5b3e5e5c195af3089d6059d"
+    },
+    {
+      "path": "repo/build/build21-hermes.log",
+      "bytes": 5264,
+      "sha256": "98b9e6bbbfed0a51aa37cefa99933986b672ea1bb8e7a0051983215a557c6f04"
+    },
+    {
+      "path": "repo/build/build21-ipa.log",
+      "bytes": 285,
+      "sha256": "dd585d8d477eac05e1beeb5f740166f9e32d644b9b523ba4570fc5f69a79ca37"
+    },
+    {
+      "path": "repo/build/build21-native.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/build21-payload.log",
+      "bytes": 1273,
+      "sha256": "9efdccffda71b98384b6cbe919af0fe06c5cb6443e2a59390cef31480acb56b7"
+    },
+    {
+      "path": "repo/build/build21-tests.log",
+      "bytes": 145530,
+      "sha256": "0a9f88d4ba14466fc3d951933e8444c58b30a6d50f43d1859e9227c0c83a2122"
+    },
+    {
+      "path": "repo/build/build22-baseline-docs.log",
+      "bytes": 122,
+      "sha256": "3f3db2f5b2cd4d208cae0021c519e9dca16a1baad1bac0ff062222b857454f51"
+    },
+    {
+      "path": "repo/build/build22-docs.log",
+      "bytes": 122,
+      "sha256": "3f3db2f5b2cd4d208cae0021c519e9dca16a1baad1bac0ff062222b857454f51"
+    },
+    {
+      "path": "repo/build/build22-gap-analysis-docs.log",
+      "bytes": 122,
+      "sha256": "3f3db2f5b2cd4d208cae0021c519e9dca16a1baad1bac0ff062222b857454f51"
+    },
+    {
+      "path": "repo/build/build22-hermes.log",
+      "bytes": 5264,
+      "sha256": "98b9e6bbbfed0a51aa37cefa99933986b672ea1bb8e7a0051983215a557c6f04"
+    },
+    {
+      "path": "repo/build/build22-ipa.log",
+      "bytes": 285,
+      "sha256": "75f544b3f29ac7b430e00351481740f643c1934bc3fa87c78072e6f7716ca183"
+    },
+    {
+      "path": "repo/build/build22-native.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/build22-tests.log",
+      "bytes": 145713,
+      "sha256": "bc24dcf5319bd3b551013994b72aae66e8f897144e78ad10258c67d40fb6a77f"
+    },
+    {
+      "path": "repo/build/build23-device-gap-docs.log",
+      "bytes": 122,
+      "sha256": "3f3db2f5b2cd4d208cae0021c519e9dca16a1baad1bac0ff062222b857454f51"
+    },
+    {
+      "path": "repo/build/build23-docs.log",
+      "bytes": 122,
+      "sha256": "3f3db2f5b2cd4d208cae0021c519e9dca16a1baad1bac0ff062222b857454f51"
+    },
+    {
+      "path": "repo/build/build23-hermes.log",
+      "bytes": 5472,
+      "sha256": "9d5612e57132061d8a40fccb565a5c6ac176d367968e77266ed2516a87dced55"
+    },
+    {
+      "path": "repo/build/build23-ipa.log",
+      "bytes": 285,
+      "sha256": "03452e94428db687e059ff04a792ee6e93d170a1f1c3c0cb0aedd31638887ea0"
+    },
+    {
+      "path": "repo/build/build23-native.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/build23-parser-sanitizer",
+      "bytes": 255432,
+      "sha256": "5a9864c438098890fb70ed69a4b34af75084f7377bc56be9d986861ae1e42a08"
+    },
+    {
+      "path": "repo/build/build23-parser-sanitizer.log",
+      "bytes": 74,
+      "sha256": "1059268e9bc9d842d4d75851e1f37d499c4928472492321b8d7b3f442a37de52"
+    },
+    {
+      "path": "repo/build/build23-payload.log",
+      "bytes": 1273,
+      "sha256": "65999ab2eff5bedc5c1dd579c7f89145d3c4c895291c9a6480e7d43e6de7340d"
+    },
+    {
+      "path": "repo/build/build23-report-sanitizer",
+      "bytes": 109744,
+      "sha256": "88a1f56df7e120360eabe6382a62e2ad42f865fe2187917c7f393dc575419d42"
+    },
+    {
+      "path": "repo/build/build23-report-sanitizer.log",
+      "bytes": 64,
+      "sha256": "312b54bf780cb4232f506a19ed86f3ed0dbeee196ffb058442ca139bfecea689"
+    },
+    {
+      "path": "repo/build/build23-targeted-tests.log",
+      "bytes": 2908,
+      "sha256": "828917323d4c31a6e2d9da3bfbf9b136376a58597ff1d4108b02fe7d89523352"
+    },
+    {
+      "path": "repo/build/build23-tests.log",
+      "bytes": 146067,
+      "sha256": "b01efe7e1d688d2608d9428a2358fcf6ccc7c70487b09c5fef96e281addc06f3"
+    },
+    {
+      "path": "repo/build/build24-docs.log",
+      "bytes": 122,
+      "sha256": "3f3db2f5b2cd4d208cae0021c519e9dca16a1baad1bac0ff062222b857454f51"
+    },
+    {
+      "path": "repo/build/build24-hermes.log",
+      "bytes": 5472,
+      "sha256": "feeb45ac23bdd37c95a678eeaed1d2d8763c953c074a24bf55d04b656b209b5a"
+    },
+    {
+      "path": "repo/build/build24-ipa.log",
+      "bytes": 285,
+      "sha256": "c2570458406688ccbb60750110cd33897e80cd6401559ef238bcc548b8d44bd6"
+    },
+    {
+      "path": "repo/build/build24-native.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/build24-parser-sanitizer",
+      "bytes": 255432,
+      "sha256": "5ec6db7a2ef5cd748b71878a8537a90f68332085e56685b7a480338d05867a98"
+    },
+    {
+      "path": "repo/build/build24-parser-sanitizer.log",
+      "bytes": 74,
+      "sha256": "1059268e9bc9d842d4d75851e1f37d499c4928472492321b8d7b3f442a37de52"
+    },
+    {
+      "path": "repo/build/build24-payload.log",
+      "bytes": 1273,
+      "sha256": "fe41b4dd957e06001ccdf14279f8c13bbf010b6a5464034e5cb341fae640d0f6"
+    },
+    {
+      "path": "repo/build/build24-report-sanitizer",
+      "bytes": 153792,
+      "sha256": "7967ea93929d5b4a70faa82b7dccf2d77d264a0685de125d738e59abdf8e865e"
+    },
+    {
+      "path": "repo/build/build24-report-sanitizer.log",
+      "bytes": 64,
+      "sha256": "312b54bf780cb4232f506a19ed86f3ed0dbeee196ffb058442ca139bfecea689"
+    },
+    {
+      "path": "repo/build/build24-tests.log",
+      "bytes": 146443,
+      "sha256": "6fe75e1b761d172eb3d0e45b6fa50d12f7bce6f81f78af3d996d2e7e46118946"
+    },
+    {
+      "path": "repo/build/checkpoint-a-validation.log",
+      "bytes": 36731,
+      "sha256": "34292a6faa63f1aa69e2b4ddaa18b2273d85abddba8fa39890454ecaac568b31"
+    },
+    {
+      "path": "repo/build/checkpoint-b-hermes.log",
+      "bytes": 3236,
+      "sha256": "70fd9b6540532e920aef0d8ba5eb403db8934bcc63e781481a81e86cab0908e1"
+    },
+    {
+      "path": "repo/build/checkpoint-b-native.log",
+      "bytes": 408,
+      "sha256": "8e83880c37c8d1f2c2c239bbfaadb303e66ee3a025996690a906dac3f7142ec2"
+    },
+    {
+      "path": "repo/build/checkpoint-b-tests.log",
+      "bytes": 36323,
+      "sha256": "7c98d7f23ca781b9f8e2315fe2486d969c6458074a303a07575edcf2c25d3ee0"
+    },
+    {
+      "path": "repo/build/checkpoint-c-docs.log",
+      "bytes": 94,
+      "sha256": "e131866626b3bc4b69f1bae9583143b8302df09e7e855e89ee3cbc1239912e13"
+    },
+    {
+      "path": "repo/build/checkpoint-c-hermes.log",
+      "bytes": 3450,
+      "sha256": "a110f04a644503a82e31ba10c800c1a6bd799281bba83041e9d15dcbe86dccb2"
+    },
+    {
+      "path": "repo/build/checkpoint-c-native.log",
+      "bytes": 408,
+      "sha256": "8e83880c37c8d1f2c2c239bbfaadb303e66ee3a025996690a906dac3f7142ec2"
+    },
+    {
+      "path": "repo/build/checkpoint-c-payload.log",
+      "bytes": 1273,
+      "sha256": "8eb299c022f27c34d27b8c1573443682fe21326dce796cebda5ab16b4c18d98d"
+    },
+    {
+      "path": "repo/build/checkpoint-c-tests.log",
+      "bytes": 2735,
+      "sha256": "1a74e75d8627b4e2e06fc038a7f4ee2e8a4302cad7afa7480e7c43e4c8ba1a61"
+    },
+    {
+      "path": "repo/build/checkpoint-d-docs.log",
+      "bytes": 94,
+      "sha256": "e131866626b3bc4b69f1bae9583143b8302df09e7e855e89ee3cbc1239912e13"
+    },
+    {
+      "path": "repo/build/checkpoint-d-getters.log",
+      "bytes": 4004,
+      "sha256": "409618971ec6d5d07f995135aef15d8ef5d3d2b060658ede4607c29b59dd21ac"
+    },
+    {
+      "path": "repo/build/checkpoint-d-hermes.log",
+      "bytes": 5082,
+      "sha256": "20adc7722825a4d0dee6627c66516b3374ea7f6025dccb5f0033d276bc103eff"
+    },
+    {
+      "path": "repo/build/checkpoint-d-native.log",
+      "bytes": 408,
+      "sha256": "8e83880c37c8d1f2c2c239bbfaadb303e66ee3a025996690a906dac3f7142ec2"
+    },
+    {
+      "path": "repo/build/checkpoint-d-payload.log",
+      "bytes": 1273,
+      "sha256": "408c8bb72203066c5a3b8067bbb031b3137297e7f9b6c831a449342ae24026ce"
+    },
+    {
+      "path": "repo/build/checkpoint-e-docs.log",
+      "bytes": 94,
+      "sha256": "e131866626b3bc4b69f1bae9583143b8302df09e7e855e89ee3cbc1239912e13"
+    },
+    {
+      "path": "repo/build/checkpoint-e-hermes.log",
+      "bytes": 5082,
+      "sha256": "5fbc18f49ce37d38d849aa3747ffa7e9010bbb9876bf5004ec485c2e3f36aa7c"
+    },
+    {
+      "path": "repo/build/checkpoint-e-investigation-tests.log",
+      "bytes": 2910,
+      "sha256": "099e93e5df4738c196d1d55886d6952482acc9de3c647e430b6d296a592aae4f"
+    },
+    {
+      "path": "repo/build/checkpoint-e-ipa.log",
+      "bytes": 285,
+      "sha256": "a1ee34bea63c6ab829997d7c811558f5aafa5301d3dc55b9ab88b21190fada26"
+    },
+    {
+      "path": "repo/build/checkpoint-e-native.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/checkpoint-e-payload.log",
+      "bytes": 1273,
+      "sha256": "b447cdb9cd166bd6543de36802855fe19d1976dd7e1ed0c5fcd7a2a2289b6a66"
+    },
+    {
+      "path": "repo/build/checkpoint-e-sanitizers.log",
+      "bytes": 138,
+      "sha256": "18c49ab5aac8ee39a618fdfcba76d9cfffee87e6a013d30b31ed9dbc937ae95b"
+    },
+    {
+      "path": "repo/build/checkpoint-e-tests.log",
+      "bytes": 145367,
+      "sha256": "cb093b297e790b634cdd64e8504b8ec9652a1c503b4d77b15bfe3efb20e668c8"
+    },
+    {
+      "path": "repo/build/investigation-native-channel.json",
+      "bytes": 9781,
+      "sha256": "e2defcdebe6b399d1598ecd18d90e570e52d98fcc2ce752a205b1485daa7ebeb"
+    },
+    {
+      "path": "repo/build/investigation-parser-sanitized",
+      "bytes": 255560,
+      "sha256": "5d8260a6c61c985dbcf654ffc5cd1eca1bb36d0d1f5c46c41d76c67e3bf3f8a2"
+    },
+    {
+      "path": "repo/build/investigation-report-sanitized",
+      "bytes": 109880,
+      "sha256": "714cdd0844e2d050eba689e61c2740fc03772f52c5891a74c333b98385d78852"
+    },
+    {
+      "path": "repo/build/investigation-validation.json",
+      "bytes": 3246,
+      "sha256": "b0a8e595ef5a5d37138f0294215edc7a8659e30fc52b3fcfb124f79a9e8fdc0c"
+    },
+    {
+      "path": "repo/build/local-baseline-2026-10-19.log",
+      "bytes": 34709,
+      "sha256": "27de08f003be2fab252b7899c2cc52508f8c57f64865d766e3b5f80143aba126"
+    },
+    {
+      "path": "repo/build/native-frontend/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196413212,
+      "sha256": "d99e09bbe7d9713e653e473bec45554636a7afd61f698132dbdecc7fdc200f0d"
+    },
+    {
+      "path": "repo/build/native-frontend/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196417297,
+      "sha256": "f03ce77bc3be059413b482106d296038c816b9cdd9e4eda0fa9a890d11c2cb3d"
+    },
+    {
+      "path": "repo/build/native-frontend/artifacts.json",
+      "bytes": 2570,
+      "sha256": "8147d382c0e762de7970b1e506d317836cebc6e4ba99926d8b507bcb292c96dc"
+    },
+    {
+      "path": "repo/build/native-frontend/baseline/SSNBuild.h",
+      "bytes": 5109,
+      "sha256": "385aad28aa358ea5ce5f87d0bd1884e292196fd01fe04f845d98378a058a4e4c"
+    },
+    {
+      "path": "repo/build/native-frontend/baseline/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 858,
+      "sha256": "6e47febb0bd2bab02f476e8606268c2665e9db86ca2e5e77460501736ba6612a"
+    },
+    {
+      "path": "repo/build/native-frontend/baseline/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 88768,
+      "sha256": "9bb634691f53e2e639b714da21ecc6931b49272800f07a5f456f0c087cf673dd"
+    },
+    {
+      "path": "repo/build/native-frontend/native/SSNBuild.h",
+      "bytes": 5109,
+      "sha256": "385aad28aa358ea5ce5f87d0bd1884e292196fd01fe04f845d98378a058a4e4c"
+    },
+    {
+      "path": "repo/build/native-frontend/native/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 856,
+      "sha256": "59c94e1ffd1ae3358da5533227aff2e44ef9c8d142002d2389755a306ad18979"
+    },
+    {
+      "path": "repo/build/native-frontend/native/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 90400,
+      "sha256": "b7c4db3f04ad650f70cbadbf9d0779f9f4755eb3d9886da5abcbb1d3a88b91e5"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/build.log",
+      "bytes": 2570,
+      "sha256": "8147d382c0e762de7970b1e506d317836cebc6e4ba99926d8b507bcb292c96dc"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/docs-check-final.log",
+      "bytes": 122,
+      "sha256": "dffd4be6f4513269fcadbc942731078bc191bca9c556b2bd473d75ff61cae954"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/docs-check.log",
+      "bytes": 122,
+      "sha256": "b9936de0edd5f71b2b175273b4d8328ee2979de227213a2be83dd8182d5063ec"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/first-build-artifacts.json",
+      "bytes": 2570,
+      "sha256": "8147d382c0e762de7970b1e506d317836cebc6e4ba99926d8b507bcb292c96dc"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/host-checks.json",
+      "bytes": 611,
+      "sha256": "e0e99d2d6f731848bf2ed4540fe66cdb7062fd637b8426430f1413878b1a6f76"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/legacy-tests.log",
+      "bytes": 147220,
+      "sha256": "0c7ad715be2f9657868787822c837ffab469271aa2ac63853bce3ed7f9784845"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/phase2-tests.log",
+      "bytes": 3215,
+      "sha256": "ff1976535d5cf0ca9651e25bbfd7ec85ef0f759bf4260d77c96131e4ab4e3f8e"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/repeat-build.json",
+      "bytes": 550,
+      "sha256": "db50cb200580e08ab77ddf14a30e09bfe2d4859ee8a6abdf8ad3a8c836316fce"
+    },
+    {
+      "path": "repo/build/native-frontend/validation/repeat-build.log",
+      "bytes": 2570,
+      "sha256": "8147d382c0e762de7970b1e506d317836cebc6e4ba99926d8b507bcb292c96dc"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196413132,
+      "sha256": "128340ab2cdbab9e047f2f6c4ca016d922c6451cd72171142d7d25483c561656"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196417386,
+      "sha256": "aa652dfa2a9b0ebedc5a8ea79a093866b9dba04f98fd10a174f9ca30c70af52c"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/artifacts.json",
+      "bytes": 2590,
+      "sha256": "a2cb70396639a976c0b311c15c4b749cdc50f5419d0ec66e0da23f6730f60737"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/baseline/SSNBuild.h",
+      "bytes": 5109,
+      "sha256": "413256f7f13f537fe6aad5adeb987183fec070d92ddd00b6e125f6c73a6fe7c0"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/baseline/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 858,
+      "sha256": "ac9b9de655d7f6b66addbe806f5540f455880ce896b6ae91dbbead73b977dd9b"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/baseline/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 88736,
+      "sha256": "fef1c3e6b04e3c1ced603ace5427272d4f9ec85b078bf0f3dd118271950fbbb6"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/native/SSNBuild.h",
+      "bytes": 5109,
+      "sha256": "413256f7f13f537fe6aad5adeb987183fec070d92ddd00b6e125f6c73a6fe7c0"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/native/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 856,
+      "sha256": "516f2ca3f28bda9e3c5fe871e502477a5c254b43714dab403a418935c382be99"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/native/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 90400,
+      "sha256": "2ee0f22f42ecf8654d7b62c6de555ca663143d416a06165d562f756c0770ceeb"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/validation/build.log",
+      "bytes": 2590,
+      "sha256": "a2cb70396639a976c0b311c15c4b749cdc50f5419d0ec66e0da23f6730f60737"
+    },
+    {
+      "path": "repo/build/native-frontend-export-v3/validation/export-filename-inspection.json",
+      "bytes": 317,
+      "sha256": "184db821898f2703d9d43b28cbfe77560506e99ec96bdc16e16ea26c47abd87e"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196413112,
+      "sha256": "17797cdcb62f39c7fca51a6f99d6e79de03d24dda7633fce84d3538f23e96c2d"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196417366,
+      "sha256": "ebd3510e05d979693dbd38037ce8d0d3dd172722e5876fac293da6f21fec1926"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/artifacts.json",
+      "bytes": 2592,
+      "sha256": "5f01eb8e6550854ccc9323ff32b37be19cf895a69885c8d31c95d7458f21ed59"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/baseline/SSNBuild.h",
+      "bytes": 5109,
+      "sha256": "bf75b2ae37cf7dd2de450064ff35be597298c5f4ebf7809315ff822ade8b17d6"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/baseline/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 858,
+      "sha256": "c738111003e6f18d51a0ff6444c467d97ccb983251ece4fa7ab165488a9af479"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/baseline/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 88736,
+      "sha256": "715e3e7be64abea561251e5bf4289e7e3bbd4be953a95124152d223688e1f64a"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/native/SSNBuild.h",
+      "bytes": 5109,
+      "sha256": "bf75b2ae37cf7dd2de450064ff35be597298c5f4ebf7809315ff822ade8b17d6"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/native/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 856,
+      "sha256": "0ec8fb04ea7a1cbfaa9f216be2b58df9f4833eb8e6813089ad5f9c45df213a27"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/native/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 90400,
+      "sha256": "419770b96d32fd84ce7947fe4e9086f5e65ff84dd49ddcd9fdb821bcc4d340d9"
+    },
+    {
+      "path": "repo/build/native-frontend-gesture-v2/validation/build.log",
+      "bytes": 2592,
+      "sha256": "5f01eb8e6550854ccc9323ff32b37be19cf895a69885c8d31c95d7458f21ed59"
+    },
+    {
+      "path": "repo/build/native-swiftui/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196475822,
+      "sha256": "e6e6a317be5f352fc2a0bbccd3dc4433e34faf2c1515cb9876fed20bccdf1b2d"
+    },
+    {
+      "path": "repo/build/native-swiftui/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196479929,
+      "sha256": "b9f5c836e728f82e109ed1c71679f3b3ab6de408cd86d6fd1d6c8f204b45ff9b"
+    },
+    {
+      "path": "repo/build/native-swiftui/artifacts.json",
+      "bytes": 8197,
+      "sha256": "c3bfc2c9bd6052ba9091d2e0606892325c600fd89409c9bbc466e9aea9ca01f1"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/SSNBuild.h",
+      "bytes": 5465,
+      "sha256": "dcf143ba809851b47f17ef50b663fe9ac8eed9eb788b2f3dbbebdc6d3aff4f0c"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/SSNSwiftUI-Swift.h",
+      "bytes": 13050,
+      "sha256": "c02385689b05e1186a82b29e269101005159d631b2dc02603961008fa37e2825"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/StreamsideNativeProof",
+      "bytes": 391872,
+      "sha256": "e43e6875ab6718c4aafe0ccc2126305c1ec6b9b315984d9d06da6f6fb34bbd4b"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 908,
+      "sha256": "d74c44f24f9d1577aaa830e71940986c6459e911c0b5f1d22e3c835def4e35b7"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 391872,
+      "sha256": "e43e6875ab6718c4aafe0ccc2126305c1ec6b9b315984d9d06da6f6fb34bbd4b"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/apple-abi.o",
+      "bytes": 1120,
+      "sha256": "ca04f921936ae004975fbd0026ff4a3fcd8d3e888337cec22298b71680446671"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/build.log",
+      "bytes": 4186,
+      "sha256": "597c8f7a3e6271ab49319dc0403a6c7553280378b0b3b21759fb67319fb25740"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/compiler.json",
+      "bytes": 2591,
+      "sha256": "960d901dc77cbe16f1ef4d4b456e339b9d44763818f4aa53df2f0a6019ed57ff"
+    },
+    {
+      "path": "repo/build/native-swiftui/baseline/remote-command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/SSNBuild.h",
+      "bytes": 5465,
+      "sha256": "dcf143ba809851b47f17ef50b663fe9ac8eed9eb788b2f3dbbebdc6d3aff4f0c"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/SSNSwiftUI-Swift.h",
+      "bytes": 13050,
+      "sha256": "c02385689b05e1186a82b29e269101005159d631b2dc02603961008fa37e2825"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/StreamsideNativeProof",
+      "bytes": 410160,
+      "sha256": "f180be2853bff58d2aca7c87ed1c21da50b13f7729ae1686a4def743df77f124"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 906,
+      "sha256": "0a8367473f69e73150ee8d9ec2ff7f3e7b47c8258ee2637e0dd4a043ad68a2cf"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 410160,
+      "sha256": "f180be2853bff58d2aca7c87ed1c21da50b13f7729ae1686a4def743df77f124"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/apple-abi.o",
+      "bytes": 1120,
+      "sha256": "ca04f921936ae004975fbd0026ff4a3fcd8d3e888337cec22298b71680446671"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/build.log",
+      "bytes": 4186,
+      "sha256": "d89aeb287f6f76b666ba4189bdf3091f2f9d6692f8d6ac44915bfdd636a048a5"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/compiler.json",
+      "bytes": 2589,
+      "sha256": "063c9553df310935ffe2f9801759717a06a0745db7bd392732e4689b1b702c23"
+    },
+    {
+      "path": "repo/build/native-swiftui/native/remote-command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "repo/build/native-swiftui/validation/apple-abi-tests.log",
+      "bytes": 782,
+      "sha256": "f5540bb1cf81e427361902008e1f8c3b8c18376ae856eaef73838fda14a62411"
+    },
+    {
+      "path": "repo/build/native-swiftui/validation/build.log",
+      "bytes": 8307,
+      "sha256": "5db2a36b0eddfce53f0be0e030c74da1dc8926b3339c4619c4bde9633fe078dc"
+    },
+    {
+      "path": "repo/build/native-swiftui/validation/docs-check.log",
+      "bytes": 122,
+      "sha256": "08def7243860dd3376fc03be2d75b15a4a4fc2447835c3950a23de0b6143a2f7"
+    },
+    {
+      "path": "repo/build/native-swiftui/validation/native-tests.log",
+      "bytes": 3517,
+      "sha256": "1abde1ed4baf576f6c00756d967b6f22840d8cd9a710ff1b13934730cc09e1c4"
+    },
+    {
+      "path": "repo/build/native-swiftui/validation/package-inspection.json",
+      "bytes": 3568,
+      "sha256": "dd910774b6473e0591271b35a99cd8d2257f094221532fe94d39c12ff8bf4539"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial/native/SSNBuild.h",
+      "bytes": 5471,
+      "sha256": "44e2b2b0208ac0e09e7dce77d0826bc1fc5da5b01314714c0c0c6d728c5a8c59"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial/native/build.log",
+      "bytes": 2043,
+      "sha256": "afc530c107679a19085e27dfe9b832a68a9edf6d559c537416c945100db17195"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial/native/compiler.json",
+      "bytes": 2401,
+      "sha256": "c010ab82a254b057f464cd64819c077dc7d5f61a2880f0d46cf8d78cc94dea74"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial/native/remote-command.log",
+      "bytes": 1498,
+      "sha256": "9c624b1ce83e5ff48b45923fc13637b11486a1ec4264655d18423f61667a4db9"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial2/native/SSNBuild.h",
+      "bytes": 5471,
+      "sha256": "c42680a107ed26c1bbe2c1c13b62968cdd58e2e7bf42355ac95edecc4e5cc4b3"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial2/native/SSNSwiftUI-Swift.h",
+      "bytes": 13050,
+      "sha256": "c02385689b05e1186a82b29e269101005159d631b2dc02603961008fa37e2825"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial2/native/SwiftFrontend.o",
+      "bytes": 349160,
+      "sha256": "3d806222084a6a17d45c358c1c69899b87929757ebfbfdad2a600f396a8637d5"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial2/native/build.log",
+      "bytes": 1553,
+      "sha256": "8c955777a3a738012c21972cbdff3f1948f79ef358cb306fc16e322fbf24a019"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial2/native/compiler.json",
+      "bytes": 2401,
+      "sha256": "cf0aa0d4a07c38305754443d6bc9afcf8396807edb8bfb34fbbd6bea39a5494a"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial2/native/remote-command.log",
+      "bytes": 595,
+      "sha256": "ca08bd792f0052ffa8a1ae54152452d5a2112508b9a47de2d71fb8c90b5e0f2d"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196479947,
+      "sha256": "f9af06f4294009120bb813033103686500f2619f83087aa4b588b6c0443cc96d"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/artifacts.json",
+      "bytes": 4326,
+      "sha256": "91cfd758291c60f2d02b9d1bdaa762decddb7cc6629fd9a1a3f384ebfe8b097d"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SSNAccount.c.o",
+      "bytes": 17656,
+      "sha256": "32b370fa427d167caa0d397f8dc033a1d14a597897cd917ede9d42a23ef613f7"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SSNBuild.h",
+      "bytes": 5471,
+      "sha256": "0a87a54aab07c814a14e921014d420d06cf9b391782ab0496375f87dd36ba8b5"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SSNCore.c.o",
+      "bytes": 15592,
+      "sha256": "fd441fcd78f36db4cd5a3ccd632faa7667eba0f4a6b5d33d2a3cf8643c55dc9f"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SSNIntegration.c.o",
+      "bytes": 15784,
+      "sha256": "6210b5750afce8a20c4d8dab0f46aa7eb1e8e7881bf73cca46a217ec1e39e060"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SSNNativeBridge.m.o",
+      "bytes": 19080,
+      "sha256": "7d57228f0e401037b1ca7d665ca1106dd2772e76e00712d2eb20f2cb4aeab032"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SSNSwiftUI-Swift.h",
+      "bytes": 13050,
+      "sha256": "c02385689b05e1186a82b29e269101005159d631b2dc02603961008fa37e2825"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/StreamsideNativeProof",
+      "bytes": 410160,
+      "sha256": "33bb990de2d9510079a7e3c435f2a7fd4ffb9de02d9915cfba04bdfce9f2d554"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/StreamsideNativeProof.framework/Info.plist",
+      "bytes": 912,
+      "sha256": "e8c25c068c7bec02e1e68837ea3c2d65b5784c01ca63e9b9e1849b04dc56594d"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/StreamsideNativeProof.framework/StreamsideNativeProof",
+      "bytes": 410160,
+      "sha256": "33bb990de2d9510079a7e3c435f2a7fd4ffb9de02d9915cfba04bdfce9f2d554"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/SwiftFrontend.o",
+      "bytes": 349160,
+      "sha256": "3d806222084a6a17d45c358c1c69899b87929757ebfbfdad2a600f396a8637d5"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/apple-abi.o",
+      "bytes": 1120,
+      "sha256": "ca04f921936ae004975fbd0026ff4a3fcd8d3e888337cec22298b71680446671"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/build.log",
+      "bytes": 4186,
+      "sha256": "9e5676c64e87d2bd1a026710c02594975504a30e0c2663c14159da54b95c5e43"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/compiler.json",
+      "bytes": 2595,
+      "sha256": "1467ac78ca2353b7536ff6a7e371c0a67b7040072522725cbb141bc9e25de194"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/models-tests",
+      "bytes": 34720,
+      "sha256": "39617b88a82f7135cb50d2ed16da540686c3490273609a1da0abe7b55f1f59a4"
+    },
+    {
+      "path": "repo/build/native-swiftui-trial3/native/remote-command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "repo/build/pre-runtime-hermes-validation.log",
+      "bytes": 2421,
+      "sha256": "a6a978bbddf4acbfae9082bddd80e65255a996f57686904ee5cdf1eadbf75d9c"
+    },
+    {
+      "path": "repo/build/snapshot-runtime-report.txt",
+      "bytes": 20683,
+      "sha256": "385c16562ebbd5c8cab6095fec2a980df360b4011e3a5e50ce2c64b1c449ddea"
+    },
+    {
+      "path": "repo/build/snapshot-validation.json",
+      "bytes": 3796,
+      "sha256": "949c1e7617e64d68652539ee37c7ce89849e4b752f029e3a4a912e7ad0d57441"
+    },
+    {
+      "path": "repo/build/v1-hardening-2026-10-26/ss-hardening-focused-final.log",
+      "bytes": 4722,
+      "sha256": "6c02f8d3155c310d2d4801929307f97bd4faaa9a82d1306eba080a7e359b2934"
+    },
+    {
+      "path": "repo/build/v1-hardening-2026-10-26/ss-hardening-hermes-final.log",
+      "bytes": 5622,
+      "sha256": "ed8681ce98ceaa07499b49c2c1fb0294e93d8efdc20a423559acc3747f75da0b"
+    },
+    {
+      "path": "repo/build/v1-hardening-2026-10-26/ss-hardening-integration.log",
+      "bytes": 147179,
+      "sha256": "1a7c25886f9eeee011a7f20fe80930535f75682c71744f2c0f4d63e05402b416"
+    },
+    {
+      "path": "repo/build/v1-hardening-2026-10-26/ss-hardening-native-final.log",
+      "bytes": 461,
+      "sha256": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d"
+    },
+    {
+      "path": "repo/build/v1-hardening-2026-10-26/ss-hardening-parser-sanitizer.log",
+      "bytes": 74,
+      "sha256": "1059268e9bc9d842d4d75851e1f37d499c4928472492321b8d7b3f442a37de52"
+    },
+    {
+      "path": "repo/build/v1-hardening-2026-10-26/ss-hardening-report-sanitizer-final.log",
+      "bytes": 64,
+      "sha256": "312b54bf780cb4232f506a19ed86f3ed0dbeee196ffb058442ca139bfecea689"
+    },
+    {
+      "path": "artifacts/BUILD20_TESTING.md",
+      "bytes": 1274,
+      "sha256": "3df8d93ba5c2a35dfcec62013463a44b71acf29b6cb852908766b6d6461c97bd"
+    },
+    {
+      "path": "artifacts/BUILD21_TESTING.md",
+      "bytes": 1308,
+      "sha256": "136c0e8f2bb3289dbbfa051b48f76f0d050dec708491e83962c253a79e158ffd"
+    },
+    {
+      "path": "artifacts/BUILD22_TESTING.md",
+      "bytes": 1442,
+      "sha256": "f981830e8921c634e20909f24bafd6e9ed20a1e1319376945640714446b4f2e8"
+    },
+    {
+      "path": "artifacts/BUILD23_TESTING.md",
+      "bytes": 2451,
+      "sha256": "4dc3ae839df0a1605de7029c7b2d9e2894a3d1032d54a36250a8c2d28bccffd8"
+    },
+    {
+      "path": "artifacts/BUILD24_TESTING.md",
+      "bytes": 2090,
+      "sha256": "2bf6892e1f2dfa732960808f059ee75cc9be7aa654d77b20fceb5b5fe0740ffd"
+    },
+    {
+      "path": "artifacts/DEVICE_TESTING.md",
+      "bytes": 1836,
+      "sha256": "1be313637186c09f258c227eb3c05b16d9b244015c4f64e1043b7e93672351d4"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.19-modular-diagnostics.ipa",
+      "bytes": 194519142,
+      "sha256": "07cec35926960ce80badf3ff29b6f66db4c9c5b0450bf73a121cd17befa80db5"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.19-modular-diagnostics.ipa.sha256",
+      "bytes": 116,
+      "sha256": "d20222ef49d5f6f96fddfc4e92ff6e5acd5a544e02613f86adfb2c28e8e0d38d"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.20-modular-diagnostics.ipa",
+      "bytes": 194521114,
+      "sha256": "17693badb7685abca0435356ef9e5f95b873103bea322f1d13058f815c544378"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.20-modular-diagnostics.ipa.sha256",
+      "bytes": 116,
+      "sha256": "9344d70596a66282b97cc0b8be1e86925321d928eb0bd46862bd5bc9867cd92d"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa",
+      "bytes": 194521113,
+      "sha256": "95063dae49543302df8288f52049f3469499248b862c6bcf503db439f381f3b4"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa.sha256",
+      "bytes": 116,
+      "sha256": "991f7fa3b88b9c13607b498e418b020b3e63f9b3d22d8b184efd743df92ef416"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa",
+      "bytes": 194522261,
+      "sha256": "170b3ed918ae4e434588e4ad7462f74f22fb1f49a55a328678fe136022a3a34b"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa.sha256",
+      "bytes": 116,
+      "sha256": "6985de600ae6b7f3b591f44eab1687eae42ae6ebc72412ae53351bc7feaed506"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa",
+      "bytes": 194524568,
+      "sha256": "118f60af34b9d3a3d2125afecf85a958aad8c38f97cd0ebb75e39a8ef82ee673"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa.sha256",
+      "bytes": 116,
+      "sha256": "7ba4b4930fcdb5ad2ed4743cd64f4f2731d746c7a5576ff33b90d22d05c9739f"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+      "bytes": 194526063,
+      "sha256": "1d7179fc899c32c297803623a2e1808838e3262c56bded4021e00ec14e87d530"
+    },
+    {
+      "path": "artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa.sha256",
+      "bytes": 116,
+      "sha256": "54f71922361d962ec66f4d903c4a7123817452b3ecc3586f5e7ce601aade40c0"
+    },
+    {
+      "path": "artifacts/build19-validation.json",
+      "bytes": 2186,
+      "sha256": "df589a5f8fee0a979875958dac6a08c8e94326e3a4456f5b4df6892f894f0e6b"
+    },
+    {
+      "path": "artifacts/build20-validation.json",
+      "bytes": 1799,
+      "sha256": "4d4da60ded8cefcbc09f8fdd639d66fd298839830b22b318f11cc1191e872b22"
+    },
+    {
+      "path": "artifacts/build21-validation.json",
+      "bytes": 1997,
+      "sha256": "e250a52f4229e68b31f907f7d87888661a74b355a7a7e1df0fc06639f66a900a"
+    },
+    {
+      "path": "artifacts/build22-validation.json",
+      "bytes": 2128,
+      "sha256": "81b97a26b97b2a8bfa53d281ce679fce6a56107a2177ed6add1de2c92a8fabac"
+    },
+    {
+      "path": "artifacts/build23-validation.json",
+      "bytes": 2468,
+      "sha256": "7cbf2276d037725e144e7118790b88309f49edc9eeb0955b9ec6aeaba4015318"
+    },
+    {
+      "path": "artifacts/build24-native-archive/Streamside.dylib",
+      "bytes": 724304,
+      "sha256": "f1fff80dfd526fc4adf07ccaa3ca4911788017de3473d80ec754469d7ec38666"
+    },
+    {
+      "path": "artifacts/build24-native-archive/Streamside.dylib.macho.json",
+      "bytes": 1085,
+      "sha256": "6b4c96ba2ebab0f3b556e14abbd68fe1408fb0668556fe9f62aeef7f8b10b7bc"
+    },
+    {
+      "path": "artifacts/build24-native-archive/Streamside.framework/Info.plist",
+      "bytes": 891,
+      "sha256": "f4a26420e3550a1e3be5b8c9360b868a0393dccbd6d79ca0b947b999fc3d41ea"
+    },
+    {
+      "path": "artifacts/build24-native-archive/Streamside.framework/Streamside",
+      "bytes": 660560,
+      "sha256": "76e773b9d7224390b431f28947558634886493055f66abe18950988e0f9a0e2f"
+    },
+    {
+      "path": "artifacts/build24-native-archive/Streamside.framework.macho.json",
+      "bytes": 1202,
+      "sha256": "ac5023b57aadff7146492f5d591a219cdf49f05fc4edda83212a7df27608b8e5"
+    },
+    {
+      "path": "artifacts/build24-validation.json",
+      "bytes": 2703,
+      "sha256": "28e16590d2ca03b4c923b2c4e60bbdf6542261a919cca1f6f1602afe98c40fc3"
+    },
+    {
+      "path": "artifacts/native-frontend-phase1/docs-check.log",
+      "bytes": 122,
+      "sha256": "8e6339fcf00e9b0851adbeaeafa00dd60c9cf17b79aa68db0aec5deb2b00a710"
+    },
+    {
+      "path": "artifacts/native-frontend-phase1/streamside-native32-host-tests-configured.log",
+      "bytes": 147220,
+      "sha256": "5bd710be9565129a28a6eb586f885f9d49684b7ccfb1a9a5cbbfe666a6f8f95f"
+    },
+    {
+      "path": "artifacts/native-frontend-phase1/streamside-native32-host-tests.log",
+      "bytes": 73435,
+      "sha256": "d22adf60811d1760f3d07f0bd854cd1a8454de7be16cee97f7ca5030539512e2"
+    },
+    {
+      "path": "artifacts/v1-hardening-2026-10-26-validation.json",
+      "bytes": 2397,
+      "sha256": "8848d7dfc5303c4b67768a3858d5bdaeb451e9d6a8127ff171f6ff234e22b940"
+    }
+  ]
+}

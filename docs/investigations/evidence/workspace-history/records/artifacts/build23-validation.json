@@ -1,0 +1,55 @@
+{
+  "candidate": "3.1.0-build.23",
+  "source_commit": "b8a62d458097e5a78af9a5582dc438853ed7b6da",
+  "branch": "feat/modular-diagnostic-runtime",
+  "ipa": {
+    "path": "/home/bananas/Agent-Stuff/streamside/artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa",
+    "bytes": 194524568,
+    "sha256": "118f60af34b9d3a3d2125afecf85a958aad8c38f97cd0ebb75e39a8ef82ee673",
+    "unsigned": true,
+    "verified": true
+  },
+  "framework_sha256": "1b06e86acb974a6fcca7e75cdd11f7667a9446e5f76357be0d9201e2e021d60c",
+  "preserved_native_identities": {
+    "Twitch": {
+      "text_sha256": "890c6daabeeeb69be3308337ef61d63deba489e396824d4774c1a8ebd84576f5",
+      "uuid": "34613ae5d1e03658876de5e4d1cec6a6"
+    },
+    "Frameworks/React.framework/React": {
+      "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+      "uuid": "ee15b752fb4635f2b0bba46636572385"
+    },
+    "Frameworks/hermesvm.framework/hermesvm": {
+      "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+      "uuid": "be274a2347cc3f5a9e988474553df5a8"
+    }
+  },
+  "original_hbc_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+  "manifest_sha256": "60f94c27ec7c4df13dd62fe2aa35586badc871c72cb29540b9aa13ef7b047177",
+  "manifest_revision": 3,
+  "report_profile": "numeric-chat-v2",
+  "snapshot_profile": "rn-chat-current-v2",
+  "compiled_validation_receipt_sha256": "2305f104d918fdeab2bb64521ceb4c25b9a9d9e8cf3bad693b3dee6547f84d81",
+  "tests": {
+    "total": 214,
+    "passed": 212,
+    "skipped": 2,
+    "skips": [
+      "Apple Foundation",
+      "Apple ImageIO"
+    ],
+    "compiled_Hermes_both_predecessors": true,
+    "viewport_range_and_margin_priority": true,
+    "unmeasured_zero_invalid_unavailable_cache_distinct": true,
+    "partial_or_changed_membership_not_absence": true,
+    "mutation_traps": true,
+    "sanitizer_report_cases": 20000,
+    "sanitizer_manifest_cases": 20000,
+    "packaging": true
+  },
+  "device_feedback": {
+    "build22": "Capture/landscape confirmed; gap and baseline reports omit current viewport because old projection sampled older entries",
+    "build23": "pending device test"
+  },
+  "scope": "Existing adapters only. Freeze/transfer history first, then unbuffered visible range and rows, two-row margin, and bounded store projection. Explicit range coverage, measurement cache states and conservative membership. Cached geometry cannot prove Fabric content displayed."
+}

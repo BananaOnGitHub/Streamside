@@ -1,0 +1,805 @@
+python3 -m unittest discover -s tests -v
+test_checked_in_sizes_have_no_alpha_or_custom_appearance_variants (test_app_icons.AppIconTests.test_checked_in_sizes_have_no_alpha_or_custom_appearance_variants) ... ok
+test_direct_cli_patching_and_verification_use_the_same_icon_contract (test_app_icons.AppIconTests.test_direct_cli_patching_and_verification_use_the_same_icon_contract) ... ok
+test_finished_ipa_icons_assets_extensions_and_repatching (test_app_icons.AppIconTests.test_finished_ipa_icons_assets_extensions_and_repatching) ... ok
+test_icon_corruption_during_packaging_preserves_existing_output (test_app_icons.AppIconTests.test_icon_corruption_during_packaging_preserves_existing_output) ... ok
+test_independent_verifier_rejects_missing_icons_and_old_asset_selectors (test_app_icons.AppIconTests.test_independent_verifier_rejects_missing_icons_and_old_asset_selectors) ... ok
+test_malformed_primary_metadata_is_refused (test_app_icons.AppIconTests.test_malformed_primary_metadata_is_refused) ... ok
+test_missing_wrong_size_transparent_truncated_or_corrupt_png_is_refused (test_app_icons.AppIconTests.test_missing_wrong_size_transparent_truncated_or_corrupt_png_is_refused) ... ok
+test_partial_metadata_and_no_icons_are_supported (test_app_icons.AppIconTests.test_partial_metadata_and_no_icons_are_supported) ... ok
+test_primary_selectors_are_changed_but_native_metadata_is_not (test_app_icons.AppIconTests.test_primary_selectors_are_changed_but_native_metadata_is_not) ... ok
+test_16k_gap_or_overlap_is_not_accepted (test_artifact_guard.LayoutContractTests.test_16k_gap_or_overlap_is_not_accepted) ... ok
+test_even_a_valid_resigned_binary_cannot_replace_build_bytes (test_artifact_guard.LayoutContractTests.test_even_a_valid_resigned_binary_cannot_replace_build_bytes) ... ok
+test_every_segment_offset_and_size_is_checked (test_artifact_guard.LayoutContractTests.test_every_segment_offset_and_size_is_checked) ... ok
+test_normalization_restores_ranges_and_then_is_byte_identical (test_artifact_guard.LayoutContractTests.test_normalization_restores_ranges_and_then_is_byte_identical) ... ok
+test_normalized_fixture_and_compact_signature_pass (test_artifact_guard.LayoutContractTests.test_normalized_fixture_and_compact_signature_pass) ... ok
+test_recreates_unrounded_release_regression (test_artifact_guard.LayoutContractTests.test_recreates_unrounded_release_regression) ... ok
+test_signature_cannot_overlap_linkedit_table (test_artifact_guard.LayoutContractTests.test_signature_cannot_overlap_linkedit_table) ... ok
+test_signature_must_be_aligned_inside_linkedit_and_end_at_eof (test_artifact_guard.LayoutContractTests.test_signature_must_be_aligned_inside_linkedit_and_end_at_eof) ... ok
+test_signature_padding_and_bounds_and_slot_count (test_artifact_guard.LayoutContractTests.test_signature_padding_and_bounds_and_slot_count) ... ok
+test_stale_exec_range_identifier_and_code_hash_fail (test_artifact_guard.LayoutContractTests.test_stale_exec_range_identifier_and_code_hash_fail) ... ok
+test_wrong_install_name_and_duplicate_identity_fail (test_artifact_guard.LayoutContractTests.test_wrong_install_name_and_duplicate_identity_fail) ... ok
+test_distribution_zip_readback_enforces_build_bytes (test_artifact_guard.PackagingContractTests.test_distribution_zip_readback_enforces_build_bytes) ... ok
+test_migrates_full_legacy_framework_and_repatches_idempotently (test_artifact_guard.PackagingContractTests.test_migrates_full_legacy_framework_and_repatches_idempotently) ... ok
+test_missing_receipt_wrong_hash_or_changed_info_fails_direct_patcher (test_artifact_guard.PackagingContractTests.test_missing_receipt_wrong_hash_or_changed_info_fails_direct_patcher) ... ok
+test_packaging_corruption_fails_and_preserves_existing_output (test_artifact_guard.PackagingContractTests.test_packaging_corruption_fails_and_preserves_existing_output) ... ok
+test_weak_or_duplicate_main_load_is_rejected (test_artifact_guard.PackagingContractTests.test_weak_or_duplicate_main_load_is_rejected) ... ok
+test_streamside_app_name_is_the_distribution_contract (test_artifact_guard.VersionContractTests.test_streamside_app_name_is_the_distribution_contract) ... ok
+test_version_metadata_is_synchronized (test_artifact_guard.VersionContractTests.test_version_metadata_is_synchronized) ... ok
+test_actual_annotation_conditions_and_policy_matrix (test_cache_annotation.CacheAnnotationTests.test_actual_annotation_conditions_and_policy_matrix) ... FAIL
+test_actual_annotation_counters_with_demand_diagnostics (test_cache_annotation.CacheAnnotationTests.test_actual_annotation_counters_with_demand_diagnostics) ... FAIL
+test_comparison_accounting_bounds_and_unchanged_annotation (test_cache_header_probe.CacheHeaderProbeTests.test_comparison_accounting_bounds_and_unchanged_annotation) ... FAIL
+test_production_cache_first_lifecycle (test_cache_protocol.CacheProtocolTests.test_production_cache_first_lifecycle) ... FAIL
+test_production_cache_first_with_demand_probes (test_cache_protocol.CacheProtocolTests.test_production_cache_first_with_demand_probes) ... FAIL
+test_network_provenance_original_clock_and_expiration (test_cache_receipt.CacheReceiptTests.test_network_provenance_original_clock_and_expiration) ... FAIL
+test_receipt_diagnostics_preserve_the_same_lifecycle (test_cache_receipt.CacheReceiptTests.test_receipt_diagnostics_preserve_the_same_lifecycle) ... FAIL
+test_capability_gates_and_relocated_weak_delegate_storage (test_catalog_compatibility.CatalogCompatibilityTests.test_capability_gates_and_relocated_weak_delegate_storage) ... FAIL
+test_button_drags_can_scroll_the_suggestion_strip (test_composer.ComposerTests.test_button_drags_can_scroll_the_suggestion_strip) ... FAIL
+test_keyboard_corrections_validate_snapshots_without_replacing_live_text (test_composer.ComposerTests.test_keyboard_corrections_validate_snapshots_without_replacing_live_text) ... FAIL
+test_native_editor_serializes_codes_and_preserves_other_attachments (test_composer.ComposerTests.test_native_editor_serializes_codes_and_preserves_other_attachments) ... FAIL
+test_native_library_recents_scroll_by_default_and_preserve_section_navigation (test_composer.ComposerTests.test_native_library_recents_scroll_by_default_and_preserve_section_navigation) ... FAIL
+test_native_sticky_headers_keep_their_pin_and_handoff_positions (test_composer.ComposerTests.test_native_sticky_headers_keep_their_pin_and_handoff_positions) ... FAIL
+test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched (test_composer.ComposerTests.test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched) ... FAIL
+test_recent_history_refresh_never_wires_uikit_scroll_indicators (test_composer.ComposerTests.test_recent_history_refresh_never_wires_uikit_scroll_indicators) ... FAIL
+test_suggestions_move_out_of_chat_bounds_into_the_owning_scene (test_composer.ComposerTests.test_suggestions_move_out_of_chat_bounds_into_the_owning_scene) ... FAIL
+test_utf16_edits_and_completion_boundaries (test_composer.ComposerTests.test_utf16_edits_and_completion_boundaries) ... ok
+test_browser_handoff_waits_for_owned_sheet_dismissal (test_composer_details.ComposerDetailsTests.test_browser_handoff_waits_for_owned_sheet_dismissal) ... FAIL
+test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime (test_composer_details.ComposerDetailsTests.test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime) ... FAIL
+test_hold_details_menu_suppression_native_fallback_and_lifecycle (test_composer_details.ComposerDetailsTests.test_hold_details_menu_suppression_native_fallback_and_lifecycle) ... FAIL
+test_first_open_settles_native_recents_without_scrolling_or_reloading (test_composer_library.LibraryTests.test_first_open_settles_native_recents_without_scrolling_or_reloading) ... FAIL
+test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset (test_composer_library.LibraryTests.test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset) ... FAIL
+test_reparented_lazy_footer_installs_and_repairs_without_timer_tick (test_composer_library.LibraryTests.test_reparented_lazy_footer_installs_and_repairs_without_timer_tick) ... FAIL
+test_zero_section_startup_does_not_cull_later_native_recents (test_composer_library.LibraryTests.test_zero_section_startup_does_not_cull_later_native_recents) ... FAIL
+test_animation_timing_refresh_deletion_and_visibility (test_composer_preview.PreviewTests.test_animation_timing_refresh_deletion_and_visibility) ... skipped 'Zig unavailable'
+test_fast_webp_keeps_timeline_during_decode_miss_and_preserves_long_hold (test_composer_preview.PreviewTests.test_fast_webp_keeps_timeline_during_decode_miss_and_preserves_long_hold) ... skipped 'Zig unavailable'
+test_final_frame_long_hold_and_float_precision_are_preserved (test_composer_preview.PreviewTests.test_final_frame_long_hold_and_float_precision_are_preserved) ... skipped 'Zig unavailable'
+test_immediate_placeholders_image_hydration_and_both_backspace_paths (test_composer_preview.PreviewTests.test_immediate_placeholders_image_hydration_and_both_backspace_paths) ... skipped 'Zig unavailable'
+test_independent_suggestion_and_composer_frame_cache_windows (test_composer_preview.PreviewTests.test_independent_suggestion_and_composer_frame_cache_windows) ... skipped 'Zig unavailable'
+test_loading_placeholder_is_a_fully_transparent_rgba_pixel (test_composer_preview.PreviewTests.test_loading_placeholder_is_a_fully_transparent_rgba_pixel) ... ok
+test_category_rings_overwrite_export_limits_and_truncation (test_diagnostic_config.DiagnosticConfigurationTests.test_category_rings_overwrite_export_limits_and_truncation) ... ok
+test_compact_settings_custom_visibility_detail_and_reverted_restart_state (test_diagnostic_config.DiagnosticConfigurationTests.test_compact_settings_custom_visibility_detail_and_reverted_restart_state) ... ok
+test_disabled_collection_does_not_dereference_or_retain_details (test_diagnostic_config.DiagnosticConfigurationTests.test_disabled_collection_does_not_dereference_or_retain_details) ... ok
+test_disabled_demand_probe_never_reads_requests_or_installs_native_hooks (test_diagnostic_config.DiagnosticConfigurationTests.test_disabled_demand_probe_never_reads_requests_or_installs_native_hooks) ... /tmp/tmpugrvwqys/demand.c: In function ‘m0’:
+/tmp/tmpugrvwqys/demand.c:133:42: warning: function called through a non-compatible type
+  133 | static id m0(id o,const char *s){return ((id (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
+      |                                         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c: In function ‘m1’:
+/tmp/tmpugrvwqys/demand.c:134:47: warning: function called through a non-compatible type
+  134 | static id m1(id o,const char *s,id a){return ((id (*)(id,SEL,id))objc_msgSend)(o,sel_registerName(s),a);}
+      |                                              ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c: In function ‘integer’:
+/tmp/tmpugrvwqys/demand.c:135:58: warning: function called through a non-compatible type
+  135 | static unsigned long integer(id o,const char *s){return ((unsigned long (*)(id,SEL))objc_msgSend)(o,sel_registerName(s));}
+      |                                                         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c: In function ‘responds’:
+/tmp/tmpugrvwqys/demand.c:137:55: warning: function called through a non-compatible type
+  137 | static bool responds(id o,const char *s){return o && ((BOOL (*)(id,SEL,SEL))objc_msgSend)(o,sel_registerName("respondsToSelector:"),sel_registerName(s));}
+      |                                                      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c: In function ‘tas_demand_request’:
+/tmp/tmpugrvwqys/demand.c:239:18: warning: function called through a non-compatible type
+  239 |         id name=((id (*)(id,SEL,unsigned long))objc_msgSend)(keys,sel_registerName("objectAtIndex:"),i);
+      |                 ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c: In function ‘tas_demand_mark_url’:
+/tmp/tmpugrvwqys/demand.c:266:10: warning: function called through a non-compatible type
+  266 |         ((id (*)(id,SEL,unsigned))objc_msgSend)((id)objc_getClass("NSNumber"),sel_registerName("numberWithUnsignedInt:"),scope),1);
+      |         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c: In function ‘metrics’:
+/tmp/tmpugrvwqys/demand.c:279:17: warning: function called through a non-compatible type
+  279 |         id row=((id (*)(id,SEL,unsigned long))objc_msgSend)(rows,sel_registerName("objectAtIndex:"),i);
+      |                ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/tmpugrvwqys/demand.c:282:40: warning: function called through a non-compatible type
+  282 |         double elapsed=start && end ? ((double (*)(id,SEL,id))objc_msgSend)(end,sel_registerName("timeIntervalSinceDate:"),start):-1;
+      |                                       ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ok
+test_playback_protocol_still_intercepts_and_completes_with_logging_disabled (test_diagnostic_config.DiagnosticConfigurationTests.test_playback_protocol_still_intercepts_and_completes_with_logging_disabled) ... FAIL
+test_presets_defaults_validation_and_independent_categories (test_diagnostic_config.DiagnosticConfigurationTests.test_presets_defaults_validation_and_independent_categories) ... ok
+test_settings_save_launch_apply_and_actual_report_category_routing (test_diagnostic_config.DiagnosticConfigurationTests.test_settings_save_launch_apply_and_actual_report_category_routing) ... ok
+test_all_absolute_schemes_and_protocol_relative_links_are_offline (test_docs.LinkTests.test_all_absolute_schemes_and_protocol_relative_links_are_offline) ... ok
+test_annotation_escapes_workflow_command_characters (test_docs.LinkTests.test_annotation_escapes_workflow_command_characters) ... ok
+test_code_comments_escaped_links_and_footnotes_are_not_paths (test_docs.LinkTests.test_code_comments_escaped_links_and_footnotes_are_not_paths) ... ok
+test_collisions_include_preexisting_numbered_heading (test_docs.LinkTests.test_collisions_include_preexisting_numbered_heading) ... ok
+test_encoded_delimiters_and_angle_destination_with_title (test_docs.LinkTests.test_encoded_delimiters_and_angle_destination_with_title) ... ok
+test_encoded_path_and_utf8_fragment (test_docs.LinkTests.test_encoded_path_and_utf8_fragment) ... ok
+test_github_slug_formatting_punctuation_unicode (test_docs.LinkTests.test_github_slug_formatting_punctuation_unicode) ... ok
+test_historical_links_use_immutable_external_scope_but_archive_is_checked (test_docs.LinkTests.test_historical_links_use_immutable_external_scope_but_archive_is_checked) ... ok
+test_linked_image_checks_both_destinations (test_docs.LinkTests.test_linked_image_checks_both_destinations) ... ok
+test_malformed_destinations (test_docs.LinkTests.test_malformed_destinations) ... ok
+test_markdown_and_html_images (test_docs.LinkTests.test_markdown_and_html_images) ... ok
+test_missing_target_and_anchor_report_origin_line (test_docs.LinkTests.test_missing_target_and_anchor_report_origin_line) ... ok
+test_nested_list_links_are_checked (test_docs.LinkTests.test_nested_list_links_are_checked) ... ok
+test_nested_relative_paths_and_directory (test_docs.LinkTests.test_nested_relative_paths_and_directory) ... ok
+test_parentheses_and_escaped_parentheses (test_docs.LinkTests.test_parentheses_and_escaped_parentheses) ... ok
+test_reference_failure_points_to_use_site (test_docs.LinkTests.test_reference_failure_points_to_use_site) ... ok
+test_reference_full_collapsed_shortcut_and_unused (test_docs.LinkTests.test_reference_full_collapsed_shortcut_and_unused) ... ok
+test_root_paths_queries_empty_destinations_and_explicit_html_anchors (test_docs.LinkTests.test_root_paths_queries_empty_destinations_and_explicit_html_anchors) ... ok
+test_same_document_and_cross_document_headings (test_docs.LinkTests.test_same_document_and_cross_document_headings) ... ok
+test_source_test_script_asset_references (test_docs.LinkTests.test_source_test_script_asset_references) ... ok
+test_symlink_and_parent_escape_are_refused (test_docs.LinkTests.test_symlink_and_parent_escape_are_refused) ... ok
+test_undefined_reference (test_docs.LinkTests.test_undefined_reference) ... ok
+test_cli_returns_failure_and_actionable_annotations (test_docs.RepositoryTests.test_cli_returns_failure_and_actionable_annotations) ... ok
+test_git_inventory_excludes_ignored_build_outputs_but_includes_archive_and_new_docs (test_docs.RepositoryTests.test_git_inventory_excludes_ignored_build_outputs_but_includes_archive_and_new_docs) ... ok
+test_current_metadata_agrees (test_docs.VersionTests.test_current_metadata_agrees) ... ok
+test_distinct_build_number_is_not_public_version (test_docs.VersionTests.test_distinct_build_number_is_not_public_version) ... ok
+test_historical_donor_release_and_artifact_labels_do_not_participate (test_docs.VersionTests.test_historical_donor_release_and_artifact_labels_do_not_participate) ... ok
+test_missing_invalid_and_nonstring_metadata_fail_cleanly (test_docs.VersionTests.test_missing_invalid_and_nonstring_metadata_fail_cleanly) ... ok
+test_short_bundle_and_report_drift_are_errors (test_docs.VersionTests.test_short_bundle_and_report_drift_are_errors) ... ok
+test_large_sets_failure_categories_pending_state_and_privacy (test_emote_fetch.EmoteFetchTests.test_large_sets_failure_categories_pending_state_and_privacy) ... FAIL
+test_webp_preference_independent_of_animation_and_gif_png_fallback (test_emote_fetch.EmoteFetchTests.test_webp_preference_independent_of_animation_and_gif_png_fallback) ... FAIL
+test_request_owns_room_until_completion_and_releases_every_exit (test_emote_fetch_lifetime.EmoteFetchLifetimeTests.test_request_owns_room_until_completion_and_releases_every_exit) ... FAIL
+test_provider_headers_and_repeated_native_bounds (test_emote_geometry.EmoteGeometryTests.test_provider_headers_and_repeated_native_bounds) ... ok
+test_original_results_body_match_poster_reuse_expiry_and_weak_identity (test_emote_image_probe.ImageProvenanceTests.test_original_results_body_match_poster_reuse_expiry_and_weak_identity) ... FAIL
+test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged (test_emote_images.EmoteImageTests.test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged) ... FAIL
+test_disk_cache_identity_survives_relaunch_order_changes (test_emote_images.EmoteImageTests.test_disk_cache_identity_survives_relaunch_order_changes) ... FAIL
+test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links (test_emote_images.EmoteImageTests.test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links) ... FAIL
+test_thumbnail_playback_survives_refresh_eviction_and_stale_completion (test_emote_images.EmoteImageTests.test_thumbnail_playback_survives_refresh_eviction_and_stale_completion) ... FAIL
+test_display_order_combines_cases_providers_and_scopes_without_changing_lookup (test_emote_picker.EmotePickerTests.test_display_order_combines_cases_providers_and_scopes_without_changing_lookup) ... FAIL
+test_native_definitions_identity_scope_and_original_message_preservation (test_emote_presentation.EmotePresentationTests.test_native_definitions_identity_scope_and_original_message_preservation) ... FAIL
+test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds (test_emote_probe.EmoteProbeTests.test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds) ... FAIL
+test_token_map_sender_bridge_and_scoped_image_frames (test_emote_ui.EmoteUITests.test_token_map_sender_bridge_and_scoped_image_frames) ... FAIL
+test_actual_http_cache_hit_under_eight_stalled_transfers_and_304 (test_foundation_cache.FoundationCacheTests.test_actual_http_cache_hit_under_eight_stalled_transfers_and_304) ... skipped 'requires Apple Foundation and Xcode command-line tools'
+test_freshness_parser (test_http_cache.HTTPCacheTests.test_freshness_parser) ... FAIL
+test_aggregate_identity_bounds_native_lifetime_and_privacy (test_image_demand.ImageDemandTests.test_aggregate_identity_bounds_native_lifetime_and_privacy) ... FAIL
+test_committed_image_lifecycle_same_source_callbacks_and_unmount (test_image_demand.ImageDemandTests.test_committed_image_lifecycle_same_source_callbacks_and_unmount) ... skipped 'Node required'
+test_bounds_with_demand_diagnostics (test_image_overflow.OverflowTests.test_bounds_with_demand_diagnostics) ... FAIL
+test_hard_bounds_variants_expiry_and_lookup_spill (test_image_overflow.OverflowTests.test_hard_bounds_variants_expiry_and_lookup_spill) ... FAIL
+test_preinitialization_spills_and_absolute_consumer_bound (test_image_overflow.OverflowTests.test_preinitialization_spills_and_absolute_consumer_bound) ... FAIL
+test_preinitialization_with_demand_diagnostics (test_image_overflow.OverflowTests.test_preinitialization_with_demand_diagnostics) ... FAIL
+test_recovery_priority_cancellation_cache_and_immediate_completion (test_image_overflow.OverflowTests.test_recovery_priority_cancellation_cache_and_immediate_completion) ... FAIL
+test_recovery_with_demand_diagnostics (test_image_overflow.OverflowTests.test_recovery_with_demand_diagnostics) ... FAIL
+test_ack_required_busy_late_activation_and_no_armed_expiration (test_investigation.InvestigationTests.test_ack_required_busy_late_activation_and_no_armed_expiration) ... ok
+test_all_compiled_limits_enforced_and_numeric_types_are_exact (test_investigation.InvestigationTests.test_all_compiled_limits_enforced_and_numeric_types_are_exact) ... ok
+test_capture_returns_armed_and_disarm_invalidates_pending_callbacks (test_investigation.InvestigationTests.test_capture_returns_armed_and_disarm_invalidates_pending_callbacks) ... ok
+test_failed_or_expired_commands_invalidate_generation_and_require_readmission (test_investigation.InvestigationTests.test_failed_or_expired_commands_invalidate_generation_and_require_readmission) ... ok
+test_generated_registry_is_current (test_investigation.InvestigationTests.test_generated_registry_is_current) ... ok
+test_native_and_hermes_admission_require_all_exact_identities (test_investigation.InvestigationTests.test_native_and_hermes_admission_require_all_exact_identities) ... ok
+test_pinned_integrity_cache_fallback_and_crypto_failure (test_investigation.InvestigationTests.test_pinned_integrity_cache_fallback_and_crypto_failure) ... ok
+test_unavailable_runtime_cannot_arm_and_admission_stays_dormant (test_investigation.InvestigationTests.test_unavailable_runtime_cannot_arm_and_admission_stays_dormant) ... ok
+test_unknown_duplicate_escaped_duplicate_and_executable_fields_rejected (test_investigation.InvestigationTests.test_unknown_duplicate_escaped_duplicate_and_executable_fields_rejected) ... ok
+test_utf8_escapes_depth_size_and_every_truncation (test_investigation.InvestigationTests.test_utf8_escapes_depth_size_and_every_truncation) ... ok
+test_valid_manifest_and_narrower_limits_event_selection (test_investigation.InvestigationTests.test_valid_manifest_and_narrower_limits_event_selection) ... ok
+test_wrong_versions_profiles_capabilities_and_sampling_refused (test_investigation.InvestigationTests.test_wrong_versions_profiles_capabilities_and_sampling_refused) ... ok
+test_capture_metadata_copy_export_isolation_cancellation_and_text_ceiling (test_investigation_hardening.HardeningTests.test_capture_metadata_copy_export_isolation_cancellation_and_text_ceiling) ... ok
+test_export_request_worker_main_handoff_and_real_registry_footer (test_investigation_hardening.HardeningTests.test_export_request_worker_main_handoff_and_real_registry_footer) ... ok
+test_production_recorder_loss_and_copied_wrapper_cycles (test_investigation_hardening.HardeningTests.test_production_recorder_loss_and_copied_wrapper_cycles) ... skipped 'Node.js required'
+test_runtime_resource_events_without_page_and_acknowledged_cleanup (test_investigation_hardening.HardeningTests.test_runtime_resource_events_without_page_and_acknowledged_cleanup) ... ok
+test_settings_transition_passthrough_capture_rotation_and_teardown (test_investigation_overlay.OverlayTests.test_settings_transition_passthrough_capture_rotation_and_teardown) ... ok
+test_frozen_partial_then_ordered_complete (test_investigation_report.ReportTests.test_frozen_partial_then_ordered_complete) ... ok
+test_interruption_retains_history_and_blocks_completion (test_investigation_report.ReportTests.test_interruption_retains_history_and_blocks_completion) ... ok
+test_reject_strings_objects_floats_nonfinite_and_every_truncation (test_investigation_report.ReportTests.test_reject_strings_objects_floats_nonfinite_and_every_truncation) ... ok
+test_row_schema_packet_count_size_and_duplicates (test_investigation_report.ReportTests.test_row_schema_packet_count_size_and_duplicates) ... ok
+test_tail_progress_and_recent_summary_are_derived_from_frozen_numeric_rows (test_investigation_report.ReportTests.test_tail_progress_and_recent_summary_are_derived_from_frozen_numeric_rows) ... ok
+test_traversal_unavailable_and_empty_do_not_claim_newest_was_read (test_investigation_report.ReportTests.test_traversal_unavailable_and_empty_do_not_claim_newest_was_read) ... ok
+test_viewport_v3_signed_geometry_measurement_flags_and_profile (test_investigation_report.ReportTests.test_viewport_v3_signed_geometry_measurement_flags_and_profile) ... ok
+test_dependency_orders_rejections_and_stale_queued_probe (test_investigation_startup.StartupTests.test_dependency_orders_rejections_and_stale_queued_probe) ... ok
+test_current_proof_and_missing_tampered_or_incomplete_proof (test_investigation_validation.ValidationTests.test_current_proof_and_missing_tampered_or_incomplete_proof) ... ok
+test_visible_ranges_measurement_membership_and_immutable_budgets (test_investigation_viewport.ViewportTests.test_visible_ranges_measurement_membership_and_immutable_budgets) ... skipped 'Node.js required'
+test_picker_insertion_preserves_twitch_responder_and_completion_range (test_legacy_chat.LegacyChatTests.test_picker_insertion_preserves_twitch_responder_and_completion_range) ... ok
+test_repeated_and_wrapped_emotes_use_displayed_layer_identity (test_legacy_chat.LegacyChatTests.test_repeated_and_wrapped_emotes_use_displayed_layer_identity) ... FAIL
+test_passive_forwarding_snapshots_bounds_and_privacy (test_legacy_palette_probe.LegacyPaletteProbeTests.test_passive_forwarding_snapshots_bounds_and_privacy) ... FAIL
+test_mixed_results_native_ids_and_presentation_only_suppression (test_native_picker.NativePickerTests.test_mixed_results_native_ids_and_presentation_only_suppression) ... FAIL
+test_native_table_data_source_is_not_overridden (test_native_picker.NativePickerTests.test_native_table_data_source_is_not_overridden) ... ok
+test_current_tree_includes_root_guides_moved_notices_and_archive (test_package_documentation.DocumentationPackageTests.test_current_tree_includes_root_guides_moved_notices_and_archive) ... ok
+test_missing_notice_is_refused (test_package_documentation.DocumentationPackageTests.test_missing_notice_is_refused) ... ok
+test_process_local_labels_never_expose_inputs (test_privacy.PrivacyTests.test_process_local_labels_never_expose_inputs) ... ok
+test_async_delivery_cancellation_recursion_errors_and_hls_rewrite (test_protocol.ProtocolTests.test_async_delivery_cancellation_recursion_errors_and_hls_rewrite) ... FAIL
+test_demand_probes_preserve_production_lifecycle_and_bounds (test_protocol.ProtocolTests.test_demand_probes_preserve_production_lifecycle_and_bounds) ... FAIL
+test_four_shapes_share_registry_ratios_and_all_native_url_modes (test_provider_presentation_route.ProviderPresentationRouteTests.test_four_shapes_share_registry_ratios_and_all_native_url_modes) ... FAIL
+test_history_changes_wait_until_the_next_menu_open (test_recent_snapshot.RecentSnapshotTests.test_history_changes_wait_until_the_next_menu_open) ... FAIL
+test_scoped_codes_native_aliases_unicode_and_queued_edits (test_rn_backspace.RNBackspaceTests.test_scoped_codes_native_aliases_unicode_and_queued_edits) ... skipped 'Node required for RN mocks'
+test_deadline_active_dismissal_and_diagnostic_failure (test_rn_calculation_boundary.CalculationBoundaryTests.test_deadline_active_dismissal_and_diagnostic_failure) ... skipped 'Node required'
+test_exact_forwarding_budgets_metrics_and_restoration (test_rn_calculation_boundary.CalculationBoundaryTests.test_exact_forwarding_budgets_metrics_and_restoration) ... skipped 'Node required'
+setUpClass (test_rn_composer_ui.RNComposerUITests) ... ERROR
+setUpClass (test_rn_incoming.RNIncomingTests) ... ERROR
+test_fractional_columns_and_identity_on_first_open_and_fresh_reopen (test_rn_library.RNLibraryTests.test_fractional_columns_and_identity_on_first_open_and_fresh_reopen) ... skipped 'Node required for RN host facade'
+test_open_snapshot_filters_geometry_navigation_and_fallback (test_rn_library.RNLibraryTests.test_open_snapshot_filters_geometry_navigation_and_fallback) ... skipped 'Node required for RN mocks'
+test_reload_settings_scope_subpages_disabled_and_native_props (test_rn_library.RNLibraryTests.test_reload_settings_scope_subpages_disabled_and_native_props) ... skipped 'Node required for RN mocks'
+test_stage_sampling_identity_geometry_and_bounded_cleanup (test_rn_library_boundary.LibraryBoundaryTests.test_stage_sampling_identity_geometry_and_bounded_cleanup) ... skipped 'Node required'
+test_provider_routing_and_sheet_handoff (test_rn_popup.RNPopupTests.test_provider_routing_and_sheet_handoff) ... skipped 'Node required for RN mocks'
+test_grafted_bytecode_generates_and_delivers_real_snapshots (test_rn_snapshot_runtime.SnapshotGateTests.test_grafted_bytecode_generates_and_delivers_real_snapshots) ... skipped 'Matching Hermes runner required; release gate cannot skip runtime validation'
+test_missing_failed_and_stale_records_block_build_gate (test_rn_snapshot_runtime.SnapshotGateTests.test_missing_failed_and_stale_records_block_build_gate) ... ok
+test_missing_failed_partial_or_wrong_donor_virtualization_evidence_blocks_gate (test_rn_snapshot_runtime.SnapshotGateTests.test_missing_failed_partial_or_wrong_donor_virtualization_evidence_blocks_gate) ... ok
+test_settings_module_matches_real_donor_registration_not_factory_number (test_rn_snapshot_runtime.SnapshotGateTests.test_settings_module_matches_real_donor_registration_not_factory_number) ... skipped 'Exact Twitch donor required'
+test_modes_scope_selection_live_settings_and_plain_text_insertion (test_rn_strip.RNStripTests.test_modes_scope_selection_live_settings_and_plain_text_insertion) ... skipped 'Node required for RN mocks'
+test_native_selection_keeps_its_original_draft_across_late_renders (test_rn_strip.RNStripTests.test_native_selection_keeps_its_original_draft_across_late_renders) ... skipped 'Node required for RN mocks'
+setUpClass (test_rn_width.RNWidthTests) ... ERROR
+test_patches_synthetic_ipa_without_touching_assets (test_tools.IPAPatcherTests.test_patches_synthetic_ipa_without_touching_assets) ... ok
+test_refuses_encrypted_ipa (test_tools.IPAPatcherTests.test_refuses_encrypted_ipa) ... ok
+test_injects_once (test_tools.MachOTests.test_injects_once) ... ok
+test_refuses_missing_padding (test_tools.MachOTests.test_refuses_missing_padding) ... ok
+test_removes_donor_load_command (test_tools.MachOTests.test_removes_donor_load_command) ... ok
+test_complete_structure_canvas_bounds_and_frame_caps (test_webp_animation.WebPAnimationTests.test_complete_structure_canvas_bounds_and_frame_caps) ... ok
+test_inner_bitstream_cannot_exceed_declared_frame_budget (test_webp_animation.WebPAnimationTests.test_inner_bitstream_cannot_exceed_declared_frame_budget) ... ok
+test_native_adapter_factory_cache_lifecycle_and_provider_scope (test_webp_animation.WebPAnimationTests.test_native_adapter_factory_cache_lifecycle_and_provider_scope) ... FAIL
+test_real_asset_timing_shapes_and_arbitrary_holds (test_webp_animation.WebPAnimationTests.test_real_asset_timing_shapes_and_arbitrary_holds) ... ok
+test_short_frame_browser_normalization_and_static_webp (test_webp_animation.WebPAnimationTests.test_short_frame_browser_normalization_and_static_webp) ... ok
+test_subrectangle_blend_and_disposal_flags_are_accepted (test_webp_animation.WebPAnimationTests.test_subrectangle_blend_and_disposal_flags_are_accepted) ... ok
+test_animation_count_canvas_and_lossless_frame_pixels (test_webp_imageio.AppleWebPTests.test_animation_count_canvas_and_lossless_frame_pixels) ... skipped 'Apple ImageIO/Xcode required'
+
+======================================================================
+ERROR: setUpClass (test_rn_composer_ui.RNComposerUITests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_rn_composer_ui.py", line 528, in setUpClass
+    zig=os.environ.get('ZIG') or shutil.which('zig');assert zig
+                                                            ^^^
+AssertionError
+
+======================================================================
+ERROR: setUpClass (test_rn_incoming.RNIncomingTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_rn_incoming.py", line 723, in setUpClass
+    raise AssertionError("Zig required for production RN receive harness")
+AssertionError: Zig required for production RN receive harness
+
+======================================================================
+ERROR: setUpClass (test_rn_width.RNWidthTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_rn_width.py", line 260, in setUpClass
+    if not zig: raise AssertionError('Zig required for production width harness')
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Zig required for production width harness
+
+======================================================================
+FAIL: test_actual_annotation_conditions_and_policy_matrix (test_cache_annotation.CacheAnnotationTests.test_actual_annotation_conditions_and_policy_matrix)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_annotation.py", line 103, in test_actual_annotation_conditions_and_policy_matrix
+    protocol_tests.ProtocolTests().run_transport(False,MAIN)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_actual_annotation_counters_with_demand_diagnostics (test_cache_annotation.CacheAnnotationTests.test_actual_annotation_counters_with_demand_diagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_annotation.py", line 106, in test_actual_annotation_counters_with_demand_diagnostics
+    protocol_tests.ProtocolTests().run_transport(True,MAIN)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_comparison_accounting_bounds_and_unchanged_annotation (test_cache_header_probe.CacheHeaderProbeTests.test_comparison_accounting_bounds_and_unchanged_annotation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_header_probe.py", line 83, in test_comparison_accounting_bounds_and_unchanged_annotation
+    protocol_tests.ProtocolTests().run_transport(True,MAIN)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_production_cache_first_lifecycle (test_cache_protocol.CacheProtocolTests.test_production_cache_first_lifecycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_protocol.py", line 176, in test_production_cache_first_lifecycle
+    protocol_tests.ProtocolTests().run_transport(False, HELPERS+CACHE_MAIN)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_production_cache_first_with_demand_probes (test_cache_protocol.CacheProtocolTests.test_production_cache_first_with_demand_probes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_protocol.py", line 179, in test_production_cache_first_with_demand_probes
+    protocol_tests.ProtocolTests().run_transport(True, HELPERS+CACHE_MAIN)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_network_provenance_original_clock_and_expiration (test_cache_receipt.CacheReceiptTests.test_network_provenance_original_clock_and_expiration)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_receipt.py", line 122, in test_network_provenance_original_clock_and_expiration
+    protocol_tests.ProtocolTests().run_transport(False,MAIN,PRELUDE,('-g0','-fno-builtin'))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_receipt_diagnostics_preserve_the_same_lifecycle (test_cache_receipt.CacheReceiptTests.test_receipt_diagnostics_preserve_the_same_lifecycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_cache_receipt.py", line 128, in test_receipt_diagnostics_preserve_the_same_lifecycle
+    protocol_tests.ProtocolTests().run_transport(True,MAIN,PRELUDE,('-g0','-fno-builtin','-fno-sanitize=alignment'))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_capability_gates_and_relocated_weak_delegate_storage (test_catalog_compatibility.CatalogCompatibilityTests.test_capability_gates_and_relocated_weak_delegate_storage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_catalog_compatibility.py", line 104, in test_capability_gates_and_relocated_weak_delegate_storage
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_button_drags_can_scroll_the_suggestion_strip (test_composer.ComposerTests.test_button_drags_can_scroll_the_suggestion_strip)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 858, in test_button_drags_can_scroll_the_suggestion_strip
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_keyboard_corrections_validate_snapshots_without_replacing_live_text (test_composer.ComposerTests.test_keyboard_corrections_validate_snapshots_without_replacing_live_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 853, in test_keyboard_corrections_validate_snapshots_without_replacing_live_text
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_native_editor_serializes_codes_and_preserves_other_attachments (test_composer.ComposerTests.test_native_editor_serializes_codes_and_preserves_other_attachments)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 838, in test_native_editor_serializes_codes_and_preserves_other_attachments
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_native_library_recents_scroll_by_default_and_preserve_section_navigation (test_composer.ComposerTests.test_native_library_recents_scroll_by_default_and_preserve_section_navigation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 863, in test_native_library_recents_scroll_by_default_and_preserve_section_navigation
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_native_sticky_headers_keep_their_pin_and_handoff_positions (test_composer.ComposerTests.test_native_sticky_headers_keep_their_pin_and_handoff_positions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 871, in test_native_sticky_headers_keep_their_pin_and_handoff_positions
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched (test_composer.ComposerTests.test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 843, in test_provider_switch_resets_channel_and_incompatible_hooks_are_untouched
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_recent_history_refresh_never_wires_uikit_scroll_indicators (test_composer.ComposerTests.test_recent_history_refresh_never_wires_uikit_scroll_indicators)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 877, in test_recent_history_refresh_never_wires_uikit_scroll_indicators
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_suggestions_move_out_of_chat_bounds_into_the_owning_scene (test_composer.ComposerTests.test_suggestions_move_out_of_chat_bounds_into_the_owning_scene)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer.py", line 848, in test_suggestions_move_out_of_chat_bounds_into_the_owning_scene
+    self.assertTrue(zig, "Zig is required for the production composer harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production composer harness
+
+======================================================================
+FAIL: test_browser_handoff_waits_for_owned_sheet_dismissal (test_composer_details.ComposerDetailsTests.test_browser_handoff_waits_for_owned_sheet_dismissal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_details.py", line 306, in test_browser_handoff_waits_for_owned_sheet_dismissal
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime (test_composer_details.ComposerDetailsTests.test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_details.py", line 294, in test_chat_and_composer_share_sheet_and_borrowed_metadata_lifetime
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_hold_details_menu_suppression_native_fallback_and_lifecycle (test_composer_details.ComposerDetailsTests.test_hold_details_menu_suppression_native_fallback_and_lifecycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_details.py", line 269, in test_hold_details_menu_suppression_native_fallback_and_lifecycle
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_first_open_settles_native_recents_without_scrolling_or_reloading (test_composer_library.LibraryTests.test_first_open_settles_native_recents_without_scrolling_or_reloading)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 696, in test_first_open_settles_native_recents_without_scrolling_or_reloading
+    self.run_library(HARNESS.replace('    return 0;\n}',case+'    return 0;\n}'))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 700, in run_library
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset (test_composer_library.LibraryTests.test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 616, in test_inline_library_scroll_geometry_navigation_rebuild_and_scope_reset
+    self.run_library(HARNESS)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 700, in run_library
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_reparented_lazy_footer_installs_and_repairs_without_timer_tick (test_composer_library.LibraryTests.test_reparented_lazy_footer_installs_and_repairs_without_timer_tick)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 652, in test_reparented_lazy_footer_installs_and_repairs_without_timer_tick
+    self.run_library(HARNESS.replace('    return 0;\n}',case+'    return 0;\n}'))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 700, in run_library
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_zero_section_startup_does_not_cull_later_native_recents (test_composer_library.LibraryTests.test_zero_section_startup_does_not_cull_later_native_recents)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 613, in test_zero_section_startup_does_not_cull_later_native_recents
+    self.run_library(HARNESS.replace('    return 0;\n}',case+'    return 0;\n}'))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 700, in run_library
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_playback_protocol_still_intercepts_and_completes_with_logging_disabled (test_diagnostic_config.DiagnosticConfigurationTests.test_playback_protocol_still_intercepts_and_completes_with_logging_disabled)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_diagnostic_config.py", line 221, in test_playback_protocol_still_intercepts_and_completes_with_logging_disabled
+    test_protocol.ProtocolTests().run_transport(False,prelude_override=prelude)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_large_sets_failure_categories_pending_state_and_privacy (test_emote_fetch.EmoteFetchTests.test_large_sets_failure_categories_pending_state_and_privacy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_fetch.py", line 118, in test_large_sets_failure_categories_pending_state_and_privacy
+    self.run_harness(HARNESS)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_fetch.py", line 154, in run_harness
+    self.fail("Zig is required to test the production C block-based fetch module")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Zig is required to test the production C block-based fetch module
+
+======================================================================
+FAIL: test_webp_preference_independent_of_animation_and_gif_png_fallback (test_emote_fetch.EmoteFetchTests.test_webp_preference_independent_of_animation_and_gif_png_fallback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_fetch.py", line 149, in test_webp_preference_independent_of_animation_and_gif_png_fallback
+    self.run_harness(source)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_fetch.py", line 154, in run_harness
+    self.fail("Zig is required to test the production C block-based fetch module")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Zig is required to test the production C block-based fetch module
+
+======================================================================
+FAIL: test_request_owns_room_until_completion_and_releases_every_exit (test_emote_fetch_lifetime.EmoteFetchLifetimeTests.test_request_owns_room_until_completion_and_releases_every_exit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_fetch_lifetime.py", line 131, in test_request_owns_room_until_completion_and_releases_every_exit
+    self.assertIsNotNone(zig, "Zig is required")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: unexpectedly None : Zig is required
+
+======================================================================
+FAIL: test_original_results_body_match_poster_reuse_expiry_and_weak_identity (test_emote_image_probe.ImageProvenanceTests.test_original_results_body_match_poster_reuse_expiry_and_weak_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_image_probe.py", line 74, in test_original_results_body_match_poster_reuse_expiry_and_weak_identity
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged (test_emote_images.EmoteImageTests.test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_images.py", line 408, in test_chat_animation_rebinding_and_visibility_keep_native_emotes_unchanged
+    zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
+                                                     ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_disk_cache_identity_survives_relaunch_order_changes (test_emote_images.EmoteImageTests.test_disk_cache_identity_survives_relaunch_order_changes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_images.py", line 384, in test_disk_cache_identity_survives_relaunch_order_changes
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links (test_emote_images.EmoteImageTests.test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_images.py", line 420, in test_selected_playback_samples_cached_layers_clocks_wraps_and_missing_links
+    zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
+                                                     ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_thumbnail_playback_survives_refresh_eviction_and_stale_completion (test_emote_images.EmoteImageTests.test_thumbnail_playback_survives_refresh_eviction_and_stale_completion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_images.py", line 399, in test_thumbnail_playback_survives_refresh_eviction_and_stale_completion
+    zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
+                                                     ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_display_order_combines_cases_providers_and_scopes_without_changing_lookup (test_emote_picker.EmotePickerTests.test_display_order_combines_cases_providers_and_scopes_without_changing_lookup)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_picker.py", line 139, in test_display_order_combines_cases_providers_and_scopes_without_changing_lookup
+    self.assertTrue(zig, "Zig is required for the production picker harness")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true : Zig is required for the production picker harness
+
+======================================================================
+FAIL: test_native_definitions_identity_scope_and_original_message_preservation (test_emote_presentation.EmotePresentationTests.test_native_definitions_identity_scope_and_original_message_preservation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_presentation.py", line 177, in test_native_definitions_identity_scope_and_original_message_preservation
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds (test_emote_probe.EmoteProbeTests.test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_probe.py", line 166, in test_targeted_trace_catalog_misses_native_overlap_privacy_and_bounds
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_token_map_sender_bridge_and_scoped_image_frames (test_emote_ui.EmoteUITests.test_token_map_sender_bridge_and_scoped_image_frames)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_emote_ui.py", line 188, in test_token_map_sender_bridge_and_scoped_image_frames
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_freshness_parser (test_http_cache.HTTPCacheTests.test_freshness_parser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_http_cache.py", line 51, in test_freshness_parser
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_aggregate_identity_bounds_native_lifetime_and_privacy (test_image_demand.ImageDemandTests.test_aggregate_identity_bounds_native_lifetime_and_privacy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_demand.py", line 159, in test_aggregate_identity_bounds_native_lifetime_and_privacy
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_bounds_with_demand_diagnostics (test_image_overflow.OverflowTests.test_bounds_with_demand_diagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 185, in test_bounds_with_demand_diagnostics
+    self.run_case(True, BOUNDS)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 173, in run_case
+    protocol.ProtocolTests().run_transport(diagnostic, HELPERS+main, extra_cflags=('-g0',))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_hard_bounds_variants_expiry_and_lookup_spill (test_image_overflow.OverflowTests.test_hard_bounds_variants_expiry_and_lookup_spill)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 182, in test_hard_bounds_variants_expiry_and_lookup_spill
+    self.run_case(False, BOUNDS)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 173, in run_case
+    protocol.ProtocolTests().run_transport(diagnostic, HELPERS+main, extra_cflags=('-g0',))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_preinitialization_spills_and_absolute_consumer_bound (test_image_overflow.OverflowTests.test_preinitialization_spills_and_absolute_consumer_bound)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 188, in test_preinitialization_spills_and_absolute_consumer_bound
+    self.run_case(False, BOOTSTRAP)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 173, in run_case
+    protocol.ProtocolTests().run_transport(diagnostic, HELPERS+main, extra_cflags=('-g0',))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_preinitialization_with_demand_diagnostics (test_image_overflow.OverflowTests.test_preinitialization_with_demand_diagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 191, in test_preinitialization_with_demand_diagnostics
+    self.run_case(True, BOOTSTRAP)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 173, in run_case
+    protocol.ProtocolTests().run_transport(diagnostic, HELPERS+main, extra_cflags=('-g0',))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_recovery_priority_cancellation_cache_and_immediate_completion (test_image_overflow.OverflowTests.test_recovery_priority_cancellation_cache_and_immediate_completion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 176, in test_recovery_priority_cancellation_cache_and_immediate_completion
+    self.run_case(False, RECOVERY)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 173, in run_case
+    protocol.ProtocolTests().run_transport(diagnostic, HELPERS+main, extra_cflags=('-g0',))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_recovery_with_demand_diagnostics (test_image_overflow.OverflowTests.test_recovery_with_demand_diagnostics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 179, in test_recovery_with_demand_diagnostics
+    self.run_case(True, RECOVERY)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_image_overflow.py", line 173, in run_case
+    protocol.ProtocolTests().run_transport(diagnostic, HELPERS+main, extra_cflags=('-g0',))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_repeated_and_wrapped_emotes_use_displayed_layer_identity (test_legacy_chat.LegacyChatTests.test_repeated_and_wrapped_emotes_use_displayed_layer_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_legacy_chat.py", line 190, in test_repeated_and_wrapped_emotes_use_displayed_layer_identity
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_passive_forwarding_snapshots_bounds_and_privacy (test_legacy_palette_probe.LegacyPaletteProbeTests.test_passive_forwarding_snapshots_bounds_and_privacy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_legacy_palette_probe.py", line 78, in test_passive_forwarding_snapshots_bounds_and_privacy
+    library.LibraryTests().run_library(harness)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_composer_library.py", line 700, in run_library
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_mixed_results_native_ids_and_presentation_only_suppression (test_native_picker.NativePickerTests.test_mixed_results_native_ids_and_presentation_only_suppression)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_native_picker.py", line 147, in test_mixed_results_native_ids_and_presentation_only_suppression
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_async_delivery_cancellation_recursion_errors_and_hls_rewrite (test_protocol.ProtocolTests.test_async_delivery_cancellation_recursion_errors_and_hls_rewrite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 497, in test_async_delivery_cancellation_recursion_errors_and_hls_rewrite
+    self.run_transport(False)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_demand_probes_preserve_production_lifecycle_and_bounds (test_protocol.ProtocolTests.test_demand_probes_preserve_production_lifecycle_and_bounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 500, in test_demand_probes_preserve_production_lifecycle_and_bounds
+    self.run_transport(True)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_protocol.py", line 504, in run_transport
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_four_shapes_share_registry_ratios_and_all_native_url_modes (test_provider_presentation_route.ProviderPresentationRouteTests.test_four_shapes_share_registry_ratios_and_all_native_url_modes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_provider_presentation_route.py", line 67, in test_four_shapes_share_registry_ratios_and_all_native_url_modes
+    zig=os.environ.get("ZIG") or shutil.which("zig");self.assertTrue(zig)
+                                                     ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_history_changes_wait_until_the_next_menu_open (test_recent_snapshot.RecentSnapshotTests.test_history_changes_wait_until_the_next_menu_open)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_recent_snapshot.py", line 85, in test_history_changes_wait_until_the_next_menu_open
+    self.assertTrue(zig)
+    ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_native_adapter_factory_cache_lifecycle_and_provider_scope (test_webp_animation.WebPAnimationTests.test_native_adapter_factory_cache_lifecycle_and_provider_scope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bananas/Agent-Stuff/streamside/repo/tests/test_webp_animation.py", line 70, in test_native_adapter_factory_cache_lifecycle_and_provider_scope
+    zig=os.environ.get('ZIG') or shutil.which('zig');self.assertTrue(zig)
+                                                     ~~~~~~~~~~~~~~~^^^^^
+AssertionError: None is not true
+
+----------------------------------------------------------------------
+Ran 181 tests in 1.823s
+
+FAILED (failures=52, errors=3, skipped=22)
+Compiled snapshot pipeline gate passed (host Hermes + production native handler).
+Compiled snapshot pipeline gate passed (host Hermes + production native handler).
+make: *** [Makefile:12: test] Error 1

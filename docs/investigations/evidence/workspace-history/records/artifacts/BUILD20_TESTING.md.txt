@@ -1,0 +1,22 @@
+# Build 20: investigation startup
+
+Sign/install `Streamside-3.1.0-build.20-modular-diagnostics.ipa`, then launch
+Twitch normally. Open a stream with working chat, then Diagnostics → Investigations.
+
+Arm should become available once the verified chat connection completes. This
+candidate handles native callable injection arriving after the JS ready signal;
+it still requires the startup round-trip and all existing compatibility checks.
+
+If it remains greyed out, use **Copy Runtime Status** at the bottom of
+Investigations and paste that text in this chat. It works without a capture.
+The normal **Copy Diagnostic Report** also includes the startup status under
+General, with any preset. Refresh only redraws status and does not initialize
+the runtime; changing streams is not a required recovery step.
+
+211 host tests ran: 209 passed; two Apple-only checks skipped. Compiled Hermes
+and native/package verification passed. The ordering defect is reproduced in
+host tests, but its role in the build-19 device failure is not established.
+Actual device resolution is pending. `build20-validation.json` binds the IPA
+and framework hashes to source commit `5d8f165293ff14f45d0bb072a0177c2fdf9b4336`.
+
+Build 19 artifacts and their original identities are preserved separately.

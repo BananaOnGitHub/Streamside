@@ -1,0 +1,2 @@
+python3 tools/check_docs.py
+Checked 79 Markdown files, 726 explicit references, and current version metadata: 0 error(s).

@@ -1,0 +1,48 @@
+{
+  "milestone": "diagnostic infrastructure v1 F1-F4 hardening",
+  "source_commit": "d9317c52fac8916e1d0887bec1ba4cef5194d9c5",
+  "branch": "feat/modular-diagnostic-runtime",
+  "ordinary_native_build": "3.1.0-build.25",
+  "ipa_generated": false,
+  "framework_sha256": "11c41e383062ad117f8f882f7c10b2d2312a447c777e4a3df825c8b298733a6c",
+  "dylib_sha256": "f21082911849c3dff82da63959132c23034e06835b2eb71c0cd58532a1192195",
+  "framework_receipt_sha256": "921538dccdca2faab762440fb00c1815348f1c7fed14213b4d8d510190e41673",
+  "dylib_receipt_sha256": "e5730d4b88109e4b887561d1c19959694ffefb4ba18b250a41017c98189847e7",
+  "manifest_revision": 5,
+  "manifest_sha256": "4cd52fba566b77f2b1fdfaaada48bb37c9b150f626c645d50f5f7a4faa4de965",
+  "compiled_validation_receipt_sha256": "fd5caa5515c8e3f7a7762372d756d7219a5519f0054c134672747db652234cb8",
+  "archived_build24_receipt_sha256": "8d267dbdf9de8302a43470c6bdc6f57a90005c56b06a65621e24b8051dce51db",
+  "tests": {
+    "full_suite_total": 220,
+    "full_suite_passed": 218,
+    "full_suite_skipped": 2,
+    "skipped": [
+      "Apple Foundation/Xcode",
+      "Apple ImageIO/Xcode"
+    ],
+    "final_affected_focused_tests": 27,
+    "compiled_Hermes_original_and_functional": true,
+    "native_artifact_verification": true,
+    "report_sanitizer_cases": 20000,
+    "manifest_sanitizer_cases": 20000
+  },
+  "log_sha256": {
+    "ss-hardening-integration.log": "1a7c25886f9eeee011a7f20fe80930535f75682c71744f2c0f4d63e05402b416",
+    "ss-hardening-hermes-final.log": "ed8681ce98ceaa07499b49c2c1fb0294e93d8efdc20a423559acc3747f75da0b",
+    "ss-hardening-native-final.log": "2f939168f2ef0eda746a281a6d3624705ecec7ccb571c714d0a3bd236091a68d",
+    "ss-hardening-focused-final.log": "6c02f8d3155c310d2d4801929307f97bd4faaa9a82d1306eba080a7e359b2934",
+    "ss-hardening-report-sanitizer-final.log": "312b54bf780cb4232f506a19ed86f3ed0dbeee196ffb058442ca139bfecea689",
+    "ss-hardening-parser-sanitizer.log": "1059268e9bc9d842d4d75851e1f37d499c4928472492321b8d7b3f442a37de52"
+  },
+  "F5": {
+    "host_gate": "passed",
+    "device_acceptance": "pending",
+    "device": "iPhone 16 Pro",
+    "os": "27.0.1",
+    "identity_source": "user-reported",
+    "performance_tools": "unspecified",
+    "actual_device_run": false
+  },
+  "F6": "pending F5 evidence and feature-freeze documentation",
+  "v2": "required future capability; architecture only; no updater implementation"
+}

@@ -1,0 +1,6 @@
+test_dependency_orders_rejections_and_stale_queued_probe (test_investigation_startup.StartupTests.test_dependency_orders_rejections_and_stale_queued_probe) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.038s
+
+OK

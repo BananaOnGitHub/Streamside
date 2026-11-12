@@ -1,0 +1,646 @@
+[
+  {
+    "original_path": "repo/build/Streamside.dylib.macho.json",
+    "archived_path": "records/repo/build/Streamside.dylib.macho.json"
+  },
+  {
+    "original_path": "repo/build/Streamside.framework/Info.plist",
+    "archived_path": "records/repo/build/Streamside.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/Streamside.framework.macho.json",
+    "archived_path": "records/repo/build/Streamside.framework.macho.json"
+  },
+  {
+    "original_path": "repo/build/build20-docs.log",
+    "archived_path": "records/repo/build/build20-docs.log"
+  },
+  {
+    "original_path": "repo/build/build20-hermes.log",
+    "archived_path": "records/repo/build/build20-hermes.log"
+  },
+  {
+    "original_path": "repo/build/build20-ipa.log",
+    "archived_path": "records/repo/build/build20-ipa.log"
+  },
+  {
+    "original_path": "repo/build/build20-native.log",
+    "archived_path": "records/repo/build/build20-native.log"
+  },
+  {
+    "original_path": "repo/build/build20-payload.log",
+    "archived_path": "records/repo/build/build20-payload.log"
+  },
+  {
+    "original_path": "repo/build/build20-startup-tests.log",
+    "archived_path": "records/repo/build/build20-startup-tests.log"
+  },
+  {
+    "original_path": "repo/build/build20-tests.log",
+    "archived_path": "records/repo/build/build20-tests.log"
+  },
+  {
+    "original_path": "repo/build/build21-docs.log",
+    "archived_path": "records/repo/build/build21-docs.log"
+  },
+  {
+    "original_path": "repo/build/build21-hermes.log",
+    "archived_path": "records/repo/build/build21-hermes.log"
+  },
+  {
+    "original_path": "repo/build/build21-ipa.log",
+    "archived_path": "records/repo/build/build21-ipa.log"
+  },
+  {
+    "original_path": "repo/build/build21-native.log",
+    "archived_path": "records/repo/build/build21-native.log"
+  },
+  {
+    "original_path": "repo/build/build21-payload.log",
+    "archived_path": "records/repo/build/build21-payload.log"
+  },
+  {
+    "original_path": "repo/build/build21-tests.log",
+    "archived_path": "records/repo/build/build21-tests.log"
+  },
+  {
+    "original_path": "repo/build/build22-baseline-docs.log",
+    "archived_path": "records/repo/build/build22-baseline-docs.log"
+  },
+  {
+    "original_path": "repo/build/build22-docs.log",
+    "archived_path": "records/repo/build/build22-docs.log"
+  },
+  {
+    "original_path": "repo/build/build22-gap-analysis-docs.log",
+    "archived_path": "records/repo/build/build22-gap-analysis-docs.log"
+  },
+  {
+    "original_path": "repo/build/build22-hermes.log",
+    "archived_path": "records/repo/build/build22-hermes.log"
+  },
+  {
+    "original_path": "repo/build/build22-ipa.log",
+    "archived_path": "records/repo/build/build22-ipa.log"
+  },
+  {
+    "original_path": "repo/build/build22-native.log",
+    "archived_path": "records/repo/build/build22-native.log"
+  },
+  {
+    "original_path": "repo/build/build22-tests.log",
+    "archived_path": "records/repo/build/build22-tests.log"
+  },
+  {
+    "original_path": "repo/build/build23-device-gap-docs.log",
+    "archived_path": "records/repo/build/build23-device-gap-docs.log"
+  },
+  {
+    "original_path": "repo/build/build23-docs.log",
+    "archived_path": "records/repo/build/build23-docs.log"
+  },
+  {
+    "original_path": "repo/build/build23-hermes.log",
+    "archived_path": "records/repo/build/build23-hermes.log"
+  },
+  {
+    "original_path": "repo/build/build23-ipa.log",
+    "archived_path": "records/repo/build/build23-ipa.log"
+  },
+  {
+    "original_path": "repo/build/build23-native.log",
+    "archived_path": "records/repo/build/build23-native.log"
+  },
+  {
+    "original_path": "repo/build/build23-parser-sanitizer.log",
+    "archived_path": "records/repo/build/build23-parser-sanitizer.log"
+  },
+  {
+    "original_path": "repo/build/build23-payload.log",
+    "archived_path": "records/repo/build/build23-payload.log"
+  },
+  {
+    "original_path": "repo/build/build23-report-sanitizer.log",
+    "archived_path": "records/repo/build/build23-report-sanitizer.log"
+  },
+  {
+    "original_path": "repo/build/build23-targeted-tests.log",
+    "archived_path": "records/repo/build/build23-targeted-tests.log"
+  },
+  {
+    "original_path": "repo/build/build23-tests.log",
+    "archived_path": "records/repo/build/build23-tests.log"
+  },
+  {
+    "original_path": "repo/build/build24-docs.log",
+    "archived_path": "records/repo/build/build24-docs.log"
+  },
+  {
+    "original_path": "repo/build/build24-hermes.log",
+    "archived_path": "records/repo/build/build24-hermes.log"
+  },
+  {
+    "original_path": "repo/build/build24-ipa.log",
+    "archived_path": "records/repo/build/build24-ipa.log"
+  },
+  {
+    "original_path": "repo/build/build24-native.log",
+    "archived_path": "records/repo/build/build24-native.log"
+  },
+  {
+    "original_path": "repo/build/build24-parser-sanitizer.log",
+    "archived_path": "records/repo/build/build24-parser-sanitizer.log"
+  },
+  {
+    "original_path": "repo/build/build24-payload.log",
+    "archived_path": "records/repo/build/build24-payload.log"
+  },
+  {
+    "original_path": "repo/build/build24-report-sanitizer.log",
+    "archived_path": "records/repo/build/build24-report-sanitizer.log"
+  },
+  {
+    "original_path": "repo/build/build24-tests.log",
+    "archived_path": "records/repo/build/build24-tests.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-a-validation.log",
+    "archived_path": "records/repo/build/checkpoint-a-validation.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-b-hermes.log",
+    "archived_path": "records/repo/build/checkpoint-b-hermes.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-b-native.log",
+    "archived_path": "records/repo/build/checkpoint-b-native.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-b-tests.log",
+    "archived_path": "records/repo/build/checkpoint-b-tests.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-c-docs.log",
+    "archived_path": "records/repo/build/checkpoint-c-docs.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-c-hermes.log",
+    "archived_path": "records/repo/build/checkpoint-c-hermes.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-c-native.log",
+    "archived_path": "records/repo/build/checkpoint-c-native.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-c-payload.log",
+    "archived_path": "records/repo/build/checkpoint-c-payload.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-c-tests.log",
+    "archived_path": "records/repo/build/checkpoint-c-tests.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-d-docs.log",
+    "archived_path": "records/repo/build/checkpoint-d-docs.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-d-getters.log",
+    "archived_path": "records/repo/build/checkpoint-d-getters.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-d-hermes.log",
+    "archived_path": "records/repo/build/checkpoint-d-hermes.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-d-native.log",
+    "archived_path": "records/repo/build/checkpoint-d-native.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-d-payload.log",
+    "archived_path": "records/repo/build/checkpoint-d-payload.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-docs.log",
+    "archived_path": "records/repo/build/checkpoint-e-docs.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-hermes.log",
+    "archived_path": "records/repo/build/checkpoint-e-hermes.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-investigation-tests.log",
+    "archived_path": "records/repo/build/checkpoint-e-investigation-tests.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-ipa.log",
+    "archived_path": "records/repo/build/checkpoint-e-ipa.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-native.log",
+    "archived_path": "records/repo/build/checkpoint-e-native.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-payload.log",
+    "archived_path": "records/repo/build/checkpoint-e-payload.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-sanitizers.log",
+    "archived_path": "records/repo/build/checkpoint-e-sanitizers.log"
+  },
+  {
+    "original_path": "repo/build/checkpoint-e-tests.log",
+    "archived_path": "records/repo/build/checkpoint-e-tests.log"
+  },
+  {
+    "original_path": "repo/build/investigation-native-channel.json",
+    "archived_path": "records/repo/build/investigation-native-channel.json"
+  },
+  {
+    "original_path": "repo/build/investigation-validation.json",
+    "archived_path": "records/repo/build/investigation-validation.json"
+  },
+  {
+    "original_path": "repo/build/local-baseline-2026-10-19.log",
+    "archived_path": "records/repo/build/local-baseline-2026-10-19.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend/artifacts.json",
+    "archived_path": "records/repo/build/native-frontend/artifacts.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend/baseline/SSNBuild.h",
+    "archived_path": "records/repo/build/native-frontend/baseline/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-frontend/baseline/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-frontend/baseline/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-frontend/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-frontend/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-frontend/native/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-frontend/native/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/build.log",
+    "archived_path": "records/repo/build/native-frontend/validation/build.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/docs-check-final.log",
+    "archived_path": "records/repo/build/native-frontend/validation/docs-check-final.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/docs-check.log",
+    "archived_path": "records/repo/build/native-frontend/validation/docs-check.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/first-build-artifacts.json",
+    "archived_path": "records/repo/build/native-frontend/validation/first-build-artifacts.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/host-checks.json",
+    "archived_path": "records/repo/build/native-frontend/validation/host-checks.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/legacy-tests.log",
+    "archived_path": "records/repo/build/native-frontend/validation/legacy-tests.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/phase2-tests.log",
+    "archived_path": "records/repo/build/native-frontend/validation/phase2-tests.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/repeat-build.json",
+    "archived_path": "records/repo/build/native-frontend/validation/repeat-build.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend/validation/repeat-build.log",
+    "archived_path": "records/repo/build/native-frontend/validation/repeat-build.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/artifacts.json",
+    "archived_path": "records/repo/build/native-frontend-export-v3/artifacts.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/baseline/SSNBuild.h",
+    "archived_path": "records/repo/build/native-frontend-export-v3/baseline/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/baseline/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-frontend-export-v3/baseline/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-frontend-export-v3/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/native/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-frontend-export-v3/native/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/validation/build.log",
+    "archived_path": "records/repo/build/native-frontend-export-v3/validation/build.log"
+  },
+  {
+    "original_path": "repo/build/native-frontend-export-v3/validation/export-filename-inspection.json",
+    "archived_path": "records/repo/build/native-frontend-export-v3/validation/export-filename-inspection.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend-gesture-v2/artifacts.json",
+    "archived_path": "records/repo/build/native-frontend-gesture-v2/artifacts.json"
+  },
+  {
+    "original_path": "repo/build/native-frontend-gesture-v2/baseline/SSNBuild.h",
+    "archived_path": "records/repo/build/native-frontend-gesture-v2/baseline/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-frontend-gesture-v2/baseline/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-frontend-gesture-v2/baseline/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-frontend-gesture-v2/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-frontend-gesture-v2/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-frontend-gesture-v2/native/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-frontend-gesture-v2/native/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-frontend-gesture-v2/validation/build.log",
+    "archived_path": "records/repo/build/native-frontend-gesture-v2/validation/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/artifacts.json",
+    "archived_path": "records/repo/build/native-swiftui/artifacts.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/baseline/SSNBuild.h",
+    "archived_path": "records/repo/build/native-swiftui/baseline/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/baseline/SSNSwiftUI-Swift.h",
+    "archived_path": "records/repo/build/native-swiftui/baseline/SSNSwiftUI-Swift.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/baseline/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-swiftui/baseline/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/baseline/build.log",
+    "archived_path": "records/repo/build/native-swiftui/baseline/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/baseline/compiler.json",
+    "archived_path": "records/repo/build/native-swiftui/baseline/compiler.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/baseline/remote-command.log",
+    "archived_path": "records/repo/build/native-swiftui/baseline/remote-command.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-swiftui/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/native/SSNSwiftUI-Swift.h",
+    "archived_path": "records/repo/build/native-swiftui/native/SSNSwiftUI-Swift.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/native/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-swiftui/native/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/native/build.log",
+    "archived_path": "records/repo/build/native-swiftui/native/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/native/compiler.json",
+    "archived_path": "records/repo/build/native-swiftui/native/compiler.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/native/remote-command.log",
+    "archived_path": "records/repo/build/native-swiftui/native/remote-command.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/validation/apple-abi-tests.log",
+    "archived_path": "records/repo/build/native-swiftui/validation/apple-abi-tests.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/validation/build.log",
+    "archived_path": "records/repo/build/native-swiftui/validation/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/validation/docs-check.log",
+    "archived_path": "records/repo/build/native-swiftui/validation/docs-check.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/validation/native-tests.log",
+    "archived_path": "records/repo/build/native-swiftui/validation/native-tests.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui/validation/package-inspection.json",
+    "archived_path": "records/repo/build/native-swiftui/validation/package-inspection.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-swiftui-trial/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial/native/build.log",
+    "archived_path": "records/repo/build/native-swiftui-trial/native/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial/native/compiler.json",
+    "archived_path": "records/repo/build/native-swiftui-trial/native/compiler.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial/native/remote-command.log",
+    "archived_path": "records/repo/build/native-swiftui-trial/native/remote-command.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial2/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-swiftui-trial2/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial2/native/SSNSwiftUI-Swift.h",
+    "archived_path": "records/repo/build/native-swiftui-trial2/native/SSNSwiftUI-Swift.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial2/native/build.log",
+    "archived_path": "records/repo/build/native-swiftui-trial2/native/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial2/native/compiler.json",
+    "archived_path": "records/repo/build/native-swiftui-trial2/native/compiler.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial2/native/remote-command.log",
+    "archived_path": "records/repo/build/native-swiftui-trial2/native/remote-command.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/artifacts.json",
+    "archived_path": "records/repo/build/native-swiftui-trial3/artifacts.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/native/SSNBuild.h",
+    "archived_path": "records/repo/build/native-swiftui-trial3/native/SSNBuild.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/native/SSNSwiftUI-Swift.h",
+    "archived_path": "records/repo/build/native-swiftui-trial3/native/SSNSwiftUI-Swift.h"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/native/StreamsideNativeProof.framework/Info.plist",
+    "archived_path": "records/repo/build/native-swiftui-trial3/native/StreamsideNativeProof.framework/Info.plist"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/native/build.log",
+    "archived_path": "records/repo/build/native-swiftui-trial3/native/build.log"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/native/compiler.json",
+    "archived_path": "records/repo/build/native-swiftui-trial3/native/compiler.json"
+  },
+  {
+    "original_path": "repo/build/native-swiftui-trial3/native/remote-command.log",
+    "archived_path": "records/repo/build/native-swiftui-trial3/native/remote-command.log"
+  },
+  {
+    "original_path": "repo/build/pre-runtime-hermes-validation.log",
+    "archived_path": "records/repo/build/pre-runtime-hermes-validation.log"
+  },
+  {
+    "original_path": "repo/build/snapshot-runtime-report.txt",
+    "archived_path": "records/repo/build/snapshot-runtime-report.txt"
+  },
+  {
+    "original_path": "repo/build/snapshot-validation.json",
+    "archived_path": "records/repo/build/snapshot-validation.json"
+  },
+  {
+    "original_path": "repo/build/v1-hardening-2026-10-26/ss-hardening-focused-final.log",
+    "archived_path": "records/repo/build/v1-hardening-2026-10-26/ss-hardening-focused-final.log"
+  },
+  {
+    "original_path": "repo/build/v1-hardening-2026-10-26/ss-hardening-hermes-final.log",
+    "archived_path": "records/repo/build/v1-hardening-2026-10-26/ss-hardening-hermes-final.log"
+  },
+  {
+    "original_path": "repo/build/v1-hardening-2026-10-26/ss-hardening-integration.log",
+    "archived_path": "records/repo/build/v1-hardening-2026-10-26/ss-hardening-integration.log"
+  },
+  {
+    "original_path": "repo/build/v1-hardening-2026-10-26/ss-hardening-native-final.log",
+    "archived_path": "records/repo/build/v1-hardening-2026-10-26/ss-hardening-native-final.log"
+  },
+  {
+    "original_path": "repo/build/v1-hardening-2026-10-26/ss-hardening-parser-sanitizer.log",
+    "archived_path": "records/repo/build/v1-hardening-2026-10-26/ss-hardening-parser-sanitizer.log"
+  },
+  {
+    "original_path": "repo/build/v1-hardening-2026-10-26/ss-hardening-report-sanitizer-final.log",
+    "archived_path": "records/repo/build/v1-hardening-2026-10-26/ss-hardening-report-sanitizer-final.log"
+  },
+  {
+    "original_path": "artifacts/BUILD20_TESTING.md",
+    "archived_path": "records/artifacts/BUILD20_TESTING.md.txt"
+  },
+  {
+    "original_path": "artifacts/BUILD21_TESTING.md",
+    "archived_path": "records/artifacts/BUILD21_TESTING.md.txt"
+  },
+  {
+    "original_path": "artifacts/BUILD22_TESTING.md",
+    "archived_path": "records/artifacts/BUILD22_TESTING.md.txt"
+  },
+  {
+    "original_path": "artifacts/BUILD23_TESTING.md",
+    "archived_path": "records/artifacts/BUILD23_TESTING.md.txt"
+  },
+  {
+    "original_path": "artifacts/BUILD24_TESTING.md",
+    "archived_path": "records/artifacts/BUILD24_TESTING.md.txt"
+  },
+  {
+    "original_path": "artifacts/DEVICE_TESTING.md",
+    "archived_path": "records/artifacts/DEVICE_TESTING.md.txt"
+  },
+  {
+    "original_path": "artifacts/Streamside-3.1.0-build.19-modular-diagnostics.ipa.sha256",
+    "archived_path": "records/artifacts/Streamside-3.1.0-build.19-modular-diagnostics.ipa.sha256"
+  },
+  {
+    "original_path": "artifacts/Streamside-3.1.0-build.20-modular-diagnostics.ipa.sha256",
+    "archived_path": "records/artifacts/Streamside-3.1.0-build.20-modular-diagnostics.ipa.sha256"
+  },
+  {
+    "original_path": "artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa.sha256",
+    "archived_path": "records/artifacts/Streamside-3.1.0-build.21-modular-diagnostics.ipa.sha256"
+  },
+  {
+    "original_path": "artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa.sha256",
+    "archived_path": "records/artifacts/Streamside-3.1.0-build.22-modular-diagnostics.ipa.sha256"
+  },
+  {
+    "original_path": "artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa.sha256",
+    "archived_path": "records/artifacts/Streamside-3.1.0-build.23-modular-diagnostics.ipa.sha256"
+  },
+  {
+    "original_path": "artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa.sha256",
+    "archived_path": "records/artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa.sha256"
+  },
+  {
+    "original_path": "artifacts/build19-validation.json",
+    "archived_path": "records/artifacts/build19-validation.json"
+  },
+  {
+    "original_path": "artifacts/build20-validation.json",
+    "archived_path": "records/artifacts/build20-validation.json"
+  },
+  {
+    "original_path": "artifacts/build21-validation.json",
+    "archived_path": "records/artifacts/build21-validation.json"
+  },
+  {
+    "original_path": "artifacts/build22-validation.json",
+    "archived_path": "records/artifacts/build22-validation.json"
+  },
+  {
+    "original_path": "artifacts/build23-validation.json",
+    "archived_path": "records/artifacts/build23-validation.json"
+  },
+  {
+    "original_path": "artifacts/build24-native-archive/Streamside.dylib.macho.json",
+    "archived_path": "records/artifacts/build24-native-archive/Streamside.dylib.macho.json"
+  },
+  {
+    "original_path": "artifacts/build24-native-archive/Streamside.framework/Info.plist",
+    "archived_path": "records/artifacts/build24-native-archive/Streamside.framework/Info.plist"
+  },
+  {
+    "original_path": "artifacts/build24-native-archive/Streamside.framework.macho.json",
+    "archived_path": "records/artifacts/build24-native-archive/Streamside.framework.macho.json"
+  },
+  {
+    "original_path": "artifacts/build24-validation.json",
+    "archived_path": "records/artifacts/build24-validation.json"
+  },
+  {
+    "original_path": "artifacts/native-frontend-phase1/docs-check.log",
+    "archived_path": "records/artifacts/native-frontend-phase1/docs-check.log"
+  },
+  {
+    "original_path": "artifacts/native-frontend-phase1/streamside-native32-host-tests-configured.log",
+    "archived_path": "records/artifacts/native-frontend-phase1/streamside-native32-host-tests-configured.log"
+  },
+  {
+    "original_path": "artifacts/native-frontend-phase1/streamside-native32-host-tests.log",
+    "archived_path": "records/artifacts/native-frontend-phase1/streamside-native32-host-tests.log"
+  },
+  {
+    "original_path": "artifacts/v1-hardening-2026-10-26-validation.json",
+    "archived_path": "records/artifacts/v1-hardening-2026-10-26-validation.json"
+  }
+]

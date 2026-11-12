@@ -1,0 +1,58 @@
+{
+  "candidate": "3.1.0-build.24",
+  "source_commit": "365214477eab053134c852ee0d3c9ea80eace6d6",
+  "branch": "feat/modular-diagnostic-runtime",
+  "ipa": {
+    "path": "/home/bananas/Agent-Stuff/streamside/artifacts/Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+    "bytes": 194526063,
+    "sha256": "1d7179fc899c32c297803623a2e1808838e3262c56bded4021e00ec14e87d530",
+    "unsigned": true,
+    "verified": true
+  },
+  "framework_sha256": "76e773b9d7224390b431f28947558634886493055f66abe18950988e0f9a0e2f",
+  "preserved_native_identities": {
+    "Twitch": {
+      "text_sha256": "890c6daabeeeb69be3308337ef61d63deba489e396824d4774c1a8ebd84576f5",
+      "uuid": "34613ae5d1e03658876de5e4d1cec6a6"
+    },
+    "Frameworks/React.framework/React": {
+      "text_sha256": "0d68cf0f54f1b72c166ac3695935071ee1a258085dd16ad63fbd7bba94889c48",
+      "uuid": "ee15b752fb4635f2b0bba46636572385"
+    },
+    "Frameworks/hermesvm.framework/hermesvm": {
+      "text_sha256": "9f5bc675604dfc430ef729bf1b875e5bdf6a9f327576b63987eca424d8cce02a",
+      "uuid": "be274a2347cc3f5a9e988474553df5a8"
+    }
+  },
+  "original_hbc_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+  "manifest_sha256": "44e05c219d39bd41a690f9151f4633b9d16b2a9aa959beaada9317ab76f50b88",
+  "manifest_revision": 4,
+  "report_profile": "numeric-chat-v3",
+  "snapshot_profile": "rn-chat-current-v3",
+  "compiled_validation_receipt_sha256": "8d267dbdf9de8302a43470c6bdc6f57a90005c56b06a65621e24b8051dce51db",
+  "tests": {
+    "total": 216,
+    "passed": 214,
+    "skipped": 2,
+    "skips": [
+      "Apple Foundation",
+      "Apple ImageIO"
+    ],
+    "compiled_Hermes_both_predecessors": true,
+    "newest_first_under_original_deadline": true,
+    "deadline_before_tail_and_failed_newest_distinct": true,
+    "time_and_entry_limits_distinct": true,
+    "viewport_range_and_margin_priority": true,
+    "export_only_recent_numeric_label_summary": true,
+    "partial_or_changed_membership_not_absence": true,
+    "mutation_traps": true,
+    "sanitizer_report_cases": 20000,
+    "sanitizer_manifest_cases": 20000,
+    "packaging": true
+  },
+  "device_feedback": {
+    "build23": "Visible range captured with contiguous cached geometry; older store sampling exhausted budget before relevant tail. No root cause established.",
+    "build24": "pending device test"
+  },
+  "scope": "Existing adapters only. Store reads newest first after viewport and margins, unchanged 2000-us callback deadline and shared 128-entry limit. Explicit successful read count, index bounds, newest-entry status, stop/failure flags. Numeric recent-label matching occurs only on report export. Cached geometry cannot prove Fabric content displayed."
+}

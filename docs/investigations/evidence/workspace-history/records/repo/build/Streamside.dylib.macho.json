@@ -1,0 +1,51 @@
+{
+  "artifact": {
+    "identity": "@rpath/Streamside.dylib",
+    "segments": [
+      {
+        "fileoff": 0,
+        "filesize": 540672,
+        "name": "__TEXT",
+        "vmaddr": 0,
+        "vmsize": 540672
+      },
+      {
+        "fileoff": 540672,
+        "filesize": 16384,
+        "name": "__DATA_CONST",
+        "vmaddr": 540672,
+        "vmsize": 16384
+      },
+      {
+        "fileoff": 557056,
+        "filesize": 16384,
+        "name": "__DATA",
+        "vmaddr": 557056,
+        "vmsize": 4849664
+      },
+      {
+        "fileoff": 573440,
+        "filesize": 152656,
+        "name": "__LINKEDIT",
+        "vmaddr": 5406720,
+        "vmsize": 163840
+      }
+    ],
+    "sha256": "f21082911849c3dff82da63959132c23034e06835b2eb71c0cd58532a1192195",
+    "signature": {
+      "declared": 1794,
+      "directories": [
+        {
+          "code_limit": 660560,
+          "exec_base": 0,
+          "exec_limit": 540672,
+          "identifier": "Streamside.dylib"
+        }
+      ],
+      "offset": 660560,
+      "reserved": 65536
+    },
+    "size": 726096
+  },
+  "schema": 1
+}

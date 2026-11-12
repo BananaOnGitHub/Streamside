@@ -1,0 +1,14 @@
+{
+  "baseline": {
+    "baseline-latest.json": true,
+    "baseline-previous.json": true,
+    "native-latest.json": false,
+    "native-previous.json": false
+  },
+  "native": {
+    "native-latest.json": true,
+    "native-previous.json": true,
+    "baseline-latest.json": false,
+    "baseline-previous.json": false
+  }
+}

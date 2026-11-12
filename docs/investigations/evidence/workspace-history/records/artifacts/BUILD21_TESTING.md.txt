@@ -1,0 +1,23 @@
+# Build 21: investigation global binding
+
+Sign/install `Streamside-3.1.0-build.21-modular-diagnostics.ipa`, fully close
+Twitch and relaunch. Open a stream, then Diagnostics → Investigations.
+
+The corrected bootstrap uses the standard Hermes `globalThis` binding.
+The old code reproduced the build-20 failure signature before ready when the
+legacy `global` alias was absent; the old test fixture had supplied that alias.
+The corrected actual donor factory now passes with the alias absent on both
+supported patch predecessors. Native compatibility and startup ACK checks remain.
+
+Expected: Dormant status with Arm enabled. Arm, return to chat, capture a
+snapshot and verify that capture returns to Armed. If Unsupported persists,
+copy **Copy Runtime Status** from the bottom of Investigations. Refresh and
+stream changes are not required recovery steps.
+
+211 host tests ran: 209 passed and two Apple-only checks were skipped.
+Compiled Hermes, native artifact, documentation and package checks passed.
+Actual device resolution is pending. Build 19 and 20 artifacts are preserved.
+
+Source commit: `2ccd4ed6fed1cd8fa1febd605998d63f72887e45`.
+IPA SHA-256: `95063dae49543302df8288f52049f3469499248b862c6bcf503db439f381f3b4`.
+Framework SHA-256: `30ba38969ef1a32bae0bad022bbcc7a87c83ca69bbf4e03bbdf33bf29e45077d`.

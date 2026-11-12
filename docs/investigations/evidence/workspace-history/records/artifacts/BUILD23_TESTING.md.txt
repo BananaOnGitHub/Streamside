@@ -1,0 +1,40 @@
+# Build 23: viewport-relative capture
+
+Sign/install `Streamside-3.1.0-build.23-modular-diagnostics.ipa`, fully close
+Twitch and relaunch. Arm and enable the existing in-chat Capture button.
+Capture in chat, then use Diagnostics → Investigations → Copy Capture.
+
+Expected report: numeric-chat-v2, manifest revision 3, with kind 10 identifying
+the requested unbuffered visible range and sampled visible count. Kind 9 rows
+sample that range first, then up to two neighbouring indices per side. Kind 8
+store membership is a bounded remaining projection. Entry/time limits can make
+range or membership coverage partial; missing/invalid range is unavailable.
+Report transport completion is separate from range completeness.
+
+The first transfer still contains frozen history before current-state reads.
+No new hooks, observation stages, native/Fabric measurement, unsafe LegendList
+accessors, polling or layout requests are added. idCache and measurements remain
+read-only. Every visible range precedes margins and store reads, including when
+two list scopes share the unchanged 128-entry / 2 ms callback allowance.
+
+List-member a/b/c: index, cached measured height in 1/1000 logical points,
+position in rounded logical points. Flags distinguish no current measured-cache
+entry, exact zero, invalid value and unavailable access. Missing cache entry
+does not prove the row was never measured before a cache clear. Known geometry
+does not prove a Fabric text component displayed its content.
+
+Membership is present when matched, absent only after a complete stable scan
+with comparable identities, and unknown otherwise. Anonymous labels stay local
+to the Arm session; raw IDs/content never leave the adapter.
+
+214 host tests ran: 212 passed and two Apple-only checks were skipped. The
+actual owned graft and donor getter graph passed pinned Hermes replay on both
+predecessors, including both reported viewport regressions and mutation traps.
+Report and manifest parsers each passed 20,000 malformed inputs under ASan/UBSan.
+Native artifact, documentation and package verification passed. Actual device
+confirmation of the corrected viewport projection remains pending.
+
+Source commit: `b8a62d458097e5a78af9a5582dc438853ed7b6da`.
+IPA SHA-256: `118f60af34b9d3a3d2125afecf85a958aad8c38f97cd0ebb75e39a8ef82ee673`.
+Framework SHA-256: `1b06e86acb974a6fcca7e75cdd11f7667a9446e5f76357be0d9201e2e021d60c`.
+Earlier candidates and manifests are preserved unchanged.

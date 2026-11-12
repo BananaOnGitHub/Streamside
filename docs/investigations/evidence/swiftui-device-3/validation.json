@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "source_revision": "1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035",
+  "proof_id": "f072ea03b43c891af10727131e4f8f024ec5917efc44cebf07719940ebc73ce6",
+  "archive_sha256": "b4aa8e8e6369c573b7e40dcb0715eba832742492bc3983654c5cd589dbfec135",
+  "files": {
+    "native-latest 2.json": {
+      "bytes": 1319,
+      "sha256": "9dd91cfe6d48ca38a35827cfe505adc126300b2de62d30948044ad41a340c888",
+      "archive_member": "nativetesting/native-latest 2.json"
+    },
+    "native-latest 3.json": {
+      "bytes": 1320,
+      "sha256": "d459620537a1a0639763f3ccb8a7d121dfad6580dc8648559868afd5376f0514",
+      "archive_member": "nativetesting/native-latest 3.json"
+    },
+    "native-latest 4.json": {
+      "bytes": 1321,
+      "sha256": "28b8f2857dc83f574d83a299457541af835dd35c58e6d523a998355b3ad354fe",
+      "archive_member": "nativetesting/native-latest 4.json"
+    },
+    "native-latest 5.json": {
+      "bytes": 1318,
+      "sha256": "a8f08b86c7e401969b1198276ce062145568592884b018d738ac32161c7f0f5c",
+      "archive_member": "nativetesting/native-latest 5.json"
+    },
+    "baseline-previous.json": {
+      "bytes": 1265,
+      "sha256": "388f6af51f332cb318282a2fbc0c7676e5f269b81315be9eade57ae62b617804",
+      "archive_member": "nativetesting/baseline-previous.json"
+    },
+    "native-latest.json": {
+      "bytes": 1318,
+      "sha256": "57a94fc6a300717993b672bbfe467083bcd9bb72c4772d731f1a05c0bc24e54b",
+      "archive_member": "nativetesting/native-latest.json"
+    },
+    "baseline-latest.json": {
+      "bytes": 1325,
+      "sha256": "6fbe52c714dc20496bb80ad66bcf3bc6454e651554e4681311bb047fa9a52ab8",
+      "archive_member": "nativetesting/baseline-latest.json"
+    }
+  },
+  "baseline_report": "baseline-latest.json",
+  "excluded_baseline": {
+    "name": "baseline-previous.json",
+    "reason": "Older a454012/c9d05e19 source/proof; not matching calibration"
+  },
+  "stages": [
+    {
+      "report": "native-latest.json",
+      "stage": "Initial authenticated SwiftUI",
+      "launch": 13,
+      "uptime_ms": 8023,
+      "root_owner": 1,
+      "account_list_state": 4,
+      "channels": 50,
+      "navigation_events": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "foregrounds": 1,
+      "backgrounds": 0
+    },
+    {
+      "report": "native-latest 2.json",
+      "stage": "Signed out",
+      "launch": 13,
+      "uptime_ms": 27824,
+      "root_owner": 1,
+      "account_list_state": 1,
+      "channels": 0,
+      "navigation_events": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "foregrounds": 1,
+      "backgrounds": 0
+    },
+    {
+      "report": "native-latest 3.json",
+      "stage": "After native sign-in",
+      "launch": 13,
+      "uptime_ms": 72635,
+      "root_owner": 1,
+      "account_list_state": 4,
+      "channels": 50,
+      "navigation_events": [
+        2,
+        1,
+        1,
+        0,
+        0
+      ],
+      "foregrounds": 2,
+      "backgrounds": 0
+    },
+    {
+      "report": "native-latest 4.json",
+      "stage": "After refresh/list interaction",
+      "launch": 13,
+      "uptime_ms": 109787,
+      "root_owner": 1,
+      "account_list_state": 4,
+      "channels": 50,
+      "navigation_events": [
+        2,
+        1,
+        1,
+        0,
+        0
+      ],
+      "foregrounds": 2,
+      "backgrounds": 0
+    },
+    {
+      "report": "native-latest 5.json",
+      "stage": "Full close/reopen",
+      "launch": 14,
+      "uptime_ms": 8657,
+      "root_owner": 1,
+      "account_list_state": 4,
+      "channels": 50,
+      "navigation_events": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "foregrounds": 1,
+      "backgrounds": 0
+    }
+  ],
+  "validated": {
+    "matching_positive_control": true,
+    "all_25_native_probe_counts_zero": true,
+    "all_images_armed": true,
+    "no_recorded_failures": true,
+    "swiftui_root_retained_at_all_samples": true,
+    "navigation_guard_armed": true,
+    "one_presented_sign_in_and_verified_return": true,
+    "account_and_50_follows_restored_in_distinct_launch": true
+  },
+  "strict_sequence_comparison": {
+    "status": "evidence_incomplete_or_failed",
+    "failures": [
+      "Foreground/background/reopen sequence incomplete"
+    ],
+    "limits": [
+      "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+    ],
+    "memory_difference_bytes": -293503408,
+    "constructor_to_active_difference_ms": -406
+  },
+  "observation": "Tester reports logout, Twitch sign-in presentation, return to SwiftUI, refresh, background/reopen and full close/reopen all worked.",
+  "gaps": [
+    "No supplied native report records backgrounds>0; the unchanged strict lifecycle comparison remains incomplete. native-previous.json from the final export may contain the missing cumulative observation.",
+    "No manual Close sign-in event is recorded; cancellation/retry, other providers, challenges and invalid-session handling are not established by this sequence."
+  ],
+  "limits": [
+    "Report snapshots and bounded guarded entry coverage; not universal proof of every donor path.",
+    "Login method is not specified for this run; earlier username/password evidence belongs to the prior build.",
+    "Memory and constructor-to-active times are snapshots from different UI states and uptimes, not a controlled performance benchmark."
+  ]
+}

@@ -174,3 +174,13 @@ to the earlier diagnostic pair and do not validate this ownership change. Passwo
 social/verification flows, cancellation/retry, account switching, lifecycle behavior,
 memory/startup comparisons and zero guarded runtime entries still require new
 matching-baseline device reports. The test does not enable RN to work around failures.
+
+## Device follow-up
+
+The [device ownership review](SWIFTUI_NATIVE_DEVICE_REVIEW_3.md) subsequently records
+successful in-process logout/sign-in return to SwiftUI, native account/follows
+restoration, root ownership and all 25 native probe counts zero against the matching
+positive control. A distinct restart restores the account and follows as well.
+The original build-time device-pending status above is preserved. The full strict
+lifecycle comparison remains incomplete because the supplied snapshots contain no
+recorded background transition; the review preserves that gap and the exact result.

@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "source_revision": "1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035",
+  "packaging_revision": "1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035",
+  "proof_id": "f072ea03b43c891af10727131e4f8f024ec5917efc44cebf07719940ebc73ce6",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "inspection": {
+    "abi_entries": 19,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "component_manifest_sha256": "4053ca15c6a27da13b41a5f1559486ddc1ccd6cbe09d4be426aff2ec4f052687",
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/authentication-ownership-1c059c1",
+  "local_full_manifest_sha256": "10931b2ace6996e2ceabda1c7e3b0ecaf3b4707ca7bcfe8ab56486a0db630172",
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "validation": {
+    "host_native": {
+      "run": 36,
+      "passed": 36,
+      "failed": 0
+    },
+    "swift_models": "PASS in both modes",
+    "uikit_simulator": {
+      "baseline": {
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 0,
+          "blocked": 0,
+          "failures": 0
+        }
+      },
+      "native": {
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 1,
+          "blocked": 2,
+          "failures": 0
+        }
+      }
+    },
+    "apple_foundation": {
+      "run": 1,
+      "passed": 1
+    },
+    "apple_report_comparison": {
+      "run": 5,
+      "passed": 5
+    },
+    "apple_abi": {
+      "run": 6,
+      "passed": 6
+    },
+    "ci_component_admission": {
+      "run": 9,
+      "passed": 9
+    },
+    "ci_core": {
+      "run": 7,
+      "passed": 7
+    },
+    "linux_workflow": {
+      "run": 224,
+      "passed": 220,
+      "skipped": 4,
+      "failed": 0
+    },
+    "documentation": {
+      "markdown_files": 98,
+      "explicit_references": 905,
+      "errors": 0
+    },
+    "donor_authentication_on_device": "NOT TESTED for this build",
+    "runtime_zero_on_device": "NOT TESTED for this build; matching baseline positive control still required"
+  },
+  "workflows": {
+    "swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43156171907",
+    "linux": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43156171945"
+  },
+  "artifacts": {
+    "baseline": {
+      "bytes": 196486756,
+      "sha256": "8a8cdea7c3f8a173192ce5d5eb66d297ae94da317a4789004741f282bfb5cd7f",
+      "framework_sha256": "c25de3a0b84b838b0df673447c7eeebf7a8fbd885eadeb3354cf48948aba2214",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "1eb8216c33b6c64b934095ba63c0b32ab86f379bf01c932c72ef9a2345c94337",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "aa14b945f0d7ccac8eba0bf9f34df827380832f947545fcb4f7e5dda88fad101",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "64e2b75d84710cf70b0656ede1626499f0c4d2f13c83266b58eb05db6f69b618",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "62bdf18b3ff491ec6c1e476fe1f00904eb06f7d6caa2231a9fee2bcd6ef77e78"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "file": "StreamsideNativeProof-Twitch32-baseline.ipa"
+    },
+    "native": {
+      "bytes": 196491539,
+      "sha256": "3b0d1bbf95a3ceb32f5a4ed61a8ae76dcdf6f0ce984b3e19873c7a5a64b957c3",
+      "framework_sha256": "ffdddc75b2db9b78bd07e4cb64f053bb1034b56b8f069f5b2e507a24ff8d31b4",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "10536481b9f70b9d5d5a0ce2150bf2b07c618c57efe142afaf3530f490848890",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "aa14b945f0d7ccac8eba0bf9f34df827380832f947545fcb4f7e5dda88fad101",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "64e2b75d84710cf70b0656ede1626499f0c4d2f13c83266b58eb05db6f69b618",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "62bdf18b3ff491ec6c1e476fe1f00904eb06f7d6caa2231a9fee2bcd6ef77e78"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "file": "StreamsideNativeProof-Twitch32-native.ipa"
+    }
+  }
+}

@@ -124,3 +124,53 @@ simulator fixture: its other-window variable was unused in baseline mode under
 warnings-as-errors. No components or IPA were distributed from this failed run.
 The fixture now exercises baseline other-window routing as well. Failure logs were
 retained outside the repository; this record preserves the meaningful outcome.
+
+## Validated build and local packaging
+
+Compiled/packaged source: `1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035`.
+Implementation commit: `9cd05478e8d30a7597119ef7f6d1ca5717a04df1`.
+Proof: `f072ea03b43c891af10727131e4f8f024ec5917efc44cebf07719940ebc73ce6`.
+Exact artifact hashes, patched-image hashes, toolchain and test receipts are in the
+[build identity record](SWIFTUI_AUTHENTICATION_OWNERSHIP_ARTIFACTS.json).
+
+[Native SwiftUI Actions run 43156171907](https://github.com/BananaOnGitHub/Streamside/actions/runs/43156171907)
+succeeded: both arm64 iOS frameworks compiled/linked, ad-hoc signatures verified,
+pure Swift account-return tests passed, and real UIKit simulator ownership tests
+passed in both modes. The native fixture blocked two attempted root replacements;
+the baseline fixture installed no guard and blocked none. Both reported zero
+navigation failures. Foundation HTTP integration (1), synthetic comparisons (5),
+Apple-compiled ABI register checks (6), component admission (9), and core reporting
+checks (7) passed. The pinned toolchain was Xcode 26.6 / 17F113, Swift 6.3.3,
+iPhoneOS SDK 26.5, runner image 20261102.0473.1.
+
+[Linux/Zig run 43156171945](https://github.com/BananaOnGitHub/Streamside/actions/runs/43156171945)
+succeeded: 224 tests, 220 passed and 4 skipped. Host native tests passed 36/36.
+These are separate scopes and must not be summed into a device acceptance claim.
+The new fixture's full simulator boot/test/cleanup took several minutes; it
+completed within the existing CI job limit without using a local Mac.
+
+Local assembly re-admitted the exact IPA and 19 native ABI entries, installed all
+25 probes, verified retained donor entries byte for byte, and confirmed the original
+HBC was unchanged. Baseline IPA is 196486756 bytes; native IPA is 196491539 bytes.
+Both require Feather signing with the existing application/keychain identity.
+No donor, IPA, signing material, or account data was uploaded to public Actions.
+
+Reproduce from this branch (use an empty output directory; keep the donor local):
+
+```sh
+gh run download 43156171907 --name swiftui-components-1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035 --dir ../artifacts/ci/1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/1c059c1fb8ffb0fb8e76621f7e12c4bb6bf57035 --mode both --output ../artifacts/native-frontend/swiftui/authentication-ownership-rebuild
+```
+
+Actions components have limited retention. After expiry, rebuild the pinned source
+through Native SwiftUI Actions and download that run's components; component input,
+source and output identities remain mandatory. A later source change requires its
+own matching component build. Bit-identical framework output across runner changes
+is not claimed; each assembled IPA gets a new recorded hash.
+
+**Device status:** not tested for this build. Earlier device observations belong
+to the earlier diagnostic pair and do not validate this ownership change. Password,
+social/verification flows, cancellation/retry, account switching, lifecycle behavior,
+memory/startup comparisons and zero guarded runtime entries still require new
+matching-baseline device reports. The test does not enable RN to work around failures.

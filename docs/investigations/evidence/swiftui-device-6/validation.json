@@ -1,0 +1,38 @@
+{
+  "zip_sha256": "b36c0d1bf3d34fb493089958cf95d2c2644a9c390d46aa66ab6f20b76c82cff7",
+  "reports": {
+    "baseline-previous.json": {
+      "sha256": "5ac0ec5cc64938f57b4577933eeed038cfa96071f35d6dc0ef4b8af915d0145d"
+    },
+    "native-latest.json": {
+      "sha256": "fa82a1c67acb67da2af56c87de56d33385fa620641d9a001348e12176ce6cffd"
+    },
+    "baseline-latest.json": {
+      "sha256": "8d8bc7bbbe72bf3699f503a43a0467215a5d4e2f5732223a7ebcf8352a7186f2"
+    },
+    "native-previous.json": {
+      "sha256": "bfdd01e261cb2334d800f106ec330d13abae918c7d36221113ebe7b5d222c08f"
+    }
+  },
+  "source_revision": "48fe69640ad202a8de2abcb82c998c300d68d7c2",
+  "proof_id": "99d7d0fc40608aed43ea46efccd823d05f1e951b949674f38022ac287e44b898",
+  "matching_positive_control": true,
+  "native_launch": 18,
+  "foregrounds": 2,
+  "backgrounds": 1,
+  "account_events": [
+    2,
+    1,
+    1,
+    0,
+    0
+  ],
+  "account_updates_retained": 1,
+  "account_data_clears": 0,
+  "all_25_native_counts_zero": true,
+  "ready_channels": 100,
+  "user_feedback": "Looks good",
+  "excluded_previous_reports": "Both previous reports are cad1e03, not matching 48fe696 restart evidence",
+  "reference_image_sha256": "a198baf0e5206fc3965142d4826aa18d75f2a2120dc44541e2b54a1001967ec8",
+  "scope": "One same-process background/foreground snapshot plus positive user feedback; no new logout/login or matching-source full-restart sequence"
+}

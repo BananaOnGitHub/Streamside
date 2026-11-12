@@ -53,7 +53,7 @@ def main():
     run(['xcrun','clang']+common+['-c','tests/native_frontend/abi_calls.c','-o','output/apple-abi.o'])
     binary='output/StreamsideNativeProof'
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-emit-library','-o',binary]+objects+
-        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO',
+        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics',
          '-Xlinker','-install_name','-Xlinker','@rpath/StreamsideNativeProof.framework/StreamsideNativeProof',
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'])
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
@@ -95,7 +95,8 @@ def test_window_ownership(root, output, config, run):
     (clock_bundle/'Info.plist').write_bytes(plistlib.dumps(clock_plist))
     run(['xcrun','swiftc','-target',architecture+'-apple-ios16.4-simulator','-sdk',simulator_sdk,
          '-swift-version','5','-warnings-as-errors','-parse-as-library',
-         'native/swift/StreamClock.swift','tests/native_frontend/swift/ClockTests.swift',
+         'native/swift/StreamClock.swift','native/swift/MeasuredStreamTitle.swift','native/swift/TitleHaptics.swift',
+         'tests/native_frontend/swift/ClockTests.swift','-framework','CoreHaptics',
          '-o',str(clock_bundle/'ClockTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(clock_bundle)])
     runtimes=json.loads(run(['xcrun','simctl','list','runtimes','--json']))['runtimes']
@@ -115,10 +116,12 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','install',device,str(clock_bundle)])
         run(['xcrun','simctl','launch','--console',device,clock_id])
         clock_container=Path(run(['xcrun','simctl','get_app_container',device,clock_id,'data']))
-        clock_receipt=json.loads((clock_container/'Documents/clock-test.json').read_text())
-        if clock_receipt != dict(passed=True,ticking=True,paused=True,resumed=True):
-            raise ValueError('UIKit lifecycle clock test failed: '+str(clock_receipt))
-        return dict(clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+        observed=json.loads((clock_container/'Documents/clock-test.json').read_text())
+        if observed != dict(passed=True,ticking=True,paused=True,resumed=True,title_measurement=True,haptic_pattern=True):
+            raise ValueError('UIKit clock/title interaction test failed: '+str(observed))
+        clock_receipt={k:observed[k] for k in ['passed','ticking','paused','resumed']}
+        interactions={k:observed[k] for k in ['title_measurement','haptic_pattern']}
+        return dict(title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
     finally:
         run(['xcrun','simctl','shutdown',device])
         run(['xcrun','simctl','delete',device])

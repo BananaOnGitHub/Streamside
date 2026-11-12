@@ -32,8 +32,22 @@ struct LiveChannelRow: View {
     let generation: UInt64
     @Environment(\.dynamicTypeSize) private var typeSize
     let clock: StreamClock
+    let haptics: TitleHaptics
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     @State private var showFullTitle = false
+    @State private var titleMeasurement: TitleMeasurement?
+    @State private var holdOwner = UUID()
+    private var displayedTitle: String { channel.title.isEmpty ? "Live stream" : channel.title }
+    private var titleLines: Int {
+        FeedPreferences.titleLines(twoLines: twoLineTitles, phone: UIDevice.current.userInterfaceIdiom == .phone, accessible: typeSize.isAccessibilitySize)
+    }
+    private var canPreviewTitle: Bool {
+        titleMeasurement?.text == displayedTitle && titleMeasurement?.lines == titleLines && titleMeasurement?.truncated == true
+    }
+    private func openTitle() {
+        guard canPreviewTitle else { return }
+        haptics.opened(); showFullTitle = true
+    }
 
     var body: some View {
         Group {
@@ -46,11 +60,17 @@ struct LiveChannelRow: View {
                 }
             }
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 2)
         .listRowSeparator(.hidden)
         .accessibilityElement(children: .combine)
         .accessibilityValue("Live")
-        .accessibilityAction(named: "Show full stream title") { showFullTitle = true }
+        .accessibilityActions {
+            if canPreviewTitle { Button("Show full stream title") { openTitle() } }
+        }
+        .onDisappear { haptics.cancel(owner: holdOwner) }
+        .onChange(of: canPreviewTitle) { available in
+            if !available { haptics.cancel(owner: holdOwner); showFullTitle = false }
+        }
         .popover(isPresented: $showFullTitle, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             FullStreamTitle(channel: channel)
                 .presentationCompactAdaptation(.popover)
@@ -73,15 +93,12 @@ struct LiveChannelRow: View {
                 RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, avatar: true)
                     .frame(width: 22, height: 22)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(.red, lineWidth: 1.5))
+                    .overlay { LiveRing(clock: clock) }
                 Text(channel.displayName).font(.headline).lineLimit(1)
             }
-            Text(channel.title.isEmpty ? "Live stream" : channel.title)
-                .font(.subheadline)
-                .lineLimit(FeedPreferences.titleLines(twoLines: twoLineTitles, phone: UIDevice.current.userInterfaceIdiom == .phone, accessible: typeSize.isAccessibilitySize))
-                .contentShape(Rectangle())
-                .onLongPressGesture(minimumDuration: 1) { showFullTitle = true }
-                .accessibilityHint("Hold for the full stream title")
+            MeasuredStreamTitle(text: displayedTitle, lines: titleLines) { titleMeasurement = $0 }
+                .modifier(TitleHold(enabled: canPreviewTitle, haptics: haptics, owner: holdOwner, open: openTitle))
+                .accessibilityHint(canPreviewTitle ? "Hold for the full stream title" : "")
             Text(channel.category.isEmpty ? "Category unavailable" : channel.category)
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             if let viewers = channel.viewerCount {
@@ -153,5 +170,19 @@ private struct FullStreamTitle: View {
         .frame(idealWidth: 300, maxWidth: 320, maxHeight: 220)
         .padding(14)
         .accessibilityLabel("Full stream title")
+    }
+}
+
+private struct TitleHold: ViewModifier {
+    let enabled: Bool
+    let haptics: TitleHaptics
+    let owner: UUID
+    let open: () -> Void
+    @ViewBuilder func body(content: Content) -> some View {
+        if enabled {
+            content.contentShape(Rectangle()).onLongPressGesture(minimumDuration: 1, maximumDistance: 10, pressing: { pressing in
+                if pressing { haptics.begin(owner: owner) } else { haptics.cancel(owner: owner) }
+            }, perform: open)
+        } else { content }
     }
 }

@@ -92,6 +92,14 @@ import Foundation
         for text in ["http://static-cdn.jtvnw.net/image.jpg", "https://jtvnw.net.attacker.invalid/image.jpg", "https://user:pass@static-cdn.jtvnw.net/image.jpg", "https://static-cdn.jtvnw.net:8443/image.jpg", "file:///private/image.jpg"] {
             precondition(!ChannelImagePolicy.allowed(URL(string:text)!))
         }
+        let cycles: [TimeInterval?] = [0.5, 1, 2.5, 3.75, 5, 10, nil]
+        for index in 0...6 { precondition(LivePingCycle.seconds(index: index) == cycles[index]) }
+        precondition(LivePingCycle.seconds(index: 2) == 2.5)
+        precondition(LivePingCycle.seconds(index: -1) == 2.5 && LivePingCycle.seconds(index: 99) == 2.5)
+        precondition(LivePingCycle.progress(at: 1.25, cycle: 2.5) == 0.5)
+        precondition(LivePingCycle.progress(at: 2.5, cycle: 2.5) == 0)
+        precondition(LivePingCycle.progress(at: -1.25, cycle: 2.5) == 0.5)
+        precondition(LivePingCycle.progress(at: .infinity, cycle: 0) == 0)
         print("PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy")
     }
 }

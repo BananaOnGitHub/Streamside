@@ -60,3 +60,5 @@ and updating navigation.
 - [Native feed continuity and title controls](SWIFTUI_FEED_CONTINUITY.md) — timer/background fixes, device evidence, and title preferences.
 
 - [Silent account updates and compact title popover](SWIFTUI_SILENT_REFRESH.md) — follow-up to the failed background-continuity device check.
+
+- [Native live-list interaction polish](SWIFTUI_LIVE_LIST_POLISH.md) — truncation-aware haptics, Settings and configurable live-ring animation.

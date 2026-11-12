@@ -7,6 +7,7 @@ import UIKit
 @MainActor
 final class StreamClock: ObservableObject {
     @Published private(set) var now = Date()
+    @Published private(set) var isActive = false
     private var timer: Timer?
     private var lifecycle: [AnyCancellable] = []
 
@@ -21,6 +22,7 @@ final class StreamClock: ObservableObject {
     }
 
     func setActive(_ active: Bool) {
+        isActive = active
         timer?.invalidate(); timer = nil
         guard active else { return }
         now = Date() // Catch up immediately after suspension; never count ticks.

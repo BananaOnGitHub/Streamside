@@ -21,7 +21,7 @@ struct StreamsideShell: View {
                         } else {
                             ForEach(feed.live) { channel in
                                 LiveChannelRow(channel: channel, images: services.images,
-                                               generation: services.imageGeneration, clock: services.clock)
+                                               generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics)
                             }
                         }
                     } header: { Text("Live · \(feed.live.count)") }
@@ -58,7 +58,7 @@ struct StreamsideShell: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if services.state.session == .authenticated {
-                        Button { settings = true } label: { Label("Account and diagnostics", systemImage: "gearshape") }
+                        Button { settings = true } label: { Label("Settings", systemImage: "gearshape") }
                     } else {
                         Button { diagnostics = true } label: { Label("Diagnostics", systemImage: "waveform.path.ecg") }
                     }
@@ -123,20 +123,38 @@ private struct AccountSettings: View {
     @Environment(\.dismiss) private var dismiss
     @State private var diagnostics = false
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
+    @AppStorage(FeedPreferences.livePingIndexKey) private var pingIndex = 2
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         NavigationStack {
             List {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    Section("Followed streams") {
-                        Toggle("Two-line stream titles", isOn: $twoLineTitles)
-                        Text("Hold a stream title for one second to read it in full.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
                 Section("Account") { AccountPanel(services: services) }
+                Section {
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        Toggle("Two-line stream titles", isOn: $twoLineTitles)
+                    }
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabeledContent("Live ring cycle", value: LivePingCycle.label(index: pingIndex))
+                        Slider(value: Binding(get: { Double(LivePingCycle.normalized(pingIndex)) }, set: { pingIndex = Int($0.rounded()) }), in: 0...6, step: 1)
+                            .accessibilityLabel("Live ring cycle")
+                            .accessibilityValue(LivePingCycle.label(index: pingIndex))
+                        HStack(spacing: 0) {
+                            ForEach(LivePingCycle.labels, id: \.self) { label in
+                                Text(label).font(.caption2).frame(maxWidth: .infinity)
+                            }
+                        }.accessibilityHidden(true)
+                    }
+                    .disabled(reduceMotion)
+                    .opacity(reduceMotion ? 0.45 : 1)
+                    if reduceMotion {
+                        Text("Reduce Motion keeps live rings still.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Text("Hold a truncated stream title for one second to read it in full.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } header: { Label("Followed streams", systemImage: "heart.fill") }
                 Section { Button("Diagnostics") { diagnostics = true } }
             }
-            .navigationTitle("Account")
+            .navigationTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(isPresented: $diagnostics) { DiagnosticsView(services: services, baseline: false) }
         }

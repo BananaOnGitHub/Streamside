@@ -139,8 +139,23 @@ enum ChannelImagePolicy {
 }
 
 enum FeedPreferences {
+    static let livePingIndexKey = "dev.streamside.feed.livePingIndex"
     static let twoLineTitlesKey = "dev.streamside.feed.twoLineTitles"
     static func titleLines(twoLines: Bool, phone: Bool, accessible: Bool) -> Int {
         accessible ? 3 : (phone && twoLines ? 2 : 1)
+    }
+}
+
+enum LivePingCycle {
+    static let labels = ["0.5s", "1s", "2.5s", "3.75s", "5s", "10s", "Off"]
+    static func normalized(_ index: Int) -> Int { (0...6).contains(index) ? index : 2 }
+    static func seconds(index: Int) -> TimeInterval? {
+        let choices: [TimeInterval?] = [0.5, 1, 2.5, 3.75, 5, 10, nil]
+        return choices[normalized(index)]
+    }
+    static func label(index: Int) -> String { labels[normalized(index)] }
+    static func progress(at time: TimeInterval, cycle: TimeInterval) -> Double {
+        guard time.isFinite, cycle.isFinite, cycle > 0 else { return 0 }
+        return ((time.truncatingRemainder(dividingBy: cycle) + cycle).truncatingRemainder(dividingBy: cycle)) / cycle
     }
 }

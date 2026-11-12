@@ -109,6 +109,8 @@ def verify(directory, revision=None):
             raise ValueError("UIKit ownership simulator validation missing or failed")
         if uikit.get("clock_receipt") != dict(passed=True, ticking=True, paused=True, resumed=True):
             raise ValueError("UIKit lifecycle clock validation missing or failed")
+        if uikit.get("title_interaction_receipt") != dict(title_measurement=True, haptic_pattern=True):
+            raise ValueError("UIKit title measurement/haptic pattern validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
         if plistlib.loads((framework / "Info.plist").read_bytes()) != framework_info(mode, manifest["proof_id"], expected_revision):
             raise ValueError("Framework metadata mismatch")

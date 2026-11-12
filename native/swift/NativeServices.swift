@@ -29,6 +29,7 @@ final class NativeServices: ObservableObject, AccountService {
     private var refreshGate = RefreshGate()
     let images = ChannelImageCache()
     let clock = StreamClock()
+    let titleHaptics = TitleHaptics()
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
 

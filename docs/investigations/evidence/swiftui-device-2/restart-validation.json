@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "source_revision": "a454012f11c9bf47e2eea272eec8dacfc54412ca",
+  "proof_id": "c9d05e19ae05c8e63627e12221afc4c3187a4151e35b5de80df8b2223c9db808",
+  "report": {
+    "name": "native-latest 5.json",
+    "bytes": 1258,
+    "sha256": "45973a12ff4ec81a342d6daa88db3b0edb3f9aa15ee99f0a4ea15738b70d9079"
+  },
+  "prior_native_report": "native-latest 4.json",
+  "baseline_report": "baseline-latest.json",
+  "native_launch_sequences": [
+    7,
+    8
+  ],
+  "root_ownership": [
+    2,
+    1
+  ],
+  "restored_account_list_state": 4,
+  "restored_channel_count": 50,
+  "instrumentation": {
+    "all_images_armed": true,
+    "no_failures": true,
+    "matching_baseline_calibrated": true,
+    "all_25_probe_counts_zero": true
+  },
+  "strict_relaunch_comparison": {
+    "status": "reported_sequence_passed_pending_device_observation_review",
+    "failures": [],
+    "limits": [
+      "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+    ],
+    "memory_difference_bytes": -193462512,
+    "constructor_to_active_difference_ms": 111
+  },
+  "observation": "Tester reports full close/reopen after Twitch username/password login returns to SwiftUI; this new-launch report records successful native account/follows restoration.",
+  "supersedes": "validation.json restart verification was pending when originally reviewed; its original same-launch comparison failure is preserved unchanged.",
+  "limits": [
+    "One observed password-login and restart sequence; other providers, challenges, invalid-session cases and future donor routes are not established.",
+    "SwiftUI still needs a controlled native login presentation/completion handoff; startup remounting is not an automatic in-process return after login.",
+    "No performance claim or broader Streamside playback/chat acceptance is made."
+  ]
+}

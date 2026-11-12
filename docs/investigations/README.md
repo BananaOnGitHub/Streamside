@@ -11,7 +11,7 @@ not here.
 
 - [SwiftUI device review: logout presentation takeover](SWIFTUI_NATIVE_DEVICE_REVIEW_1.md): successful account/list/refresh observations, pre-logout zero probes and the post-logout diagnostic gap.
 
-- [SwiftUI device review: native logout/login sequence](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md): measured root replacement, signed-out/reauthenticated native requests, zero guarded runtimes and the permitted holder entry.
+- [SwiftUI device review: native logout/login sequence](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md): measured root replacement, signed-out/reauthenticated native requests, restored session after restart, zero guarded runtimes and the permitted holder entry.
 
 ## Native frontend trial
 

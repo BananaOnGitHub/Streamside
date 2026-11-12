@@ -1,5 +1,9 @@
 # SwiftUI device review: donor-native logout and login
 
+The restart report was subsequently supplied and validated; see
+[restart validation](#restart-validation-report-5) for the resolved persistence check.
+The initial review and its originally pending status remain preserved below.
+
 ## Build and preserved evidence
 
 The tested pair identifies compiled source
@@ -122,3 +126,36 @@ No source code, runtime gate, authentication request, CI toolchain or package
 bytes are changed by this evidence review. Documentation validation is recorded
 with the review commit. Performance is not inferred from these different UI
 states or the tester's exploratory stream/chat visit.
+
+## Restart validation: report 5
+
+The subsequently supplied [report 5](<evidence/swiftui-device-2/native-latest 5.json>)
+identifies the same donor, compiled source, proof and device as reports 1–4.
+Its SHA-256 is `45973a12ff4ec81a342d6daa88db3b0edb3f9aa15ee99f0a4ea15738b70d9079`.
+[The restart validation receipt](evidence/swiftui-device-2/restart-validation.json)
+records its original bytes/hash and the full comparison outcome.
+
+The recorded native launch sequence advances from 7 to 8. At 9.096 seconds of
+uptime, the window root belongs to Streamside again (`ui_root_owner=1`), the native
+account/list state is ready (`4`), and 50 followed channels have been retrieved.
+All four instrumented images are armed, no failure bits are set, matching baseline
+calibration is present and **all 25 probe counts are zero**, including the optional
+holder count. The previous launch's holder entry is still preserved in report 4;
+counters begin anew for the restarted process.
+
+The unchanged strict comparison passes using the matching baseline, report 4 as
+the prior native launch and report 5 as the current launch, with no consistency
+failures. This supplements the tester's reported full close/reopen and return to
+SwiftUI with instrumented evidence of session restoration and authenticated native
+account/followed-channel requests in a distinct launch. The earlier same-launch
+comparison failure remains in `validation.json` as historical evidence; it was not
+rewritten into a pass.
+
+For the observed Twitch username/password route, the evidence now covers logout,
+native first-party login, usable native GraphQL access and restoration after a
+full restart without monitored RN/Hermes/worklet entry attempts. The remaining
+frontend boundary is controlled SwiftUI login presentation and an in-process
+return to the SwiftUI shell after authentication. Startup remounting alone does
+not implement that handoff. Other providers/challenges and untested routes remain
+outside this result; no new performance or playback/chat acceptance is inferred.
+No code, compiled candidate or validation requirement changed for this follow-up.

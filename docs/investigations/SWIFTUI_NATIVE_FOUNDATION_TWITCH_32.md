@@ -119,3 +119,10 @@ is pending. A SwiftUI-controlled presentation/completion handoff remains open.
 Other providers and verification/recovery challenges remain untested. The original compiled
 foundation, historical build findings and original limitations remain scoped to
 their recorded candidate.
+
+The subsequent [report-5 restart validation](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md#restart-validation-report-5)
+now confirms a distinct native launch returning to the SwiftUI root, successful
+account/followed-channel restoration with 50 results, all instrumented images
+armed and all 25 probe counts zero. This resolves the previously pending restart
+evidence for the tested username/password flow. Controlled login presentation
+and return to SwiftUI in the same process remain implementation work.

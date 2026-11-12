@@ -91,3 +91,78 @@ a success flag and a generation token to the main actor, which retrieves its own
 engine there. Cancellation changes the generation so a late callback for a prior
 hold cannot start feedback, including a repeat hold on the same row. Compiler
 warnings are not suppressed. Replacement Apple compilation and fixtures are rerun.
+
+
+## Validated component build and test IPA pair
+
+Compiled/packaged source is `94d2ee3bab41f209a4948d45e3ea35cd700e7329`, after
+implementation `786b76a` and the compiler correction above. Exact proof, donor,
+IPA/framework/modified-image/manifest hashes, toolchain and receipts are in
+[artifact identities](SWIFTUI_LIVE_LIST_POLISH_ARTIFACTS.json). Both final IPAs were
+independently rehashed after assembly.
+
+[Apple Actions 43309783839](https://github.com/BananaOnGitHub/Streamside/actions/runs/43309783839)
+succeeded with pinned Xcode 26.6 / 17F113, Swift 6.3.3 and iPhoneOS SDK 26.5. Both
+frameworks compiled/linked and passed signature verification. Pure Swift model
+checks (including cycle mapping/math), real UIKit ownership fixtures, clock
+lifecycle fixtures, real-label title measurements and haptic pattern construction/
+duration passed in both modes. The simulator does not play or validate a physical
+motor, run the user gesture in SwiftUI, or visually inspect the live-ring/settings.
+Apple-compiled ABI 12, component admission 9, core 8, Foundation 1 and synthetic
+comparison 5 tests passed. Final-source local native checks passed 47/47.
+
+[Linux Actions 43309340559](https://github.com/BananaOnGitHub/Streamside/actions/runs/43309340559)
+passed 220 of 224 tests with four explicit skips (Apple Foundation/ImageIO and
+missing legacy donor/Hermes-runner prerequisites). This run belongs to feature
+source 786b76a. The following correction changes only Apple Swift code and its
+investigation record, so the path-filtered Linux workflow did not duplicate that
+run. Final-source Apple CI and local native checks passed separately. Documentation
+checks pass; public release documentation is unchanged.
+
+Local assembly validated the exact Twitch 32.0 donor SHA-256, all 40 ABI entries,
+the unchanged 25-probe coverage, retained donor contents and byte-identical HBC,
+then checked output images and ZIP contents. No donor/IPA or signing credentials
+went to public CI. Build outputs remain in sibling artifacts, outside the repo.
+Both IPAs still need Feather signing with the established application/keychain
+identity. These packages have no new physical-device acceptance result yet.
+
+Reproduction (source/proof-compatible checkout; new empty external output):
+
+```sh
+gh run download 43309783839 --name swiftui-components-94d2ee3bab41f209a4948d45e3ea35cd700e7329 --dir ../artifacts/ci/94d2ee3bab41f209a4948d45e3ea35cd700e7329
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/94d2ee3bab41f209a4948d45e3ea35cd700e7329
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/94d2ee3bab41f209a4948d45e3ea35cd700e7329 --mode both --output ../artifacts/native-frontend/swiftui/live-polish-rebuild
+```
+
+Actions components expire; rerun the pinned source workflow when needed. Every
+new assembly receives its own hashes, without changing earlier artifact identities.
+
+## Physical-device check
+
+1. Sign/install the matching baseline in Feather, open Twitch and export baseline
+   reports with the two-finger hold. Replace it with the native IPA using the same
+   identity. This source proof requires its own matching positive control.
+2. Check slightly tighter live rows and Settings: Account first, followed-stream
+   section with a filled heart next, Diagnostics below. Try the two-line toggle.
+3. Hold a fully visible short title for one second: expect no preview or hold
+   feedback. Find a truncated title: expect a slight progressive rumble followed
+   by one distinct tap when its compact popover opens. A title fitting two lines
+   must lose that action in two-line mode. Try a title still clipped at two lines.
+4. Release a hold early, start scrolling during a hold, scroll the row away, and
+   background during one hold. Feedback should stop and no delayed buzz should
+   appear afterwards. Check the feel is subtle on this hardware; simulator
+   construction tests cannot establish intensity or cancellation timing.
+5. Observe one expanding/fading ring around live avatars. Try each of the seven
+   slider stops; Off must leave a static red ring. Enable system Reduce Motion:
+   expect static rings and a greyed, nonadjustable cycle slider. Disable Reduce
+   Motion and confirm the saved choice returns. No haptic should repeat with a ping.
+6. Refresh, background/return and fully close/reopen. Verify content stays present
+   on ordinary return, timers still work and the cycle preference persists. Export
+   before close and after reopening, keeping all latest/previous files. Require
+   calibrated/complete probes, root ownership 1, zero failures and zero guarded
+   RN/Hermes/worklet entry counts. Preserve evidence if any check fails.
+
+The prior 48fe696 snapshot establishes its observed silent refresh and zero runtime
+entries only; it cannot stand in for this replacement's animation/haptics/gesture
+or lifecycle acceptance. Broader authentication-provider, invalid-session and
+account-switch device coverage is not expanded by this UI-only change.

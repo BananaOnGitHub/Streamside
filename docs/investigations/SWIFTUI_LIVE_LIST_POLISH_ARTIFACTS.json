@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "source_revision": "94d2ee3bab41f209a4948d45e3ea35cd700e7329",
+  "packaging_revision": "94d2ee3bab41f209a4948d45e3ea35cd700e7329",
+  "proof_id": "758a184522560239cb399f8431832f4a6309699988fe4795f445db107dbab894",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "inspection": {
+    "abi_entries": 40,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "component_manifest_sha256": "c09c6631774dee86a8cc23f61398aa5f70f7711226a630273802599f434b913d",
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/live-polish-94d2ee3",
+  "local_full_manifest_sha256": "68349982cfa02307e7ab591f9a9e493cf3513d8caac0b74333e9393045a0b047",
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "validation": {
+    "host_native": {
+      "run": 47,
+      "passed": 47,
+      "failed": 0,
+      "source": "94d2ee3bab41f209a4948d45e3ea35cd700e7329"
+    },
+    "apple_model_tests": {
+      "baseline": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+      "native": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy"
+    },
+    "uikit_simulator": {
+      "baseline": {
+        "title_interaction_receipt": {
+          "title_measurement": true,
+          "haptic_pattern": true
+        },
+        "clock_receipt": {
+          "passed": true,
+          "ticking": true,
+          "paused": true,
+          "resumed": true
+        },
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 0,
+          "blocked": 0,
+          "failures": 0
+        }
+      },
+      "native": {
+        "title_interaction_receipt": {
+          "title_measurement": true,
+          "haptic_pattern": true
+        },
+        "clock_receipt": {
+          "passed": true,
+          "ticking": true,
+          "paused": true,
+          "resumed": true
+        },
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 1,
+          "blocked": 2,
+          "failures": 0
+        }
+      }
+    },
+    "apple_abi": {
+      "run": 12,
+      "passed": 12
+    },
+    "component_admission": {
+      "run": 9,
+      "passed": 9
+    },
+    "core": {
+      "run": 8,
+      "passed": 8
+    },
+    "foundation": {
+      "run": 1,
+      "passed": 1
+    },
+    "comparison": {
+      "run": 5,
+      "passed": 5
+    },
+    "linux": {
+      "run": 224,
+      "passed": 220,
+      "skipped": 4,
+      "source": "786b76a69e01fcd1de1d6881aea39a155d21f286",
+      "scope": "Feature implementation; final correction changes only Apple Swift haptic callback and investigation notes"
+    },
+    "docs": {
+      "errors": 0
+    }
+  },
+  "workflow_runs": {
+    "swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43309783839",
+    "linux": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43309340559",
+    "failed_initial_apple": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43309340468"
+  },
+  "artifacts": {
+    "baseline": {
+      "bytes": 196620705,
+      "sha256": "a3b32b6e58a6602aa5930a1eb72ba740686835250f73ea9d710fa7f1ef8087e0",
+      "framework_sha256": "8308a1f63369b222e8e5ecfa87e3720404316cf6a45a555bc9616c038b865bb6",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "26769c73be1b9d75e084b5f5e7881a32f29c1ce6de004d02564993014ea6c706",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "b7ceb13b62b9d067a112cdfccab0e9bdd23459714c6773bb14a58ab88570a18d",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "37aa26fb891e5a026e29fb93274cc44587e846e4f10ed542ae5541dca224fd39",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "6c74fbfeaa4af9f6d0332a2391a3a416d2849345b559fa171c61cdb1c76a0111"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+    },
+    "native": {
+      "bytes": 196630713,
+      "sha256": "8aca31864827f38203ac12454d2ae0303cad99ec1dae874bf7ee26c31e08011d",
+      "framework_sha256": "9013040bf1468c4485e786a8669680c5c830c2691f4733bfe10a2ec867d67b1e",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "d9658793c93525c4bea5bbdce60b71492e0c3f0cbd7dafcb0cf2970727f00078",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "b7ceb13b62b9d067a112cdfccab0e9bdd23459714c6773bb14a58ab88570a18d",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "37aa26fb891e5a026e29fb93274cc44587e846e4f10ed542ae5541dca224fd39",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "6c74fbfeaa4af9f6d0332a2391a3a416d2849345b559fa171c61cdb1c76a0111"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+    }
+  },
+  "workflow_logs": {
+    "linux": {
+      "path": "../artifacts/ci/live-polish-linux-workflow.log",
+      "sha256": "afa46f6aa643b46ce570c91d17b7635ac4e2c693296b8a7097dea8d8ed0dd2cb"
+    },
+    "swiftui": {
+      "path": "../artifacts/ci/live-polish-swiftui-workflow.log",
+      "sha256": "ed0c821cd4210e5618ea5b15dace2ab1e5a539c3fd7a0ab431906aac0c8e1be7"
+    },
+    "failed_initial_apple": {
+      "path": "../artifacts/ci/failures/live-polish-786b76a/baseline/build.log",
+      "sha256": "45713c1128ac99a077082af80e0e9f6813ea5daeb03519c509e9b13d5c7a48bf"
+    }
+  }
+}

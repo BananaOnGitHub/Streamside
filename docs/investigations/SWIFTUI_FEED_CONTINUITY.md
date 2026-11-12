@@ -62,3 +62,8 @@ stopping after resign-active and catch-up after becoming active. Components are
 rejected when that receipt is absent or failed. No successful timer animation,
 background continuity, account-switch safety or title-sheet device result is
 claimed before the replacement build is installed.
+
+The first CI attempt at `616108a` failed before Apple compilation because a duplicated
+receipt-check insertion broke Python indentation in component staging. The staging
+copy was removed; the admission check remains in verification. No package comes
+from that failed source. Local checks and replacement CI are rerun for the fix.

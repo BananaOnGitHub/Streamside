@@ -1,0 +1,87 @@
+{
+  "passed": true,
+  "runtime_commit": "40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c",
+  "runner_sha256": "e0666d33be154a856ace514c51eda8e1c0395fb02d3e952d7fe32da7f5b7e180",
+  "donor_sha256": "20743bcfa65117fd5683e0010d954aae1349010d375da85796a6a1de76787458",
+  "inputs": {
+    "diagnostics/investigations/rn-chat-gaps/5.json": "4cd52fba566b77f2b1fdfaaada48bb37c9b150f626c645d50f5f7a4faa4de965",
+    "diagnostics/schema/investigation-v1.schema.json": "d8ddd634c640a955f2b69313d2b097c52b4d37e5c6f5d9583891b567ed7beb76",
+    "src/TASDiagnostics.c": "d1aaf65352f5453e13f0901fe07d0134384d8e91b48a84a162980bce9572382b",
+    "src/TASEmotes.c": "3e7e5d1830e59157f1f6f6da08c347fa7e413054581b3b31700b3ea8eeaaa87f",
+    "src/TASInvestigation.c": "9ad96d76cb8dc9846d3ba4ae6009fcfdd7245f1531e4e036ec07116e3db72ade",
+    "src/TASInvestigation.h": "a8651e2cc6e57bb9be9bfae41ebd2caa0a410f4ecfe8395803ea22fba2cbe20c",
+    "src/TASInvestigationHost.c": "f3d4028ebd253925a48d3bf5f259485c86b6b8c74545f0501be6a1bd37004b1c",
+    "src/TASInvestigationHost.h": "b7019d39dae6721fa7d235c79d02c87f1f113a6b4e879a94ed606caf24ccaf6f",
+    "src/TASInvestigationRegistry.h": "2ece5d35e7af7e7b60ee98c8466e8b3d5e83ac4c010f954b6618760f128ea3ca",
+    "src/TASInvestigationReport.c": "f79936f400ce0e7cdfd9be927c4bb9a83cff96e1063cfb0c9872eb427f4890b9",
+    "src/TASInvestigationReport.h": "9564addf654d65fbbae36db424d3be23cf099e6116ee92c5ccaee430fe7a859a",
+    "src/TASInvestigationUI.c": "179d5ff329e59bc3024e45d4fb44524146b185ee755c5a3c84bfa0fcf3e21bea",
+    "src/TASInvestigationUI.h": "1a43aca48fe03777c1ac83c37ec171fa2fa5cf1c01029530f35993890483a79d",
+    "src/TASRNComposerPatch.h": "612b0869f165ccba2439ff72ab3187e45c722894607702802e1c15ddf9465969",
+    "src/TASRNInvestigationFunctionalPayload.h": "d969f8bb25938df99ff0111c8c1efd9862a9e6f6d35b210a6b009232cff961a7",
+    "src/TASRNInvestigationLayout.h": "c03da8b9a0de5f83a33a7d468db85f44faa5480a8f1bb03a7202bb6ade52ec88",
+    "src/TASRNInvestigationOriginalPayload.h": "5c3d04eb020a99e81793795997404aa71651c463113b9606dd29a240b57bb85f",
+    "src/TASRNInvestigationPatch.h": "7962e8c21411c63fc327a97036ccbb86c96551012ef3da6ed6b1fb9d54b20ffa",
+    "src/TASRNLocalEchoPatch.h": "505e040b6ac6006a5a09d6674078b10546ef1ecf0eb9419888b062435b81d701",
+    "src/TASRNPopupPatch.h": "eec4f6f2291c2306feb11076506bf9bafd28e36e775c334c58c9e16703a8dc05",
+    "src/TASRNPopupPayload.h": "2e0c77894531e7b8a9b265870669429630d073c6ace4596f70a6439a346f809e",
+    "src/TASRNStripPatch.h": "4aa76d779c670e87be52912c7a40dc5b8c1a18f536a30af6dab0b6cb07bc914a",
+    "src/TASRNStripPayload.h": "ccff9632b6740f045febbd343f71bf7e1aa96fbf12cd9749714ca5195fb763e3",
+    "src/TASRNWidthPatch.h": "8cb571cf85448844ed7820b0bb4aa7a38d6beb0362ca578f4de290fd7903c647",
+    "src/rn/Investigation.js": "a22081fe8870186ce7d24e1204762607db2c2ea4560b492d98a3620637182eb5",
+    "tests/fixtures/investigation_bootstrap.js": "8c20ff622dce11e0d3b8545cec75a0fdfa23d168a893f0e9ecd143f05de06425",
+    "tests/fixtures/investigation_getters.js": "8fb1d05f8ebc2b98110948e4d3d2f1bcbac425f740a9d05fe48afcabd6a2bf39",
+    "tests/fixtures/investigation_hardening.js": "94c7b4d7cb877f4a01086ffab1ec8d39e2d684cca8ee36fa46c847935e1b751f",
+    "tests/fixtures/investigation_recorder.js": "4ae89251c411e438090ce02deb9be4fe79bbd2cd1e82521075b153b5affaf0af",
+    "tests/fixtures/investigation_startup.js": "a05c03b0e2edcdf1b6768f51cc5480bf497788fa0296651bb1ff4c55c5ee31ba",
+    "tests/fixtures/investigation_viewport.js": "332d5a8ff75e797892be8f82d5f6cfb9262a48789759245df3803b42217e733a",
+    "tests/native/hermes_snapshot_runner.cpp": "e1fe15a3857c6bc437cd3f2fc027ad0f711465d08734effc9e719f7f26d2c06b",
+    "tests/native/investigation_report.c": "3687862bc1e0a2df4c4ec8d89cd007c597b9e651c41f8d2de5db2b49b0889af3",
+    "tests/test_investigation_hardening.py": "03ac91e8175e26c93dd5b799f59811110ca31c8d646cac2913f48ebe21fb0818",
+    "tests/test_investigation_overlay.py": "5fe93b9d839ebb20697b72a3cdc9fd6ee97415c8799a8d373e650663f3f1be15",
+    "tests/test_investigation_report.py": "56fba6405ab77a7cae1185d80ccb807f276b7611642fa8e40872175c314e0d77",
+    "tests/test_investigation_startup.py": "6ba77755bd6b578187fe1450df2dd2c5c296a71c4b958325ed1d417d3a91dfe4",
+    "tests/test_investigation_viewport.py": "e45d770f7492033510e1267e60fb77c52be41edc4082bed446d404bb033e8fd5",
+    "tools/generate_investigation_payload.py": "6ab71f6f217c181571e23c2e36f2f2589bc4d31a6aa9b2cf1b05fb2e3af7a629",
+    "tools/generate_investigation_registry.py": "30af693d2e7509b6f6654826d7a9593eea2bc5a92b0a1ac1d54473d0dd02daee",
+    "tools/rn_graft.py": "edc91c7df14960e5f7591c71f45fddecdd75a84cf7c77dd5a88d1e6444a20a3d",
+    "tools/validate_investigation_getters.py": "05c268d2b2885e0c6e72547d736e76167d658d0b8202496893514ebcf9ebb3cc",
+    "tools/validate_investigation_runtime.py": "a92ce30da6db26c43ea08301bbae1d5db7967d701ecfdfc30002ed34623802f1",
+    "tools/validate_rn_snapshot.py": "e151748fbbdd93008c09e77e76d9288ac0cc78bc349da50417460fcd17ee8abb"
+  },
+  "profiles": [
+    {
+      "profile": "Original",
+      "bytes": 28706888,
+      "sha256": "3cb1846c67e348356491f81b4a716e211baef73337d5dfe8968c338b55ccdd6a"
+    },
+    {
+      "profile": "Functional",
+      "bytes": 28748360,
+      "sha256": "f3d8c686dafc82d728c21d47e75a86c1ea01f3bc13719d353a796a03ea111271"
+    }
+  ],
+  "donor_getters": {
+    "38870": {
+      "sha256": "3de121c7299b00f8b13e77a623fc8211de7d26f052a11ecf912e4695e78f6dc9",
+      "bytes": 368
+    },
+    "22334": {
+      "sha256": "93d64c41fafc63bb30aa1fccaed52c46de3eb6dc3d68226d93fdda034425dfef",
+      "bytes": 481
+    },
+    "22335": {
+      "sha256": "b89a92d1a86039e7f69cb411b3609b7f60f2a01d9fd3f1e6b9c43c58c169c05c",
+      "bytes": 308
+    },
+    "22458": {
+      "sha256": "e6e1f4c6da95ef851138e54dddc9da66ddb53cd36bb7ad3444608e71b23313c1",
+      "bytes": 341
+    },
+    "46258": {
+      "sha256": "6b5c78e4ae0563beeb3b0f89ff865079eb0b4b7221d80e5bc6d45e6840bc28b7",
+      "bytes": 22
+    }
+  },
+  "live_rct_delivery_verified": false
+}

@@ -1,9 +1,0 @@
-./build.sh
-WebP native definitions verified: build/Streamside.dylib
-record: build/Streamside.dylib
-WebP native definitions verified: build/Streamside.framework/Streamside
-record: build/Streamside.framework
-python3 tools/artifact_guard.py check build/Streamside.dylib
-check: build/Streamside.dylib
-python3 tools/artifact_guard.py check build/Streamside.framework --framework
-check: build/Streamside.framework

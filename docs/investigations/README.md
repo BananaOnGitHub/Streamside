@@ -7,6 +7,8 @@ not here.
 
 - [Workspace cleanup and build history](WORKSPACE_CLEANUP.md): generated-output relocation, preserved build records, retained packages and validation.
 
+- [SwiftUI CI and tooling audit](SWIFTUI_CI_AND_TOOLING_AUDIT.md): hosted compiler proof, tooling classification, recoverable archive and local packaging boundary.
+
 ## Native frontend trial
 
 - [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.

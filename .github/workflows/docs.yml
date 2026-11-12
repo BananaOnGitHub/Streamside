@@ -3,18 +3,27 @@ name: Documentation
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: ["**"]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+      - 'tools/check_docs.py'
+      - 'tests/test_docs.py'
+      - 'VERSION'
+      - 'packaging/StreamsideFramework-Info.plist'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: documentation-${{ github.ref }}
+  group: documentation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   docs:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Documentation check
     runs-on: ubuntu-24.04
     steps:

@@ -2,6 +2,9 @@
 
 > Historical record. Its experiment scope, pending checks, failed approaches, and donor-specific addresses refer to the builds named below, not the current implementation. Preserved from [docs/R5_PRODUCTION_STAGE.md at 7754dd9](https://github.com/BananaOnGitHub/Streamside/blob/7754dd9df6de077b0b5f4c4a2b98b8d738da29bf/docs/R5_PRODUCTION_STAGE.md). Current guide: [HISTORY.md](../../HISTORY.md). [Archive index](../README.md).
 
+The script is now retained in the [workspace recovery checkpoint](../WORKSPACE_BUILD_RECORDS.md)
+rather than the active tools directory. Its original behavior is described below.
+
 Historical reproduction only: the script requires `--historical-reproduction`.
 It is not a current release path. Use the fingerprint-checked `patch_ipa.py`
 with `Streamside.framework` for current builds.

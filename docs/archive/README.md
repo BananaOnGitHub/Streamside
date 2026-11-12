@@ -6,6 +6,11 @@ Each record identifies its original source revision and links to its current suc
 
 [History](../HISTORY.md) is the chronological entry point. [Architecture](../ARCHITECTURE.md) and [feature guides](../features/third-party-emotes/README.md) describe the current implementation.
 
+## Workspace recovery
+
+[Retired workspace build records and the R5 utility](WORKSPACE_BUILD_RECORDS.md)
+remain recoverable by a published tag and exact path/hash inventory.
+
 ## Investigations
 
 | Record | What it established and retained limits | Current guide |

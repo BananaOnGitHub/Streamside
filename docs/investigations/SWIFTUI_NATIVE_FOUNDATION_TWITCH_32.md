@@ -1,5 +1,10 @@
 # Streamside Native: SwiftUI foundation and authentication boundaries
 
+The build procedure below records the original VM-built candidate. Routine
+compilation now uses [the donor-free Actions pipeline](../development/NATIVE_SWIFTUI_CI.md);
+no VM or SSH setup is assumed available. Original source/proof/package identities
+remain unchanged. [The tooling audit](SWIFTUI_CI_AND_TOOLING_AUDIT.md) records the migration.
+
 ## Scope and checkpoint
 
 Continue `feat/native-frontend` from `59c1936c1e0a69f20b4b7ba9ac2d6330c4ca2940`. Annotated local tag `native-phase2-uikit-verified` preserves the working Phase 2 source and the signed-in/signed-out device evidence at that revision. `native/SSNFrontend.c` is unchanged and remains buildable with `--frontend uikit`; the original Phase 2 packages and their receipts are preserved. The tag can be inspected/recovered without modifying other development branches. Ubuntu owns the authoritative repository and Git history; no repository or donor is copied to macOS.

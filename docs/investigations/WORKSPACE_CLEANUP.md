@@ -1,5 +1,9 @@
 # Workspace cleanup and preserved build history
 
+Later tooling audit: verbatim record copies and raw logs described below now live
+in the [published recovery checkpoint](../archive/WORKSPACE_BUILD_RECORDS.md).
+Compact identities/results remain here; the original cleanup outcomes are unchanged.
+
 The starting checkout was `6af4e2da268d4506e454b8841ab6b5b11a61c009` on
 `feat/native-frontend`. Its ignored `build/` directory held approximately 2.2 GiB
 of generated outputs and a compiler. The sibling artifacts directory held older

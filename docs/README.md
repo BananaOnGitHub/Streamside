@@ -24,6 +24,8 @@ Start at the level that answers your question. Each guide links to the deeper im
 - [Documentation maintenance](development/DOCUMENTATION.md): ownership, update timing, historical preservation, and mechanical validation.
 - [Testing](development/TESTING.md): host, Foundation, Hermes, packaging, and device checks.
 - [Twitch internals](development/TWITCH_INTERNALS.md): runtime/ABI admission and donor-porting methodology.
+- [Native SwiftUI CI](development/NATIVE_SWIFTUI_CI.md): hosted Apple compilation, verified components and local donor assembly.
+- [Workspace layout](development/WORKSPACE.md): source, donors, toolchains and generated outputs.
 - [Packaging](development/PACKAGING.md): binary fingerprints, IPA/DEB contracts, and developer bundles.
 
 ## Project history

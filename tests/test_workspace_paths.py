@@ -42,3 +42,11 @@ class WorkspacePathsTests(unittest.TestCase):
                     result = self.run_paths(path)
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn("must be outside the repository", result.stderr)
+
+    def test_generated_outputs_and_signing_files_are_ignored_but_source_is_not(self):
+        generated = ["artifacts/compiler.json", "donors/package", "toolchains/compiler",
+                     "nested/candidate.ipa", "nested/key.p8", "native/output.o", "native/output.log"]
+        source = ["native/SSNCore.h", "src/TASRNInvestigationLayout.h", "diagnostics/validation/hermes-v1.json"]
+        result = subprocess.run(["git", "check-ignore", "--no-index", "--stdin"], cwd=ROOT,
+                                input="\n".join(generated + source) + "\n", capture_output=True, text=True)
+        self.assertEqual(set(result.stdout.splitlines()), set(generated))

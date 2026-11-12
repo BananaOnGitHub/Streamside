@@ -15,10 +15,14 @@ candidates elsewhere in `artifacts/` intact.
 
 The native frontend builder defaults to
 `artifacts/native-frontend/<frontend>/<revision>-<proof>/`. An explicit `--output`
-must also be outside the checkout. Use `--frontend swiftui --apple-build-host tahoe`
-for the configured Apple builder, or `--frontend uikit --zig /path/to/zig` for the
-preserved UIKit path. Keep the Ubuntu checkout authoritative; only the explicit
-Apple build-input allowlist and build outputs cross to the Apple host.
+must also be outside the checkout. For SwiftUI, use verified GitHub Actions
+components through `--components`; see [the CI build guide](NATIVE_SWIFTUI_CI.md).
+Ubuntu owns source, donor inspection, orchestration and local IPA assembly;
+standard GitHub-hosted macOS runners own routine Apple compilation. An explicit
+`--apple-build-host` is optional fallback for a configured Mac. No VM or SSH alias
+is assumed available. The UIKit checkpoint remains buildable with `--frontend
+uikit --zig /path/to/zig`. Reusable compilers are selected with `ZIG` or PATH;
+per-machine installations and SSH configuration remain outside Git.
 
 Retain current device candidates and useful rollback packages under separate
 artifact directories. Before removing superseded binaries, commit their original

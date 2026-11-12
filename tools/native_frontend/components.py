@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -63,7 +64,14 @@ def verify(directory, revision=None):
     manifest = json.loads((directory / "components.json").read_text())
     if manifest.get("schema") != 1 or manifest.get("validated") is not True:
         raise ValueError("Missing successful component validation")
-    expected_revision = revision or subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    expected_revision = revision or manifest.get("source_revision", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", expected_revision):
+        raise ValueError("Invalid component source revision")
+    if revision is None:
+        ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", expected_revision, "HEAD"],
+                                  cwd=ROOT, capture_output=True)
+        if ancestor.returncode:
+            raise ValueError("Component source revision is not in the checked-out history")
     if manifest.get("source_revision") != expected_revision or manifest.get("proof_id") != source_identity():
         raise ValueError("Components do not match the checked-out source revision/proof")
     if manifest.get("plan_sha256") != sha((ROOT / "native/twitch32.json").read_bytes()):

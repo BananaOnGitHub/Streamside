@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import plistlib
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -101,3 +102,13 @@ class ComponentAdmission(unittest.TestCase):
                 self.record()
                 with self.assertRaises(ValueError):
                     verify(self.directory, self.revision)
+
+    def test_unknown_component_commit_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "checked-out history"):
+            verify(self.directory)
+
+    def test_normal_packaging_requires_explicit_components_without_ssh(self):
+        result = subprocess.run([sys.executable, str(ROOT / "tools/native_frontend/build.py"),
+                                 "--donor", "missing-donor.ipa"], capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--components from Actions", result.stderr)

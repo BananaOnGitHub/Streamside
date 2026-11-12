@@ -91,3 +91,72 @@ inspection: `076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`.
 No private Swift service/signature, protocol witness or model layout was added.
 Apple compilation, final package identities and replacement device results are
 pending at this implementation checkpoint.
+
+
+## Successful Apple build and local packaging
+
+Compiled/packaged source: `48fe69640ad202a8de2abcb82c998c300d68d7c2`.
+Proof: `99d7d0fc40608aed43ea46efccd823d05f1e951b949674f38022ac287e44b898`.
+[Artifact and validation receipts](SWIFTUI_SILENT_REFRESH_ARTIFACTS.json) preserve
+exact IPA/framework/modified-image/manifest hashes, source/toolchain identities
+and test scopes. Both final IPAs were independently rehashed after assembly.
+
+[Apple Actions 43274509020](https://github.com/BananaOnGitHub/Streamside/actions/runs/43274509020)
+succeeded using pinned Xcode 26.6 / 17F113, Swift 6.3.3 and iPhoneOS SDK 26.5.
+Both baseline/native frameworks compiled, linked and passed ad-hoc signature
+verification. Both pure Swift model programs, real UIKit window-ownership fixtures
+and production-clock lifecycle simulator fixtures passed. Apple-compiled ABI 12,
+component admission 9, core/policy reporting 8, Foundation HTTP 1 and synthetic
+report comparison 5 tests passed. Local native checks passed 47/47, and the changed
+native C objects compiled for arm64 iOS with warnings as errors. These tests do not
+execute Twitch account notifications or inspect the popover on a physical device.
+
+[Linux Actions 43274509197](https://github.com/BananaOnGitHub/Streamside/actions/runs/43274509197)
+succeeded: 224 tests, 220 passed, four skipped (Apple Foundation/ImageIO and missing
+legacy exact donor/Hermes runner). Documentation checks pass. Local packaging again
+re-admitted the exact donor and 40 ABI entries, installed the unchanged 25 probes,
+verified retained donor content and unchanged HBC, and checked output ZIP/images.
+The donor, IPA and signing material were not uploaded to public CI. Final sizes
+and hashes are in the linked receipts. Feather signing with the established app/
+keychain identity is still required.
+
+Reproduction (source/proof-compatible checkout, external empty output):
+
+```sh
+gh run download 43274509020 --name swiftui-components-48fe69640ad202a8de2abcb82c998c300d68d7c2 --dir ../artifacts/ci/48fe69640ad202a8de2abcb82c998c300d68d7c2
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/48fe69640ad202a8de2abcb82c998c300d68d7c2
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/48fe69640ad202a8de2abcb82c998c300d68d7c2 --mode both --output ../artifacts/native-frontend/swiftui/silent-refresh-rebuild
+```
+
+Rebuild the pinned source workflow when Actions artifacts expire. Reassembled
+artifacts receive their own hashes; previous package identities are not rewritten.
+
+## Device check
+
+1. Sign/install the matching baseline with Feather using the established identity.
+   Open Twitch and export reports using the two-finger hold. The replacement proof
+   requires its own positive control.
+2. Replace it with the native IPA using that same identity. Verify the timer's new
+   system typography and continuing animation. Hold a long title for one second:
+   expect a small frosted popover, normally above the row, with the full title and
+   no bottom sheet. Tap outside to dismiss. Try a row near the top and bottom.
+3. Scroll down and expand Offline. Export once, then background for ten seconds
+   and return. The current feed/images/expanded section should stay present while
+   metadata refreshes silently. Export again. During a same-authorization return,
+   account_data_clears should not increase. Retained notification counts may rise
+   if native information notifications fire; zero such events is not proof they
+   were tested. If it still blanks, preserve both reports rather than treating a
+   final ready snapshot as successful continuity.
+4. Pull to refresh and check content remains visible. Sign out once and verify
+   account/feed data clears, then sign in through Twitch and confirm SwiftUI
+   returns. Actual logout legitimately increments clear counts. Export after the
+   sequence and after a separate full close/reopen; keep latest and previous files.
+   Require complete/calibrated monitoring, root ownership 1, zero failures and zero
+   guarded RN/Hermes/worklet entry counts throughout.
+
+Physical-device confirmation of this replacement is pending. The previous cad1
+reports establish timer animation and runtime isolation for that source only;
+they explicitly fail background continuity. This source corrects the remaining
+information-notification invalidation path and adds evidence to diagnose other
+causes. It does not claim that those causes have all been exercised or resolved,
+nor that invalid-session/account-switch behavior has received new device coverage.

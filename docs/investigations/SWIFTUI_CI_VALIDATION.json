@@ -36,6 +36,89 @@
       }
     }
   },
-  "final_integration": "Pending updated source run and local donor assembly",
+  "final_integration": {
+    "source_revision": "026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c",
+    "packaging_revision": "026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c",
+    "proof_id": "2babc0a0891d8ca8b77cd199f660616d955c25d51bf694f499be6b08041cc9c3",
+    "manifest_sha256": "e50605e1b6b107c7a855ef5274da039eccb1253acd5471a885bbef2a7d027f74",
+    "run": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43132946716",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "apple",
+          "conclusion": "success"
+        },
+        {
+          "name": "abi",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "other_runs": [
+      {
+        "name": "Linux/Zig",
+        "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43132946448",
+        "conclusion": "success"
+      },
+      {
+        "name": "Documentation",
+        "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43132946428",
+        "conclusion": "success"
+      }
+    ],
+    "public_artifacts": [
+      {
+        "digest": "sha256:3cff277c56c2925c550446ae7716d0cddded3c91057a4425bf18d74dd6fa7c4c",
+        "expired": false,
+        "id": 13906086897,
+        "name": "swiftui-components-026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c",
+        "size_in_bytes": 177792
+      }
+    ],
+    "host_tests": {
+      "total": 224,
+      "passed": 222,
+      "skipped": 2,
+      "skips": [
+        "Apple Foundation",
+        "Apple ImageIO"
+      ]
+    },
+    "native_frontend_tests": {
+      "total": 34,
+      "passed": 34
+    },
+    "mandatory_local_checks": {
+      "hermes_original_and_functional": true,
+      "bounded_snapshots": 32,
+      "zig_build_verify": true
+    },
+    "local_assembly": {
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "donor_version": "32.0",
+      "donor_build": "263110145453907615",
+      "all_retained_donor_entries_verified": true,
+      "original_hbc_unchanged": true,
+      "source_framework_hashes_match_ci": true,
+      "assembly_manifest_sha256": "69fa75c4096097999e661da7141db4684b095487da3201e0ae550d6cf529f97b",
+      "artifacts": {
+        "baseline": {
+          "path": "artifacts/native-frontend/swiftui/actions-026bf6c/StreamsideNativeProof-Twitch32-baseline.ipa",
+          "bytes": 196475830,
+          "sha256": "bad60252f1dc00680cc3923974d80ffdd1a386ca6737191e8755e6d9ade4c83d",
+          "framework_sha256": "977c15ce784847879bb00da0ee9ccbe17c89829638555f35273eab6289f6410d"
+        },
+        "native": {
+          "path": "artifacts/native-frontend/swiftui/actions-026bf6c/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196479932,
+          "sha256": "82a2aeb15e8f399cc9fd20fa86449c45795eef4a8e82598c7f5cb211b883139d",
+          "framework_sha256": "1b6b958d40465d60f84cd62c7e0011539092fce7bb5070b3222722d1313aa85b"
+        }
+      }
+    },
+    "old_device_candidates_unchanged": true,
+    "local_mac_or_ssh_used": false
+  },
   "device_validation": "Not performed for new CI component identities"
 }

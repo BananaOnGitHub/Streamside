@@ -71,8 +71,7 @@ portable compiler selection changes; its predecessor is preserved separately.
 
 The first hosted build establishes Apple compilation and automated validation.
 The local packaging integration consumes verified components, retaining exact
-compiled and assembly revisions separately. Final integration results are appended
-after the updated workflow and local exact-donor assembly are checked.
+compiled and assembly revisions separately. Final integration results follow.
 
 The account/listing implementation remains the proven native service adapter.
 The SwiftUI shell and native logout still need physical-device validation for
@@ -81,3 +80,40 @@ validated hosted-portal completion/challenge contract and ingress into the nativ
 first-party session authority, as recorded in [authentication findings](SWIFTUI_NATIVE_FOUNDATION_TWITCH_32.md).
 A working compiler does not establish that contract. No guessed Swift witness,
 credential extraction or hidden RN fallback is introduced.
+
+## Completed integration validation
+
+The final implementation revision is
+`026bf6cbfa9f990dfe0ff2d46df17c63f5bda57c`, proof
+`2babc0a0891d8ca8b77cd199f660616d955c25d51bf694f499be6b08041cc9c3`.
+[Native SwiftUI run 43132946716](https://github.com/BananaOnGitHub/Streamside/actions/runs/43132946716),
+[Linux/Zig run 43132946448](https://github.com/BananaOnGitHub/Streamside/actions/runs/43132946448)
+and [documentation run 43132946428](https://github.com/BananaOnGitHub/Streamside/actions/runs/43132946428)
+all passed. The SwiftUI run includes both Apple compilation modes, Swift model
+executables, Foundation, report comparison, six Apple-compiled ABI caller tests,
+nine component-admission tests and five native-core tests. Local donor-equipped
+validation ran 224 legacy/host tests (222 passed, two Apple-only skips) and all
+34 native frontend tests, plus mandatory pinned Hermes checks on both profiles,
+32 accepted bounded snapshots and the unchanged Zig build/verification gates.
+
+The downloaded component manifest SHA-256 is
+`e50605e1b6b107c7a855ef5274da039eccb1253acd5471a885bbef2a7d027f74`.
+Ubuntu assembled both IPAs from those components with the exact inspected donor,
+verified every retained donor entry and unchanged HBC, and confirmed packaged
+framework hashes match CI. No Mac, SSH or donor upload was used. Results are local
+under `artifacts/native-frontend/swiftui/actions-026bf6c/`; the
+[validation receipt](SWIFTUI_CI_VALIDATION.json) retains full identities and hashes.
+
+| Locally assembled candidate | Bytes | SHA-256 |
+| --- | --- | --- |
+| Baseline | 196475830 | `bad60252f1dc00680cc3923974d80ffdd1a386ca6737191e8755e6d9ade4c83d` |
+| Native | 196479932 | `82a2aeb15e8f399cc9fd20fa86449c45795eef4a8e82598c7f5cb211b883139d` |
+
+The five previously retained test/rollback IPAs were rehashed and remain unchanged.
+All 172 retired files were compared byte-for-byte with the published recovery tag
+before retirement. Signing remains local with Feather; the new candidates require
+a fresh baseline positive control and physical iPhone review using the existing
+[device checklist](SWIFTUI_NATIVE_DEVICE_TEST.md). No new session, logout, channel,
+runtime-isolation or performance device success is claimed. Fresh sign-in retains
+the precise hosted-portal/native completion blocker described above. No build
+or CI blocker remains.

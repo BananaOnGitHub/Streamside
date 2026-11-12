@@ -47,7 +47,7 @@ the checkout with an authenticated GitHub CLI:
 
 ```sh
 # Choose the successful run shown in Actions, then use its numeric ID here.
-NATIVE_RUN_ID=43131916232
+NATIVE_RUN_ID=43132946716
 NATIVE_SOURCE_SHA="$(gh run view "$NATIVE_RUN_ID" --json headSha --jq .headSha)"
 gh run download "$NATIVE_RUN_ID" --name "swiftui-components-$NATIVE_SOURCE_SHA" --dir "../artifacts/ci/$NATIVE_RUN_ID"
 python3 tools/native_frontend/components.py verify --output "../artifacts/ci/$NATIVE_RUN_ID"

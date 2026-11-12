@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "source_revision": "d534f4e7d9e2a72696513c05961b6f383bdbcb35",
+  "packaging_revision": "d534f4e7d9e2a72696513c05961b6f383bdbcb35",
+  "proof_id": "670f17c623c4de9593f516e9973f36a8fbf0894244a21b1e43d5beaae90ba05e",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "inspection": {
+    "abi_entries": 40,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "component_manifest_sha256": "f2d2680f6ff83447c7f6ee89fba6ebf4170775724762089b37e5bff3a0d561e9",
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/followed-streams-d534f4e",
+  "local_full_manifest_sha256": "c786daa4d836d2a246381c294a05540919d54ce1930a308d611e4effd52580b0",
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "validation": {
+    "host_native": {
+      "run": 46,
+      "passed": 46,
+      "failed": 0
+    },
+    "apple_model_tests": {
+      "baseline": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+      "native": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy"
+    },
+    "uikit_simulator": {
+      "baseline": {
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 0,
+          "blocked": 0,
+          "failures": 0
+        }
+      },
+      "native": {
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 1,
+          "blocked": 2,
+          "failures": 0
+        }
+      }
+    },
+    "apple_compiled_abi": {
+      "run": 12,
+      "passed": 12
+    },
+    "apple_foundation": {
+      "run": 1,
+      "passed": 1
+    },
+    "report_comparison": {
+      "run": 5,
+      "passed": 5
+    },
+    "ci_component_admission": {
+      "run": 9,
+      "passed": 9
+    },
+    "ci_core": {
+      "run": 7,
+      "passed": 7
+    },
+    "linux_workflow": {
+      "run": 224,
+      "passed": 220,
+      "skipped": 4,
+      "failed": 0,
+      "skip_scope": [
+        "Apple Foundation",
+        "matching legacy Hermes runner",
+        "exact legacy donor",
+        "Apple ImageIO"
+      ]
+    },
+    "preserved_uikit_framework": {
+      "status": "compiled_linked_admitted",
+      "toolchain": "Zig 0.14.0",
+      "sha256": "fffa09c0e17753e1191d2f21828c27078f72583cef128e442d246ba5efeeb7b2",
+      "bytes": 107040
+    },
+    "device": "NOT TESTED for this feed build: real authenticated personalSections data, images, refresh, clock animation/accessibility, lifecycle and runtime counters require iPhone validation"
+  },
+  "workflows": {
+    "swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43175058544",
+    "linux": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43175058514"
+  },
+  "artifacts": {
+    "baseline": {
+      "bytes": 196572667,
+      "sha256": "d19f76da80fae1bf3744bfb838e268f62c83735786059cb23e6c5bb044a8d2e9",
+      "framework_sha256": "b94ad4c9e4ba65b79fa892d75d1e0532def9d3fd057f662c925a971b1065386e",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "432688504bf3ea4e530d9c793b0df99e9f05be4d5ed34380fff2e7e5a1002da1",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "6ca4adebb4d74e19538dda9d9bb1c36c3b203856436d34c0dc146c2ec1c8bd93",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "fc2cc90786546d5e5963d4b50a2827b93ed1fde6f603d08fe0738c5add178900",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "3b8b2ae945aa17f492a661425deef3c9fe01d7a7d341484f548ecb478fa4bdbd"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "file": "StreamsideNativeProof-Twitch32-baseline.ipa"
+    },
+    "native": {
+      "bytes": 196580246,
+      "sha256": "91554dc980d47606a94dbdf5d2157021bf7f9cae59393889f0a728b8a0de73ee",
+      "framework_sha256": "35dd59feccda239e3653059df24ba3cf1b2b899f6dbf09d4e3d55a62e6a7119b",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "6fbfd96305321f60f58621e4e52fc26b6770e071ce3a6ffc4e95b4da4de8bfb5",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "6ca4adebb4d74e19538dda9d9bb1c36c3b203856436d34c0dc146c2ec1c8bd93",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "fc2cc90786546d5e5963d4b50a2827b93ed1fde6f603d08fe0738c5add178900",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "3b8b2ae945aa17f492a661425deef3c9fe01d7a7d341484f548ecb478fa4bdbd"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "file": "StreamsideNativeProof-Twitch32-native.ipa"
+    }
+  }
+}

@@ -149,3 +149,79 @@ is not substituted for a failed request. Existing state numbers are unchanged.
 The refresh indicator's wait bound covers both sequential native request stages.
 Restricted preview placeholders use one eye-slash symbol. Earlier in-progress
 component builds are superseded; final packaging requires this follow-up revision.
+
+
+## Validated component build and IPA pair
+
+Final compiled/packaged source: `d534f4e7d9e2a72696513c05961b6f383bdbcb35`.
+Proof: `670f17c623c4de9593f516e9973f36a8fbf0894244a21b1e43d5beaae90ba05e`.
+[Artifact identities and validation receipts](SWIFTUI_FOLLOWED_STREAMS_ARTIFACTS.json)
+record exact IPA/framework/patched-image hashes, donor identity and toolchain.
+
+[Native SwiftUI Actions 43175058544](https://github.com/BananaOnGitHub/Streamside/actions/runs/43175058544)
+succeeded: both frameworks compiled/linked and passed ad-hoc signature verification;
+both pure Swift model/bridging test programs and real UIKit window-ownership
+simulator fixtures passed. Apple-compiled ABI calls passed all 12 register tests.
+Foundation integration (1), synthetic report comparisons (5), component admission
+(9) and core reporting (7) passed. Xcode 26.6 / 17F113, Swift 6.3.3 and iPhoneOS SDK
+26.5 match the pinned toolchain. The simulator fixture has no donor or authenticated
+account and does not validate the new native feed service on a device.
+
+[Linux/Zig Actions 43175058514](https://github.com/BananaOnGitHub/Streamside/actions/runs/43175058514)
+succeeded: 224 tests, 220 passed and 4 skipped (Apple Foundation/ImageIO and missing
+legacy donor/Hermes-runner prerequisites). Local native tests passed 46/46, including
+static donor admission and donor leaf emulation. The preserved UIKit proof framework
+also compiled, linked and passed install-name/dependency admission with Zig 0.14.0.
+Earlier in-progress component runs for `439440c` and `4abc4ad` were superseded and
+cancelled; no IPA is distributed from those runs.
+
+Local packaging re-admitted the exact donor and 40 native ABI entries, installed the
+unchanged set of 25 runtime probes, verified all retained donor entries and the
+original HBC byte for byte, and verified output ZIP/image contents. The baseline
+IPA is 196572667 bytes; native IPA is 196580246 bytes. Both require local Feather
+signing. No donor, IPA, signing material or account data was uploaded to public CI.
+Actual authenticated feed retrieval, image loading and UI behavior remain **device
+pending for this build**, regardless of the earlier authentication trial's success.
+
+To reproduce (empty external output directory, source/proof-compatible checkout):
+
+```sh
+gh run download 43175058544 --name swiftui-components-d534f4e7d9e2a72696513c05961b6f383bdbcb35 --dir ../artifacts/ci/d534f4e7d9e2a72696513c05961b6f383bdbcb35
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/d534f4e7d9e2a72696513c05961b6f383bdbcb35
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/d534f4e7d9e2a72696513c05961b6f383bdbcb35 --mode both --output ../artifacts/native-frontend/swiftui/followed-streams-rebuild
+```
+
+Components have limited Actions retention. Rebuild the pinned source through the
+same workflow after expiry; a changed source needs its own matching component
+build. Every newly assembled artifact gets its own hash.
+
+## Device check
+
+1. Sign/install the matching baseline with Feather using the established app
+   identity. Open Twitch, exercise its normal interface, and export diagnostics
+   with two fingers held still for one second. The new source proof requires its
+   own positive control; earlier-build calibration does not satisfy this build.
+2. Replace it with the native IPA, preserving app data/signing identity. Confirm
+   your account restores and live follows show real thumbnails, red-ring avatars,
+   names, titles, categories and viewer counts. Compare the channels with your
+   actual follows. Missing live metadata or a request failure is a blocker to
+   investigate, not an accepted empty/public-data substitute.
+3. Expand/collapse Offline. Scroll through live rows. Pull to refresh, then pull
+   again within five seconds; expect the wait message and no new accepted refresh.
+   Wait five seconds and retry. CDN snapshots need not visually change on every
+   accepted refresh. A failed image should remain a placeholder until a later
+   accepted refresh; report persistent missing images.
+4. Check the small bottom-right duration pill. On iOS 26+ it should use glass and
+   update from the real stream start time. With Reduce Motion enabled, digits
+   should continue updating without the animated transition. Reduce Transparency
+   should make the capsule opaque. Check the largest text sizes as well.
+5. Check account/diagnostics behind the gear and the existing sign-out/sign-in
+   return. Background to Home for ten seconds, return and refresh, then export
+   before fully closing. Fully close/reopen and export separately. Keep all JSON
+   files in each export, including native-previous, so cumulative lifecycle evidence
+   is retained. All guarded runtime entries must remain zero, probes/calibration
+   complete, root ownership 1 and failures zero.
+
+There is no playback action on a row in this trial. The screenshot's overall row
+layout is implemented; exact visual fidelity and timer animation still need the
+physical-device check. No release documentation or previous evidence was rewritten.

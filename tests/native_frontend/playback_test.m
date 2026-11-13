@@ -69,6 +69,13 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
 @implementation IVSPlayerView
 - (void)dealloc { [_player release];[_videoGravity release];[super dealloc]; }
 @end
+static void waitPlaying(SSNPlayback *playback,unsigned expectedDecoded,NSTimeInterval deadline,void (^completion)(BOOL)) {
+    if(playback.phase==3&&decodedEvents>=expectedDecoded) { completion(YES);return; }
+    if(playback.phase==7||NSProcessInfo.processInfo.systemUptime>=deadline) { completion(NO);return; }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,100000000),dispatch_get_main_queue(),^{
+        waitPlaying(playback,expectedDecoded,deadline,completion);
+    });
+}
 @interface PlaybackTestDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic,retain) UIWindow *window;
 @end
@@ -80,13 +87,14 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,1000000000),dispatch_get_main_queue(),^{
         SSNPlayback *playback=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel"];
         [playback start];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW,1100000000),dispatch_get_main_queue(),^{
-            BOOL initial=playback.phase==3&&sourceEncoding&&decodedEvents==1;
+        waitPlaying(playback,1,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed) {
+            BOOL initial=observed&&playback.phase==3&&sourceEncoding&&decodedEvents==1;
+            NSDictionary *initialState=@{@"phase":@(playback.phase),@"error":@(playback.errorCode),@"requests":@(requests),@"created":@(created),@"decoded":@(decodedEvents)};
             [NSNotificationCenter.defaultCenter postNotificationName:UIApplicationWillResignActiveNotification object:nil];
             BOOL background=playback.phase==5&&created==released&&pauses>0;
             [NSNotificationCenter.defaultCenter postNotificationName:UIApplicationDidBecomeActiveNotification object:nil];
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,1100000000),dispatch_get_main_queue(),^{
-                BOOL resumed=playback.phase==3&&requests==2;
+            waitPlaying(playback,2,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observedResume) {
+                BOOL resumed=observedResume&&playback.phase==3&&requests==2;
                 authorized=NO;
                 [NSNotificationCenter.defaultCenter postNotificationName:@"SSNNativeServiceDidChange" object:nil];
                 BOOL accountStop=playback.phase==7&&playback.errorCode==1&&created==released;
@@ -95,10 +103,11 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
                 BOOL cancellation=cancels==before+1&&playback.phase==0;
                 BOOL teardown=created==released;
                 BOOL passed=initial&&background&&resumed&&accountStop&&cancellation&&teardown;
-                NSDictionary *receipt=@{@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)};
+                NSMutableDictionary *receipt=[@{@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
+                if(!passed) receipt[@"initial_state"]=initialState;
                 NSURL *documents=[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
                 [[NSJSONSerialization dataWithJSONObject:receipt options:0 error:NULL] writeToURL:[documents URLByAppendingPathComponent:@"playback-test.json"] atomically:YES];
-                [playback release];exit(passed?0:1);
+                [receipt release];[playback release];exit(passed?0:1);
             });
         });
     });return YES;

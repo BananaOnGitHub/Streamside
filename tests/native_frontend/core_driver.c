@@ -29,6 +29,11 @@ int main(int argc,char **argv) {
            !ssn_preserve_account_event(SSN_USER_AVAILABLE,true)) return 6;
         ssn_account_data_cleared();ssn_account_data_cleared();
     }
+    if(!strcmp(argv[2],"playback")) {
+        for(unsigned i=0;i<9;i++) ssn_playback_event(i);
+        ssn_playback_event(99);
+        ssn_playback_status(7,6);ssn_playback_status(0,0);
+    }
     ssn_service(SSN_READY,2);ssn_scaffold_ready();ssn_transition(true);ssn_transition(false);ssn_transition(true);ssn_report();
     return 0;
 }

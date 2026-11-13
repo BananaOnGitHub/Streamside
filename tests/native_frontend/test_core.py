@@ -85,6 +85,17 @@ class CoreEvidence(unittest.TestCase):
             self.assertEqual(report['failures'],0)
             self.assertTrue(all(value==0 for value in report['probes'].values()))
 
+    def test_playback_failure_survives_closing_without_changing_runtime_evidence(self):
+        with tempfile.TemporaryDirectory() as d:
+            result,report=self.run_core(1,'playback',Path(d))
+            self.assertEqual(result.returncode,0)
+            self.assertEqual(report['playback_phase'],0)
+            self.assertEqual(report['playback_error'],0)
+            self.assertEqual(report['playback_last_error'],6)
+            self.assertEqual(report['playback_events'],[1]*9)
+            self.assertEqual(report['failures'],0)
+            self.assertTrue(all(value==0 for value in report['probes'].values()))
+
     def test_comparison_rejects_host_and_missing_observations(self):
         with tempfile.TemporaryDirectory() as d:
             _,baseline=self.run_core(0,'positive',Path(d));_,native=self.run_core(1,'armed',Path(d))

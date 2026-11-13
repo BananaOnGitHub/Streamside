@@ -54,7 +54,7 @@ private struct TheatreContent: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button(action: close) { Label("Close", systemImage: "chevron.down") }
+                Button { playback.stop(); close() } label: { Label("Close", systemImage: "chevron.down") }
                 Spacer()
                 Text(channel.displayName).font(.headline).lineLimit(1)
                 Spacer()

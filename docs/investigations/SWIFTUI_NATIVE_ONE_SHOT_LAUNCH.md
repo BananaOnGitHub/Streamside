@@ -99,3 +99,22 @@ package, nor automatically a valid timing/memory comparison. Compare startup
 workloads explicitly. Constructor-to-active time excludes dyld and earlier work.
 The independent control remains retained until physical comparison succeeds.
 No hot-swap, playback expansion, chat, PiP or mini-player was introduced.
+
+## Initial validation failure
+
+Source `32f7be4d687d08a2471653620f1caa5774a2201c` passed 61 host tests and
+[Linux Build](https://github.com/BananaOnGitHub/Streamside/actions/runs/43353156983).
+[Apple run 43353157135](https://github.com/BananaOnGitHub/Streamside/actions/runs/43353157135)
+failed C compilation because the newly conditional account-observer registration
+scoped `account_selectors` away from later notification registration.
+[Exact failure and log hash](evidence/one-shot-launch-ci/32f7be4-failure.json)
+are preserved. No Apple component or IPA was admitted. The correction shares the
+constant selector table at file scope; registration still occurs only in Native.
+
+The prior `2bbfb86` independent control included native account-notification
+observers (its report has account events `[1,1,1,0,0]`). It had no native root
+ownership guard and observed original RN/Hermes startup. The new matching control
+omits those observers as well as the one-shot original launch. Its runtime probe
+contract remains the same as the combined package. This intentional isolation
+improvement and the delayed diagnostics gesture attachment preclude claiming
+identical timing/overhead to the older independently packaged baseline.

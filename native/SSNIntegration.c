@@ -7,6 +7,7 @@
 static IMP original_connect;
 static Class observer_class;
 static id observer;
+static const char *account_selectors[]={"accountUpdated:","accountAvailable:","accountLogin:","accountLogout:","accountToken:"};
 static const struct mach_header *image(const char *name) {
     for(uint32_t i=0;i<_dyld_image_count();i++) {
         const char *path=_dyld_get_image_name(i),*base=strrchr(path,'/');
@@ -124,7 +125,6 @@ void ssn_integration_start(void) {
     class_addMethod(observer_class,ss("active:"),(IMP)active,"v24@0:8@16");
     class_addMethod(observer_class,ss("background:"),(IMP)background,"v24@0:8@16");
     if(ssn_native_mode()) {
-    const char *account_selectors[]={"accountUpdated:","accountAvailable:","accountLogin:","accountLogout:","accountToken:"};
     for(unsigned i=0;i<5;i++) class_addMethod(observer_class,ss(account_selectors[i]),(IMP)account_change,"v24@0:8@16");
     }
     objc_registerClassPair(observer_class); observer=m0((id)observer_class,"new");

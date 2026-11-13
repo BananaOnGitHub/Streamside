@@ -1,0 +1,9 @@
+{
+  "source_revision": "32f7be4d687d08a2471653620f1caa5774a2201c",
+  "run": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43353157135",
+  "outcome": "Apple C compilation failed; no component or IPA admitted",
+  "error": "SSNIntegration.c:143:40: use of undeclared identifier 'account_selectors'",
+  "log_sha256": "413aaf26b6a6906fff7133bd7d52f29321802732905e1bf71f410814ecaa5a39",
+  "cause": "Moving account method registration behind runtime mode put its selector array in a scope unavailable to later native-only notification registration.",
+  "correction": "Share the fixed native notification selector table at file scope. Runtime registration remains native-only."
+}

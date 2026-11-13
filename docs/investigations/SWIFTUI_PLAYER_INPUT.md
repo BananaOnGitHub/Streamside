@@ -75,3 +75,27 @@ The first status-fixture attempt, source `b5afdd2423f1d5bd855360292ad0ca2b5ae3f3
 [PlayerCanvas](../../native/swift/PlayerCanvas.swift) now conditionally mounts the controls subtree. The passive video surface and separate video gesture sibling stay mounted, so hiding does not recreate or stop media. NativeTheatre retains its short opacity transition, disabled with Reduce Motion. Both production and tests use this shared visibility boundary. Hidden controls must actually leave the hierarchy before the test can proceed to video-tap reveal and Close. No assertion or timeout was weakened. The temporary high-frequency fixture counter is removed after diagnosis; bounded state flags remain in failure snapshots. Switch transitions use the same bounded five-second value observation as button-state changes.
 
 An optional x86_64 Mac VM was reachable with Xcode 26.6 (17F113) and Swift 6.3.3. It compiled the seven owned UI/test inputs but failed earlier share-dismissal/switch preconditions, so it provided no passing visibility result. Its log identity is included in the triage record. Only the focused debug inputs were transferred; donor, Git history and credentials stayed in Ubuntu. The owned simulator and temporary VM build tree were removed. Actions remains the required build and validation path.
+
+## Validated build and package
+
+Source `e151b5ff74d45ed3647aa014a1d074bc0d406981` passed [Apple compilation and simulator tests](https://github.com/BananaOnGitHub/Streamside/actions/runs/43400282708). Both owned component modes compiled and linked with the pinned Xcode 26.6 (17F113), Swift 6.3.3 and iPhoneOS SDK 26.5, targeting arm64 iOS 16.4. The native component's two coordinate UI tests passed with glass enabled and disabled. Existing model, UIKit ownership, clock/title, native playback lifecycle and three-process launch-selection fixtures also passed. Mute-readback checks passed against the synthetic native player; no actual donor audio was played in CI. Downstream ABI (17), admission (12), core (10), launch policy (1), probe emulation (6), launch comparison (3), report comparison (5) and Foundation HTTP (1) checks passed.
+
+[Linux build](https://github.com/BananaOnGitHub/Streamside/actions/runs/43400282961) passed 220 of 224 tests with four explicit environment-dependent skips. The native host suite passed all 64 tests. Documentation checks passed. Exact source, proof, toolchain, validation receipts and artifact hashes are in the [build record](SWIFTUI_PLAYER_INPUT_ARTIFACTS.json).
+
+Local packaging re-admitted the exact Twitch 32.0 donor, 51 Swift boundaries, 13 Objective-C methods and 25 runtime probes. The output archive and all retained donor entries were verified, including unchanged HBC/backend content. One Native IPA was created; proprietary donor bytes and signing material stayed outside public Actions. It requires Feather re-signing using the existing application/keychain identity. Physical-device validation remains pending.
+
+Reproduce from this clean source revision, or a compatible documentation-only descendant, using an empty external output directory:
+
+```sh
+gh run download 43400282708 \
+  --name swiftui-components-e151b5ff74d45ed3647aa014a1d074bc0d406981 \
+  --dir ../artifacts/ci/e151b5ff74d45ed3647aa014a1d074bc0d406981
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/e151b5ff74d45ed3647aa014a1d074bc0d406981
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/e151b5ff74d45ed3647aa014a1d074bc0d406981 \
+  --output ../artifacts/native-frontend/swiftui/player-input-reproduction
+```
+
+If CI artifacts expire, rebuild the owned components with the pinned toolchain. Incompatible or incomplete receipts are rejected. After signing/installing, open a live followed channel, try pause/resume, mute/unmute, Share → Copy/Share Link and the down arrow, then repeat with glass disabled. Check normal video and any available ad segment. Export Native diagnostics through a two-finger hold; control counters should advance and SDK mute state should agree, while all monitored RN/Hermes/worklet entries remain zero. Audible mute, device navigation, safe-area layout and real runtime isolation still require that phone check.

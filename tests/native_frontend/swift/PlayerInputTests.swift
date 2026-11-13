@@ -32,7 +32,19 @@ final class PlayerInputTests: XCTestCase {
         tap(app.buttons["player.share"])
         tap(app.buttons["player.system-share"])
         let copyActivity = app.buttons["Copy"].firstMatch
-        XCTAssertTrue(copyActivity.waitForExistence(timeout: 10), "System activity sheet did not appear")
+        let systemShareAppeared = copyActivity.waitForExistence(timeout: 10)
+        if !systemShareAppeared {
+            // Synthetic fixture only. Preserve the actual hierarchy and whether
+            // a center tap differs from the required padded-edge tap. A retry
+            // cannot turn the failed initial coordinate into a passing result.
+            print("SYSTEM_SHARE_EDGE_SNAPSHOT\n" + app.debugDescription)
+            if app.buttons["player.system-share"].exists {
+                app.buttons["player.system-share"].tap()
+                _ = copyActivity.waitForExistence(timeout: 5)
+                print("SYSTEM_SHARE_CENTER_SNAPSHOT\n" + app.debugDescription)
+            }
+        }
+        XCTAssertTrue(systemShareAppeared, "System activity sheet did not appear")
         copyActivity.tap()
         app.staticTexts["harness-title"].tap()
         tap(app.buttons["player.settings"])

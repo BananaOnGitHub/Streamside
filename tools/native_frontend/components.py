@@ -138,7 +138,8 @@ def build(output):
                     plan_sha256=sha((ROOT / "native/twitch32.json").read_bytes()), validated=False,
                     validation_scope="Apple compile/link/ad-hoc signature, host models and synthetic UIKit lifecycle tests; no donor execution or device playback",
                     files={})
-    for mode in MODES:
+    # Validate native input first; preserve the independent control component too.
+    for mode in ("native", "baseline"):
         local = output / mode
         local.mkdir()
         generate_header(json.loads((ROOT / "native/twitch32.json").read_text()), proof, revision, local / "SSNBuild.h")

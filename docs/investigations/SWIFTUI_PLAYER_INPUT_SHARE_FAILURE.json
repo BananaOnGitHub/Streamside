@@ -1,0 +1,21 @@
+{
+  "source_revision": "314c6cbe5f9cb1209fbaf1e862bf06a9ee77acb6",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43386513540",
+  "outcome": "failed",
+  "observed": "Both styles completed three repeated mute/unmute, pause/resume and share-popover/copy-link cycles across renderer changes. Both failed when the test could not locate the system activity Copy button. Settings, hide/reveal and Close assertions were not reached.",
+  "limits": "No accessibility tree was printed in the retained log; absent Copy alone does not distinguish a sheet presentation failure from a changed system label. No components or IPA were admitted.",
+  "artifacts": {
+    "baseline/build.log": {
+      "bytes": 175593,
+      "sha256": "73a0218d55d210c7880f4b0af6a184b077210b311c5faa2241d9c6ad1a168dfa"
+    },
+    "failure.json": {
+      "bytes": 163,
+      "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+    },
+    "native/build.log": {
+      "bytes": 494244,
+      "sha256": "82bf857d7cfddba5a3158c96f578eb37423424ea0d81b3c3df03d8145c811740"
+    }
+  }
+}

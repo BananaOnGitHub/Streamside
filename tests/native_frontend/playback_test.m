@@ -2,12 +2,14 @@
  * real UIKit. This does NOT test the donor, entitlement or actual video/audio. */
 #import <UIKit/UIKit.h>
 #import "SSNPlayback.h"
+#import <AVFAudio/AVFAudio.h>
 #include "SSNPlaybackRequest.h"
 #include <stdlib.h>
 static BOOL authorized=YES,pending;
 bool ssn_native_mode(void) { return true; }
 static unsigned requests,cancels,created,released,pauses,decodedEvents;
-static BOOL sourceEncoding;
+static BOOL sourceEncoding,lastMuted;
+static unsigned muteCalls;
 static id identity;
 bool ssn_playback_authorized(void) { return authorized; }
 bool ssn_navigation_guarded(void) { return true; }
@@ -38,6 +40,7 @@ __attribute__((objc_runtime_name("_TtC6PMHTTP11HTTPManager")))
 id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromise new]; }
 @interface IVSPlayer : NSObject
 @property(nonatomic) NSInteger state;
+@property(nonatomic) BOOL muted;
 @property(nonatomic,readonly) id error;
 - (void)load:(NSURL *)url;
 - (void)play;
@@ -46,8 +49,10 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
 - (CGSize)videoSize;
 @end
 @implementation IVSPlayer
+@synthesize muted=_muted;
 - (instancetype)init { if((self=[super init])) created++;return self; }
 - (id)error { return nil; }
+- (void)setMuted:(BOOL)value { _muted=value;lastMuted=value;muteCalls++; }
 - (void)load:(NSURL *)url {
     NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     NSMutableDictionary *items=[NSMutableDictionary dictionary];
@@ -77,6 +82,11 @@ static void waitPlaying(SSNPlayback *playback,unsigned expectedDecoded,NSTimeInt
         waitPlaying(playback,expectedDecoded,deadline,completion);
     });
 }
+static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^completion)(BOOL)) {
+    if(playback.phase==8) { completion(YES);return; }
+    if(playback.phase==7||NSProcessInfo.processInfo.systemUptime>=deadline) { completion(NO);return; }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,100000000),dispatch_get_main_queue(),^{waitPaused(playback,deadline,completion);});
+}
 @interface PlaybackTestDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic,retain) UIWindow *window;
 @end
@@ -91,24 +101,41 @@ static void waitPlaying(SSNPlayback *playback,unsigned expectedDecoded,NSTimeInt
         waitPlaying(playback,1,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed) {
             BOOL initial=observed&&playback.phase==3&&sourceEncoding&&decodedEvents==1;
             NSDictionary *initialState=@{@"phase":@(playback.phase),@"error":@(playback.errorCode),@"requests":@(requests),@"created":@(created),@"decoded":@(decodedEvents)};
+            float volume=AVAudioSession.sharedInstance.outputVolume;
+            NSString *category=AVAudioSession.sharedInstance.category;
+            playback.muted=YES;
+            BOOL muteLocal=playback.isMuted&&lastMuted&&muteCalls>=2&&volume==AVAudioSession.sharedInstance.outputVolume&&
+                [category isEqual:AVAudioSession.sharedInstance.category];
+            unsigned initialCreated=created,initialRequests=requests;
+            playback.paused=YES;
+            [playback performSelector:@selector(tick:) withObject:nil];
+            BOOL paused=playback.phase==8&&playback.isPaused&&created==initialCreated&&requests==initialRequests;
+            playback.paused=NO;
+            [playback performSelector:@selector(tick:) withObject:nil];
+            BOOL localResume=playback.phase==3&&!playback.isPaused&&requests==initialRequests;
+            playback.paused=YES;
             [NSNotificationCenter.defaultCenter postNotificationName:UIApplicationWillResignActiveNotification object:nil];
             BOOL background=playback.phase==5&&created==released&&pauses>0;
             [NSNotificationCenter.defaultCenter postNotificationName:UIApplicationDidBecomeActiveNotification object:nil];
+            waitPaused(playback,NSProcessInfo.processInfo.systemUptime+10,^(BOOL stayedPaused) {
+            BOOL intentRetained=stayedPaused&&playback.isPaused&&playback.isMuted&&lastMuted;
+            playback.paused=NO;
             waitPlaying(playback,2,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observedResume) {
                 BOOL resumed=observedResume&&playback.phase==3&&requests==2;
-                authorized=NO;
+                playback.paused=YES;authorized=NO;
                 [NSNotificationCenter.defaultCenter postNotificationName:@"SSNNativeServiceDidChange" object:nil];
                 BOOL accountStop=playback.phase==7&&playback.errorCode==1&&created==released;
                 [playback stop];authorized=YES;pending=YES;[playback start];
                 unsigned before=cancels;[playback stop];
                 BOOL cancellation=cancels==before+1&&playback.phase==0;
                 BOOL teardown=created==released;
-                BOOL passed=initial&&background&&resumed&&accountStop&&cancellation&&teardown;
-                NSMutableDictionary *receipt=[@{@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
+                BOOL passed=initial&&background&&resumed&&accountStop&&cancellation&&teardown&&paused&&localResume&&muteLocal&&intentRetained;
+                NSMutableDictionary *receipt=[@{@"local_pause_resume":@(paused&&localResume),@"stream_only_mute":@(muteLocal),@"control_intent_retained":@(intentRetained),@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
                 if(!passed) receipt[@"initial_state"]=initialState;
                 NSURL *documents=[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
                 [[NSJSONSerialization dataWithJSONObject:receipt options:0 error:NULL] writeToURL:[documents URLByAppendingPathComponent:@"playback-test.json"] atomically:YES];
                 [receipt release];[playback release];exit(passed?0:1);
+            });
             });
         });
     });return YES;

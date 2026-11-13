@@ -113,7 +113,7 @@ def verify(directory, revision=None):
             raise ValueError("UIKit title measurement/haptic pattern validation missing or failed")
         if uikit.get("launch_receipt") != [dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]:
             raise ValueError("Three-process launch selection validation missing or failed")
-        if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed']}:
+        if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained']}:
             raise ValueError("Synthetic UIKit playback lifecycle validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
         if plistlib.loads((framework / "Info.plist").read_bytes()) != framework_info(mode, manifest["proof_id"], expected_revision):

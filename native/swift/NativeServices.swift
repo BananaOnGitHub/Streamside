@@ -110,6 +110,12 @@ final class NativeServices: ObservableObject, AccountService {
             do { try await Task.sleep(nanoseconds: 100_000_000) } catch { break }
         }
     }
+    func refreshPlayerInfo() {
+        guard nativeMode, state.session == .authenticated, !state.isBusy,
+              refreshGate.begin(now: ProcessInfo.processInfo.systemUptime) else { return }
+        defer { refreshGate.finish() }
+        bridge.refresh(); reloadSnapshot()
+    }
     func signOut() {
         actionError = nil
         if !bridge.beginSignOut() { actionError = "Sign-out is unavailable. Check diagnostics before trying again." }

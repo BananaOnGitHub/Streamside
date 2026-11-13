@@ -145,7 +145,7 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,playback_id])
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
-        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed']}
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
         for _ in range(3):run(['xcrun','simctl','launch','--console',device,launch_id])

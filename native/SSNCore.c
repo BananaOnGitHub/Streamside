@@ -72,7 +72,7 @@ void ssn_account_observed(unsigned event,bool preserved) {
     atomic_fetch_add(&account_events[event],1);
     if(preserved) atomic_fetch_add(&account_updates_retained,1);
 }
-void ssn_playback_status(unsigned phase,unsigned error) { atomic_store(&playback_phase,phase<=7?phase:7);atomic_store(&playback_error,error<=7?error:7);if(error) atomic_store(&playback_last_error,error<=7?error:7); }
+void ssn_playback_status(unsigned phase,unsigned error) { atomic_store(&playback_phase,phase<=8?phase:7);atomic_store(&playback_error,error<=7?error:7);if(error) atomic_store(&playback_last_error,error<=7?error:7); }
 void ssn_playback_event(unsigned event) { if(event<9) atomic_fetch_add(&playback_events[event],1); }
 void ssn_frontend_event(unsigned event) { if(event<4) atomic_fetch_add(&frontend_events[event],1); }
 void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }

@@ -180,3 +180,32 @@ struct CycleDetentSelection {
         return true
     }
 }
+
+// Per-player presentation settings. Accessibility preferences take precedence.
+enum PlayerPreferences {
+    static let glassButtonsKey = "dev.streamside.player.glassButtons"
+}
+
+// Monotonic time prevents wall-clock adjustments from extending controls.
+struct PlayerControlsVisibility {
+    static let timeout: TimeInterval = 4
+    private(set) var visible = true
+    private var hideAt: TimeInterval = .infinity
+    mutating func reveal(now: TimeInterval) { visible = true; hideAt = now + Self.timeout }
+    mutating func toggle(now: TimeInterval) {
+        if visible { visible = false } else { reveal(now: now) }
+    }
+    mutating func tick(now: TimeInterval, keepVisible: Bool) {
+        if keepVisible { reveal(now: now) }
+        else if now >= hideAt { visible = false }
+    }
+}
+
+enum StreamShareLink {
+    static func url(username: String) -> URL? {
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+        guard !username.isEmpty, username.count <= 128,
+              username.rangeOfCharacter(from: allowed.inverted) == nil else { return nil }
+        return URL(string: "https://www.twitch.tv/" + username)
+    }
+}

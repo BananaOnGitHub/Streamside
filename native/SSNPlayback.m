@@ -11,11 +11,16 @@ static BOOL playerABI(void) {
     return p&&[v isSubclassOfClass:UIView.class]&&
         method_is(p,"init","@16@0:8",false)&&method_is(p,"load:","v24@0:8@16",false)&&
         method_is(p,"play","v16@0:8",false)&&method_is(p,"pause","v16@0:8",false)&&
+        method_is(p,"setMuted:","v20@0:8B16",false)&&
         method_is(p,"state","q16@0:8",false)&&method_is(p,"error","@16@0:8",false)&&
         method_is(p,"videoFramesDecoded","q16@0:8",false)&&
         method_is(p,"videoSize","{CGSize=dd}16@0:8",false)&&
         method_is(v,"setPlayer:","v24@0:8@16",false)&&method_is(v,"setVideoGravity:","v24@0:8@16",false);
 }
+@interface SSNPlayback ()
+- (void)setPhase:(NSInteger)phase error:(NSInteger)code;
+@end
+
 @implementation SSNPlayback {
     UIView *_view,*_playerView;
     NSString *_channel,*_previousCategory,*_previousMode;
@@ -24,9 +29,23 @@ static BOOL playerABI(void) {
     NSTimer *_timer;
     NSInteger _phase,_errorCode;
     NSTimeInterval _deadline;
-    BOOL _opened,_foreground,_audioActive,_wasPlaying,_decoded;
+    BOOL _opened,_foreground,_audioActive,_wasPlaying,_decoded,_paused,_muted;
 }
 @synthesize view=_view,phase=_phase,errorCode=_errorCode;
+- (BOOL)isPaused { return _paused; }
+- (BOOL)isMuted { return _muted; }
+- (void)setMuted:(BOOL)muted {
+    NSAssert(NSThread.isMainThread,@"Playback controls belong to the main thread");
+    _muted=muted;
+    if(_player) ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setMuted:"),muted);
+}
+- (void)setPaused:(BOOL)paused {
+    NSAssert(NSThread.isMainThread,@"Playback controls belong to the main thread");
+    if(_paused==paused) return;_paused=paused;
+    if(!_opened||!_foreground||!_player) return;
+    if(paused) { v0(_player,"pause");[self setPhase:8 error:0]; }
+    else { _deadline=NSProcessInfo.processInfo.systemUptime+30;v0(_player,"play");[self setPhase:2 error:0]; }
+}
 - (instancetype)initWithChannel:(NSString *)channel {
     if((self=[super init])) {
         _channel=[channel copy];_view=[UIView new];_view.backgroundColor=UIColor.blackColor;
@@ -62,7 +81,7 @@ static BOOL playerABI(void) {
 }
 - (void)start {
     NSAssert(NSThread.isMainThread,@"Playback belongs to the main thread");
-    [self stop];_opened=YES;_foreground=UIApplication.sharedApplication.applicationState==UIApplicationStateActive;
+    [self stop];_paused=NO;_opened=YES;_foreground=UIApplication.sharedApplication.applicationState==UIApplicationStateActive;
     ssn_playback_event(0);
     if(!_foreground) { [self setPhase:5 error:0];return; }
     [self requestSource];
@@ -104,6 +123,7 @@ static BOOL playerABI(void) {
     if(!_player||!_playerView) { [self fail:2];return; }
     _playerView.autoresizingMask=UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
     [_view addSubview:_playerView];v1(_playerView,"setVideoGravity:",@"AVLayerVideoGravityResizeAspect");v1(_playerView,"setPlayer:",_player);
+    ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setMuted:"),_muted);
     ssn_playback_event(2);[self setPhase:2 error:0];
     _deadline=NSProcessInfo.processInfo.systemUptime+30;
     v1(_player,"load:",source);
@@ -126,6 +146,11 @@ static BOOL playerABI(void) {
     if(m0(_player,"error")) { [self fail:7];return; }
     NSInteger state=((NSInteger(*)(id,SEL))objc_msgSend)(_player,ss("state"));
     // IVSPlayerState: idle 0, ready 1, buffering 2, playing 3, ended 4.
+    if(state==4) { [self releaseMedia];[self setPhase:6 error:0];return; }
+    if(state<0||state>4) { [self fail:2];return; }
+    // A user pause is not a stalled load. Authorization continues to be checked
+    // above, but there is no playback deadline or automatic READY-state play.
+    if(_paused) { if(_phase!=8) [self setPhase:8 error:0];return; }
     if(state==1) v0(_player,"play");
     if(state==3) {
         if(!_wasPlaying) { _wasPlaying=YES;ssn_playback_event(3);[self setPhase:3 error:0]; }

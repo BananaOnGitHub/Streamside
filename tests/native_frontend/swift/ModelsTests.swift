@@ -3,6 +3,19 @@ import Foundation
 // Synthetic presentation fixtures. No donor, network or live account is used.
 @main struct ModelsTests {
     static func main() {
+        var controls = PlayerControlsVisibility()
+        controls.reveal(now: 100)
+        controls.tick(now: 103.99, keepVisible: false); precondition(controls.visible)
+        controls.tick(now: 104, keepVisible: false); precondition(!controls.visible)
+        controls.toggle(now: 105); precondition(controls.visible)
+        controls.tick(now: 109, keepVisible: true); precondition(controls.visible)
+        controls.tick(now: 112.99, keepVisible: false); precondition(controls.visible)
+        controls.tick(now: 113, keepVisible: false); precondition(!controls.visible)
+        controls.reveal(now: 114); controls.toggle(now: 115); precondition(!controls.visible)
+        precondition(StreamShareLink.url(username: "real_login123")?.absoluteString == "https://www.twitch.tv/real_login123")
+        for name in ["", "../token", "user?token=x", "user@evil.invalid", "é", String(repeating: "a", count: 129)] {
+            precondition(StreamShareLink.url(username: name) == nil)
+        }
         let account = StreamsideAccount(username: "fixture", displayName: "Fixture")
         let channels = [FollowedChannel(username: "channel", displayName: "Channel")]
         var state = NativeServiceState(phase: 4, account: account, channels: channels)

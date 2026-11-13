@@ -123,40 +123,57 @@ private struct AccountSettings: View {
     @ObservedObject var services: NativeServices
     @Environment(\.dismiss) private var dismiss
     @State private var diagnostics = false
-    @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
-    @AppStorage(FeedPreferences.livePingIndexKey) private var pingIndex = 2
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         NavigationStack {
             List {
                 Section("Account") { AccountPanel(services: services) }
                 Section {
-                    if UIDevice.current.userInterfaceIdiom == .phone {
-                        Toggle("Two-line stream titles", isOn: $twoLineTitles)
+                    NavigationLink { FollowedStreamSettings() } label: {
+                        Label("Followed streams", systemImage: "heart.fill")
                     }
-                    VStack(alignment: .leading, spacing: 10) {
-                        LabeledContent("Live ring cycle", value: LivePingCycle.label(index: pingIndex))
-                        CycleSlider(index: $pingIndex)
-                        HStack(spacing: 0) {
-                            ForEach(LivePingCycle.labels, id: \.self) { label in
-                                Text(label).font(.caption2).frame(maxWidth: .infinity)
-                            }
-                        }.accessibilityHidden(true)
+                    NavigationLink { PlayerSettings() } label: {
+                        Label("Player", systemImage: "play.rectangle")
                     }
-                    .disabled(reduceMotion)
-                    .opacity(reduceMotion ? 0.45 : 1)
-                    if reduceMotion {
-                        Text("Reduce Motion keeps live rings still.").font(.footnote).foregroundStyle(.secondary)
-                    }
-                    Text("Hold a truncated stream title for one second to read it in full.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                } header: { Label("Followed streams", systemImage: "heart.fill") }
+                }
                 Section { Button("Diagnostics") { diagnostics = true } }
             }
             .navigationTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(isPresented: $diagnostics) { DiagnosticsView(services: services, baseline: false) }
         }
+    }
+}
+
+private struct FollowedStreamSettings: View {
+    @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
+    @AppStorage(FeedPreferences.livePingIndexKey) private var pingIndex = 2
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var body: some View {
+        Form {
+            Section {
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    Toggle("Two-line stream titles", isOn: $twoLineTitles)
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    LabeledContent("Live ring cycle", value: LivePingCycle.label(index: pingIndex))
+                    CycleSlider(index: $pingIndex)
+                    HStack(spacing: 0) {
+                        ForEach(LivePingCycle.labels, id: \.self) { label in
+                            Text(label).font(.caption2).frame(maxWidth: .infinity)
+                        }
+                    }.accessibilityHidden(true)
+                }
+                .disabled(reduceMotion)
+                .opacity(reduceMotion ? 0.45 : 1)
+                if reduceMotion {
+                    Text("Reduce Motion keeps live rings still.").font(.footnote).foregroundStyle(.secondary)
+                }
+                Text("Hold a truncated stream title for one second to read it in full.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } header: { Label("Followed streams", systemImage: "heart.fill") }
+        }
+        .navigationTitle("Followed streams")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

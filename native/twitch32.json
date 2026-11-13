@@ -623,6 +623,14 @@
       "encoding": "v24@0:8@16",
       "address": 356480,
       "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
+    },
+    "playback_IVSPlayer_setMuted:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setMuted:",
+      "encoding": "v20@0:8B16",
+      "address": 399872,
+      "bytes": "e10302aa003440f9080040f902d940f9"
     }
   },
   "feed_contract": {

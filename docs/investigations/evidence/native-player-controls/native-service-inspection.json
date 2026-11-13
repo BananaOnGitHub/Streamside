@@ -1,0 +1,103 @@
+{
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "images": {
+    "Twitch": "f256c2a8576f4bafb26d4bd8f3c36470c0a6fc779e06fd1e254bbefa059875f1",
+    "TwitchKit": "f9cf2a880924bfcef7b46a7f64887fb835c28f5aa7e1593c6d5fa31bd1711401",
+    "TwitchCore": "ad7772a3a86e6ff364007a1d29301734e82c0755a074e73c878ce18112b3ec44",
+    "AmazonIVSPlayer": "f6bbfbf4ab295778e431f44e3ba8d242d9f3681e27d1413280db095bad85b4c5",
+    "GoogleCast": "934407cfbfa60139cb0831be2dd131c82e53096e118d6cb1267a35960af00606"
+  },
+  "selected_methods": {
+    "TwitchRNAirPlayPlayerView": [
+      {
+        "selector": "setStreamUrl:",
+        "encoding": "v24@0:8@16",
+        "address": "0x104872064"
+      },
+      {
+        "selector": "initWithFrame:",
+        "encoding": "@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",
+        "address": "0x104873940"
+      }
+    ],
+    "TwitchRNHostCast": [
+      {
+        "selector": "showDevicePicker:rejecter:",
+        "encoding": "v32@0:8@?16@?24",
+        "address": "0x10489921c"
+      },
+      {
+        "selector": "startCasting:title:gameName:logoURL:resolver:rejecter:",
+        "encoding": "v64@0:8@16@24@32@40@?48@?56",
+        "address": "0x104899b08"
+      }
+    ],
+    "_TtC6Twitch16ChromecastButton": [
+      {
+        "selector": "init",
+        "encoding": "@16@0:8",
+        "address": "0x102ffc754"
+      },
+      {
+        "selector": "initWithFrame:",
+        "encoding": "@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",
+        "address": "0x102ffcb24"
+      }
+    ],
+    "_TtC6Twitch17ChromecastManager": [
+      {
+        "selector": "init",
+        "encoding": "@16@0:8",
+        "address": "0x1021a13d0"
+      },
+      {
+        "selector": "castButtonDidTap:toPresentDialogForCastState:",
+        "encoding": "v32@0:8@16Q24",
+        "address": "0x1021a52f0"
+      }
+    ],
+    "IVSPlayer": [
+      {
+        "selector": "muted",
+        "encoding": "B16@0:8",
+        "address": "0x619f0"
+      },
+      {
+        "selector": "setMuted:",
+        "encoding": "v20@0:8B16",
+        "address": "0x61a00"
+      },
+      {
+        "selector": "pause",
+        "encoding": "v16@0:8",
+        "address": "0x626cc"
+      },
+      {
+        "selector": "play",
+        "encoding": "v16@0:8",
+        "address": "0x62710"
+      }
+    ],
+    "GCKUICastButton": [
+      {
+        "selector": "initWithFrame:",
+        "encoding": "@48@0:8{CGRect={CGPoint=dd}{CGSize=dd}}16",
+        "address": "0x142648"
+      },
+      {
+        "selector": "didTap:",
+        "encoding": "v24@0:8@16",
+        "address": "0x14343c"
+      }
+    ]
+  },
+  "native_cast_callsite_observations": {
+    "Twitch_0x1021a52f0": "ChromecastManager Objective-C cast-button delegate thunk calls native Swift body at 0x10219f82c.",
+    "Twitch_0x1021a041c": "native body calls UIAlertAction actionWithTitle:style:handler:.",
+    "Twitch_0x1021a0448": "native body calls addAction:.",
+    "Twitch_0x102ffc7f4": "ChromecastButton init reads shared UIApplication delegate; 0x102ffc838 uses Swift dynamic cast, then delegate assignment 0x102ffc858.",
+    "Twitch_0x1021a0cf0": "native cast body consults shared cast session manager/currentSession/remoteMediaClient.",
+    "Twitch_0x1021a133c": "native cast initialization configures shared GCKCastContext via setSharedInstanceWithOptions:."
+  },
+  "decision": "Native cast UI exists; no validated entry/context for handing this owned IVS session to Twitch ChromecastManager has been established. Do not instantiate guessed Swift manager state or call TwitchRNHostCast. No cast/AirPlay implementation admitted."
+}

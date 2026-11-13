@@ -29,24 +29,22 @@ final class PlayerInputTests: XCTestCase {
             wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
             app.buttons["resize"].tap()
         }
+        app.buttons["clear-clipboard"].tap()
         tap(app.buttons["player.share"])
         tap(app.buttons["player.system-share"])
-        let copyActivity = app.buttons["Copy"].firstMatch
+        // Observed on the pinned iOS 26 simulator: this is an actionGroupCell,
+        // not a button. Match its semantic label, then exercise the real action.
+        let copyActivity = app.cells["Copy"].firstMatch
         let systemShareAppeared = copyActivity.waitForExistence(timeout: 10)
-        if !systemShareAppeared {
-            // Synthetic fixture only. Preserve the actual hierarchy and whether
-            // a center tap differs from the required padded-edge tap. A retry
-            // cannot turn the failed initial coordinate into a passing result.
-            print("SYSTEM_SHARE_EDGE_SNAPSHOT\n" + app.debugDescription)
-            if app.buttons["player.system-share"].exists {
-                app.buttons["player.system-share"].tap()
-                _ = copyActivity.waitForExistence(timeout: 5)
-                print("SYSTEM_SHARE_CENTER_SNAPSHOT\n" + app.debugDescription)
-            }
-        }
-        XCTAssertTrue(systemShareAppeared, "System activity sheet did not appear")
+        if !systemShareAppeared { print("SYSTEM_SHARE_SNAPSHOT\n" + app.debugDescription) }
+        XCTAssertTrue(systemShareAppeared, "System activity Copy cell did not appear")
+        XCTAssertTrue(copyActivity.isHittable)
         copyActivity.tap()
+        let dismissedShare = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: copyActivity)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissedShare], timeout: 5), .completed)
         app.staticTexts["harness-title"].tap()
+        app.buttons["read-clipboard"].tap()
+        wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
         tap(app.buttons["player.settings"])
         XCTAssertTrue(app.switches["Liquid Glass buttons"].waitForExistence(timeout: 5))
         app.staticTexts["harness-title"].tap()

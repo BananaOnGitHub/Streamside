@@ -50,6 +50,7 @@ private struct InputTestContent: View {
             Text("Harness").accessibilityIdentifier("harness-title")
             Toggle("Hold controls open", isOn: $holdOpen).accessibilityIdentifier("hold-controls")
             Button("Change renderer") { media.changedRenderer.toggle(); interact() }.accessibilityIdentifier("resize")
+            Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
             Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
             Spacer()

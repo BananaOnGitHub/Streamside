@@ -1,0 +1,17 @@
+{
+  "source_revision": "9dd59482a530ba63ba6e186bc5b31f7c96e7308c",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43388153616",
+  "outcome": "failed",
+  "finding": "Both edge-tap snapshots contain ShareSheet.RemoteContainerView and actionGroupCell labeled Copy. The share sheet was presented; the XCTest Button query was incorrect. Diagnostic center taps dismissed the sheet, and did not establish successful assertions.",
+  "correction": "Select the observed Copy cell, require it to be hittable, invoke it, require dismissal and verify the public URL after clearing the clipboard. Keep all later settings/visibility/Close checks required.",
+  "artifacts": {
+    "failure.json": {
+      "bytes": 163,
+      "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+    },
+    "native/build.log": {
+      "bytes": 578125,
+      "sha256": "4c72b3e8877dd6c96352d6b5afcf52130e1f4f771f4606660a348b52c48962ce"
+    }
+  }
+}

@@ -2,6 +2,9 @@
 
 ## Implementation trial
 
+Before this trial, the user confirmed that the preceding `83c71dc` export-isolation
+build worked. That confirmation does not validate these new player controls.
+
 The theatre now starts with the 16:9 video at the top of its safe content area.
 There is no separate header or diagnostic button. The down chevron closes the
 player and tears down media; it does not minimize. UIKit's portrait safe area
@@ -120,3 +123,51 @@ remain physical-device checks.
 
 Source revision, CI outcomes and the single Native package identities are added
 below after compilation and local donor-dependent packaging.
+
+## Validated build and package
+
+Source `f7366b217e82955e1cbeb9aabcc3d2fe894f1b51` passed all 62 native host tests.
+[Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43378649029)
+passed 220 of 224 tests with four explicit environment-dependent skips.
+[Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43378649069)
+compiled/linked/ad-hoc signed both owned components with Xcode 26.6 build 17F113,
+Swift 6.3.3 and iPhoneOS SDK 26.5, targeting arm64 iOS 16.4. Both passed model,
+UIKit ownership, clock/title, synthetic playback/control, and three-process
+launch-selection fixtures. The new playback receipt requires local pause/resume,
+player-only muting with unchanged system volume/category, and intent retention
+through inactive media recreation; all passed. Downstream ABI (17), component
+admission (11), core (9), launch policy (1), gate/probe emulation (6), launch
+comparison (3), existing report comparison (5), and Foundation HTTP (1) passed.
+
+[Package identities and test receipts](SWIFTUI_NATIVE_PLAYER_CONTROLS_ARTIFACTS.json)
+record the exact source/proof, compiler, native IPA and framework/image hashes.
+Local packaging admitted the exact donor, 51 Swift ABI boundaries, 12 Objective-C
+services and 25 probes; verified output archive integrity and unchanged donor
+entries, including original HBC/backend content. Only one Native IPA was created.
+No proprietary donor or signing material entered public Actions. Re-sign with
+Feather using the existing application/keychain identity.
+
+Reproduce with a clean compatible `feat/native-frontend` source checkout:
+
+```sh
+gh run download 43378649069 \
+  --name swiftui-components-f7366b217e82955e1cbeb9aabcc3d2fe894f1b51 \
+  --dir ../artifacts/ci/f7366b217e82955e1cbeb9aabcc3d2fe894f1b51
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/f7366b217e82955e1cbeb9aabcc3d2fe894f1b51
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/f7366b217e82955e1cbeb9aabcc3d2fe894f1b51 \
+  --output ../artifacts/native-frontend/swiftui/player-controls-reproduction
+```
+
+Use the recorded source or a compatible documentation-only descendant and an
+empty external output directory. Source and compiler input admission reject
+incompatible components. If Actions artifacts expire, rebuild owned components
+with the pinned toolchain; do not substitute old binaries.
+
+No physical-device test of this controls build was performed in the build
+environment. Follow the checklist above to verify actual UI, audio, sharing,
+metadata updates and zero runtime creation. Casting remains unimplemented at the
+validated-session-handoff boundary; clips, whispers and landscape are deliberately
+deferred. Public release docs and previous investigation outcomes are unchanged.

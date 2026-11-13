@@ -99,5 +99,10 @@
     "Twitch_0x1021a0cf0": "native cast body consults shared cast session manager/currentSession/remoteMediaClient.",
     "Twitch_0x1021a133c": "native cast initialization configures shared GCKCastContext via setSharedInstanceWithOptions:."
   },
-  "decision": "Native cast UI exists; no validated entry/context for handing this owned IVS session to Twitch ChromecastManager has been established. Do not instantiate guessed Swift manager state or call TwitchRNHostCast. No cast/AirPlay implementation admitted."
+  "decision": "Native cast UI exists; no validated entry/context for handing this owned IVS session to Twitch ChromecastManager has been established. Do not instantiate guessed Swift manager state or call TwitchRNHostCast. No cast/AirPlay implementation admitted.",
+  "verified_superclasses": {
+    "TwitchRNHostCast": "_OBJC_CLASS_$_RCTEventEmitter",
+    "TwitchRNAirPlayPlayerViewManager": "_OBJC_CLASS_$_RCTViewManager",
+    "TwitchRNAirPlayPlayerView": "_OBJC_CLASS_$_UIView"
+  }
 }

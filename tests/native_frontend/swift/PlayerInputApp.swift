@@ -54,7 +54,7 @@ private struct InputTestContent: View {
             Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
             Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
-            Text("ticks=\(ticks) hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible)")
+            Text(verbatim: "ticks=\(ticks) hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible)")
                 .font(.caption).accessibilityIdentifier("fixture-state")
             Spacer()
         }

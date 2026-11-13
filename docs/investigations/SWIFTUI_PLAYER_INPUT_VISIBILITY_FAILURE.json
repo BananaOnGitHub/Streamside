@@ -13,5 +13,20 @@
       "bytes": 545501,
       "sha256": "939e993bfcdfd78eb86ae335fcc77535c2f8f205e914a9025da8f4489c2d0ba5"
     }
+  },
+  "diagnostic_compile_failure": {
+    "source_revision": "b5afdd2423f1d5bd855360292ad0ca2b5ae3f352",
+    "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43396617137",
+    "reason": "LocalizedStringKey Boolean interpolation is deprecated by the pinned compiler and warnings are errors. Use Text(verbatim:) for synthetic debug status.",
+    "artifacts": {
+      "failure.json": {
+        "bytes": 163,
+        "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+      },
+      "native/build.log": {
+        "bytes": 315408,
+        "sha256": "71a0120822f17f8450bfc1122187845003af458067ca456acec28ce3d20939b2"
+      }
+    }
   }
 }

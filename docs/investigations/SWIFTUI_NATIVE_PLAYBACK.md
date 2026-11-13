@@ -193,3 +193,52 @@ synthetic UIKit playback lifecycle observations, model/ownership/clock/title che
 comparison 5. This supports the fixture timing correction. Its incomplete donor
 metadata plan remains superseded; no IPA was made from its components. The full
 corrected metadata source receives another source-matched build before packaging.
+
+## Validated source and diagnostic packages
+
+Final compiled/packaged source: `2bbfb860e46ac066f83fca870db57370084e730c`.
+[Artifact receipts](SWIFTUI_NATIVE_PLAYBACK_ARTIFACTS.json) contain exact source,
+proof, donor/build, toolchain, test results, framework/modified-image hashes,
+independently recomputed IPA hashes and retained workflow/failure-log hashes.
+
+[Apple Actions 43340009333](https://github.com/BananaOnGitHub/Streamside/actions/runs/43340009333)
+passed with pinned Xcode 26.6 / 17F113, Swift 6.3.3 and iPhoneOS SDK 26.5. Both
+frameworks compiled/linked and passed ad-hoc signature verification. Both model
+programs, real UIKit ownership/clock/title fixtures and the synthetic playback
+fixture passed. All seven playback receipt fields are true, including playing/
+decoding observation, background/return, account stop, cancellation, teardown and
+source encoding. ABI 17, component admission 10, core 9, Foundation 1 and comparison
+5 checks passed. Local native host tests passed 55/55. The corrected fixture now
+observes the required state; its earlier failed result remains preserved above.
+
+[Linux Actions 43340009221](https://github.com/BananaOnGitHub/Streamside/actions/runs/43340009221)
+passed: 224 tests, 220 passed, four existing Apple/donor/Hermes-runner skips.
+Documentation validation passed. Local assembly re-admitted the exact donor,
+51 Swift boundaries, 11 Objective-C service entries and unchanged 25 runtime probes,
+verified every retained donor entry and original HBC, and checked ZIP integrity.
+Independent hashing verified both IPAs, modified images, owned frameworks and the
+unchanged bundled IVS binary. IPAs remain under the external artifacts directory
+and require Feather signing with the same application/keychain identity.
+No donor, IPA, certificate or private key was uploaded to Actions.
+
+Static follow-up also confirmed all four generated query/params metadata headers
+use imported object/bridge-object value witnesses (`BoWV`/`BbWV`), consistent with
+the runtime-checked one-word lowering. ApolloAPI exports the GraphQLQuery protocol;
+both Twitch and TwitchKit import the exact Foundation NSString-to-Swift-String
+bridge used by the facade. These are ABI/static observations, not network execution.
+
+Reproduction from this source or a proof-compatible documentation-only descendant,
+using empty external output locations:
+
+```sh
+gh run download 43340009333 --name swiftui-components-2bbfb860e46ac066f83fca870db57370084e730c --dir ../artifacts/ci/2bbfb860e46ac066f83fca870db57370084e730c
+python3 tools/native_frontend/components.py verify --output ../artifacts/ci/2bbfb860e46ac066f83fca870db57370084e730c
+python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --frontend swiftui --components ../artifacts/ci/2bbfb860e46ac066f83fca870db57370084e730c --mode both --output ../artifacts/native-frontend/swiftui/playback-rebuild
+```
+
+After component retention expires, rebuild the pinned source workflow. A replacement
+assembly has its own hashes; earlier receipts must retain their original identities.
+This completes an installable diagnostic candidate after local signing, **not**
+physical-device playback acceptance. Authenticated entitlement, visible video/audio,
+portrait behavior, actual SDK teardown/performance and zero RN/Hermes throughout
+playback still require the device sequence above. Stop at that validation milestone.

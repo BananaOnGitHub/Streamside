@@ -478,6 +478,26 @@
       "image": "TwitchGraphQLAPI",
       "address": 1447780,
       "bytes": "e20300aa602e8dd2e0ccadf2208ccef2"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5978348,
+      "bytes": "002e00d000400691010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataV0d8PlaybackeF0VMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5978364,
+      "bytes": "002e00d000e00691010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryCMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5977536,
+      "bytes": "fd7bbfa9fd0300910035009000202a91"
+    },
+    "_$s16TwitchGraphQLAPI25PlaybackAccessTokenParamsVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 7697504,
+      "bytes": "c02200b000c02591010080d2c0035fd6"
     }
   },
   "gate": {

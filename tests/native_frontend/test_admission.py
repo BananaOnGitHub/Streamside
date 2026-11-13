@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import unittest
@@ -21,6 +22,23 @@ class AccountAdapterAdmission(unittest.TestCase):
 
     def test_exact_native_and_objc_boundaries_admitted(self):
         validate_abi(self.images,self.plan)
+
+    def test_all_native_adapter_literal_dependencies_are_admitted(self):
+        names=set()
+        for filename in ['SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:
+            source=(ROOT/'native'/filename).read_text()
+            names.update(re.findall(r'ssn_resolve\("([^"\n]+)"\)',source))
+            names.update(re.findall(r'metadata\("([^"\n]+)"\)',source))
+            # Feed also resolves public system types; only donor metadata uses
+            # no system argument or the explicit false argument.
+            names.update(re.findall(r'meta\("([^"\n]+)"(?:,false)?\)',source))
+        for accessor in [
+            '$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataVMa',
+            '$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataV0d8PlaybackeF0VMa',
+            '$s16TwitchGraphQLAPI22StreamAccessTokenQueryCMa',
+            '$s16TwitchGraphQLAPI25PlaybackAccessTokenParamsVMa',
+        ]:self.assertIn(accessor,names)
+        self.assertEqual(sorted('_'+name for name in names if '_'+name not in self.plan['abi']),[])
 
     def test_wrong_objc_signature_or_address_or_prefix_rejected(self):
         for key,value in [('encoding','v24@0:8@16'),('address',0x103d078c4),('bytes','00'*16),('selector','loadInitialAccountData')]:

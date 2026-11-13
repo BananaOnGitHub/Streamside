@@ -92,7 +92,7 @@ Storage sizes, optional tag handling, destruction and Promise generic metadata c
 from the runtime's metadata/value witnesses. GraphQLQuery conformance comes from
 `swift_conformsToProtocol`; no protocol witness slot is guessed. Runtime admission
 requires one-word generated values/promises and two-word Swift String. The adapter
-uses 47 admitted Swift function entries total and 11 admitted Objective-C service
+uses 51 admitted Swift function entries total and 11 admitted Objective-C service
 entries including the existing logout adapter. Packaging rechecks exports, addresses,
 prefixes, Objective-C encodings and whole-image identities.
 
@@ -125,7 +125,7 @@ clock/title tests, and a new synthetic UIKit playback fixture using production
 SSNPlayback with owned fake IVS/GraphQL objects. It checks source percent-encoding,
 playing observation, pending cancellation, teardown, background/return and account
 loss. Both component sets require the successful receipt. These tests do not execute
-the donor or stream real video/audio. Local native host tests pass 54/54,
+the donor or stream real video/audio. Local native host tests pass 55/55,
 including 17 compiled ARM64 register-boundary tests and rejection of missing playback
 validation and preservation of playback failures after closing. Apple build/package results are recorded separately below when available.
 
@@ -175,3 +175,21 @@ observations as success. The delay hypothesis needs the corrected run; the initi
 failure is not reclassified as a pass. The production 30 s timeouts are unchanged.
 The refinement also stops media synchronously on Close and preserves the last
 nonzero playback error after closing/retrying, tested by the host diagnostic core.
+
+A pre-package static audit of `7138847` found four generated query/params metadata
+accessors missing from the admission table. The facade would have failed closed
+with request-ABI error 3 before making a request. They are now admitted from exact
+exports/prefixes, raising the total from 47 to 51. A host test requires literal
+native metadata/function dependencies across the integration/account/feed/playback
+adapters to be present in the admission plan. This fixes a validation-coverage gap;
+the synthetic player fixture replaces the request boundary and cannot establish
+actual donor metadata/service availability. No IPA was packaged or delivered from
+the incomplete plan.
+
+[Corrected Apple run 43338741179](https://github.com/BananaOnGitHub/Streamside/actions/runs/43338741179)
+for `7138847b37edacd17bdd3e82d07568bca26ebf3e` passed both compiled modes, all
+synthetic UIKit playback lifecycle observations, model/ownership/clock/title checks,
+17 Apple-compiled ABI tests, component admission 10, core 9, Foundation 1 and
+comparison 5. This supports the fixture timing correction. Its incomplete donor
+metadata plan remains superseded; no IPA was made from its components. The full
+corrected metadata source receives another source-matched build before packaging.

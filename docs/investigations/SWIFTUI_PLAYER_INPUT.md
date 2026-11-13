@@ -59,3 +59,9 @@ The fixture now taps a real coordinate in empty space below the player, requires
 [Run 43392132610](https://github.com/BananaOnGitHub/Streamside/actions/runs/43392132610), source `3bb9dd263dcf310cfcdffad8a877ed105ce60901`, dismissed both popovers and verified system Copy in both styles. It failed the newly explicit hold-off precondition. The retained hierarchy shows the merged switch row spans x=0...402, while its interactive child occupies x=341...404. The automatic center tap missed that thumb; both values stayed 1. This narrows the earlier auto-hide failure to a fixture that had never released its hold. The [failure record](SWIFTUI_PLAYER_INPUT_HOLD_FAILURE.json) preserves that observation.
 
 The test now taps the actual trailing switch thumb by coordinate. It still requires value 0 before the unchanged seven-second auto-hide limit, value 1 after reveal, and successful Close. Production controls and the visibility model are unchanged by this fixture correction.
+
+## Confirmed visibility failure with released hold
+
+[Run 43394297510](https://github.com/BananaOnGitHub/Streamside/actions/runs/43394297510), source `9b4b9c3dbd528abc5ebea620b15dc1b2a0a3d1cd`, passed the hold-off precondition with value 0 in both styles, dismissed menu contents, and still failed auto-hide. The hierarchy contains controls and no presented menu. This later evidence cannot be explained by the earlier invalid switch tap. No Close/reveal pass or IPA was admitted. The [failure record](SWIFTUI_PLAYER_INPUT_VISIBILITY_FAILURE.json) preserves the logs.
+
+The synthetic fixture now exposes its loop tick count, hold flag, presentation callback flag and visibility state to failure snapshots. This distinguishes loop cancellation from stale presentation state before a production correction is selected. No device content or credentials enter that status.

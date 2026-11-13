@@ -28,6 +28,7 @@ private struct InputTestContent: View {
     @State private var muted = false
     @State private var closed = false
     @State private var copied = "Not copied"
+    @State private var ticks = 0
     private var channel: FollowedChannel {
         var c = FollowedChannel(username: "fixture_channel", displayName: "Fixture")
         c.isLive = true; c.title = "Synthetic interaction fixture"; c.viewerCount = 123; c.startedAt = Date().addingTimeInterval(-3600)
@@ -53,12 +54,15 @@ private struct InputTestContent: View {
             Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
             Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
+            Text("ticks=\(ticks) hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible)")
+                .font(.caption).accessibilityIdentifier("fixture-state")
             Spacer()
         }
         .onAppear { interact() }
         .task {
             while !Task.isCancelled {
                 visibility.tick(now: ProcessInfo.processInfo.systemUptime, keepVisible: holdOpen || presenting)
+                ticks += 1
                 try? await Task.sleep(nanoseconds: 100_000_000)
             }
         }

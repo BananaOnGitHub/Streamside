@@ -1,0 +1,17 @@
+{
+  "source_revision": "9b4b9c3dbd528abc5ebea620b15dc1b2a0a3d1cd",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43394297510",
+  "outcome": "failed",
+  "observed": "Both styles passed the hold-off precondition with value 0 and dismissed popup contents, then failed the unchanged auto-hide assertion. Failure hierarchy contains player controls and no presented menu. Earlier fixture errors no longer explain this result.",
+  "next_diagnostic": "Expose only fixture loop ticks, hold flag, presentation callback flag and model visibility in its synthetic accessibility hierarchy. Distinguish stopped loop from stale presentation state before changing production code.",
+  "artifacts": {
+    "failure.json": {
+      "bytes": 163,
+      "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+    },
+    "native/build.log": {
+      "bytes": 545501,
+      "sha256": "939e993bfcdfd78eb86ae335fcc77535c2f8f205e914a9025da8f4489c2d0ba5"
+    }
+  }
+}

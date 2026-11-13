@@ -31,3 +31,7 @@ const char *ssn_state_text(void);
 const char *ssn_report_path(void);
 void ssn_report(void);
 void ssn_summary(char *buffer,size_t size);
+
+/* Bounded playback evidence, independent of all runtime entry probes. */
+void ssn_playback_status(unsigned phase,unsigned error);
+void ssn_playback_event(unsigned event);

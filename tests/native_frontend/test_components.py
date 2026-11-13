@@ -42,7 +42,7 @@ class ComponentAdmission(unittest.TestCase):
             compiler = dict(source_revision=self.revision, proof_id=proof, mode=mode, transferred_inputs=config["inputs"],
                             xcode="Xcode " + pin["xcode_version"] + "\nBuild version " + pin["xcode_build"], sdk_version=pin["iphoneos_sdk"],
                             model_tests="PASS: synthetic fixture",
-                            uikit_ownership_tests=dict(title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
+                            uikit_ownership_tests=dict(playback_receipt={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed']},title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
             (directory / "compiler.json").write_text(json.dumps(compiler))
             (directory / (FRAMEWORK + ".framework") / "Info.plist").write_bytes(plistlib.dumps(framework_info(mode, proof, self.revision)))
             (directory / (FRAMEWORK + ".framework") / FRAMEWORK).write_bytes(binary)
@@ -57,6 +57,12 @@ class ComponentAdmission(unittest.TestCase):
 
     def test_complete_source_matched_components(self):
         verify(self.directory, self.revision)
+
+    def test_missing_playback_validation_is_rejected(self):
+        path=self.directory/'native/compiler.json'
+        compiler=json.loads(path.read_text());compiler['uikit_ownership_tests'].pop('playback_receipt')
+        path.write_text(json.dumps(compiler));self.record()
+        with self.assertRaisesRegex(ValueError,'playback lifecycle'):verify(self.directory,self.revision)
 
     def test_changed_binary_is_rejected(self):
         (self.directory / "native" / (FRAMEWORK + ".framework") / FRAMEWORK).write_bytes(b"corrupt")

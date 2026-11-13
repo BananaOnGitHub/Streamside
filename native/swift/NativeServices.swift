@@ -66,6 +66,14 @@ final class NativeServices: ObservableObject, AccountService {
         if next.signOutState == 2 { actionError = "Sign-out could not be confirmed. Check your account and try again." }
     }
 
+    func open(_ channel: FollowedChannel) {
+        actionError = nil
+        if channel.thumbnailRestricted {
+            actionError = "This channel requires Twitch’s content gate. It isn’t supported by this playback build yet."
+        } else if !SSNSwiftUIHost.beginPlayback(channel) {
+            actionError = "The stream could not open. Check your account and diagnostics."
+        }
+    }
     func actionUnavailable() { actionError = "Native navigation ownership is unavailable. Export diagnostics." }
     func signIn() {
         actionError = nil

@@ -13,6 +13,7 @@ public final class SSNSwiftUIHost: NSObject {
     private static var diagnosticsController: UIViewController?
     private static var gestureTarget: SSNSwiftUIHost?
     private static var baseline = false
+    private static var theatreController: UIViewController?
 
     @objc public static func rootOwner() -> Int {
         guard let window else { return 0 }
@@ -67,6 +68,24 @@ public final class SSNSwiftUIHost: NSObject {
                 return
             }
             pending.append(contentsOf: controller.children)
+        }
+    }
+
+    static func beginPlayback(_ channel: FollowedChannel) -> Bool {
+        guard SSNNavigationPermitted(), rootOwner() == 1,
+              channel.isLive, !channel.thumbnailRestricted,
+              let services, services.state.session == .authenticated,
+              let root = nativeController, root.presentedViewController == nil,
+              theatreController == nil else { return false }
+        let controller = NativeTheatre.controller(channel: channel, services: services, close: { endPlayback() })
+        theatreController = controller
+        root.present(controller, animated: true)
+        return true
+    }
+    static func endPlayback() {
+        guard let controller = theatreController else { return }
+        controller.dismiss(animated: true) {
+            if theatreController === controller { theatreController = nil }
         }
     }
 

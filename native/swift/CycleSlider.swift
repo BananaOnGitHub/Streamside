@@ -14,6 +14,7 @@ struct CycleSlider: View {
     @Binding var index: Int
     @Environment(\.isEnabled) private var enabled
     @Environment(\.layoutDirection) private var direction
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var selection = CycleDetentSelection(index: 2)
     @State private var dragging = false
     @StateObject private var feedback = CycleSliderFeedback()
@@ -37,10 +38,7 @@ struct CycleSlider: View {
                 Capsule().fill(Color.accentColor)
                     .frame(width: fill, height: 4)
                     .position(x: rtl ? geometry.size.width - 14 - fill / 2 : 14 + fill / 2, y: 22)
-                Circle().fill(.white)
-                    .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 0.5))
-                    .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
-                    .frame(width: 28, height: 28)
+                thumb
                     .position(x: 14 + travel * physicalFraction, y: 22)
             }
             .contentShape(Rectangle())
@@ -74,6 +72,17 @@ struct CycleSlider: View {
         .onAppear { selection = CycleDetentSelection(index: index) }
         .onChange(of: index) { value in selection = CycleDetentSelection(index: value) }
         .onChange(of: enabled) { value in if !value { dragging = false } }
+    }
+    @ViewBuilder private var thumb: some View {
+        if #available(iOS 26.0, *), !reduceTransparency {
+            Circle().fill(.clear).frame(width: 28, height: 28)
+                .glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            Circle().fill(.white)
+                .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                .frame(width: 28, height: 28)
+        }
     }
     private func commitSelection() {
         // Also protect against an external preference update during a gesture.

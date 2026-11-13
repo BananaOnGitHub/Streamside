@@ -148,6 +148,7 @@ id ssn_account_info(void) { return account; }
 id ssn_followed_channels(void) { return channels; }
 static id authorization(void) { return m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth"); }
 static bool authorized(void) { return authorization()!=nil; }
+bool ssn_playback_authorized(void) { return account && verified_auth && authorization()==verified_auth && !ssn_failed() && ssn_armed(); }
 static void clear(void) {
     if(account || channels) ssn_account_data_cleared();
     objc_release(account); account=nil; objc_release(channels); channels=nil;

@@ -33,6 +33,7 @@ struct LiveChannelRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     let clock: StreamClock
     let haptics: TitleHaptics
+    let open: () -> Void
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     @State private var showFullTitle = false
     @State private var titleMeasurement: TitleMeasurement?
@@ -60,6 +61,10 @@ struct LiveChannelRow: View {
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: open)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Watch live stream", open)
         .padding(.vertical, 2)
         .listRowSeparator(.hidden)
         .accessibilityElement(children: .combine)

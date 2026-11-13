@@ -44,7 +44,7 @@ class SwiftCalls(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):cls.temp.cleanup()
 
-    def call(self,name,arguments,expected,context=None,out=None):
+    def call(self,name,arguments,expected,context=None,out=None,stack_arguments=None):
         u=Uc(UC_ARCH_ARM64,UC_MODE_ARM);base=0x100000;callback=0x200000;stack=0x300000;end=0x400000
         u.mem_map(base,0x10000);u.mem_map(callback,4096);u.mem_map(stack,0x10000);u.mem_map(end,4096)
         for addr,data in self.sections:
@@ -58,6 +58,9 @@ class SwiftCalls(unittest.TestCase):
                 for i,value in enumerate(expected):self.assertEqual(u.reg_read(UC_ARM64_REG_X0+i),value,('argument',i))
                 if context is not None:self.assertEqual(u.reg_read(UC_ARM64_REG_X20),context,'swiftself/context must use X20')
                 if out is not None:self.assertEqual(u.reg_read(UC_ARM64_REG_X8),out,'indirect result must use X8')
+                if stack_arguments is not None:
+                    current_sp=u.reg_read(UC_ARM64_REG_SP)
+                    self.assertEqual(struct.unpack('<'+'Q'*len(stack_arguments),bytes(u.mem_read(current_sp,8*len(stack_arguments)))),tuple(stack_arguments))
                 ret=u.reg_read(UC_ARM64_REG_X30)
                 u.reg_write(UC_ARM64_REG_X0,0xabcdef01);u.reg_write(UC_ARM64_REG_X0+1,0xabcdef02);u.reg_write(UC_ARM64_REG_X0+2,0xabcdef03)
                 u.reg_write(UC_ARM64_REG_PC,ret)
@@ -90,5 +93,16 @@ class SwiftCalls(unittest.TestCase):
         self.call('call_thumbnail_url',[0x1234,11,22,33],[2,11,22,33],out=0x1234)
     def test_viewer_count_context(self):
         self.call('call_integer',[0x5678],[],context=0x5678)
+
+    def test_playback_client_native_self(self):self.call('call_client',[0x5678],[],context=0x5678)
+    def test_playback_params_registers_and_stack(self):
+        self.call('call_playback_params',[],[0,2,2,0,0,0,0,11],stack_arguments=[22,0,0,33,44,0,1])
+    def test_playback_query_consuming_arguments_and_metatype(self):
+        self.call('call_playback_query',[0x5678],[11,22,33],context=0x5678)
+    def test_playback_fetch_expanded_client_generics_and_result(self):
+        self.call('call_playback_fetch',[0x1234,0x5678,0x9abc],[11,1,22,33,0x5678,0x9abc],out=0x1234)
+    def test_playback_generated_fields_are_direct_values(self):
+        self.call('call_playback_field',[0x5678],[0x5678])
+        self.call('call_playback_string',[0x5678],[0x5678])
 
 if __name__=='__main__':unittest.main()

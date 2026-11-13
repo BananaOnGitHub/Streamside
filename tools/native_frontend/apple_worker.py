@@ -44,7 +44,7 @@ def main():
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+swift)
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNNativeBridge.m','SSNWindowOwnership.m']:
+    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
         run(['xcrun','clang']+common+(['-fobjc-arc'] if name=='SSNWindowOwnership.m' else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
@@ -53,7 +53,7 @@ def main():
     run(['xcrun','clang']+common+['-c','tests/native_frontend/abi_calls.c','-o','output/apple-abi.o'])
     binary='output/StreamsideNativeProof'
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-emit-library','-o',binary]+objects+
-        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics',
+        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics','-framework','AVFAudio',
          '-Xlinker','-install_name','-Xlinker','@rpath/StreamsideNativeProof.framework/StreamsideNativeProof',
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'])
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
@@ -96,9 +96,18 @@ def test_window_ownership(root, output, config, run):
     run(['xcrun','swiftc','-target',architecture+'-apple-ios16.4-simulator','-sdk',simulator_sdk,
          '-swift-version','5','-warnings-as-errors','-parse-as-library',
          'native/swift/StreamClock.swift','native/swift/MeasuredStreamTitle.swift','native/swift/TitleHaptics.swift',
-         'tests/native_frontend/swift/ClockTests.swift','-framework','CoreHaptics',
+         'tests/native_frontend/swift/ClockTests.swift','-framework','CoreHaptics','-framework','AVFAudio',
          '-o',str(clock_bundle/'ClockTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(clock_bundle)])
+    playback_bundle=stage/'PlaybackTest.app';playback_bundle.mkdir()
+    playback_id='dev.streamside.playbacktest'
+    (playback_bundle/'Info.plist').write_bytes(plistlib.dumps(dict(CFBundleExecutable='PlaybackTest',CFBundleIdentifier=playback_id,
+        CFBundleName='PlaybackTest',CFBundleVersion='1',CFBundlePackageType='APPL',LSRequiresIPhoneOS=True,UILaunchScreen={})))
+    run(['xcrun','clang','-target',architecture+'-apple-ios16.4-simulator','-isysroot',simulator_sdk,
+         '-fblocks','-Wall','-Wextra','-Werror','-DSSN_NATIVE=1','-Inative','-Igenerated',
+         'native/SSNPlayback.m','tests/native_frontend/playback_test.m','-framework','UIKit','-framework','Foundation',
+         '-framework','AVFAudio','-o',str(playback_bundle/'PlaybackTest')])
+    run(['codesign','--force','--sign','-','--timestamp=none',str(playback_bundle)])
     runtimes=json.loads(run(['xcrun','simctl','list','runtimes','--json']))['runtimes']
     runtime=next(r['identifier'] for r in runtimes if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-'))
     types=json.loads(run(['xcrun','simctl','list','devicetypes','--json']))['devicetypes']
@@ -121,7 +130,13 @@ def test_window_ownership(root, output, config, run):
             raise ValueError('UIKit clock/title interaction test failed: '+str(observed))
         clock_receipt={k:observed[k] for k in ['passed','ticking','paused','resumed']}
         interactions={k:observed[k] for k in ['title_measurement','haptic_pattern']}
-        return dict(title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+        run(['xcrun','simctl','install',device,str(playback_bundle)])
+        run(['xcrun','simctl','launch','--console',device,playback_id])
+        playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
+        playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed']}
+        if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
+        return dict(playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
     finally:
         run(['xcrun','simctl','shutdown',device])
         run(['xcrun','simctl','delete',device])

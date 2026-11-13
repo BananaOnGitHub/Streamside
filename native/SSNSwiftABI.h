@@ -31,3 +31,12 @@ typedef SW void (*ItemGetter)(void * OUT,const void*,const void * CTX);
 typedef SW Words3 (*ThumbnailsGetter)(const void * CTX);
 typedef SW void (*ThumbnailGetter)(void * OUT,uint8_t,uintptr_t,uintptr_t,uintptr_t);
 typedef SW intptr_t (*IntegerGetter)(const void * CTX);
+
+/* Twitch 32 generated query and native Apollo convenience overload. Verified
+ * direct value lowering; the client is two words, not a Swift object layout. */
+typedef SW Words2 (*ApolloClientGetter)(id CTX);
+typedef SW uintptr_t (*PlaybackParamsInit)(uintptr_t,uint8_t,uint8_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uint8_t);
+typedef SW uintptr_t (*PlaybackQueryInit)(uintptr_t,uintptr_t,uintptr_t,const void * CTX);
+typedef SW void (*PlaybackFetch)(void * OUT,uintptr_t,uint8_t,uintptr_t,uintptr_t,const void*,const void*);
+typedef SW uintptr_t (*PlaybackField)(uintptr_t);
+typedef SW Words2 (*PlaybackString)(uintptr_t);

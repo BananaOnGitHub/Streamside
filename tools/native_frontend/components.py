@@ -111,6 +111,8 @@ def verify(directory, revision=None):
             raise ValueError("UIKit lifecycle clock validation missing or failed")
         if uikit.get("title_interaction_receipt") != dict(title_measurement=True, haptic_pattern=True):
             raise ValueError("UIKit title measurement/haptic pattern validation missing or failed")
+        if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed']}:
+            raise ValueError("Synthetic UIKit playback lifecycle validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
         if plistlib.loads((framework / "Info.plist").read_bytes()) != framework_info(mode, manifest["proof_id"], expected_revision):
             raise ValueError("Framework metadata mismatch")
@@ -129,7 +131,7 @@ def build(output):
     proof = source_identity()
     manifest = dict(schema=1, source_revision=revision, proof_id=proof,
                     plan_sha256=sha((ROOT / "native/twitch32.json").read_bytes()), validated=False,
-                    validation_scope="Apple compile/link/ad-hoc signature and synthetic model tests; no donor or iOS execution",
+                    validation_scope="Apple compile/link/ad-hoc signature, host models and synthetic UIKit lifecycle tests; no donor execution or device playback",
                     files={})
     for mode in MODES:
         local = output / mode

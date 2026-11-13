@@ -10,7 +10,10 @@
     "TwitchIdentity": "5129aa20a21789e1c72f28bd10250a4192da009229d2c866af44cb58fc2d6f03",
     "TwitchCore": "ad7772a3a86e6ff364007a1d29301734e82c0755a074e73c878ce18112b3ec44",
     "Tomorrowland": "b3f4e1d8d59b43e8ef35e1cd072a0b18aa9d70b8a9093d7183581b53b9c571a1",
-    "TwitchAnalyticsCore": "34c8a53f14073ecca79c042f9fe9552164b2ad8e84ec51bff1ea27f3cc51977e"
+    "TwitchAnalyticsCore": "34c8a53f14073ecca79c042f9fe9552164b2ad8e84ec51bff1ea27f3cc51977e",
+    "TwitchGraphQLAPI": "bb5792e2c28d6c7799ae67fca95144547097e622efb61ab2b5838eaa87f41ee8",
+    "ApolloAPI": "0d233cb1b9a5a1b36c8df8086620b58a9d6295df3f985dfb8461c8c54c2e95fd",
+    "AmazonIVSPlayer": "f6bbfbf4ab295778e431f44e3ba8d242d9f3681e27d1413280db095bad85b4c5"
   },
   "layout": {
     "Twitch": {
@@ -440,6 +443,41 @@
       "image": "TwitchAnalyticsCore",
       "address": 204312,
       "bytes": "e10314aa020840f949805ff8230940f9"
+    },
+    "_$s9TwitchKit9TKGraphQLC12apolloClientAA08TWApolloF0Vvg": {
+      "image": "TwitchKit",
+      "address": 2939536,
+      "bytes": "ff0301d1f44f02a9fd7b03a9fdc30091"
+    },
+    "_$s16TwitchGraphQLAPI25PlaybackAccessTokenParamsV6device12disableHTTPS10hasAdblock4maid14notificationID8platform13playerBackend0Q4Type20preferredVideoHeightAC9ApolloAPI0B10QLNullableOyAA0D18DeviceCapabilitiesVG_AOySbGAsOySSGATSSATSSAOySiGtcfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 7693388,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryC11channelName6paramsACSS_AA08PlaybackeF6ParamsVtcfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4124996,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "_$s9TwitchKit14TWApolloClientV14fetchAsPromise5query11cachePolicy12Tomorrowland0G0Vy4DataQz0A6Apollo0A12GraphQLErrorVGx_0M005CacheJ0Ot0M3API0N7QLQueryRzlF": {
+      "image": "TwitchKit",
+      "address": 2414548,
+      "bytes": "fa67bba9f85f01a9f65702a9f44f03a9"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataV014streamPlaybackeF0AE0djeF0VSgvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5974484,
+      "bytes": "ff4301d1f44f03a9fd7b04a9fd030191"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataV0d8PlaybackeF0V5valueSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1323936,
+      "bytes": "e20300aac02e8cd280adaef2a00cc0f2"
+    },
+    "_$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataV0d8PlaybackeF0V9signatureSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1447780,
+      "bytes": "e20300aa602e8dd2e0ccadf2208ccef2"
     }
   },
   "gate": {
@@ -485,6 +523,86 @@
       "encoding": "v20@0:8B16",
       "address": 4358961344,
       "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "playback_IVSPlayer_init": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "init",
+      "encoding": "@16@0:8",
+      "address": 396512,
+      "bytes": "020080d2a7bf0314fc6fbaa9fa6701a9"
+    },
+    "playback_IVSPlayer_load:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "load:",
+      "encoding": "v24@0:8@16",
+      "address": 403140,
+      "bytes": "030080d2beba0314f44fbea9fd7b01a9"
+    },
+    "playback_IVSPlayer_play": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "play",
+      "encoding": "v16@0:8",
+      "address": 403216,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
+    },
+    "playback_IVSPlayer_pause": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "pause",
+      "encoding": "v16@0:8",
+      "address": 403148,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
+    },
+    "playback_IVSPlayer_state": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "state",
+      "encoding": "q16@0:8",
+      "address": 409380,
+      "bytes": "006c40f9c0035fd6007040f9c0035fd6"
+    },
+    "playback_IVSPlayer_error": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "error",
+      "encoding": "@16@0:8",
+      "address": 409388,
+      "bytes": "007040f9c0035fd6007c40f9c0035fd6"
+    },
+    "playback_IVSPlayer_videoFramesDecoded": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "videoFramesDecoded",
+      "encoding": "q16@0:8",
+      "address": 402236,
+      "bytes": "fd7bbfa9fd030091003440f9080040f9"
+    },
+    "playback_IVSPlayer_videoSize": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "videoSize",
+      "encoding": "{CGSize=dd}16@0:8",
+      "address": 409372,
+      "bytes": "0084536dc0035fd6006c40f9c0035fd6"
+    },
+    "playback_IVSPlayerView_setPlayer:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayerView",
+      "selector": "setPlayer:",
+      "encoding": "v24@0:8@16",
+      "address": 356332,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
+    },
+    "playback_IVSPlayerView_setVideoGravity:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayerView",
+      "selector": "setVideoGravity:",
+      "encoding": "v24@0:8@16",
+      "address": 356480,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
     }
   },
   "feed_contract": {

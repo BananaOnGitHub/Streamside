@@ -21,7 +21,8 @@ struct StreamsideShell: View {
                         } else {
                             ForEach(feed.live) { channel in
                                 LiveChannelRow(channel: channel, images: services.images,
-                                               generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics)
+                                               generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics,
+                                               open: { services.open(channel) })
                             }
                         }
                     } header: { Text("Live · \(feed.live.count)") }

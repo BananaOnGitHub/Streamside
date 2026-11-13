@@ -1,0 +1,21 @@
+{
+  "source_revision": "7a14eafe442000437ad6b252dae30082e3e20ae2",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43384386580",
+  "outcome": "failed",
+  "failure": "XCUITest test-without-building exceeded 240 seconds; partial subprocess stdout was not preserved by the original worker.",
+  "compiled": "Production arm64 native/baseline components and simulator control fixture compiled. UI-test success was not established.",
+  "artifacts": {
+    "baseline/build.log": {
+      "bytes": 178203,
+      "sha256": "3e2fbf9c8de65bd0be4b65a3f0c76d40b0e5070438cc414654de50966c2a2307"
+    },
+    "failure.json": {
+      "bytes": 163,
+      "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+    },
+    "native/build.log": {
+      "bytes": 397373,
+      "sha256": "2b23f1d751df1143b0ffa4346e8ee13032af6db8eb09abe37e6197cda3a8d0c1"
+    }
+  }
+}

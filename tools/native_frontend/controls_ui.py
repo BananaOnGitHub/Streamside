@@ -74,7 +74,7 @@ def run_controls_ui(root, stage, device, run):
           '-destination','id='+device,'-derivedDataPath',str(folder.parent/'DerivedData'),
           '-parallel-testing-enabled','NO','CODE_SIGNING_ALLOWED=NO']
     run(base+['build-for-testing'])
-    observed=run(base+['test-without-building'])
+    observed=run(base+['test-without-building'], timeout=600)
     for name in ['testGlassControls','testPlainControls']:
         if not re.search(r"Test Case .*"+name+r".* passed",observed):
             raise ValueError('Player coordinate test did not pass: '+name)

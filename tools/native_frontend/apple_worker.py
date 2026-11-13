@@ -16,8 +16,14 @@ def main():
         if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest:
             raise ValueError('Transferred build input mismatch: '+name)
     output=root/'output';output.mkdir(exist_ok=True)
-    def run(args):
-        result=subprocess.run(args,cwd=root,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=240)
+    def run(args, timeout=240):
+        try:
+            result=subprocess.run(args,cwd=root,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout)
+        except subprocess.TimeoutExpired as error:
+            partial=error.stdout or b''
+            if isinstance(partial,bytes):partial=partial.decode('utf-8',errors='replace')
+            with (output/'build.log').open('a') as log:log.write(str(args)+'\n'+partial+'\nCOMMAND TIMED OUT\n')
+            raise
         with (output/'build.log').open('a') as log:log.write(str(args)+'\n'+result.stdout+'\n')
         if result.returncode:raise RuntimeError(result.stdout)
         return result.stdout.strip()

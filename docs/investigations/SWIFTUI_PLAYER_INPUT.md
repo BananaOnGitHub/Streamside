@@ -29,3 +29,9 @@ New donor-free XCUITest fixtures compile the production canvas, controls, popove
 The macOS workflow runs these tests once per component build, reusing its simulator. Its job limit increases from 15 to 25 minutes to include the additional Xcode build and UI test launch. Generated projects and derived data remain outside the checkout. A component without a successful two-style coordinate-test receipt is rejected by local packaging.
 
 Apple CI, final packaging identities and physical-device results will be appended separately. The current change is not yet device-confirmed. Required phone check: open a live stream, use Close/Pause/Mute/Share during normal video and an available ad segment, check both glass settings, then export Native diagnostics. Verify audible stream-only mute, navigation/teardown, and unchanged RN/Hermes/worklet counters.
+
+## Initial Apple run failure
+
+[Run 43384386580](https://github.com/BananaOnGitHub/Streamside/actions/runs/43384386580), source `7a14eafe442000437ad6b252dae30082e3e20ae2`, compiled both components and the XCUITest fixture, then failed when `test-without-building` exceeded the worker's 240-second command limit. It did not establish passing UI tests and produced no admitted components or IPA. The original timeout path discarded partial subprocess stdout; that limits diagnosis and must not be interpreted as zero observed activity. The [failure record](SWIFTUI_PLAYER_INPUT_CI_FAILURE.json) preserves exact log hashes; full generated logs remain outside the active source tree.
+
+The follow-up retains partial command output on timeout and gives the two actual UI tests a bounded 600-second command allowance. The same assertions remain required; timeout, failure or missing test observations still reject packaging. The overall job limit remains 25 minutes.

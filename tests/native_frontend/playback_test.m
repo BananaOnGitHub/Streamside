@@ -8,7 +8,7 @@ static BOOL authorized=YES,pending;
 static unsigned requests,cancels,created,released,pauses,decodedEvents;
 static BOOL sourceEncoding;
 static id identity;
-BOOL ssn_playback_authorized(void) { return authorized; }
+bool ssn_playback_authorized(void) { return authorized; }
 bool ssn_navigation_guarded(void) { return true; }
 void ssn_report(void) {}
 void ssn_playback_status(unsigned phase,unsigned error) { (void)phase;(void)error; }

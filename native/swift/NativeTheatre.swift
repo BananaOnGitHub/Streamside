@@ -109,6 +109,7 @@ private final class PortraitTheatreController: UIHostingController<TheatreConten
     }
 }
 
+@MainActor
 enum NativeTheatre {
     static func controller(channel: FollowedChannel, services: NativeServices, close: @escaping () -> Void) -> UIViewController {
         let controller = PortraitTheatreController(rootView: TheatreContent(channel: channel, services: services, close: close))

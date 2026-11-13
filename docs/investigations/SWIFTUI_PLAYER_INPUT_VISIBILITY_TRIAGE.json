@@ -1,0 +1,34 @@
+{
+  "source_revision": "f58de1e7a2e5a3e6b2bca586df3e12216b89ea32",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43398221004",
+  "outcome": "failed",
+  "observed": {
+    "glass": "ticks=897 hold=false popup=false visible=false",
+    "plain": "ticks=823 hold=false popup=false visible=false"
+  },
+  "finding": "The timer runs, the hold is released and menu callbacks clear. The model becomes hidden, but grouped faded controls remain in the accessibility tree despite opacity/hit-test/accessibility modifiers. This does not establish a stopped timer or stuck popup flag.",
+  "correction": "Make PlayerCanvas conditionally mount the controls subtree while retaining the media and video gesture siblings; share this exact boundary with tests. Remove the temporary high-frequency fixture counter after capturing the cause.",
+  "artifacts": {
+    "failure.json": {
+      "bytes": 163,
+      "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+    },
+    "native/build.log": {
+      "bytes": 556432,
+      "sha256": "c6b63d192fb7c158dfda0bb7a2295c0ae30eea761bd65c368f27bdab9f9052fd"
+    }
+  },
+  "optional_vm": {
+    "source_revision": "f58de1e7a2e5a3e6b2bca586df3e12216b89ea32",
+    "architecture": "x86_64 simulator",
+    "xcode": "26.6 (17F113)",
+    "swift": "6.3.3",
+    "result": "Compiled; both cases failed earlier UI preconditions, so no successful visibility verdict. Not a required build dependency or substitute for Actions.",
+    "transferred": "Seven owned UI/fixture/project-generator files only; no donor, Git database, credentials or signing material.",
+    "cleanup": "Owned simulator and temporary VM build directory removed after copying the log to Ubuntu artifacts.",
+    "log": {
+      "bytes": 372921,
+      "sha256": "bfd99891e0da120a0241bd53c7cee3028729bb3d2d02ab59160290a2b172aed0"
+    }
+  }
+}

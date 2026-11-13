@@ -21,6 +21,10 @@ final class PlayerInputTests: XCTestCase {
         let check = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", label), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [check], timeout: 5), .completed)
     }
+    private func waitValue(_ element: XCUIElement, value: String) {
+        let check = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", value), object: element)
+        XCTAssertEqual(XCTWaiter.wait(for: [check], timeout: 5), .completed)
+    }
     private func tap(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 5))
         // Tap within the padded hit target, outside the central glyph pixels.
@@ -69,14 +73,14 @@ final class PlayerInputTests: XCTestCase {
         // The merged accessibility switch spans its label row. Hit the actual
         // trailing thumb, observed at x=341...404 within its 402-point row.
         holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
-        XCTAssertEqual(holdControls.value as? String, "0", "Fixture must release its explicit hold before timing auto-hide")
+        waitValue(holdControls, value: "0")
         let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: mute)
         XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 7), .completed, "Controls did not auto-hide")
         // Empty video area, away from top/bottom bars and the central play button.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
         XCTAssertTrue(mute.waitForExistence(timeout: 5), "Video tap did not reveal controls")
         holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
-        XCTAssertEqual(holdControls.value as? String, "1")
+        waitValue(holdControls, value: "1")
         tap(app.buttons["player.close"])
         XCTAssertTrue(app.staticTexts["closed"].waitForExistence(timeout: 5))
     }

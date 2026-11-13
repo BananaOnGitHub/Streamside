@@ -28,7 +28,6 @@ private struct InputTestContent: View {
     @State private var muted = false
     @State private var closed = false
     @State private var copied = "Not copied"
-    @State private var ticks = 0
     private var channel: FollowedChannel {
         var c = FollowedChannel(username: "fixture_channel", displayName: "Fixture")
         c.isLive = true; c.title = "Synthetic interaction fixture"; c.viewerCount = 123; c.startedAt = Date().addingTimeInterval(-3600)
@@ -39,13 +38,10 @@ private struct InputTestContent: View {
         VStack {
             if closed { Text("Closed").accessibilityIdentifier("closed") }
             else {
-                PlayerCanvas(surface: media, toggleControls: { visibility.toggle(now: ProcessInfo.processInfo.systemUptime) }) {
+                PlayerCanvas(surface: media, controlsVisible: visibility.visible, toggleControls: { visibility.toggle(now: ProcessInfo.processInfo.systemUptime) }) {
                     PlayerControls(channel: channel, clock: clock, paused: paused, muted: muted,
                                    close: { closed = true }, pause: { paused.toggle() }, mute: { muted.toggle() },
                                    interact: interact, presentationChanged: { presenting = $0 })
-                        .opacity(visibility.visible ? 1 : 0)
-                        .allowsHitTesting(visibility.visible)
-                        .accessibilityHidden(!visibility.visible)
                 }
             }
             Text("Harness").accessibilityIdentifier("harness-title")
@@ -54,7 +50,7 @@ private struct InputTestContent: View {
             Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
             Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
-            Text(verbatim: "ticks=\(ticks) hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible)")
+            Text(verbatim: "hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible)")
                 .font(.caption).accessibilityIdentifier("fixture-state")
             Spacer()
         }
@@ -62,7 +58,6 @@ private struct InputTestContent: View {
         .task {
             while !Task.isCancelled {
                 visibility.tick(now: ProcessInfo.processInfo.systemUptime, keepVisible: holdOpen || presenting)
-                ticks += 1
                 try? await Task.sleep(nanoseconds: 100_000_000)
             }
         }

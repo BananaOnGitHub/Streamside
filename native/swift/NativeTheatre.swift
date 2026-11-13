@@ -61,7 +61,7 @@ private struct TheatreContent: View {
     }
     var body: some View {
         VStack(spacing: 0) {
-            PlayerCanvas(surface: playback.native.view, toggleControls: {
+            PlayerCanvas(surface: playback.native.view, controlsVisible: controls.visible, toggleControls: {
                 SSNPlayerControlEvent(0)
                 controls.toggle(now: ProcessInfo.processInfo.systemUptime)
             }) {
@@ -70,11 +70,8 @@ private struct TheatreContent: View {
                                close: { playback.stop(); close() }, pause: playback.togglePaused,
                                mute: playback.toggleMuted, interact: interact,
                                presentationChanged: { overlayPresented = $0 })
-                    .opacity(controls.visible ? 1 : 0)
-                    .allowsHitTesting(controls.visible)
-                    .accessibilityHidden(!controls.visible)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: controls.visible)
             }
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: controls.visible)
             VStack(alignment: .leading, spacing: 8) {
                 Text(currentChannel.displayName).font(.headline)
                 Text(currentChannel.title).font(.subheadline).lineLimit(2)

@@ -46,7 +46,7 @@ identify Twitch 32.0 build 263110145453907615, exact donor SHA-256
 `076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`,
 source `2bbfb860e46ac066f83fca870db57370084e730c`, proof
 `06756e9eef1829a5150a3f77e31e4309b89385c5ef3fe3d3ff23b8c28adaf957`.
-The user observed stable video/audio on Wi-Fi and a short initial wait/additional
+The user reported stable playback on Wi-Fi and a short initial wait/additional
 live delay on cellular. No network type or latency was measured by diagnostics.
 
 The latest native report has all four images armed, no failures, all 25 probe
@@ -118,3 +118,66 @@ omits those observers as well as the one-shot original launch. Its runtime probe
 contract remains the same as the combined package. This intentional isolation
 improvement and the delayed diagnostics gesture attachment preclude claiming
 identical timing/overhead to the older independently packaged baseline.
+
+## Corrected build and deliverables
+
+Source `1ca14140a6a711ff408d23eac674067d0d27ccab` passes 61 host tests, both preserved UIKit framework
+compilations (Zig 0.14.0), exact-donor admission (51 ABI entries, 11 Objective-C
+services, 25 probes), independent unchanged eligibility gate inspection, and
+selector shim execution at two ASLR slides. The selector is 52 bytes at main
+image file offset `0x7000`, publishing selection via verified DATA tail address
+`0x10609fff8`; the original gate resumes with its original first instruction.
+
+[Corrected macOS/ABI CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43353439756)
+compiled, linked and ad-hoc signed both components with Xcode 26.6 build 17F113,
+Swift 6.3.3 and iPhoneOS SDK 26.5, target arm64 iOS 16.4. Both modes passed model
+tests, real UIKit ownership, clock/title, synthetic playback lifecycle, and three
+separate iOS simulator processes with production preference persistence. They
+observed Native (pending true) → original (pending false, no root hook) → Native
+(pending false). The three-process preference fixture explicitly enables the development selector;
+the independent control component itself compiles that feature out.
+The downstream ABI/core/component and launch/gate/comparison
+tests also passed. Foundation HTTP and synthetic report comparison CI passed.
+The [Linux workflow](https://github.com/BananaOnGitHub/Streamside/actions/runs/43353156983)
+ran 224 tests (220 passed, four environment-dependent skips) on implementation
+commit `32f7be4`; the subsequent correction changes
+only the experiment's C selector scope and investigation evidence.
+
+[Artifact identities, compiler and test receipts](SWIFTUI_NATIVE_ONE_SHOT_ARTIFACTS.json)
+record the exact source, proof, toolchain, package hashes and retained donor image
+hashes. Local packaging verifies donor identity before mutation, output ZIPs,
+all unchanged donor entries including original HBC, inserted components and all
+probe images. Nothing proprietary or device-signing related was uploaded to CI.
+The native IPA is the routine deliverable; the independent baseline IPA is
+retained solely for the one-time comparison. Both still require Feather signing
+with the existing application/keychain identity. Public release docs are unchanged.
+
+Reproduce from this branch, with the exact donor kept outside the repository:
+
+```sh
+git switch feat/native-frontend
+gh run download 43353439756 \
+  --name swiftui-components-1ca14140a6a711ff408d23eac674067d0d27ccab \
+  --dir ../artifacts/ci/1ca14140a6a711ff408d23eac674067d0d27ccab
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/1ca14140a6a711ff408d23eac674067d0d27ccab
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/1ca14140a6a711ff408d23eac674067d0d27ccab \
+  --output ../artifacts/native-frontend/swiftui/one-shot-reproduction
+```
+
+Use a clean `feat/native-frontend` checkout at the recorded source revision or
+a compatible documentation-only descendant. Source-proof and compiler input
+admission reject incompatible changes. All outputs belong outside the checkout.
+Add `--mode both` only to reproduce the independent comparison pair. Output
+directories must be empty. If Actions artifacts expire, compile the exact source
+on the pinned hosted toolchain again; do not substitute older components.
+
+The full launch sequence and actual Twitch original-routing equivalence have
+**not been tested on a physical device** in this change. Initial Native may show
+unverified calibration until this build observes a positive original launch;
+the following Native launch picks up the matching calibration automatically.
+Startup measurements begin in diagnostic core initialization after preference
+selection and directory setup, excluding that work as well as dyld and earlier
+startup. They do not measure total user-perceived launch time.

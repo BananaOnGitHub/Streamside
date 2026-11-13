@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+  "packaging_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+  "proof_id": "ca8bc843409197a3c17d0d88f07a4efb8f2a785c10ad6aae0da51d9a6da27ea5",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "inspection": {
+    "abi_entries": 51,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "component_manifest_sha256": "2886fff43e07b60963f96e402d12ac1cd97d181f31e7ae42d7a478c435177ae3",
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/one-shot-1ca1414",
+  "local_full_manifest_sha256": "45984addebfe676662ae3a8f904b104ff1f02b94f10d95a1133e380e0af5e4d6",
+  "workflows": {
+    "native_swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43353439756",
+    "linux_base": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43353156983"
+  },
+  "validation": {
+    "host_native": {
+      "run": 61,
+      "passed": 61
+    },
+    "exact_donor": {
+      "abi": 51,
+      "objc_services": 11,
+      "probes": 25,
+      "independent_gate_original": true,
+      "selector_slot": "0x10609fff8",
+      "selector_shim_offset": "0x7000",
+      "selector_shim_bytes": 52
+    },
+    "preserved_uikit": "both modes compiled on Ubuntu/Zig 0.14.0; no donor execution",
+    "physical_device": "one-shot sequence and independent equivalence pending; earlier playback reports preserved separately",
+    "apple_models": {
+      "baseline": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+      "native": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy"
+    },
+    "uikit_simulator": {
+      "baseline": {
+        "launch_receipt": [
+          {
+            "passed": true,
+            "native": true,
+            "pending": true,
+            "origin": 1,
+            "stage": 0
+          },
+          {
+            "passed": true,
+            "native": false,
+            "pending": false,
+            "origin": 2,
+            "stage": 1
+          },
+          {
+            "passed": true,
+            "native": true,
+            "pending": false,
+            "origin": 1,
+            "stage": 2
+          }
+        ],
+        "playback_receipt": {
+          "passed": true,
+          "background_resume": 1,
+          "account_stop": true,
+          "playing_observed": true,
+          "cancellation": true,
+          "teardown": true,
+          "source_encoding": true
+        },
+        "title_interaction_receipt": {
+          "title_measurement": true,
+          "haptic_pattern": true
+        },
+        "clock_receipt": {
+          "passed": true,
+          "ticking": true,
+          "paused": true,
+          "resumed": true
+        },
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 0,
+          "blocked": 0,
+          "failures": 0
+        }
+      },
+      "native": {
+        "launch_receipt": [
+          {
+            "passed": true,
+            "native": true,
+            "pending": true,
+            "origin": 1,
+            "stage": 0
+          },
+          {
+            "passed": true,
+            "native": false,
+            "pending": false,
+            "origin": 2,
+            "stage": 1
+          },
+          {
+            "passed": true,
+            "native": true,
+            "pending": false,
+            "origin": 1,
+            "stage": 2
+          }
+        ],
+        "playback_receipt": {
+          "passed": true,
+          "background_resume": 1,
+          "account_stop": true,
+          "playing_observed": true,
+          "cancellation": true,
+          "teardown": true,
+          "source_encoding": true
+        },
+        "title_interaction_receipt": {
+          "title_measurement": true,
+          "haptic_pattern": true
+        },
+        "clock_receipt": {
+          "passed": true,
+          "ticking": true,
+          "paused": true,
+          "resumed": true
+        },
+        "result": "PASS",
+        "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+        "receipt": {
+          "passed": true,
+          "native": 1,
+          "blocked": 2,
+          "failures": 0
+        }
+      }
+    },
+    "hosted_test_counts": {
+      "apple_abi": 17,
+      "component_admission": 11,
+      "native_core": 9,
+      "launch_policy": 1,
+      "probe_emulation": 6,
+      "launch_report_comparison": 3,
+      "existing_report_comparison": 5,
+      "foundation_http": 1,
+      "all_passed": true
+    },
+    "assembled_gate_inspection": {
+      "both_zip_integrity": true,
+      "framework_injected_once": true,
+      "independent_original_prefix": true,
+      "combined_selector_and_untouched_remainder": true
+    },
+    "linux_implementation_workflow": {
+      "run": 224,
+      "passed": 220,
+      "skipped": 4,
+      "source_revision": "32f7be4d687d08a2471653620f1caa5774a2201c"
+    }
+  },
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "artifacts": {
+    "baseline": {
+      "bytes": 196685163,
+      "sha256": "b4455d037596931c4983a2d2d3c749b0e4200526f1bc9169485d3d70195eb425",
+      "framework_sha256": "316bf55c563cae4714df1339262c8d9b5365905eb65f27ee3f00d24dede3be17",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "02f4232f6a0ccecdd641cf2fbe4d7a77975bacb83032103769e09d7155a8d9b6",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "7e6a9808207c7dac7cf70c76fdd46f6276718b103417a383e1410ad74b4a26fc",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "443b4d6df6877cf1d4ce95813332d990a3920e95247aa3b17ee279add7a09c1b",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "3b9fd1c6c1961af965174622e9d501d5ef1581d741699b3646bb5f3e1643c79f"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "filename": "StreamsideNativeProof-Twitch32-baseline.ipa"
+    },
+    "native": {
+      "bytes": 196685917,
+      "sha256": "65697aa21c12c3955399f82c973e17dae934d6080ddb5063052634a9a020eb0b",
+      "framework_sha256": "bfc873fa26e5035e9bae70890b1c7fe12b6839e972748b8f0f148ff449e64ca1",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "5047c58b1c73156b697ecafcefb601a1f25ef24a924ff552e263192e28b0f97f",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "7e6a9808207c7dac7cf70c76fdd46f6276718b103417a383e1410ad74b4a26fc",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "443b4d6df6877cf1d4ce95813332d990a3920e95247aa3b17ee279add7a09c1b",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "3b9fd1c6c1961af965174622e9d501d5ef1581d741699b3646bb5f3e1643c79f"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "filename": "StreamsideNativeProof-Twitch32-native.ipa"
+    }
+  }
+}

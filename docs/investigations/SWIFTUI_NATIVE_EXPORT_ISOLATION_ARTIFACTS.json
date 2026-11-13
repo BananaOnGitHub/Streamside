@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "source_revision": "83c71dc3de3712f782bdc5beb3d8b22811edfee3",
+  "packaging_revision": "83c71dc3de3712f782bdc5beb3d8b22811edfee3",
+  "proof_id": "f71c6c294a740979eafb7ac3bd42ac1e22dca94b4ef03219df43d478782eba81",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "frontend": "swiftui",
+  "inspection": {
+    "abi_entries": 51,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "not performed",
+  "component_manifest_sha256": "f304a6404b81a531b2dd57d356c4b4ed6b50366b79bea30ffff23231df1398e8",
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/export-isolation-83c71dc",
+  "local_full_manifest_sha256": "6a0bd3988459c222ceff78ab75f17a0907ef896ba6d774b6ed0a76fae994a1fa",
+  "workflows": {
+    "native_swiftui": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43360120437",
+    "documentation": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43360120670"
+  },
+  "validation": {
+    "host_native": {
+      "run": 61,
+      "passed": 61
+    },
+    "apple_models": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+    "uikit_simulator": {
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "passed": true,
+        "background_resume": 1,
+        "account_stop": true,
+        "playing_observed": true,
+        "cancellation": true,
+        "teardown": true,
+        "source_encoding": true
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "device_scope": "Attached 1ca1414 reports pass original-startup and Native-return consistency. Corrected 83c71dc share-sheet contents remain device-pending.",
+    "hosted_tests": {
+      "apple_abi": 17,
+      "component_admission": 11,
+      "native_core": 9,
+      "launch_policy": 1,
+      "probe_emulation": 6,
+      "launch_report_comparison": 3,
+      "existing_report_comparison": 5,
+      "foundation_http": 1,
+      "all_passed": true
+    }
+  },
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "artifacts": {
+    "native": {
+      "bytes": 196685803,
+      "sha256": "c78d2809554bd50d9490d414e57a3b5493a8823583c66f2ebe5e1b0b18df40ab",
+      "framework_sha256": "a4da0caa3ea284bc40fdf33f1e0cca95c508c7ecaa51be736e817f88ee118717",
+      "modified_images": {
+        "Payload/Twitch.app/Twitch": "4bad49b18c260f3d97d33a099e23b8f5f08d17bd27c5f8c16aec00417e91e5cd",
+        "Payload/Twitch.app/Frameworks/React.framework/React": "ac75949535e70c764a7457628825b5359a731299b7e884606279310eea8ba098",
+        "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "00e157285fb6255bc69ea4757bc3557d359f2b7ede20fb2e524192c50cb01762",
+        "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "87eeb41f3ab4c59a3574e72c09371bfa84fa47f93ed94258d050c1f6a37a33d0"
+      },
+      "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+      "filename": "StreamsideNativeProof-Twitch32-native.ipa"
+    }
+  }
+}

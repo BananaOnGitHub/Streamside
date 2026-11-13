@@ -84,3 +84,50 @@ mixed-export build and remain unchanged. This record supersedes only that export
 behavior and updates the device evidence; it does not rewrite its prior outcome.
 Corrected source, CI results and the single replacement package are recorded
 below after validation and packaging.
+
+## Corrected build
+
+Source `83c71dc3de3712f782bdc5beb3d8b22811edfee3` passes 61 native host tests and
+[Apple CI run 43360120437](https://github.com/BananaOnGitHub/Streamside/actions/runs/43360120437):
+Xcode 26.6 build 17F113, Swift 6.3.3, iPhoneOS SDK 26.5, target arm64 iOS 16.4.
+Both owned components compiled/linked and passed model, UIKit ownership, clock/title,
+synthetic playback and three-process preference/root-selection fixtures. Downstream
+Apple ABI (17), component admission (11), native core (9), launch policy (1),
+probe emulation (6), original-launch report comparison (3), existing comparison
+(5), and Foundation HTTP (1) checks passed. No separate Linux/Zig workflow was
+triggered: this correction changes only SwiftUI native bridge/presentation code
+and development evidence. Documentation validation passed locally and in CI.
+
+[Exact package identities and validation receipts](SWIFTUI_NATIVE_EXPORT_ISOLATION_ARTIFACTS.json)
+identify the single replacement Native IPA. Local packaging validated the exact
+donor, 51 Swift ABI entries, 11 Objective-C services, 25 probe sites, archive
+integrity, retained HBC/backend entries and inserted component identity. All
+outputs remain outside the repository. No donor, credentials or signing material
+were sent to CI. Install/re-sign through Feather as before. The independent
+`1ca1414` control remains suitable for the same probe-contract comparison; no
+replacement baseline IPA was generated.
+
+Reproduce with a clean compatible `feat/native-frontend` checkout and the exact
+donor outside the repository:
+
+```sh
+gh run download 43360120437 \
+  --name swiftui-components-83c71dc3de3712f782bdc5beb3d8b22811edfee3 \
+  --dir ../artifacts/ci/83c71dc3de3712f782bdc5beb3d8b22811edfee3
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/83c71dc3de3712f782bdc5beb3d8b22811edfee3
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/83c71dc3de3712f782bdc5beb3d8b22811edfee3 \
+  --output ../artifacts/native-frontend/swiftui/export-isolation-reproduction
+```
+
+Use an empty output directory and the recorded source revision or compatible
+documentation-only descendant. Source/input admission rejects incompatible
+components. If Actions artifacts expire, rebuild owned components at the pinned
+Apple toolchain. The source proof changes with this bridge correction, so a new
+original-mode positive control calibrates subsequent Native launches. This does
+not require installing another independent baseline IPA.
+
+Host/CI success and packaging do not verify the corrected device share sheet.
+The checklist above is the remaining device check for this small correction.

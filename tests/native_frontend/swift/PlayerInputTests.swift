@@ -1,6 +1,20 @@
 import XCTest
 
 final class PlayerInputTests: XCTestCase {
+    private var testedApp: XCUIApplication?
+    override func tearDown() {
+        if (testRun?.failureCount ?? 0) > 0, let app = testedApp {
+            print("PLAYER_FAILURE_SNAPSHOT\n" + app.debugDescription)
+        }
+        super.tearDown()
+    }
+    private func dismissPopover(_ element: XCUIElement, in app: XCUIApplication) {
+        // Tap actual empty space below the fixture. An obscured underlying
+        // label can have a {-1,-1} accessibility hit point while modal.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)).tap()
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
+    }
     func testGlassControls() { exercise(plain: false) }
     func testPlainControls() { exercise(plain: true) }
     private func wait(_ element: XCUIElement, label: String) {
@@ -15,6 +29,7 @@ final class PlayerInputTests: XCTestCase {
     private func exercise(plain: Bool) {
         continueAfterFailure = false
         let app = XCUIApplication()
+        testedApp = app
         if plain { app.launchArguments = ["--plain"] }
         app.launch()
         let mute = app.buttons["player.mute"], pause = app.buttons["player.pause"]
@@ -42,19 +57,24 @@ final class PlayerInputTests: XCTestCase {
         copyActivity.tap()
         let dismissedShare = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: copyActivity)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissedShare], timeout: 5), .completed)
-        app.staticTexts["harness-title"].tap()
+        dismissPopover(app.buttons["player.system-share"], in: app)
         app.buttons["read-clipboard"].tap()
         wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
         tap(app.buttons["player.settings"])
-        XCTAssertTrue(app.switches["Liquid Glass buttons"].waitForExistence(timeout: 5))
-        app.staticTexts["harness-title"].tap()
-        app.switches["hold-controls"].tap()
+        let glassSetting = app.switches["Liquid Glass buttons"]
+        XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))
+        dismissPopover(glassSetting, in: app)
+        let holdControls = app.switches["hold-controls"]
+        XCTAssertEqual(holdControls.value as? String, "1")
+        holdControls.tap()
+        XCTAssertEqual(holdControls.value as? String, "0", "Fixture must release its explicit hold before timing auto-hide")
         let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: mute)
         XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 7), .completed, "Controls did not auto-hide")
         // Empty video area, away from top/bottom bars and the central play button.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
         XCTAssertTrue(mute.waitForExistence(timeout: 5), "Video tap did not reveal controls")
-        app.switches["hold-controls"].tap()
+        holdControls.tap()
+        XCTAssertEqual(holdControls.value as? String, "1")
         tap(app.buttons["player.close"])
         XCTAssertTrue(app.staticTexts["closed"].waitForExistence(timeout: 5))
     }

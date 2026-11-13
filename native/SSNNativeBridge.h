@@ -13,7 +13,9 @@ FOUNDATION_EXPORT BOOL SSNNavigationPermitted(void);
 @interface SSNNativeBridge : NSObject
 + (instancetype)sharedBridge NS_SWIFT_NAME(shared());
 - (NSDictionary<NSString *, id> *)snapshot;
+- (BOOL)isNativeLaunch;
 - (void)refresh;
+- (BOOL)scheduleOriginalLaunch:(BOOL)requested;
 - (BOOL)beginSignOut;
 - (NSArray<NSURL *> *)exportReports;
 @end

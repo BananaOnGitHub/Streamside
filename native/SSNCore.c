@@ -21,6 +21,7 @@ static _Atomic unsigned navigation_armed;
 static _Atomic uint64_t navigation_events[5],account_events[5],account_updates_retained,account_data_clears;
 static _Atomic unsigned playback_phase,playback_error,playback_last_error;
 static _Atomic uint64_t playback_events[9];
+static _Atomic uint64_t frontend_events[4];
 static uint64_t peak_footprint;
 static bool baseline_verified;
 static char report_path[1024], calibration_path[1024];
@@ -73,6 +74,7 @@ void ssn_account_observed(unsigned event,bool preserved) {
 }
 void ssn_playback_status(unsigned phase,unsigned error) { atomic_store(&playback_phase,phase<=7?phase:7);atomic_store(&playback_error,error<=7?error:7);if(error) atomic_store(&playback_last_error,error<=7?error:7); }
 void ssn_playback_event(unsigned event) { if(event<9) atomic_fetch_add(&playback_events[event],1); }
+void ssn_frontend_event(unsigned event) { if(event<4) atomic_fetch_add(&frontend_events[event],1); }
 void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }
 void ssn_scaffold_ready(void) { if(!visible_ms) visible_ms=(clock_ns()-started_ns)/1000000; }
 void ssn_transition(bool foreground) {
@@ -82,13 +84,13 @@ void ssn_transition(bool foreground) {
 const char *ssn_report_path(void) { return report_path; }
 void ssn_core_start(const char *directory) {
     started_ns=clock_ns();
-    snprintf(report_path,sizeof(report_path),"%s/%s.json",directory,SSN_NATIVE?"native-latest":"baseline-latest");
+    snprintf(report_path,sizeof(report_path),"%s/%s.json",directory,ssn_native_mode()?"native-latest":"baseline-latest");
     snprintf(calibration_path,sizeof(calibration_path),"%s/baseline-calibration",directory);
     /* Keep the last terminated attempt for the next run/export. Do not erase its identity. */
-    char previous[1100]; snprintf(previous,sizeof(previous),"%s/%s-previous.json",directory,SSN_NATIVE?"native":"baseline");
+    char previous[1100]; snprintf(previous,sizeof(previous),"%s/%s-previous.json",directory,ssn_native_mode()?"native":"baseline");
     rename(report_path,previous);
     char sequence_path[1100],sequence[32]={0};
-    snprintf(sequence_path,sizeof(sequence_path),"%s/%s-sequence",directory,SSN_NATIVE?"native":"baseline");
+    snprintf(sequence_path,sizeof(sequence_path),"%s/%s-sequence",directory,ssn_native_mode()?"native":"baseline");
     unsigned long long saved_sequence=0;
     int sequence_fd=open(sequence_path,O_RDONLY);
     if(sequence_fd>=0) { read(sequence_fd,sequence,sizeof(sequence)-1); close(sequence_fd); sscanf(sequence,"%llu",&saved_sequence); }
@@ -128,11 +130,15 @@ void ssn_report(void) {
 #endif
     if(footprint>peak_footprint) peak_footprint=footprint;
     hardware[sizeof(hardware)-1]=0; os[sizeof(os)-1]=0;
-    bool positive=!SSN_NATIVE&&positive_control();
+    bool positive=!ssn_native_mode()&&positive_control();
     if(positive) write_file(calibration_path,SSN_PROOF_ID,strlen(SSN_PROOF_ID));
     char data[16384]; size_t at=0;
 #define ADD(...) do { int n=snprintf(data+at,sizeof(data)-at,__VA_ARGS__); if(n<0||(size_t)n>=sizeof(data)-at) { pthread_mutex_unlock(&report_lock); ssn_failure(10); return; } at+=(size_t)n; } while(0)
-    ADD("{\"schema\":1,\"proof_id\":\"%s\",\"source_revision\":\"%s\",\"mode\":\"%s\",",SSN_PROOF_ID,SSN_REVISION,SSN_NATIVE?"native":"baseline");
+    ADD("{\"schema\":1,\"proof_id\":\"%s\",\"source_revision\":\"%s\",\"mode\":\"%s\",",SSN_PROOF_ID,SSN_REVISION,ssn_native_mode()?"native":"baseline");
+    ADD("\"packaged_native\":%s,\"development_launch_selector\":%s,\"launch_origin\":%u,\"launch_selection_error\":%u,\"original_launch_pending\":%s,\"probe_contract\":\"%s\",",SSN_NATIVE?"true":"false",ssn_launch_selector_enabled()?"true":"false",ssn_launch_origin(),ssn_launch_error(),ssn_launch_pending()?"true":"false",SSN_PROBE_CONTRACT);
+    ADD("\"native_frontend_events\":[");
+    for(unsigned i=0;i<4;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&frontend_events[i]));
+    ADD("],");
     ADD("\"donor_sha256\":\"076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129\",\"twitch_version\":\"32.0\",\"twitch_build\":\"263110145453907615\",");
     ADD("\"armed_mask\":%u,\"failures\":%u,\"baseline_positive_control\":%s,\"baseline_calibrated\":%s,",atomic_load(&armed_mask),atomic_load(&failures),positive?"true":"false",baseline_verified?"true":"false");
     ADD("\"launch_sequence\":%llu,\"first_active_ms\":%llu,\"peak_observed_footprint_bytes\":%llu,",(unsigned long long)launch_sequence,(unsigned long long)first_active_ms,(unsigned long long)peak_footprint);
@@ -156,7 +162,7 @@ void ssn_report(void) {
 void ssn_probe_hit(unsigned i) {
     if(i>=SSN_PROBE_COUNT) { ssn_failure(0); return; }
     atomic_fetch_add(&counts[i],1);
-    if(SSN_NATIVE && ssn_specs[i].guard) {
+    if(ssn_native_mode() && ssn_specs[i].guard) {
         ssn_failure(1); ssn_report();
         /* Returning NULL through an unknown Swift/C++ result ABI would corrupt
          * the caller. Stop before the donor entry, preserving numeric evidence. */
@@ -165,7 +171,7 @@ void ssn_probe_hit(unsigned i) {
 }
 void ssn_summary(char *buffer,size_t size) {
     const char *status=ssn_failed()?"FAILED — export evidence":!ssn_armed()?"INCOMPLETE — probes not armed":
-        SSN_NATIVE?(baseline_verified?"Guarded; baseline observed — device sequence required":"UNVERIFIED — run baseline first"):
+        ssn_native_mode()?(baseline_verified?"Guarded; baseline observed — device sequence required":"UNVERIFIED — run baseline first"):
         positive_control()?"Baseline positive control observed":"Baseline incomplete — exercise RN screens";
     const char *failure=(atomic_load(&failures)&2)?"Blocked an unexpected RN/runtime attempt; export the report":
         (atomic_load(&failures)&1)?"Runtime probe identity or coverage failed":
@@ -175,7 +181,7 @@ void ssn_summary(char *buffer,size_t size) {
         (atomic_load(&failures)&(1u<<11))?"Native navigation ownership failed":
         (atomic_load(&failures)&(1u<<9))?"Diagnostic file could not be saved":"";
     snprintf(buffer,size,"%s\n%s\n%s\nRN factory %llu · host %llu\nSurface entries %llu · bundle entries %llu\nHermes VM %llu · worklet VM %llu\nNavigation guard %u · root requests blocked %llu\nSign-in opened %llu · verified returns %llu · failures %llu · closes %llu\nAccount updates retained %llu · data clears %llu\nPlayback phase %u · error %u · last failure %u · players %llu · released %llu\nEntry counts; unknown coverage is never zero activity.",
-        SSN_NATIVE?"Native frontend candidate":"Instrumented Twitch baseline",status,failure,
+        ssn_native_mode()?"Native frontend candidate":"Instrumented Twitch baseline",status,failure,
         (unsigned long long)ssn_count(4),(unsigned long long)ssn_count(6),(unsigned long long)(ssn_count(8)+ssn_count(9)),
         (unsigned long long)ssn_count(12),(unsigned long long)ssn_count(24),(unsigned long long)ssn_count(22),atomic_load(&navigation_armed),
         (unsigned long long)atomic_load(&navigation_events[0]),(unsigned long long)atomic_load(&navigation_events[1]),

@@ -5,6 +5,7 @@
 #include "SSNPlaybackRequest.h"
 #include <stdlib.h>
 static BOOL authorized=YES,pending;
+bool ssn_native_mode(void) { return true; }
 static unsigned requests,cancels,created,released,pauses,decodedEvents;
 static BOOL sourceEncoding;
 static id identity;

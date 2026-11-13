@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the SwiftUI native shell (or preserved UIKit proof) and exact-donor IPA pair."""
+"""Build a native development IPA; independent control packaging is explicit."""
 import argparse
 import hashlib
 import json
@@ -82,7 +82,7 @@ def compile_framework(mode, output, proof, revision, zig, frontend="swiftui", ap
                 '--entitlements',str(ROOT/'entitlements.plist'),'--name',FRAMEWORK,'-femit-bin='+str(framework/FRAMEWORK),
                 '-cflags','-Wall','-Wextra','-Werror','-fblocks','-fvisibility=hidden',
                 '-DSSN_NATIVE='+('1' if mode=='native' else '0'),'--']
-        args += [str(ROOT/'native'/f) for f in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFrontend.c']]
+        args += [str(ROOT/'native'/f) for f in ['SSNLaunch.c','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFrontend.c']]
         env = dict(os.environ, ZIG_LOCAL_CACHE_DIR=str(output/'cache'), ZIG_GLOBAL_CACHE_DIR=str(output/'global-cache'))
         subprocess.run(args, check=True, env=env)
         for tool in ['align_macho_segments.py','shrink_adhoc_signature.py']:
@@ -157,7 +157,7 @@ def main():
     compilation.add_argument('--components',type=Path,help='Downloaded Native SwiftUI Actions component directory (normal build path)')
     compilation.add_argument('--apple-build-host',help='Optional fallback SSH alias; no host is assumed available')
     parser.add_argument('--output',type=Path,help='Output directory outside the repository; defaults under ../artifacts/native-frontend')
-    parser.add_argument('--mode',choices=['baseline','native','both'],default='both')
+    parser.add_argument('--mode',choices=['baseline','native','both'],default='native')
     args=parser.parse_args()
     if args.frontend=='uikit':
         if not args.zig: parser.error('--zig or ZIG is required (0.14.0) for the UIKit checkpoint')

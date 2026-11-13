@@ -27,9 +27,13 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var refreshMessage: String?
     @Published private(set) var imageGeneration: UInt64 = 0
     private var refreshGate = RefreshGate()
-    let images = ChannelImageCache()
-    let clock = StreamClock()
-    let titleHaptics = TitleHaptics()
+    lazy var images = ChannelImageCache()
+    lazy var clock = StreamClock()
+    lazy var titleHaptics = TitleHaptics()
+    @Published private(set) var nativeMode = true
+    @Published private(set) var launchSelector = false
+    @Published private(set) var originalLaunchPending = false
+    @Published private(set) var launchError = 0
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
 
@@ -42,6 +46,10 @@ final class NativeServices: ObservableObject, AccountService {
 
     func reloadSnapshot() {
         let snapshot = bridge.snapshot()
+        nativeMode = (snapshot["nativeMode"] as? NSNumber)?.boolValue ?? true
+        launchSelector = (snapshot["launchSelector"] as? NSNumber)?.boolValue ?? false
+        originalLaunchPending = (snapshot["originalLaunchPending"] as? NSNumber)?.boolValue ?? false
+        launchError = (snapshot["launchError"] as? NSNumber)?.intValue ?? 0
         var next = NativeServiceState()
         next.refreshing = (snapshot["refreshing"] as? NSNumber)?.boolValue ?? false
         next.phase = (snapshot["phase"] as? NSNumber)?.intValue ?? 9
@@ -66,6 +74,10 @@ final class NativeServices: ObservableObject, AccountService {
         if next.signOutState == 2 { actionError = "Sign-out could not be confirmed. Check your account and try again." }
     }
 
+    func scheduleOriginalLaunch(_ requested: Bool) {
+        actionError = bridge.scheduleOriginalLaunch(requested) ? nil : "The next-launch preference could not be saved. Try again before closing the app."
+        reloadSnapshot()
+    }
     func open(_ channel: FollowedChannel) {
         actionError = nil
         if channel.thumbnailRestricted {

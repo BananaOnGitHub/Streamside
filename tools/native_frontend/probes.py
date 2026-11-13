@@ -81,6 +81,47 @@ def layout(plan, name):
     return result
 
 
+def launch_gate_layout(plan):
+    item=plan['layout']['Twitch']
+    probes=layout(plan,'Twitch')
+    cave=max(c+len(code) for _,c,code in probes)
+    cave=(cave+15)&~15
+    address=item['base']+cave
+    gate=plan['gate'];word=struct.unpack('<I',bytes.fromhex(gate['bytes'])[:4])[0]
+    if not (word & 0xffc003ff == 0xd10003ff or word & 0xffc003e0 == 0xa98003e0):
+        raise ValueError('Unvalidated launch gate first instruction')
+    slot=item['slot']+8;pc=address+4
+    delta=(slot>>12)-(pc>>12)
+    if not -(1<<20)<=delta<(1<<20):raise ValueError('Launch slot out of range')
+    words=[0xa9bf47f0, # STP X16,X17,[SP,#-16]!
+           0x90000010|((delta&3)<<29)|(((delta>>2)&0x7ffff)<<5),
+           0x91000210|((slot&4095)<<10),0xc8dffe11, # LDAR X17,[X16]
+           0xb4000011|(8<<5), # zero selection traps (instruction 12)
+           0x36000011|(1<<19)|(4<<5), # TBZ X17,#1,native (instruction 9)
+           0xa8c147f0,word,branch(address+32,gate['address']+4),
+           0xa8c147f0,0x52800000,0xd65f03c0,0xd42a6a60]
+    code=struct.pack('<'+'I'*len(words),*words)
+    if cave+len(code)>item['code_offset']+item['code_size']:raise ValueError('Launch gate cave overflow')
+    return cave,code
+
+
+def validate_launch_slot(data,plan):
+    # The existing observer uses the penultimate word of a verified unused DATA
+    # tail. Admit both words, including the selector, beyond every section.
+    from macho import load_commands
+    slot=plan['layout']['Twitch']['slot']
+    for c in load_commands(data):
+        if c.command!=0x19:continue
+        vm,size,off,filesize=struct.unpack_from('<4Q',data,c.offset+24)
+        if not vm<=slot<vm+size:continue
+        _,protection,count=struct.unpack_from('<3I',data,c.offset+56)
+        end=max((sum(struct.unpack_from('<2Q',data,c.offset+72+i*80+32)) for i in range(count)),default=vm)
+        if not protection&2 or slot<end or slot+16>vm+size:raise ValueError('Launch slot is not unused writable DATA tail')
+        if slot<vm+filesize and any(data[off+slot-vm:off+min(slot+16-vm,filesize)]):raise ValueError('Launch slot is not zero')
+        return
+    raise ValueError('Launch slot is not mapped')
+
+
 def patch(data, plan, name, proof_id, native):
     if hashlib.sha256(data).hexdigest() != plan['images'][name]:
         raise ValueError('Exact donor image required: ' + name)
@@ -100,7 +141,10 @@ def patch(data, plan, name, proof_id, native):
         gate = plan['gate']; pos = file_offset(out, gate['address'])
         if out[pos:pos+16].hex() != gate['bytes']:
             raise ValueError('Eligibility gate prefix mismatch')
-        out[pos:pos+8] = struct.pack('<II', 0x52800000, 0xd65f03c0)  # false; return
+        validate_launch_slot(data,plan)
+        cave,code=launch_gate_layout(plan)
+        out[pos:pos+4]=struct.pack('<I',branch(gate['address'],item['base']+cave))
+        out[cave:cave+len(code)]=code
     return bytes(out)
 
 
@@ -131,6 +175,13 @@ def generate_header(plan, proof_id, revision, destination):
                       spec['address'] - bases.get(spec['image'], 0),
                       ','.join('0x'+spec['bytes'][i:i+2] for i in range(0,32,2))))
     lines += ['};']
+    cave,_=launch_gate_layout(plan);item=plan['layout']['Twitch']
+    contract={k:plan[k] for k in ['probes','layout','gate','required_baseline']}
+    contract=hashlib.sha256(json.dumps(contract,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    lines += ['#define SSN_PROBE_CONTRACT '+json.dumps(contract),
+              '#define SSN_LAUNCH_SLOT_OFFSET 0x%x'%(item['slot']+8-item['base']),
+              '#define SSN_LAUNCH_GATE_OFFSET 0x%x'%(plan['gate']['address']-item['base']),
+              '#define SSN_LAUNCH_GATE_OPCODE 0x%x'%branch(plan['gate']['address'],item['base']+cave)]
     spec=plan['objc_services']['logout']
     lines += ['typedef struct { const char *image,*class_name,*selector,*encoding; uintptr_t offset; unsigned char prefix[16]; } SSNObjCServiceSpec;',
               'static const SSNObjCServiceSpec ssn_logout = {%s,%s,%s,%s,0x%x,{%s}};' %

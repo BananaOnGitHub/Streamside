@@ -23,7 +23,7 @@ static void setRoot(UIWindow *window, SEL selector, UIViewController *requested)
 }
 
 BOOL SSNInstallWindowOwnership(UIWindow *window, UIViewController *root) {
-    if(!SSN_NATIVE || ![NSThread isMainThread] || !window || !root || ownedWindow) return NO;
+    if(!ssn_native_mode() || ![NSThread isMainThread] || !window || !root || ownedWindow) return NO;
     SEL selector=@selector(setRootViewController:);
     Method method=class_getInstanceMethod(UIWindow.class,selector);
     if(!method || method_getNumberOfArguments(method)!=3) return NO;
@@ -39,6 +39,6 @@ BOOL SSNInstallWindowOwnership(UIWindow *window, UIViewController *root) {
     ownedWindow=window; ownedRoot=root;
     method_setImplementation(method,(IMP)setRoot);
     window.rootViewController=root;
-    ssn_navigation_armed();
+    ssn_navigation_armed();ssn_frontend_event(2);
     return window.rootViewController==root;
 }

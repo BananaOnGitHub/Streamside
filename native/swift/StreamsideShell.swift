@@ -185,7 +185,26 @@ struct DiagnosticsView: View {
                         Text("Twitch replaced the Streamside interface. Appearance does not identify its runtime; use the entry counts below.")
                     }
                     if baseline {
-                        Text("This baseline runs Twitch's original interface and JavaScript runtimes.")
+                        Text("Twitch owns startup and navigation. Exercise normal screens to confirm positive runtime observations.")
+                    }
+                }
+                if services.launchSelector {
+                    Section("Development launch") {
+                        if services.nativeMode {
+                            Button(services.originalLaunchPending ? "Cancel original Twitch launch" : "Launch original Twitch UI") {
+                                services.scheduleOriginalLaunch(!services.originalLaunchPending)
+                            }
+                            Text(services.originalLaunchPending
+                                 ? "Saved for the next process launch. Fully close the app, then reopen it. The launch after that returns to Streamside Native."
+                                 : "Schedules Twitch’s original startup for one launch. The current interface and playback keep running until you close the app.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            Text("Original Twitch startup for this process. Fully close and reopen the app to return to Streamside Native.")
+                        }
+                        if services.launchError != 0 {
+                            Text("Launch preference error \(services.launchError). Original startup requires a confirmed one-shot preference deletion.").foregroundStyle(.red)
+                        }
+                        if let error = services.actionError { Text(error).foregroundStyle(.red) }
                     }
                 }
                 Section("Runtime entry counts") {
@@ -196,7 +215,7 @@ struct DiagnosticsView: View {
                 }
                 Section {
                     Button("Refresh diagnostics") { services.reloadSnapshot() }
-                    Button(baseline ? "Export baseline reports" : "Export native reports") {
+                    Button(services.launchSelector ? "Export launch reports" : baseline ? "Export baseline reports" : "Export native reports") {
                         export = ReportExport(urls: services.exportReports())
                     }
                 } footer: {

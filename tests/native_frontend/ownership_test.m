@@ -3,6 +3,7 @@
 #import <objc/runtime.h>
 #include <stdlib.h>
 
+void ssn_frontend_event(unsigned event) { (void)event; }
 static unsigned blocked, failures;
 static BOOL armed;
 static __weak UIViewController *lastRequested;

@@ -69,7 +69,7 @@ static BOOL playerABI(void) {
 }
 - (void)requestSource {
     [self releaseMedia];_wasPlaying=NO;_decoded=NO;
-    if(!SSN_NATIVE||!ssn_playback_authorized()||!ssn_navigation_guarded()) { [self fail:1];return; }
+    if(!ssn_native_mode()||!ssn_playback_authorized()||!ssn_navigation_guarded()) { [self fail:1];return; }
     if(!playerABI()) { [self fail:2];return; }
     NSCharacterSet *allowed=[NSCharacterSet characterSetWithCharactersInString:@"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"];
     if(!_channel.length||_channel.length>128||[_channel rangeOfCharacterFromSet:allowed.invertedSet].location!=NSNotFound) { [self fail:3];return; }

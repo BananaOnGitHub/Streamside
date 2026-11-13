@@ -163,7 +163,7 @@ void ssn_account_event(unsigned event) {
     /* Only compare opaque object identity with the authorization that supplied
      * the successful currentUser result. Presence alone cannot retain a session.
      * Login/logout/token changes always invalidate, including same-object cases. */
-    bool preserve=SSN_NATIVE && account && verified_auth &&
+    bool preserve=ssn_native_mode() && account && verified_auth &&
         ssn_preserve_account_event(event,authorization()==verified_auth);
     ssn_account_observed(event,preserve);
     if(!preserve) ssn_account_changed();
@@ -171,6 +171,8 @@ void ssn_account_event(unsigned event) {
 }
 static void poll(void *context);
 static bool request(bool follows) {
+    if(!ssn_native_mode()) return false;
+    ssn_frontend_event(3);
     const void *type=follows?follows_promise_type:account_promise_type;
 #if SSN_SWIFTUI
     if(follows) {
@@ -240,7 +242,7 @@ static void poll(void *context) {
     objc_release(promise); ssn_report(); ssn_ui_changed();
 }
 void ssn_account_refresh(void) {
-    if(!SSN_NATIVE) return;
+    if(!ssn_native_mode()) return;
     if(!ssn_armed()) { ssn_failure(0); ssn_service(SSN_MONITOR_FAILED,0); ssn_ui_changed(); ssn_report(); return; }
     /* Ordinary foreground/manual refresh keeps verified presentation data.
      * Real account events still use ssn_account_changed(), which clears it.

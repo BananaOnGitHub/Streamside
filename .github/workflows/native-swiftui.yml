@@ -98,3 +98,8 @@ jobs:
         run: python3 -m unittest discover -s tests/native_frontend -p test_components.py -v
       - name: Test native diagnostic core
         run: python3 -m unittest discover -s tests/native_frontend -p test_core.py -v
+      - name: Test one-shot selection, original-startup gate, and report admission
+        run: |
+          python3 -m unittest discover -s tests/native_frontend -p test_launch.py -v
+          python3 -m unittest discover -s tests/native_frontend -p test_probes.py -v
+          python3 -m unittest discover -s tests/native_frontend -p test_launch_comparison.py -v

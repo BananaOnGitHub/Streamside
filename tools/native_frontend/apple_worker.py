@@ -37,14 +37,14 @@ def main():
                             repository=os.environ.get('GITHUB_REPOSITORY'))
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
     common=['-target','arm64-apple-ios16.4','-isysroot',sdk,'-Os','-fblocks','-Wall','-Wextra','-Werror',
-            '-fvisibility=hidden','-DSSN_SWIFTUI=1','-Inative','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
+            '-fvisibility=hidden','-DSSN_SWIFTUI=1','-DSSN_DEV_LAUNCH_SELECTOR='+str(int(config['mode']=='native')),'-Inative','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
     swift=['native/swift/'+p.name for p in sorted((root/'native/swift').glob('*.swift'))]
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-O','-swift-version','5','-warnings-as-errors',
          '-module-name','StreamsideNativeProof','-import-objc-header','native/SSNNativeBridge.h',
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+swift)
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
+    for name in ['SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
         run(['xcrun','clang']+common+(['-fobjc-arc'] if name=='SSNWindowOwnership.m' else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
@@ -85,7 +85,7 @@ def test_window_ownership(root, output, config, run):
     run(['xcrun','clang','-target',architecture+'-apple-ios16.4-simulator','-isysroot',simulator_sdk,
          '-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-DSSN_NATIVE='+str(int(config['mode']=='native')),
          '-Inative','-Igenerated','-I'+str(stage),
-         'native/SSNWindowOwnership.m','tests/native_frontend/ownership_test.m',
+         'native/SSNLaunch.c','native/SSNWindowOwnership.m','tests/native_frontend/ownership_test.m',
          '-framework','UIKit','-framework','Foundation','-o',str(bundle/'OwnershipTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(bundle)])
     clock_bundle=stage/'ClockTest.app';clock_bundle.mkdir()
@@ -108,6 +108,17 @@ def test_window_ownership(root, output, config, run):
          'native/SSNPlayback.m','tests/native_frontend/playback_test.m','-framework','UIKit','-framework','Foundation',
          '-framework','AVFAudio','-o',str(playback_bundle/'PlaybackTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(playback_bundle)])
+    launch_bundle=stage/'LaunchTest.app';launch_bundle.mkdir()
+    launch_id='dev.streamside.launchtest'
+    launch_plist=plistlib.loads((bundle/'Info.plist').read_bytes())
+    launch_plist.update(CFBundleIdentifier=launch_id,CFBundleExecutable='LaunchTest',CFBundleName='LaunchTest')
+    (launch_bundle/'Info.plist').write_bytes(plistlib.dumps(launch_plist))
+    run(['xcrun','clang','-target',architecture+'-apple-ios16.4-simulator','-isysroot',simulator_sdk,
+         '-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-DSSN_NATIVE=1','-DSSN_DEV_LAUNCH_SELECTOR=1',
+         '-Inative','-Igenerated','-I'+str(stage),'native/SSNLaunch.c','native/SSNLaunchPreferences.m',
+         'native/SSNWindowOwnership.m','tests/native_frontend/launch_test.m',
+         '-framework','UIKit','-framework','Foundation','-o',str(launch_bundle/'LaunchTest')])
+    run(['codesign','--force','--sign','-','--timestamp=none',str(launch_bundle)])
     runtimes=json.loads(run(['xcrun','simctl','list','runtimes','--json']))['runtimes']
     runtime=next(r['identifier'] for r in runtimes if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-'))
     types=json.loads(run(['xcrun','simctl','list','devicetypes','--json']))['devicetypes']
@@ -136,7 +147,13 @@ def test_window_ownership(root, output, config, run):
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
         expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
-        return dict(playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+        run(['xcrun','simctl','install',device,str(launch_bundle)])
+        for _ in range(3):run(['xcrun','simctl','launch','--console',device,launch_id])
+        launch_container=Path(run(['xcrun','simctl','get_app_container',device,launch_id,'data']))
+        launches=json.loads((launch_container/'Documents/launch-test.json').read_text())
+        expected_launches=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]
+        if launches!=expected_launches:raise ValueError('Three-process launch selection failed: '+str(launches))
+        return dict(launch_receipt=launches,playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
     finally:
         run(['xcrun','simctl','shutdown',device])
         run(['xcrun','simctl','delete',device])

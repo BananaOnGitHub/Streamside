@@ -20,7 +20,7 @@ class CoreEvidence(unittest.TestCase):
         generate_header(PLAN,'1'*64,'host-synthetic-selftest',cls.directory/'SSNBuild.h')
         for mode in [0,1]:
             subprocess.run(['cc','-std=gnu11','-Wall','-Wextra','-Werror','-pthread','-DSSN_NATIVE='+str(mode),
-                            '-I'+str(cls.directory),'-I'+str(ROOT/'native'),str(ROOT/'native/SSNCore.c'),
+                            '-I'+str(cls.directory),'-I'+str(ROOT/'native'),str(ROOT/'native/SSNLaunch.c'),str(ROOT/'native/SSNCore.c'),
                             str(ROOT/'tests/native_frontend/core_driver.c'),'-o',str(cls.directory/str(mode))],check=True)
 
     @classmethod

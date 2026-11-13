@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "SSNLaunch.h"
 typedef struct { const char *name,*image; uintptr_t offset; uint32_t opcode; bool guard; } SSNProbeSpec;
 typedef struct { const char *name; uintptr_t cave,slot; } SSNImageSpec;
 #include "SSNBuild.h"
@@ -35,3 +36,6 @@ void ssn_summary(char *buffer,size_t size);
 /* Bounded playback evidence, independent of all runtime entry probes. */
 void ssn_playback_status(unsigned phase,unsigned error);
 void ssn_playback_event(unsigned event);
+
+/* Native-only installation/request observations. Original mode leaves all zero. */
+void ssn_frontend_event(unsigned event);

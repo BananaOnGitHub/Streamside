@@ -25,13 +25,15 @@ public final class SSNSwiftUIHost: NSObject {
     public static func attach(to window: UIWindow) {
         guard self.window == nil else { return }
         self.window = window
-        let services = NativeServices()
+        let native = SSNNativeBridge.shared().isNativeLaunch()
+        // Original startup gets only a later diagnostics gesture. Native account,
+        // feed, image cache, haptic engine and clock are not constructed here.
+        let services = native ? NativeServices() : nil
         self.services = services
-        let native = (SSNNativeBridge.shared().snapshot()["nativeMode"] as? NSNumber)?.boolValue ?? false
         let target = SSNSwiftUIHost()
         gestureTarget = target
         baseline = !native
-        if native {
+        if native, let services {
             retainAuthenticationRoot(window.rootViewController)
             let controller = UIHostingController(rootView: StreamsideShell(services: services))
             nativeController = controller
@@ -138,8 +140,10 @@ public final class SSNSwiftUIHost: NSObject {
     @objc private func closeSignIn() { Self.finishAuthentication(verified: false) }
 
     @objc private func openDiagnostics(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began, let services = Self.services,
+        guard gesture.state == .began,
               var presenter = Self.window?.rootViewController else { return }
+        if Self.services == nil { Self.services = NativeServices() }
+        guard let services = Self.services else { return }
         if Self.diagnosticsController == nil {
             Self.diagnosticsController = UIHostingController(rootView: DiagnosticsView(services: services, baseline: Self.baseline))
         }

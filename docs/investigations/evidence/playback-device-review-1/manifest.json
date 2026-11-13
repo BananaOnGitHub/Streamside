@@ -1,0 +1,26 @@
+{
+  "attachment_sha256": "b2baa09065e8b83098dcdc6e0fda6a1b2b077afdc955322ef756ca8da5e77500",
+  "privacy_review": "Only source/donor/probe identities, aggregate numeric state/runtime/performance counters and device/OS metadata. No credentials, usernames, channels, chat, URLs or media. Preserved JSON bytes unchanged.",
+  "files": {
+    "baseline-previous.json": {
+      "sha256": "faa370542ed457359afc3db17f856f0f984992ef3b99d9c96037347e129edbe0",
+      "source_revision": "2bbfb860e46ac066f83fca870db57370084e730c",
+      "proof_id": "06756e9eef1829a5150a3f77e31e4309b89385c5ef3fe3d3ff23b8c28adaf957"
+    },
+    "native-latest.json": {
+      "sha256": "cf20d2da45296f3c0aa722e68ab06a1349f7fb271ca04ceb20a5c8ab0ad2dc82",
+      "source_revision": "2bbfb860e46ac066f83fca870db57370084e730c",
+      "proof_id": "06756e9eef1829a5150a3f77e31e4309b89385c5ef3fe3d3ff23b8c28adaf957"
+    },
+    "baseline-latest.json": {
+      "sha256": "63ef371696560b62458050de37290dc5aeb8a2cfa18c64dce32c45dac1c270be",
+      "source_revision": "2bbfb860e46ac066f83fca870db57370084e730c",
+      "proof_id": "06756e9eef1829a5150a3f77e31e4309b89385c5ef3fe3d3ff23b8c28adaf957"
+    },
+    "native-previous.json": {
+      "sha256": "73b65f486f221fbbba0ae8b2332e938205e5ea642c77ec85d7ed3538a0d6b98e",
+      "source_revision": "866bd92d7322d71cc7413d82a7a1e49298e1666f",
+      "proof_id": "7fb3db6e53bc12db9ddcfe538d74bc009badc2590703221f18895e72d6418b9d"
+    }
+  }
+}

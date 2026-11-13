@@ -13,6 +13,8 @@ not here.
 
 - [SwiftUI device review: native logout/login sequence](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md): measured root replacement, signed-out/reauthenticated native requests, restored session after restart, zero guarded runtimes and the permitted holder entry.
 
+- [Development-only original Twitch cold launch](SWIFTUI_NATIVE_ONE_SHOT_LAUNCH.md): one-shot selection, playback device evidence, original-startup isolation and one-time independent control validation.
+
 ## Native frontend trial
 
 - [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.

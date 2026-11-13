@@ -45,13 +45,33 @@ static void added(const struct mach_header *header,intptr_t slide) {
         for(unsigned p=0;p<SSN_PROBE_COUNT;p++) if(!strcmp(ssn_specs[p].image,ssn_images[i].name)) {
             uint32_t op; memcpy(&op,base+ssn_specs[p].offset,4); if(op!=ssn_specs[p].opcode) valid=false;
         }
+        if(!strcmp(ssn_images[i].name,"Twitch") && SSN_NATIVE) {
+            uint32_t gate;memcpy(&gate,base+SSN_LAUNCH_GATE_OFFSET,4);
+            valid=valid&&gate==SSN_LAUNCH_GATE_OPCODE;
+            if(valid) __atomic_store_n((uintptr_t*)(base+SSN_LAUNCH_SLOT_OFFSET),ssn_native_mode()?1u:2u,__ATOMIC_RELEASE);
+        }
         if(valid) __atomic_store_n((uintptr_t*)(base+ssn_images[i].slot),(uintptr_t)ssn_probe_hit,__ATOMIC_RELEASE);
         ssn_arm_image(i,valid);
     }
 }
 static void after_restore(void *unused) {
     (void)unused;
-    if(num(m0(c("UIApplication"),"sharedApplication"),"applicationState")==0 && !ssn_account_refreshing()) ssn_account_refresh();
+    if(num(m0(c("UIApplication"),"sharedApplication"),"applicationState")!=0) return;
+    if(ssn_native_mode()) { if(!ssn_account_refreshing()) ssn_account_refresh(); }
+    else {
+        /* Original routing owns its scene/window. Only discover the existing
+         * key window for the non-intercepting diagnostics gesture after startup. */
+        id scenes=m0(m0(c("UIApplication"),"sharedApplication"),"connectedScenes");
+        id all=m0(scenes,"allObjects");
+        for(uintptr_t s=0;s<num(all,"count")&&s<8;s++) {
+            id scene=at(all,s);if(!responds(scene,"windows")) continue;
+            id windows=m0(scene,"windows");
+            for(uintptr_t w=0;w<num(windows,"count")&&w<16;w++) {
+                id window=at(windows,w);
+                if(num(window,"isKeyWindow")) { ssn_ui_attach(window);return; }
+            }
+        }
+    }
 }
 static void connect_scene(id self,SEL cmd,id scene,id session,id options) {
     ((void(*)(id,SEL,id,id,id))original_connect)(self,cmd,scene,session,options);
@@ -84,6 +104,7 @@ static void observe(id name,const char *selector) {
         ss("addObserver:selector:name:object:"),observer,ss(selector),name,nil);
 }
 void ssn_integration_start(void) {
+    ssn_launch_select();
     id manager=m0(c("NSFileManager"),"defaultManager");
     id urls=((id(*)(id,SEL,uintptr_t,uintptr_t))objc_msgSend)(manager,ss("URLsForDirectory:inDomains:"),14,1);
     id directory=m1(num(urls,"count")?at(urls,0):nil,"URLByAppendingPathComponent:",ns("StreamsideNativeProof"));
@@ -92,18 +113,25 @@ void ssn_integration_start(void) {
     if(!created||!path) { ssn_failure(9); return; }
     ssn_core_start(path);
     _dyld_register_func_for_add_image(added);
+    if(ssn_native_mode()) {
     Class scene=objc_getClass("_TtC6Twitch13SceneDelegate");
     if(!method_is(scene,"scene:willConnectToSession:options:","v40@0:8@16@24@32",false)||!method_is(scene,"window","@16@0:8",false)) { ssn_failure(2); return; }
     original_connect=method_setImplementation(class_getInstanceMethod(scene,ss("scene:willConnectToSession:options:")),(IMP)connect_scene);
+    ssn_frontend_event(0);
+    }
     observer_class=objc_allocateClassPair(objc_getClass("NSObject"),"SSNProofObserver",0);
     if(!observer_class) { ssn_failure(2); return; }
     class_addMethod(observer_class,ss("active:"),(IMP)active,"v24@0:8@16");
     class_addMethod(observer_class,ss("background:"),(IMP)background,"v24@0:8@16");
+    if(ssn_native_mode()) {
     const char *account_selectors[]={"accountUpdated:","accountAvailable:","accountLogin:","accountLogout:","accountToken:"};
     for(unsigned i=0;i<5;i++) class_addMethod(observer_class,ss(account_selectors[i]),(IMP)account_change,"v24@0:8@16");
+    }
     objc_registerClassPair(observer_class); observer=m0((id)observer_class,"new");
     observe(ns("UIApplicationDidBecomeActiveNotification"),"active:");
     observe(ns("UIApplicationDidEnterBackgroundNotification"),"background:");
+    if(ssn_native_mode()) {
+    ssn_frontend_event(1);
     const char *symbols[]={"$sSo18NSNotificationNamea14TwitchIdentityE11UserUpdatedABvgZ",
         "$sSo18NSNotificationNamea14TwitchIdentityE15UserIsAvailableABvgZ",
         "$sSo18NSNotificationNamea14TwitchIdentityE12UserDidLogInABvgZ",
@@ -113,6 +141,7 @@ void ssn_integration_start(void) {
         id (__attribute__((swiftcall)) *getter)(void)=ssn_resolve(symbols[i]);
         if(!getter) { ssn_failure(2); continue; }
         id name=getter(); observe(name,account_selectors[i]); objc_release(name);
+    }
     }
     ssn_report();
 }

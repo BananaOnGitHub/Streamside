@@ -215,7 +215,7 @@ struct DiagnosticsView: View {
                 }
                 Section {
                     Button("Refresh diagnostics") { services.reloadSnapshot() }
-                    Button(services.launchSelector ? "Export launch reports" : baseline ? "Export baseline reports" : "Export native reports") {
+                    Button(services.nativeMode ? "Export native reports" : "Export baseline reports") {
                         export = ReportExport(urls: services.exportReports())
                     }
                 } footer: {

@@ -93,9 +93,8 @@ static void check_signout(void) {
     NSString *directory=[@(ssn_report_path()) stringByDeletingLastPathComponent];
     NSString *flavor=ssn_native_mode()?@"native":@"baseline";
     NSMutableArray *urls=[NSMutableArray array];
-    NSArray *flavors=ssn_launch_selector_enabled()?@[@"native",@"baseline"]:@[flavor];
-    for(NSString *selected in flavors) for(NSString *suffix in @[@"latest",@"previous"]) {
-        NSString *path=[directory stringByAppendingPathComponent:[NSString stringWithFormat:@"%@-%@.json",selected,suffix]];
+    for(NSString *suffix in @[@"latest",@"previous"]) {
+        NSString *path=[directory stringByAppendingPathComponent:[NSString stringWithFormat:@"%@-%@.json",flavor,suffix]];
         if([[NSFileManager defaultManager] fileExistsAtPath:path]) [urls addObject:[NSURL fileURLWithPath:path]];
     }
     return urls;

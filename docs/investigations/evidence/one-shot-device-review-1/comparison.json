@@ -1,0 +1,20 @@
+{
+  "original_startup_comparison": {
+    "status": "original_startup_reports_consistent_pending_device_routing_review",
+    "failures": [],
+    "limits": [
+      "Observe actual original routing on device. Positive counts need not be identical across workloads.",
+      "The native package retains its modern UIKit styling preference and selector shim. This is not binary, pixel, memory, or timing identity.",
+      "A report from an older control without hook evidence or probe contract cannot establish their absence."
+    ]
+  },
+  "native_return_sequence": {
+    "status": "reported_sequence_passed_pending_device_observation_review",
+    "failures": [],
+    "limits": [
+      "Reports check consistency. Screen appearance, actual account/channel identity, signing/keychain continuity and untested donor paths still require the device checklist. Startup time begins at the diagnostic constructor, excluding dyld and earlier work."
+    ],
+    "memory_difference_bytes": -169820328,
+    "constructor_to_active_difference_ms": 141
+  }
+}

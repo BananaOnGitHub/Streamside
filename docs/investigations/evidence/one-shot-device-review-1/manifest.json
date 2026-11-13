@@ -1,0 +1,96 @@
+{
+  "attachment_sha256": "149972fec56a279a0b10d32e582dd83c6ea9d9bacf8a7b78e40818fd6a131496",
+  "privacy_review": "Reviewed all eight distinct reports: only known source/donor/probe identities, aggregate state/runtime/performance counters, and hardware/OS metadata; no credentials, usernames, channel names, chat, URLs or media. Unique JSON bytes preserved unchanged; byte-identical duplicates indexed as aliases.",
+  "reports": {
+    "native-24-14492.json": {
+      "sha256": "fb26bbd0f374004e2057f95bc76ac7727bb880c642205c4b2aab1859d3c3ea21",
+      "attachment_entries": [
+        "nativetesting/native-latest 2.json"
+      ],
+      "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+      "mode": "native",
+      "launch_origin": 1,
+      "launch_sequence": 24,
+      "uptime_ms": 14492
+    },
+    "native-23-151120.json": {
+      "sha256": "032c1c9ca08e43a2d112dc3b8972e25157ed6b108c76a2938800e9de076c1267",
+      "attachment_entries": [
+        "nativetesting/native-previous 2.json",
+        "nativetesting/native-latest.json"
+      ],
+      "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+      "mode": "native",
+      "launch_origin": 1,
+      "launch_sequence": 23,
+      "uptime_ms": 151120
+    },
+    "baseline-16-21300.json": {
+      "sha256": "e02c547b0074f1762fc274d58ad732ff9b00a444dd36b4373c5e633d00ded0d5",
+      "attachment_entries": [
+        "nativetesting/baseline-previous.json"
+      ],
+      "source_revision": "2bbfb860e46ac066f83fca870db57370084e730c",
+      "mode": "baseline",
+      "launch_origin": null,
+      "launch_sequence": 16,
+      "uptime_ms": 21300
+    },
+    "baseline-17-27686.json": {
+      "sha256": "fd676c7d13e52e035b203fbb4b3d8c20abd347f4b05f3d1a82db498d565f5db6",
+      "attachment_entries": [
+        "nativetesting/baseline-latest.json"
+      ],
+      "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+      "mode": "baseline",
+      "launch_origin": 0,
+      "launch_sequence": 17,
+      "uptime_ms": 27686
+    },
+    "native-22-529846.json": {
+      "sha256": "1c6c2c3cc7222708b0313bca3fce67fd50d594aec0d40bb18a459725bed612e2",
+      "attachment_entries": [
+        "nativetesting/native-previous.json"
+      ],
+      "source_revision": "2bbfb860e46ac066f83fca870db57370084e730c",
+      "mode": "native",
+      "launch_origin": null,
+      "launch_sequence": 22,
+      "uptime_ms": 529846
+    },
+    "baseline-18-40203.json": {
+      "sha256": "a353be2acc40017082eced75c2194bd29254cfbc1d82b316714dda866d171dd2",
+      "attachment_entries": [
+        "nativetesting/baseline-latest 2.json"
+      ],
+      "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+      "mode": "baseline",
+      "launch_origin": 2,
+      "launch_sequence": 18,
+      "uptime_ms": 40203
+    },
+    "baseline-17-38823.json": {
+      "sha256": "e8b9481545983c390cfd086f9f7b4228adfc84d9d1813dd0e948e858827ef98f",
+      "attachment_entries": [
+        "nativetesting/baseline-previous 3.json",
+        "nativetesting/baseline-previous 2.json"
+      ],
+      "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+      "mode": "baseline",
+      "launch_origin": 0,
+      "launch_sequence": 17,
+      "uptime_ms": 38823
+    },
+    "baseline-18-55610.json": {
+      "sha256": "4cbf7a834ada0e3fccc2ede3e19fbd8151d2eb6033f3c485820f6301a9fd730b",
+      "attachment_entries": [
+        "nativetesting/baseline-latest 3.json"
+      ],
+      "source_revision": "1ca14140a6a711ff408d23eac674067d0d27ccab",
+      "mode": "baseline",
+      "launch_origin": 2,
+      "launch_sequence": 18,
+      "uptime_ms": 55610
+    }
+  }
+}

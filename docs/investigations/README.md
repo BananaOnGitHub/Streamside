@@ -15,6 +15,8 @@ not here.
 
 - [Development-only original Twitch cold launch](SWIFTUI_NATIVE_ONE_SHOT_LAUNCH.md): one-shot selection, playback device evidence, original-startup isolation and one-time independent control validation.
 
+- [One-shot device review and export isolation correction](SWIFTUI_NATIVE_EXPORT_ISOLATION_REVIEW.md): independent/original runtime comparison, automatic Native return, duplicate report mapping and mode-specific sharing.
+
 ## Native frontend trial
 
 - [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.

@@ -66,14 +66,16 @@ final class PlayerInputTests: XCTestCase {
         dismissPopover(glassSetting, in: app)
         let holdControls = app.switches["hold-controls"]
         XCTAssertEqual(holdControls.value as? String, "1")
-        holdControls.tap()
+        // The merged accessibility switch spans its label row. Hit the actual
+        // trailing thumb, observed at x=341...404 within its 402-point row.
+        holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
         XCTAssertEqual(holdControls.value as? String, "0", "Fixture must release its explicit hold before timing auto-hide")
         let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: mute)
         XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 7), .completed, "Controls did not auto-hide")
         // Empty video area, away from top/bottom bars and the central play button.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
         XCTAssertTrue(mute.waitForExistence(timeout: 5), "Video tap did not reveal controls")
-        holdControls.tap()
+        holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
         XCTAssertEqual(holdControls.value as? String, "1")
         tap(app.buttons["player.close"])
         XCTAssertTrue(app.staticTexts["closed"].waitForExistence(timeout: 5))

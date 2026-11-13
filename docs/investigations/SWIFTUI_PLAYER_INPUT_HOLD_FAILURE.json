@@ -1,0 +1,17 @@
+{
+  "source_revision": "3bb9dd263dcf310cfcdffad8a877ed105ce60901",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43392132610",
+  "outcome": "failed",
+  "observed": "Both styles dismissed the real share/settings popovers and verified system Copy. The explicit hold-off precondition failed: merged Switch selector spans x=0...402, but its interactive child thumb is x=341...404. A center tap left both switch values at 1.",
+  "correction": "Tap the visible trailing switch thumb by coordinate; still require state 0 before the unchanged auto-hide limit, then state 1 after reveal and successful Close. No production control implementation changed.",
+  "artifacts": {
+    "failure.json": {
+      "bytes": 163,
+      "sha256": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2"
+    },
+    "native/build.log": {
+      "bytes": 525843,
+      "sha256": "b4302056baefcd0a1b38e3c2ae917325dbd686be8ffd88274893559687e3be27"
+    }
+  }
+}

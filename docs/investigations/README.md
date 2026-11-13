@@ -72,3 +72,5 @@ and updating navigation.
 - [Cycle slider endpoint feedback correction](SWIFTUI_CYCLE_SLIDER_FIX.md) — deduplicated selection ticks and endpoint/midpoint jitter regression checks.
 
 - [Portrait native playback trial](SWIFTUI_NATIVE_PLAYBACK.md) — existing authenticated GraphQL token path, bundled IVS UIKit theatre, lifecycle evidence and pending device playback/runtime validation.
+
+- [Native player input correction](SWIFTUI_PLAYER_INPUT.md) — failed device taps, display-only media surface, coordinate UI tests and bounded control/mute evidence.

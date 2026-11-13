@@ -20,7 +20,8 @@ static _Atomic uint64_t started_ns, visible_ms, first_active_ms, launch_sequence
 static _Atomic unsigned navigation_armed;
 static _Atomic uint64_t navigation_events[5],account_events[5],account_updates_retained,account_data_clears;
 static _Atomic unsigned playback_phase,playback_error,playback_last_error;
-static _Atomic uint64_t playback_events[9];
+static _Atomic uint64_t playback_events[9],player_control_events[7],mute_mismatches;
+static _Atomic unsigned mute_flags;
 static _Atomic uint64_t frontend_events[4];
 static uint64_t peak_footprint;
 static bool baseline_verified;
@@ -73,6 +74,11 @@ void ssn_account_observed(unsigned event,bool preserved) {
     if(preserved) atomic_fetch_add(&account_updates_retained,1);
 }
 void ssn_playback_status(unsigned phase,unsigned error) { atomic_store(&playback_phase,phase<=8?phase:7);atomic_store(&playback_error,error<=7?error:7);if(error) atomic_store(&playback_last_error,error<=7?error:7); }
+void ssn_playback_mute(bool known,bool requested,bool reported) {
+    atomic_store(&mute_flags,(known?1u:0u)|(requested?2u:0u)|(known&&reported?4u:0u));
+    if(known&&requested!=reported) atomic_fetch_add(&mute_mismatches,1);
+}
+void ssn_player_control_event(unsigned event) { if(event<7) atomic_fetch_add(&player_control_events[event],1); }
 void ssn_playback_event(unsigned event) { if(event<9) atomic_fetch_add(&playback_events[event],1); }
 void ssn_frontend_event(unsigned event) { if(event<4) atomic_fetch_add(&frontend_events[event],1); }
 void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }
@@ -136,6 +142,11 @@ void ssn_report(void) {
 #define ADD(...) do { int n=snprintf(data+at,sizeof(data)-at,__VA_ARGS__); if(n<0||(size_t)n>=sizeof(data)-at) { pthread_mutex_unlock(&report_lock); ssn_failure(10); return; } at+=(size_t)n; } while(0)
     ADD("{\"schema\":1,\"proof_id\":\"%s\",\"source_revision\":\"%s\",\"mode\":\"%s\",",SSN_PROOF_ID,SSN_REVISION,ssn_native_mode()?"native":"baseline");
     ADD("\"packaged_native\":%s,\"development_launch_selector\":%s,\"launch_origin\":%u,\"launch_selection_error\":%u,\"original_launch_pending\":%s,\"probe_contract\":\"%s\",",SSN_NATIVE?"true":"false",ssn_launch_selector_enabled()?"true":"false",ssn_launch_origin(),ssn_launch_error(),ssn_launch_pending()?"true":"false",SSN_PROBE_CONTRACT);
+    unsigned mute=atomic_load(&mute_flags);
+    ADD("\"player_mute_state\":[%u,%u,%u],\"player_mute_mismatched_samples\":%llu,",mute&1,(mute>>1)&1,(mute>>2)&1,(unsigned long long)atomic_load(&mute_mismatches));
+    ADD("\"player_control_events\":[");
+    for(unsigned i=0;i<7;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&player_control_events[i]));
+    ADD("],");
     ADD("\"native_frontend_events\":[");
     for(unsigned i=0;i<4;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&frontend_events[i]));
     ADD("],");

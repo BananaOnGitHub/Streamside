@@ -42,12 +42,6 @@ private final class TheatrePlayback: ObservableObject {
     }
 }
 
-private struct NativePlayerSurface: UIViewRepresentable {
-    let playback: SSNPlayback
-    func makeUIView(context: Context) -> UIView { playback.view }
-    func updateUIView(_ view: UIView, context: Context) {}
-}
-
 private struct TheatreContent: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
@@ -67,23 +61,20 @@ private struct TheatreContent: View {
     }
     var body: some View {
         VStack(spacing: 0) {
-            NativePlayerSurface(playback: playback.native)
-                .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                .background(.black)
-                .contentShape(Rectangle())
-                .onTapGesture { controls.toggle(now: ProcessInfo.processInfo.systemUptime) }
-                .accessibilityLabel("Live video. Tap to show or hide controls.")
-                .overlay {
-                    PlayerControls(channel: currentChannel, clock: services.clock,
-                                   paused: playback.paused, muted: playback.muted,
-                                   close: { playback.stop(); close() }, pause: playback.togglePaused,
-                                   mute: playback.toggleMuted, interact: interact,
-                                   presentationChanged: { overlayPresented = $0 })
-                        .opacity(controls.visible ? 1 : 0)
-                        .allowsHitTesting(controls.visible)
-                        .accessibilityHidden(!controls.visible)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: controls.visible)
-                }
+            PlayerCanvas(surface: playback.native.view, toggleControls: {
+                SSNPlayerControlEvent(0)
+                controls.toggle(now: ProcessInfo.processInfo.systemUptime)
+            }) {
+                PlayerControls(channel: currentChannel, clock: services.clock,
+                               paused: playback.paused, muted: playback.muted,
+                               close: { playback.stop(); close() }, pause: playback.togglePaused,
+                               mute: playback.toggleMuted, interact: interact,
+                               presentationChanged: { overlayPresented = $0 })
+                    .opacity(controls.visible ? 1 : 0)
+                    .allowsHitTesting(controls.visible)
+                    .accessibilityHidden(!controls.visible)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: controls.visible)
+            }
             VStack(alignment: .leading, spacing: 8) {
                 Text(currentChannel.displayName).font(.headline)
                 Text(currentChannel.title).font(.subheadline).lineLimit(2)

@@ -11,7 +11,7 @@ static BOOL playerABI(void) {
     return p&&[v isSubclassOfClass:UIView.class]&&
         method_is(p,"init","@16@0:8",false)&&method_is(p,"load:","v24@0:8@16",false)&&
         method_is(p,"play","v16@0:8",false)&&method_is(p,"pause","v16@0:8",false)&&
-        method_is(p,"setMuted:","v20@0:8B16",false)&&
+        method_is(p,"setMuted:","v20@0:8B16",false)&&method_is(p,"muted","B16@0:8",false)&&
         method_is(p,"state","q16@0:8",false)&&method_is(p,"error","@16@0:8",false)&&
         method_is(p,"videoFramesDecoded","q16@0:8",false)&&
         method_is(p,"videoSize","{CGSize=dd}16@0:8",false)&&
@@ -34,10 +34,15 @@ static BOOL playerABI(void) {
 @synthesize view=_view,phase=_phase,errorCode=_errorCode;
 - (BOOL)isPaused { return _paused; }
 - (BOOL)isMuted { return _muted; }
+- (void)observeMute {
+    BOOL actual=_player?((BOOL(*)(id,SEL))objc_msgSend)(_player,ss("muted")):NO;
+    ssn_playback_mute(_player!=nil,_muted,actual);
+}
 - (void)setMuted:(BOOL)muted {
     NSAssert(NSThread.isMainThread,@"Playback controls belong to the main thread");
     _muted=muted;
     if(_player) ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setMuted:"),muted);
+    [self observeMute];ssn_report();
 }
 - (void)setPaused:(BOOL)paused {
     NSAssert(NSThread.isMainThread,@"Playback controls belong to the main thread");
@@ -62,6 +67,7 @@ static BOOL playerABI(void) {
     if(_promise) { v0(_promise,"requestCancel");[_promise release];_promise=nil; }
     if(_player) { v0(_player,"pause");v1(_playerView,"setPlayer:",nil);[_player release];_player=nil;ssn_playback_event(5); }
     [_playerView removeFromSuperview];[_playerView release];_playerView=nil;
+    [self observeMute];
     [_requestAuth release];_requestAuth=nil;
     if(_audioActive) {
         AVAudioSession *audio=AVAudioSession.sharedInstance;
@@ -143,6 +149,7 @@ static BOOL playerABI(void) {
         return;
     }
     if(!_player) return;
+    [self observeMute];
     if(m0(_player,"error")) { [self fail:7];return; }
     NSInteger state=((NSInteger(*)(id,SEL))objc_msgSend)(_player,ss("state"));
     // IVSPlayerState: idle 0, ready 1, buffering 2, playing 3, ended 4.

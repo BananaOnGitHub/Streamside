@@ -85,6 +85,15 @@ class CoreEvidence(unittest.TestCase):
             self.assertEqual(report['failures'],0)
             self.assertTrue(all(value==0 for value in report['probes'].values()))
 
+    def test_player_tap_evidence_is_bounded_and_separate_from_runtime_counts(self):
+        with tempfile.TemporaryDirectory() as d:
+            _,report=self.run_core(1,'controls',Path(d))
+            self.assertEqual(report['player_control_events'],[1]*7)
+            self.assertEqual(report['player_mute_state'],[1,1,1])
+            self.assertEqual(report['player_mute_mismatched_samples'],1)
+            self.assertTrue(all(v==0 for v in report['probes'].values()))
+            self.assertEqual(report['failures'],0)
+
     def test_playback_failure_survives_closing_without_changing_runtime_evidence(self):
         with tempfile.TemporaryDirectory() as d:
             result,report=self.run_core(1,'playback',Path(d))

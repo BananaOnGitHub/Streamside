@@ -631,6 +631,14 @@
       "encoding": "v20@0:8B16",
       "address": 399872,
       "bytes": "e10302aa003440f9080040f902d940f9"
+    },
+    "playback_IVSPlayer_muted": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "muted",
+      "encoding": "B16@0:8",
+      "address": 399856,
+      "bytes": "003440f9080040f901d540f920001fd6"
     }
   },
   "feed_contract": {

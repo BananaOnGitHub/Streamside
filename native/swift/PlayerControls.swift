@@ -18,21 +18,30 @@ struct PlayerControls: View {
     @State private var settings = false
 
     var body: some View {
+        Group {
+            if #available(iOS 26.0, *), glassButtons {
+                GlassEffectContainer(spacing: 0) { controlLayer }
+            } else { controlLayer }
+        }
+        .onChange(of: sharing || settings) { presentationChanged($0) }
+        .onDisappear { presentationChanged(false) }
+    }
+    private var controlLayer: some View {
         ZStack {
             Color.black.opacity(0.06).allowsHitTesting(false)
             VStack(spacing: 0) {
                 HStack(spacing: 2) {
-                    control("Close stream", "chevron.down", action: close)
+                    control("Close stream", "chevron.down", id: "close", event: 1, action: close)
                     Spacer(minLength: 0)
                     control("Create clip — coming later", "movieclapper", disabled: true) {}
                     control("Cast — unavailable", "tv.badge.wifi", disabled: true) {}
-                    control("Share stream", "square.and.arrow.up") { sharing = true }
+                    control("Share stream", "square.and.arrow.up", id: "share", event: 4) { sharing = true }
                         .popover(isPresented: $sharing, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
                             StreamSharePopover(channel: channel, copied: { sharing = false })
                                 .presentationCompactAdaptation(.popover)
                                 .presentationBackground(.regularMaterial)
                         }
-                    control("Player settings", "gearshape") { settings = true }
+                    control("Player settings", "gearshape", id: "settings", event: 5) { settings = true }
                         .popover(isPresented: $settings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
                             VStack(alignment: .leading, spacing: 14) {
                                 Text("Player").font(.headline)
@@ -43,30 +52,32 @@ struct PlayerControls: View {
                         }
                 }
                 Spacer(minLength: 0)
-                control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", action: pause)
+                control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
                     .font(.title2)
                 Spacer(minLength: 0)
                 HStack(spacing: 2) {
                     PlayerLiveInfo(channel: channel, clock: clock)
                     Spacer(minLength: 2)
-                    control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", action: mute)
+                    control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
                     control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
                 }
             }.padding(6)
         }
-        .onChange(of: sharing || settings) { presentationChanged($0) }
-        .onDisappear { presentationChanged(false) }
     }
 
-    private func control(_ title: String, _ symbol: String, disabled: Bool = false, action: @escaping () -> Void) -> some View {
-        Button { interact(); action() } label: {
+    private func control(_ title: String, _ symbol: String, id: String = "unavailable", event: UInt32? = nil, disabled: Bool = false, action: @escaping () -> Void) -> some View {
+        Button { interact(); if let event { SSNPlayerControlEvent(event) }; action() } label: {
             Image(systemName: symbol).font(.system(size: 19, weight: .semibold))
                 .frame(width: 44, height: 44)
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
-                .modifier(PlayerButtonSurface(enabled: glassButtons))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .frame(width: 44, height: 44)
+        .modifier(PlayerButtonSurface(enabled: glassButtons))
+        .contentShape(Rectangle())
+        .accessibilityIdentifier("player." + id)
         .disabled(disabled)
         .opacity(disabled ? 0.45 : 1)
         .accessibilityLabel(title)
@@ -126,10 +137,11 @@ private struct StreamSharePopover: View {
                 .font(.subheadline.weight(.semibold)).lineLimit(2)
             if let url = StreamShareLink.url(username: channel.username) {
                 HStack(alignment: .top, spacing: 8) {
-                    Button { UIPasteboard.general.url = url; copied() } label: {
+                    Button { SSNPlayerControlEvent(6); UIPasteboard.general.url = url; copied() } label: {
                         choice("Copy link", "doc.on.doc")
-                    }
+                    }.accessibilityIdentifier("player.copy")
                     ShareLink(item: url) { choice("Share link", "square.and.arrow.up") }
+                        .accessibilityIdentifier("player.system-share")
                     Button {} label: { choice("Whisper", "message") }
                         .disabled(true).opacity(0.45)
                         .accessibilityHint("Whispers are not available yet")

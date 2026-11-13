@@ -153,7 +153,11 @@ def test_window_ownership(root, output, config, run):
         launches=json.loads((launch_container/'Documents/launch-test.json').read_text())
         expected_launches=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]
         if launches!=expected_launches:raise ValueError('Three-process launch selection failed: '+str(launches))
-        return dict(launch_receipt=launches,playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+        controls_ui=None
+        if config['mode']=='native':
+            from controls_ui import run_controls_ui
+            controls_ui=run_controls_ui(root,stage,device,run)
+        return dict(controls_ui_receipt=controls_ui,launch_receipt=launches,playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
     finally:
         run(['xcrun','simctl','shutdown',device])
         run(['xcrun','simctl','delete',device])

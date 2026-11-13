@@ -39,3 +39,9 @@ void ssn_playback_event(unsigned event);
 
 /* Native-only installation/request observations. Original mode leaves all zero. */
 void ssn_frontend_event(unsigned event);
+
+/* Bounded taps: video, close, pause, mute, share, settings, copy. No content. */
+void ssn_player_control_event(unsigned event);
+
+/* SDK-reported mute state is unknown without a current player. No audio data. */
+void ssn_playback_mute(bool known,bool requested,bool reported);

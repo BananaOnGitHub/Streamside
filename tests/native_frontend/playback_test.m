@@ -13,6 +13,8 @@ static unsigned muteCalls;
 static id identity;
 bool ssn_playback_authorized(void) { return authorized; }
 bool ssn_navigation_guarded(void) { return true; }
+static BOOL observedMuteKnown,observedMuteIntent,observedMuteActual;
+void ssn_playback_mute(bool known,bool requested,bool reported) { observedMuteKnown=known;observedMuteIntent=requested;observedMuteActual=reported; }
 void ssn_report(void) {}
 void ssn_playback_status(unsigned phase,unsigned error) { (void)phase;(void)error; }
 void ssn_playback_event(unsigned event) { if(event==4) decodedEvents++; }
@@ -104,7 +106,7 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
             float volume=AVAudioSession.sharedInstance.outputVolume;
             NSString *category=AVAudioSession.sharedInstance.category;
             playback.muted=YES;
-            BOOL muteLocal=playback.isMuted&&lastMuted&&muteCalls>=2&&volume==AVAudioSession.sharedInstance.outputVolume&&
+            BOOL muteLocal=observedMuteKnown&&observedMuteIntent&&observedMuteActual&&playback.isMuted&&lastMuted&&muteCalls>=2&&volume==AVAudioSession.sharedInstance.outputVolume&&
                 [category isEqual:AVAudioSession.sharedInstance.category];
             unsigned initialCreated=created,initialRequests=requests;
             playback.paused=YES;

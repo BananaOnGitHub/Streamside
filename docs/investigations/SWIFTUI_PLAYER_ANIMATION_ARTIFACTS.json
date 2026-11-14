@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "source_revision": "c1a56aa1686106b1d285aa8c09f445fd60e55478",
+  "packaging_revision": "c1a56aa1686106b1d285aa8c09f445fd60e55478",
+  "proof_id": "6d4a0cb9c08980f867a3819c02f0cd659ad575345562e1f27ef873f9073e3aa5",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "inspection": {
+    "abi_entries": 51,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "component_manifest_sha256": "60c000f3082beb5a2ceeed188b40277ef4da7c14a08ac951214b0dc7e947ed90",
+  "device_validation": "not performed",
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "workflows": {
+    "native_swiftui": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43541502380",
+      "conclusion": "success"
+    },
+    "linux": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43541502170",
+      "conclusion": "success"
+    },
+    "documentation": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43541502371",
+      "conclusion": "success"
+    }
+  },
+  "validation": {
+    "host_native_tests": 68,
+    "macos_logger_tests": 4,
+    "controls_ui": {
+      "passed": true,
+      "tests": 2,
+      "styles": [
+        "glass",
+        "plain"
+      ]
+    },
+    "model_tests": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+    "uikit_receipts": {
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 2,
+        "styles": [
+          "glass",
+          "plain"
+        ]
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "passed": true,
+        "background_resume": 1,
+        "control_intent_retained": true,
+        "account_stop": true,
+        "playing_observed": true,
+        "cancellation": true,
+        "teardown": true,
+        "source_encoding": true,
+        "stream_only_mute": true,
+        "local_pause_resume": 1
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "other_ci_tests": {
+      "abi": 17,
+      "admission": 12,
+      "core": 10,
+      "launch_policy": 1,
+      "probes": 6,
+      "launch_reports": 3,
+      "report_comparisons": 5,
+      "foundation_http": 1
+    },
+    "scope": "All listed automated checks passed. Real device animation smoothness, fade-out, shared glass appearance, Reduce Motion selector state, and donor runtime/audio remain untested for this build."
+  },
+  "artifact": {
+    "bytes": 196780398,
+    "sha256": "13d0175dfdd773c2f2df7e20d497268aed5ef53ffcf0bb6e4699504c69f19743",
+    "framework_sha256": "1559eb5e1ab9b2743f8bdef9f3ba8e461c8ed0fd81fa5a2c6d2aaac48d197f44",
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "filename": "StreamsideNativeProof-Twitch32-native.ipa"
+  },
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/player-animation-c1a56aa",
+  "manifest_sha256": "d679aea0bad3ca255c7643e12953e4e83f037596fb3c9bda013636a562472617",
+  "workflow_log_archive_sha256": "f6e2e9ffaeb10c0cfbb11b26ae34c0f2374f21f4c28397b147a9f7ffad7ec8a0",
+  "probe_contract": "4bbaa1a78713a04ee8ba8fb4ae5a81191cdc670140530d378237fc48aa6f03be"
+}

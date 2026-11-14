@@ -131,3 +131,25 @@ The same follow-up exposes the runner's work live instead of buffering the entir
 The shared standard-library logger preserves command output in build.log and propagates nonzero exits. A timed-out owned process group is terminated, including its children, with prior output retained. No environment dump, credentials, donor bytes or signing material are added to logging. The source input allowlist includes the helper; component identities continue to admit only source-matched, fully validated builds. Existing validation requirements and per-command test limits remain in effect.
 
 The expanded host suite passes all 68 tests. Four new logger checks verify output arrives before the process finishes, nonzero failures retain diagnostics and fail the summary, timeouts retain partial output and terminate child processes, and missing tools close log groups with a failure. These logger checks also run on the macOS job before compilation. Documentation checks pass. Real Apple compilation and the corrected glass/plain UI cases remain pending until the replacement workflow completes.
+
+## Successful animation build and local package
+
+Source `c1a56aa1686106b1d285aa8c09f445fd60e55478` passed [Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43541502380), [Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43541502170) and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43541502371). Both coordinate UI cases passed, retaining the separate real four-second auto-hide check and testing manual hide/reveal and mute in horizontal, Fade and vertical modes. The four live-logger tests passed on macOS, alongside existing model, ownership, clock/title, synthetic playback, launch-selection, ABI and report checks. The published logs now show named streaming phases and individual XCTest activity. This supersedes the preceding pending-validation status without changing the failed run's recorded outcome.
+
+Local packaging validated the exact Twitch 32.0 donor, source-matched component receipts and hashes, 51 Swift boundaries, 13 Objective-C methods and all 25 probe entries. Every retained donor archive entry was verified, including unchanged original HBC. One Native IPA was produced under `../artifacts/`; no donor, signing identity or proprietary output was uploaded to Actions. The [artifact record](SWIFTUI_PLAYER_ANIMATION_ARTIFACTS.json) preserves source/toolchain/test identities, local manifest and workflow-log hashes, and the IPA SHA-256. No VM was used.
+
+Reproduce from this clean revision or a compatible documentation-only descendant:
+
+```sh
+gh run download 43541502380 \
+  --name swiftui-components-c1a56aa1686106b1d285aa8c09f445fd60e55478 \
+  --dir ../artifacts/ci/c1a56aa1686106b1d285aa8c09f445fd60e55478
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/c1a56aa1686106b1d285aa8c09f445fd60e55478
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/c1a56aa1686106b1d285aa8c09f445fd60e55478 \
+  --output ../artifacts/native-frontend/swiftui/player-animation-reproduction
+```
+
+The IPA requires Feather re-signing with the existing application/keychain identity. Device review remains pending: try all three settings under Settings → Player, check entry/exit including actual Fade disappearance, verify the central button stays in place, and check the shared top-right capsule with glass enabled. Enable system Reduce Motion and confirm Fade is selected and the selector disabled, then disable it and verify the saved choice returns. Check controls still work and export Native diagnostics after playback. Simulator control success does not establish physical animation quality, audible mute or a fresh donor runtime positive control.

@@ -191,3 +191,25 @@ The visibility callback now passes its supplied new value directly to the animat
 Frame sampling now stretches only its synthetic fixture timeline to three times the application duration. This retains the required minimum/maximum progress coverage, intermediate counts, direction and sequencing assertions while allowing more display frames within the 0.22-second Fade path. Numeric range endpoints are included in every summary. The sampling observation allowance grows from 20 to 35 seconds to cover the longer requested sequence. Scale returns to one before the interruption/reversal action and all subsequent coordinate/auto-hide checks; normal app callers also retain scale one. The component receipt explicitly records sampling scale three, and a missing or incorrect receipt is rejected. This validates the interpolation path at slower fixture timing, not native-speed display quality. No existing auto-hide/action timeout or frame assertion is relaxed.
 
 All 69 host tests and documentation checks pass. Apple sampling at the new fixture speed remains pending. Production durations are unchanged; physical-device fly-out, fade, center timing and smoothness remain unverified for the corrected implementation.
+
+## Validated persistent-motion build and package
+
+Source `db0b02bb98d861a8bb9df32f4942f63c2a7bdba2` passed [Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43576172844), [Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43576172834), and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43576172900). Glass and plain coordinate cases both passed. Each observed all eight entry/exit sampling stages with sequencing true, invalid false and full required progress-range coverage. Interpolation sampling uses scale three, explicitly recorded in the admitted receipt; normal-speed reversal followed by working mute actions, auto-hide/reveal, other actions and Close also passed. This adds the successful outcome without changing any preceding failure record.
+
+The [motion artifact record](SWIFTUI_PLAYER_MOTION_ARTIFACTS.json) retains exact source, proof, toolchain, full bounded frame summaries, validation receipts and hashes. Local packaging re-admitted the exact Twitch 32.0 donor, 51 Swift boundaries, 13 Objective-C methods and 25 runtime probes, then verified all retained donor entries including original HBC. One Native IPA was produced under `../artifacts/native-frontend/swiftui/player-motion-db0b02b/`, requiring Feather re-signing with the existing application/keychain identity. No donor or signing material entered public Actions. The VM was unused.
+
+Reproduce from this source or a compatible clean documentation-only descendant:
+
+```sh
+gh run download 43576172844 \
+  --name swiftui-components-db0b02bb98d861a8bb9df32f4942f63c2a7bdba2 \
+  --dir ../artifacts/ci/db0b02bb98d861a8bb9df32f4942f63c2a7bdba2
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/db0b02bb98d861a8bb9df32f4942f63c2a7bdba2
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/db0b02bb98d861a8bb9df32f4942f63c2a7bdba2 \
+  --output ../artifacts/native-frontend/swiftui/player-motion-reproduction
+```
+
+Physical acceptance remains pending. In Settings → Player, try Top / bottom, Left / right and Fade with glass on and off. Confirm actual fade-in/out, edge departure, center fade after arrival and before departure, and rapid tap reversal. Enable system Reduce Motion to check Fade and the disabled selector, then disable it and verify the saved choice returns. Verify control actions and export Native diagnostics after playback. Slowed simulator modifier samples do not establish native-speed physical smoothness, glass pixels, audible mute or newly calibrated donor runtime isolation.

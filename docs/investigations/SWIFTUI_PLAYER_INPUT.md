@@ -247,3 +247,11 @@ python3 tools/native_frontend/build.py \
 ```
 
 On the phone, check all animation choices with glass enabled/disabled, actual Fade entry/exit, center fade after arrival and before departure, and smooth interruption/reversal. Confirm system Reduce Motion still forces Fade and disables the selector. Check ordinary controls and export Native diagnostics after playback. The synthetic pixel pass does not by itself establish donor-video compositing, physical smoothness, audible mute or a new positive control.
+
+## Device fade confirmation and simultaneous fly timing
+
+Device review of the Native package built from `9217acda5772bdc5f872face64c2a2034e3f8705` confirms that Fade now appears and disappears as intended, and Reduce Motion still forces Fade. Flying is reported smoother, with plain buttons perceived as slower/smoother than glass. This is a visual user observation; no new diagnostic export or measured frame timings accompanied it. The preceding artifact identity and pixel checks retain their original scope.
+
+The successor removes the two-phase fly timeline. Edge movement and the stationary center fade now both use the complete 0.70-second quintic curve in each direction. Previously edges took 0.48 seconds and the center had a separate 0.22-second phase. Both glass and plain use the same duration, easing and measured travel calculation; the cause of their perceived difference has not been measured. Fade remains 0.26 seconds and the validated local glass/compositing boundaries remain intact. No player, session or runtime-isolation integration is changed.
+
+Model checks cover all four edges across 99 intermediate positions for both axes and assert that normalized remaining travel plus center alpha equals one. The owned UI fixture now requires mid-transition edge movement and center fading in both directions, validates center alpha against the full fade curve, and retains real opacity pixels, reversal, action and auto-hide checks in both material modes. Component admission requires the synchronized-motion receipt. Sampling remains three-times duration and action/reversal checks remain normal speed. Apple compilation and physical-device smoothness/timing for this successor are pending.

@@ -202,8 +202,8 @@ enum PlayerControlAnimation: String, CaseIterable, Identifiable {
     }
 }
 
-// One reversible presentation timeline: edge motion completes before the
-// central fade on entry; reversing it fades the center before moving the edges.
+// One reversible presentation timeline: the stationary center fade and edge
+// travel start and finish together, independently of the material setting.
 enum PlayerControlRegion: Equatable { case topLeading, topTrailing, bottomLeading, bottomTrailing, center, shade }
 struct PlayerControlFrame {
     let x: Double
@@ -213,7 +213,6 @@ struct PlayerControlFrame {
 enum PlayerControlMotion {
     static let flyDuration = 0.70
     static let fadeDuration = 0.26
-    static let edgeFraction = 0.48 / flyDuration
     static func duration(style: PlayerControlAnimation) -> Double { style == .fade ? fadeDuration : flyDuration }
     private static func smooth(_ value: Double) -> Double {
         let t = min(1, max(0, value))
@@ -226,9 +225,9 @@ enum PlayerControlMotion {
             return PlayerControlFrame(x: 0, y: 0, opacity: smooth(p))
         }
         if region == .center {
-            return PlayerControlFrame(x: 0, y: 0, opacity: smooth((p - edgeFraction) / (1 - edgeFraction)))
+            return PlayerControlFrame(x: 0, y: 0, opacity: smooth(p))
         }
-        let remaining = 1 - smooth(p / edgeFraction)
+        let remaining = 1 - smooth(p)
         let leading = region == .topLeading || region == .bottomLeading
         let top = region == .topLeading || region == .topTrailing
         return PlayerControlFrame(x: style == .horizontal ? (leading ? -width : width) * remaining : 0,

@@ -18,11 +18,18 @@ import Foundation
             }
         }
         for style in [PlayerControlAnimation.vertical, .horizontal] {
-            let earlyCenter = PlayerControlMotion.frame(progress: 0.4, style: style, region: .center, width: 400, height: 225)
-            let lateCenter = PlayerControlMotion.frame(progress: 0.85, style: style, region: .center, width: 400, height: 225)
-            let lateEdge = PlayerControlMotion.frame(progress: 0.85, style: style, region: .topTrailing, width: 400, height: 225)
-            precondition(earlyCenter.opacity == 0 && lateCenter.opacity > 0 && lateCenter.opacity < 1)
-            precondition(lateCenter.x == 0 && lateCenter.y == 0 && lateEdge.x == 0 && lateEdge.y == 0)
+            // Exercise entry and reversed exit through the whole interval.
+            // Center alpha must track normalized edge travel, with no separate phase.
+            for step in 1..<100 {
+                let progress = Double(step) / 100
+                let center = PlayerControlMotion.frame(progress: progress, style: style, region: .center, width: 400, height: 225)
+                precondition(center.x == 0 && center.y == 0 && center.opacity > 0 && center.opacity < 1)
+                for region in [PlayerControlRegion.topLeading, .topTrailing, .bottomLeading, .bottomTrailing] {
+                    let edge = PlayerControlMotion.frame(progress: progress, style: style, region: region, width: 400, height: 225)
+                    let distance = style == .horizontal ? abs(edge.x) / 400 : abs(edge.y) / 225
+                    precondition(abs(distance + center.opacity - 1) < 0.000001, "Center and edges must finish together")
+                }
+            }
         }
         let halfFade = PlayerControlMotion.frame(progress: 0.5, style: .fade, region: .topTrailing, width: 400, height: 225)
         precondition(abs(halfFade.opacity - 0.5) < 0.0001 && halfFade.x == 0 && halfFade.y == 0)

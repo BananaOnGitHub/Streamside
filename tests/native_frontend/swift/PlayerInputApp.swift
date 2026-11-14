@@ -26,14 +26,14 @@ private final class MotionFrameSamples {
     private var entering = true
     private var edges = 0, center = 0, samples = 0
     private var minimum = 1.0, maximum = 0.0
-    private var earlyCenterHidden = false, lateEdgesSettled = false, invalid = false
+    private var midCenterFading = false, midEdgesMoving = false, invalid = false
     private var previous: Double?
     private var latest = "No modifier frames"
     func begin(style: PlayerControlAnimation, entering: Bool) {
         lock.lock(); defer { lock.unlock() }
         expected = style; self.entering = entering
         edges = 0; center = 0; samples = 0; minimum = 1; maximum = 0
-        earlyCenterHidden = false; lateEdgesSettled = false; invalid = false; previous = nil
+        midCenterFading = false; midEdgesMoving = false; invalid = false; previous = nil
     }
     func record(style: PlayerControlAnimation, region: PlayerControlRegion, progress: Double, frame: PlayerControlFrame) {
         lock.lock(); defer { lock.unlock() }
@@ -53,14 +53,16 @@ private final class MotionFrameSamples {
                 invalid = invalid || distance > 0.001
             } else {
                 if distance > 1 && progress > 0.05 { edges += 1 }
-                if progress > 0.75 && distance < 0.001 { lateEdgesSettled = true }
+                if progress > 0.25 && progress < 0.75 && distance > 1 { midEdgesMoving = true }
             }
         } else {
             invalid = invalid || abs(frame.x) + abs(frame.y) > 0.001
             if frame.opacity > 0.01 && frame.opacity < 0.99 { center += 1 }
-            if style != .fade && progress < 0.6 {
-                earlyCenterHidden = true
-                invalid = invalid || frame.opacity > 0.001
+            // Fade must occupy the same complete timeline as edge travel.
+            let expectedAlpha = PlayerControlMotion.frame(progress: progress, style: .fade, region: .center, width: 1, height: 1).opacity
+            invalid = invalid || abs(frame.opacity - expectedAlpha) > 0.000001
+            if progress > 0.25 && progress < 0.75 && frame.opacity > 0.01 && frame.opacity < 0.99 {
+                midCenterFading = true
             }
         }
     }
@@ -70,10 +72,10 @@ private final class MotionFrameSamples {
     }
     func finish() -> (Bool, String) {
         lock.lock(); defer { lock.unlock() }
-        let sequenced = expected == .fade || (earlyCenterHidden && lateEdgesSettled)
-        let passed = !invalid && edges >= 2 && center >= 2 && minimum < 0.25 && maximum > 0.8 && sequenced
+        let synchronized = midCenterFading && (expected == .fade || midEdgesMoving)
+        let passed = !invalid && edges >= 2 && center >= 2 && minimum < 0.25 && maximum > 0.8 && synchronized
         let range = String(format: "%.3f...%.3f", minimum, maximum)
-        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edges=\(edges), center=\(center), sequenced=\(sequenced), invalid=\(invalid)"
+        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edges=\(edges), center=\(center), synchronized=\(synchronized), invalid=\(invalid)"
         expected = nil
         return (passed, detail)
     }

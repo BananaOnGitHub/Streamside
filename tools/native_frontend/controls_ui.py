@@ -9,7 +9,7 @@ SOURCES = ['native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True)
+EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True)
 
 
 def project(root, stage):

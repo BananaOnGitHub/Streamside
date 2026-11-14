@@ -82,7 +82,6 @@ private struct InputTestContent: View {
     @State private var muted = false
     @State private var closed = false
     @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var motionSamples = MotionFrameSamples()
     @State private var motionVisible: Bool?
     @State private var motionReduceMotion: Bool?
@@ -106,7 +105,7 @@ private struct InputTestContent: View {
         var details: [String] = []
         do {
             // Final cycle verifies that a saved fly mode becomes a nonmoving
-            // fade when Reduce Motion is set in the actual view environment.
+            // fade when the fixture supplies the Reduce Motion preference input.
             for (style, reduced) in [(PlayerControlAnimation.vertical, false), (.horizontal, false), (.fade, false), (.vertical, true)] {
                 motionVisible = false
                 try await Task.sleep(nanoseconds: 800_000_000)
@@ -132,8 +131,8 @@ private struct InputTestContent: View {
                     PlayerControls(visible: motionVisible ?? visibility.visible, channel: channel, clock: clock, paused: paused, muted: muted,
                                    close: { closed = true }, pause: { paused.toggle() }, mute: { muted.toggle() },
                                    interact: interact, presentationChanged: { presenting = $0 },
-                                   motionSample: { motionSamples.record(style: $0, region: $1, progress: $2, frame: $3) })
-                        .environment(\.accessibilityReduceMotion, motionReduceMotion ?? reduceMotion)
+                                   motionSample: { motionSamples.record(style: $0, region: $1, progress: $2, frame: $3) },
+                                   motionReductionOverride: motionReduceMotion)
                 }
             }
             Button("Next animation") {

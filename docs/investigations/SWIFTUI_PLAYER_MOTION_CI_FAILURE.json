@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "source_revision": "5360e50b3667e3db3d1c9f307b7b44c1799813d1",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43566492339",
+  "result": "failure; no admitted components or IPA",
+  "failure": "Coordinate fixture compilation attempted a writable environment key path for the get-only accessibilityReduceMotion property.",
+  "observed_passes": [
+    "Production SwiftUI frontend compilation and framework linking/signature",
+    "Account/feed/presentation models",
+    "UIKit ownership, clock/title, synthetic playback and three-process launch fixtures",
+    "Live-logging tests"
+  ],
+  "not_executed": [
+    "Coordinate UI cases",
+    "Render-interpolation sampling",
+    "Downstream ABI job"
+  ],
+  "local_artifact_directory": "../artifacts/ci/failure-player-motion-5360e50",
+  "files": {
+    "native/build.log": "d559f328ee8ac84636496b86d91dbc3067c58fc11b351e5e05d9d66d8b0293ee",
+    "failure.json": "56593f9ec4a124b4ded3a6a66d9a9f46403f9729dde3747055132f8bc0bbec92"
+  },
+  "correction": "Pass an explicit optional fixture preference to the same motion resolver. Normal production callers retain the system environment read. All reduced-motion frame assertions remain required. This is not a test of changing the system accessibility setting."
+}

@@ -15,6 +15,8 @@ struct PlayerControls: View {
     let interact: () -> Void
     let presentationChanged: (Bool) -> Void
     var motionSample: PlayerMotionSample? = nil
+    // Owned fixture input; normal app callers use the read-only system value.
+    var motionReductionOverride: Bool? = nil
     @State private var motionProgress = 0.0
     @AppStorage(PlayerPreferences.glassButtonsKey) private var glassButtons = true
     @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
@@ -34,7 +36,7 @@ struct PlayerControls: View {
         .onDisappear { presentationChanged(false) }
     }
     private var animationStyle: PlayerControlAnimation {
-        PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: reduceMotion)
+        PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: motionReductionOverride ?? reduceMotion)
     }
     private func animateVisibility() {
         withAnimation(.linear(duration: PlayerControlMotion.duration(style: animationStyle))) {

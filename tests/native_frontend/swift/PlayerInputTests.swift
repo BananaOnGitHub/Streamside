@@ -68,6 +68,15 @@ final class PlayerInputTests: XCTestCase {
         let glassSetting = app.switches["Liquid Glass buttons"]
         XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))
         dismissPopover(glassSetting, in: app)
+        tap(app.buttons["motion-checks"])
+        let renderedMotion = app.staticTexts["motion-check-result"]
+        let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Passed'"), object: renderedMotion)
+        XCTAssertEqual(XCTWaiter.wait(for: [sampled], timeout: 20), .completed, "Rendered motion checks failed")
+        print("PLAYER_MOTION_CHECKS PASS: " + (renderedMotion.value as? String ?? "No frame detail"))
+        // The fixture ends with a reversed fly transition. A stale hide
+        // completion must not remove its controls or swallow the next action.
+        tap(mute); wait(mute, label: "Unmute stream")
+        tap(mute); wait(mute, label: "Mute stream")
         let holdControls = app.switches["hold-controls"]
         XCTAssertEqual(holdControls.value as? String, "1")
         // The merged accessibility switch spans its label row. Hit the actual
@@ -96,11 +105,6 @@ final class PlayerInputTests: XCTestCase {
             tap(mute); wait(mute, label: "Mute stream")
         }
         XCTAssertEqual(holdControls.value as? String, "1")
-        tap(app.buttons["motion-checks"])
-        let renderedMotion = app.staticTexts["motion-check-result"]
-        let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Passed'"), object: renderedMotion)
-        XCTAssertEqual(XCTWaiter.wait(for: [sampled], timeout: 20), .completed, "Rendered motion checks failed")
-        print("PLAYER_MOTION_CHECKS PASS: " + (renderedMotion.value as? String ?? "No frame detail"))
         tap(app.buttons["player.close"])
         XCTAssertTrue(app.staticTexts["closed"].waitForExistence(timeout: 5))
     }

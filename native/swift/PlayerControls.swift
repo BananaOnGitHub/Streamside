@@ -18,6 +18,9 @@ struct PlayerControls: View {
     // Owned fixture input; normal app callers use the read-only system value.
     var motionReductionOverride: Bool? = nil
     @State private var motionProgress = 0.0
+    @State private var motionMounted = true
+    @State private var motionGeneration: UInt64 = 0
+    @State private var motionTask: Task<Void, Never>?
     @AppStorage(PlayerPreferences.glassButtonsKey) private var glassButtons = true
     @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -33,15 +36,52 @@ struct PlayerControls: View {
         .onAppear { animateVisibility() }
         .onChange(of: visible) { _ in animateVisibility() }
         .onChange(of: sharing || settings) { presentationChanged($0) }
-        .onDisappear { presentationChanged(false) }
+        .onDisappear {
+            motionGeneration &+= 1
+            motionTask?.cancel()
+            presentationChanged(false)
+        }
     }
     private var animationStyle: PlayerControlAnimation {
         PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: motionReductionOverride ?? reduceMotion)
     }
     private func animateVisibility() {
-        withAnimation(.linear(duration: PlayerControlMotion.duration(style: animationStyle))) {
-            motionProgress = visible ? 1 : 0
+        motionGeneration &+= 1
+        let generation = motionGeneration
+        motionTask?.cancel()
+        let duration = PlayerControlMotion.duration(style: animationStyle)
+        if visible {
+            if motionMounted {
+                withAnimation(.linear(duration: duration)) { motionProgress = 1 }
+            } else {
+                // Mount hidden first; a separate render update prevents a jump.
+                withTransaction(Transaction(animation: nil)) { motionMounted = true }
+                motionTask = Task { @MainActor in
+                    do { try await Task.sleep(nanoseconds: 20_000_000) } catch { return }
+                    guard generation == motionGeneration, visible, !Task.isCancelled else { return }
+                    withAnimation(.linear(duration: duration)) { motionProgress = 1 }
+                }
+            }
+        } else if #available(iOS 17.0, *) {
+            withAnimation(.linear(duration: duration), completionCriteria: .removed) {
+                motionProgress = 0
+            } completion: {
+                finishHiding(generation: generation)
+            }
+        } else {
+            withAnimation(.linear(duration: duration)) { motionProgress = 0 }
+            // iOS 16 lacks animation completion. Allow a final frame before
+            // cleanup; a new request cancels this compatibility task.
+            motionTask = Task { @MainActor in
+                do { try await Task.sleep(nanoseconds: UInt64((duration + 0.1) * 1_000_000_000)) } catch { return }
+                guard !Task.isCancelled else { return }
+                finishHiding(generation: generation)
+            }
         }
+    }
+    private func finishHiding(generation: UInt64) {
+        guard generation == motionGeneration, !visible else { return }
+        withTransaction(Transaction(animation: nil)) { motionMounted = false }
     }
     private func motion(_ region: PlayerControlRegion, size: CGSize) -> PlayerControlMotionEffect {
         PlayerControlMotionEffect(progress: motionProgress, style: animationStyle, region: region,
@@ -49,37 +89,38 @@ struct PlayerControls: View {
     }
     private var controlLayer: some View {
         GeometryReader { geometry in
-            ZStack {
-                Color.black.opacity(0.06).modifier(motion(.shade, size: geometry.size)).allowsHitTesting(false)
-                VStack(spacing: 0) {
-                    HStack(spacing: 2) {
-                        control("Close stream", "chevron.down", id: "close", event: 1, action: close)
-                            .modifier(motion(.topLeading, size: geometry.size))
-                        Spacer(minLength: 0)
-                        topActions.frame(width: 182, height: 44)
-                            .modifier(motion(.topTrailing, size: geometry.size))
-                    }
-                    Spacer(minLength: 0)
-                    control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
-                        .modifier(motion(.center, size: geometry.size))
-                    Spacer(minLength: 0)
-                    HStack(spacing: 2) {
-                        PlayerLiveInfo(channel: channel, clock: clock)
-                            .modifier(motion(.bottomLeading, size: geometry.size))
-                            .accessibilityHidden(!visible)
-                        Spacer(minLength: 2)
+            if motionMounted {
+                ZStack {
+                    Color.black.opacity(0.06).modifier(motion(.shade, size: geometry.size)).allowsHitTesting(false)
+                    VStack(spacing: 0) {
                         HStack(spacing: 2) {
-                            control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
-                            control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
-                        }.frame(width: 90, height: 44)
-                            .modifier(motion(.bottomTrailing, size: geometry.size))
-                    }.frame(height: 44)
-                }.padding(6)
+                            control("Close stream", "chevron.down", id: "close", event: 1, action: close)
+                                .modifier(motion(.topLeading, size: geometry.size))
+                            Spacer(minLength: 0)
+                            topActions.frame(width: 182, height: 44)
+                                .modifier(motion(.topTrailing, size: geometry.size))
+                        }
+                        Spacer(minLength: 0)
+                        control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
+                            .modifier(motion(.center, size: geometry.size))
+                        Spacer(minLength: 0)
+                        HStack(spacing: 2) {
+                            PlayerLiveInfo(channel: channel, clock: clock)
+                                .modifier(motion(.bottomLeading, size: geometry.size))
+                                .accessibilityHidden(!visible)
+                            Spacer(minLength: 2)
+                            HStack(spacing: 2) {
+                                control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
+                                control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
+                            }.frame(width: 90, height: 44)
+                                .modifier(motion(.bottomTrailing, size: geometry.size))
+                        }.frame(height: 44)
+                    }.padding(6)
+                }
+                // Block input now, retaining rendering until exit completion.
+                .allowsHitTesting(visible)
+                .accessibilityHidden(!visible)
             }
-            // Hide interaction immediately while keeping the rendered controls
-            // alive to finish their exit. Each button also hides from accessibility.
-            .allowsHitTesting(visible)
-            .accessibilityHidden(!visible)
         }
     }
     private var topActions: some View {

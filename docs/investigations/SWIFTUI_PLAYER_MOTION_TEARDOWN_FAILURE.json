@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source_revision": "a7cb588958a7b6a9697756e4ada9af91ffaeb8b4",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43567474931",
+  "result": "failure; no admitted components or IPA",
+  "observations": {
+    "native_and_fixture_compilation": "passed",
+    "glass_ui": "failed auto-hide existence assertion",
+    "plain_ui": "failed auto-hide existence assertion",
+    "snapshot": "hold=false popup=false visible=false, but player buttons remain in the accessibility hierarchy",
+    "interpolation_checks": "not reached; Not checked in both snapshots"
+  },
+  "limits": "The accessibility hierarchy alone does not establish rendered opacity or position. Neither timer failure nor successful visual animation is inferred.",
+  "local_artifact_directory": "../artifacts/ci/failure-player-motion-a7cb588",
+  "files": {
+    "native/build.log": "ee5e8475ea99d678d6725dd15a6a70e9ef100dd3ab6c0071bc4051917ec6f23a",
+    "failure.json": "56593f9ec4a124b4ded3a6a66d9a9f46403f9729dde3747055132f8bc0bbec92"
+  },
+  "correction": "Keep controls mounted through the explicit exit animation; unmount only after completion, guarded against stale requests. Remount at hidden state before revealing. Interpolation checks run before the unchanged auto-hide assertion and include reversal followed by a real mute action."
+}

@@ -28,6 +28,7 @@ private final class MotionFrameSamples {
     private var minimum = 1.0, maximum = 0.0
     private var earlyCenterHidden = false, lateEdgesSettled = false, invalid = false
     private var previous: Double?
+    private var latest = "No modifier frames"
     func begin(style: PlayerControlAnimation, entering: Bool) {
         lock.lock(); defer { lock.unlock() }
         expected = style; self.entering = entering
@@ -36,6 +37,7 @@ private final class MotionFrameSamples {
     }
     func record(style: PlayerControlAnimation, region: PlayerControlRegion, progress: Double, frame: PlayerControlFrame) {
         lock.lock(); defer { lock.unlock() }
+        if region == .center { latest = "progress=\(progress), alpha=\(frame.opacity)" }
         guard let expected, progress > 0.001, progress < 0.999,
               region == .topTrailing || region == .center, samples < 512 else { return }
         samples += 1; invalid = invalid || style != expected
@@ -61,6 +63,10 @@ private final class MotionFrameSamples {
                 invalid = invalid || frame.opacity > 0.001
             }
         }
+    }
+    func lastFrame() -> String {
+        lock.lock(); defer { lock.unlock() }
+        return latest
     }
     func finish() -> (Bool, String) {
         lock.lock(); defer { lock.unlock() }
@@ -120,6 +126,14 @@ private struct InputTestContent: View {
                     guard passed else { motionResult = "Failed"; motionDetails = details.joined(separator: "; "); return }
                 }
             }
+            // A stale exit completion must not remove controls after reversal.
+            storedAnimation = PlayerControlAnimation.vertical.rawValue; motionReduceMotion = false
+            motionVisible = true
+            try await Task.sleep(nanoseconds: 160_000_000)
+            motionVisible = false
+            try await Task.sleep(nanoseconds: 80_000_000)
+            motionVisible = true
+            try await Task.sleep(nanoseconds: 800_000_000)
             motionDetails = details.joined(separator: "; "); motionResult = "Passed"
         } catch { motionResult = "Failed"; motionDetails = "Sampling cancelled" }
     }
@@ -151,7 +165,7 @@ private struct InputTestContent: View {
             Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
             Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
-            Text(verbatim: "hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible)")
+            Text(verbatim: "hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible) \(motionSamples.lastFrame())")
                 .font(.caption).accessibilityIdentifier("fixture-state")
             Spacer()
         }

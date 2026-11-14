@@ -27,6 +27,7 @@ private struct InputTestContent: View {
     @State private var paused = false
     @State private var muted = false
     @State private var closed = false
+    @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
     @State private var copied = "Not copied"
     private var channel: FollowedChannel {
         var c = FollowedChannel(username: "fixture_channel", displayName: "Fixture")
@@ -38,12 +39,19 @@ private struct InputTestContent: View {
         VStack {
             if closed { Text("Closed").accessibilityIdentifier("closed") }
             else {
-                PlayerCanvas(surface: media, controlsVisible: visibility.visible, toggleControls: { visibility.toggle(now: ProcessInfo.processInfo.systemUptime) }) {
-                    PlayerControls(channel: channel, clock: clock, paused: paused, muted: muted,
+                PlayerCanvas(surface: media, toggleControls: { visibility.toggle(now: ProcessInfo.processInfo.systemUptime) }) {
+                    PlayerControls(visible: visibility.visible, channel: channel, clock: clock, paused: paused, muted: muted,
                                    close: { closed = true }, pause: { paused.toggle() }, mute: { muted.toggle() },
                                    interact: interact, presentationChanged: { presenting = $0 })
                 }
             }
+            Button("Next animation") {
+                let styles = PlayerControlAnimation.allCases
+                let current = styles.firstIndex(of: PlayerControlAnimation(rawValue: storedAnimation) ?? .vertical) ?? 0
+                storedAnimation = styles[(current + 1) % styles.count].rawValue
+                interact()
+            }.accessibilityIdentifier("next-animation")
+            Text(storedAnimation).accessibilityIdentifier("animation-style")
             Text("Harness").accessibilityIdentifier("harness-title")
             Toggle("Hold controls open", isOn: $holdOpen).accessibilityIdentifier("hold-controls")
             Button("Change renderer") { media.changedRenderer.toggle(); interact() }.accessibilityIdentifier("resize")
@@ -67,6 +75,7 @@ private struct InputTestContent: View {
     var window: UIWindow?
     func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("--plain"), forKey: PlayerPreferences.glassButtonsKey)
+        UserDefaults.standard.set(PlayerControlAnimation.vertical.rawValue, forKey: PlayerPreferences.animationKey)
         let window = UIWindow(frame: UIScreen.main.bounds)
         window.rootViewController = UIHostingController(rootView: InputTestContent())
         window.makeKeyAndVisible(); self.window = window; return true

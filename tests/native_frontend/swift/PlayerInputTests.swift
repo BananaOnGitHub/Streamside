@@ -79,6 +79,17 @@ final class PlayerInputTests: XCTestCase {
         // Empty video area, away from top/bottom bars and the central play button.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
         XCTAssertTrue(mute.waitForExistence(timeout: 5), "Video tap did not reveal controls")
+        for style in ["horizontal", "fade", "vertical"] {
+            app.buttons["next-animation"].tap()
+            wait(app.staticTexts["animation-style"], label: style)
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
+            let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: mute)
+            XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
+            XCTAssertTrue(mute.waitForExistence(timeout: 5))
+            tap(mute); wait(mute, label: "Unmute stream")
+            tap(mute); wait(mute, label: "Mute stream")
+        }
         holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
         waitValue(holdControls, value: "1")
         tap(app.buttons["player.close"])

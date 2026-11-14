@@ -3,6 +3,11 @@ import Foundation
 // Synthetic presentation fixtures. No donor, network or live account is used.
 @main struct ModelsTests {
     static func main() {
+        for style in PlayerControlAnimation.allCases {
+            precondition(PlayerControlAnimation.effective(stored: style.rawValue, reduceMotion: false) == style)
+            precondition(PlayerControlAnimation.effective(stored: style.rawValue, reduceMotion: true) == .fade)
+        }
+        precondition(PlayerControlAnimation.effective(stored: "unknown", reduceMotion: false) == .vertical)
         var controls = PlayerControlsVisibility()
         controls.reveal(now: 100)
         controls.tick(now: 103.99, keepVisible: false); precondition(controls.visible)

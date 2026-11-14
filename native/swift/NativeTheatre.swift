@@ -50,7 +50,6 @@ private struct TheatreContent: View {
     @State private var controls = PlayerControlsVisibility()
     @State private var overlayPresented = false
     @State private var voiceOver = UIAccessibility.isVoiceOverRunning
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var currentChannel: FollowedChannel {
         services.state.channels.first { $0.id == channel.id } ?? channel
     }
@@ -61,17 +60,16 @@ private struct TheatreContent: View {
     }
     var body: some View {
         VStack(spacing: 0) {
-            PlayerCanvas(surface: playback.native.view, controlsVisible: controls.visible, toggleControls: {
+            PlayerCanvas(surface: playback.native.view, toggleControls: {
                 SSNPlayerControlEvent(0)
                 controls.toggle(now: ProcessInfo.processInfo.systemUptime)
             }) {
-                PlayerControls(channel: currentChannel, clock: services.clock,
+                PlayerControls(visible: controls.visible, channel: currentChannel, clock: services.clock,
                                paused: playback.paused, muted: playback.muted,
                                close: { playback.stop(); close() }, pause: playback.togglePaused,
                                mute: playback.toggleMuted, interact: interact,
                                presentationChanged: { overlayPresented = $0 })
             }
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: controls.visible)
             VStack(alignment: .leading, spacing: 8) {
                 Text(currentChannel.displayName).font(.headline)
                 Text(currentChannel.title).font(.subheadline).lineLimit(2)

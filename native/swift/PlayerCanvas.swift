@@ -29,11 +29,10 @@ private struct PassivePlayerSurface: UIViewRepresentable {
 
 struct PlayerCanvas<Controls: View>: View {
     let surface: UIView
-    let controlsVisible: Bool
     let toggleControls: () -> Void
     let controls: () -> Controls
-    init(surface: UIView, controlsVisible: Bool, toggleControls: @escaping () -> Void, @ViewBuilder controls: @escaping () -> Controls) {
-        self.surface = surface; self.controlsVisible = controlsVisible; self.toggleControls = toggleControls; self.controls = controls
+    init(surface: UIView, toggleControls: @escaping () -> Void, @ViewBuilder controls: @escaping () -> Controls) {
+        self.surface = surface; self.toggleControls = toggleControls; self.controls = controls
     }
     var body: some View {
         GeometryReader { geometry in
@@ -46,10 +45,9 @@ struct PlayerCanvas<Controls: View>: View {
                     .accessibilityLabel("Show or hide player controls")
                     .accessibilityIdentifier("player.video")
                     .accessibilityAddTraits(.isButton)
-                // Opacity/accessibility modifiers on the grouped overlay left
-                // stale buttons in the iOS 26 accessibility tree. Remove only
-                // the controls; the media surface and video tap layer persist.
-                if controlsVisible { controls().transition(.opacity) }
+                // Keep the overlay's layout owner alive so each region can
+                // finish its removal animation. Regions remove their own controls.
+                controls()
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .clipped()

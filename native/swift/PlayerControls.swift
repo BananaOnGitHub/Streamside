@@ -4,6 +4,7 @@ import UIKit
 // All symbols and popovers are owned native controls. Disabled actions are kept
 // explicit until their native service/navigation contracts have been validated.
 struct PlayerControls: View {
+    let visible: Bool
     let channel: FollowedChannel
     let clock: StreamClock
     let paused: Bool
@@ -14,6 +15,8 @@ struct PlayerControls: View {
     let interact: () -> Void
     let presentationChanged: (Bool) -> Void
     @AppStorage(PlayerPreferences.glassButtonsKey) private var glassButtons = true
+    @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var sharing = false
     @State private var settings = false
 
@@ -26,46 +29,95 @@ struct PlayerControls: View {
         .onChange(of: sharing || settings) { presentationChanged($0) }
         .onDisappear { presentationChanged(false) }
     }
-    private var controlLayer: some View {
-        ZStack {
-            Color.black.opacity(0.06).allowsHitTesting(false)
-            VStack(spacing: 0) {
-                HStack(spacing: 2) {
-                    control("Close stream", "chevron.down", id: "close", event: 1, action: close)
-                    Spacer(minLength: 0)
-                    control("Create clip — coming later", "movieclapper", disabled: true) {}
-                    control("Cast — unavailable", "tv.badge.wifi", disabled: true) {}
-                    control("Share stream", "square.and.arrow.up", id: "share", event: 4) { sharing = true }
-                        .popover(isPresented: $sharing, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                            StreamSharePopover(channel: channel, copied: { sharing = false })
-                                .presentationCompactAdaptation(.popover)
-                                .presentationBackground(.regularMaterial)
-                        }
-                    control("Player settings", "gearshape", id: "settings", event: 5) { settings = true }
-                        .popover(isPresented: $settings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                            VStack(alignment: .leading, spacing: 14) {
-                                Text("Player").font(.headline)
-                                PlayerSettingsOptions()
-                            }.padding(16).frame(idealWidth: 270, maxWidth: 290)
-                                .presentationCompactAdaptation(.popover)
-                                .presentationBackground(.regularMaterial)
-                        }
-                }
-                Spacer(minLength: 0)
-                control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
-                    .font(.title2)
-                Spacer(minLength: 0)
-                HStack(spacing: 2) {
-                    PlayerLiveInfo(channel: channel, clock: clock)
-                    Spacer(minLength: 2)
-                    control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
-                    control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
-                }
-            }.padding(6)
+    private var animationStyle: PlayerControlAnimation {
+        PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: reduceMotion)
+    }
+    private func transition(size: CGSize, top: Bool, leading: Bool) -> AnyTransition {
+        switch animationStyle {
+        case .fade: return .opacity
+        case .vertical: return .offset(y: (top ? -1 : 1) * size.height)
+        case .horizontal: return .offset(x: (leading ? -1 : 1) * size.width)
         }
     }
+    private var controlLayer: some View {
+        GeometryReader { geometry in
+            ZStack {
+                if visible {
+                    Color.black.opacity(0.06).allowsHitTesting(false).transition(.opacity)
+                }
+                VStack(spacing: 0) {
+                    HStack(spacing: 2) {
+                        ZStack {
+                            if visible {
+                                control("Close stream", "chevron.down", id: "close", event: 1, action: close)
+                                    .transition(transition(size: geometry.size, top: true, leading: true))
+                            }
+                        }.frame(width: 44, height: 44)
+                        Spacer(minLength: 0)
+                        ZStack {
+                            if visible {
+                                topActions
+                                    .transition(transition(size: geometry.size, top: true, leading: false))
+                            }
+                        }.frame(width: 182, height: 44)
+                    }
+                    Spacer(minLength: 0)
+                    ZStack {
+                        if visible {
+                            control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
+                                .transition(.opacity)
+                        }
+                    }.frame(width: 44, height: 44)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 2) {
+                        ZStack(alignment: .leading) {
+                            if visible {
+                                PlayerLiveInfo(channel: channel, clock: clock)
+                                    .transition(transition(size: geometry.size, top: false, leading: true))
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        ZStack {
+                            if visible {
+                                HStack(spacing: 2) {
+                                    control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
+                                    control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
+                                }.transition(transition(size: geometry.size, top: false, leading: false))
+                            }
+                        }.frame(width: 90, height: 44)
+                    }.frame(height: 44)
+                }.padding(6)
+            }
+            // Animate concrete layout regions, rather than a disappearing Group.
+            // Ease-in/out has zero endpoint velocity, without a spring overshoot.
+            .animation(.timingCurve(0.4, 0, 0.2, 1, duration: animationStyle == .fade ? 0.22 : 0.38), value: visible)
+            .allowsHitTesting(visible)
+            .accessibilityHidden(!visible)
+        }
+    }
+    private var topActions: some View {
+        HStack(spacing: 2) {
+            control("Create clip — coming later", "movieclapper", grouped: true, disabled: true) {}
+            control("Cast — unavailable", "tv.badge.wifi", grouped: true, disabled: true) {}
+            control("Share stream", "square.and.arrow.up", id: "share", event: 4, grouped: true) { sharing = true }
+                .popover(isPresented: $sharing, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                    StreamSharePopover(channel: channel, copied: { sharing = false })
+                        .presentationCompactAdaptation(.popover)
+                        .presentationBackground(.regularMaterial)
+                }
+            control("Player settings", "gearshape", id: "settings", event: 5, grouped: true) { settings = true }
+                .popover(isPresented: $settings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Player").font(.headline)
+                        PlayerSettingsOptions()
+                    }.padding(16).frame(idealWidth: 270, maxWidth: 290)
+                        .presentationCompactAdaptation(.popover)
+                        .presentationBackground(.regularMaterial)
+                }
+        }
+        .modifier(PlayerActionsSurface(enabled: glassButtons))
+    }
 
-    private func control(_ title: String, _ symbol: String, id: String = "unavailable", event: UInt32? = nil, disabled: Bool = false, action: @escaping () -> Void) -> some View {
+    private func control(_ title: String, _ symbol: String, id: String = "unavailable", event: UInt32? = nil, grouped: Bool = false, disabled: Bool = false, action: @escaping () -> Void) -> some View {
         Button { interact(); if let event { SSNPlayerControlEvent(event) }; action() } label: {
             Image(systemName: symbol).font(.system(size: 19, weight: .semibold))
                 .frame(width: 44, height: 44)
@@ -75,12 +127,25 @@ struct PlayerControls: View {
         }
         .buttonStyle(.plain)
         .frame(width: 44, height: 44)
-        .modifier(PlayerButtonSurface(enabled: glassButtons))
+        .modifier(PlayerButtonSurface(enabled: glassButtons && !grouped))
         .contentShape(Rectangle())
         .accessibilityIdentifier("player." + id)
         .disabled(disabled)
         .opacity(disabled ? 0.45 : 1)
         .accessibilityLabel(title)
+    }
+}
+
+// One capsule is drawn around all four actions; individual 44-point buttons
+// and their popover anchors remain independent and accessible.
+private struct PlayerActionsSurface: ViewModifier {
+    let enabled: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @ViewBuilder func body(content: Content) -> some View {
+        if !enabled { content }
+        else if reduceTransparency { content.background(.black.opacity(0.9), in: Capsule()) }
+        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Capsule()).glassEffectTransition(.materialize) }
+        else { content.background(.ultraThinMaterial, in: Capsule()) }
     }
 }
 
@@ -90,7 +155,7 @@ private struct PlayerButtonSurface: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if !enabled { content }
         else if reduceTransparency { content.background(.black.opacity(0.9), in: Circle()) }
-        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Circle()) }
+        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Circle()).glassEffectTransition(.materialize) }
         else { content.background(.ultraThinMaterial, in: Circle()) }
     }
 }
@@ -123,7 +188,7 @@ private struct PlayerLiveInfo: View {
     }
     @ViewBuilder var body: some View {
         if reduceTransparency { label.background(.black.opacity(0.9), in: Capsule()) }
-        else if #available(iOS 26.0, *) { label.glassEffect(.regular, in: Capsule()) }
+        else if #available(iOS 26.0, *) { label.glassEffect(.regular, in: Capsule()).glassEffectTransition(.materialize) }
         else { label.background(.ultraThinMaterial, in: Capsule()) }
     }
 }
@@ -164,9 +229,29 @@ struct PlayerSettingsOptions: View {
     var body: some View { Toggle("Liquid Glass buttons", isOn: $glassButtons) }
 }
 
+struct PlayerAnimationOptions: View {
+    @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var selection: Binding<String> {
+        Binding(get: { PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: reduceMotion).rawValue },
+                set: { storedAnimation = $0 })
+    }
+    var body: some View {
+        Picker("Control animation", selection: selection) {
+            ForEach(PlayerControlAnimation.allCases) { style in Text(style.title).tag(style.rawValue) }
+        }.disabled(reduceMotion)
+        if reduceMotion {
+            Text("Reduce Motion is on. Player controls use Fade.").font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+}
+
 struct PlayerSettings: View {
     var body: some View {
-        Form { Section { PlayerSettingsOptions() } }
+        Form {
+            Section { PlayerSettingsOptions() }
+            Section("Controls") { PlayerAnimationOptions() }
+        }
             .navigationTitle("Player")
             .navigationBarTitleDisplayMode(.inline)
     }

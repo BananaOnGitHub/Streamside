@@ -184,6 +184,22 @@ struct CycleDetentSelection {
 // Per-player presentation settings. Accessibility preferences take precedence.
 enum PlayerPreferences {
     static let glassButtonsKey = "dev.streamside.player.glassButtons"
+    static let animationKey = "dev.streamside.player.controlAnimation"
+}
+
+enum PlayerControlAnimation: String, CaseIterable, Identifiable {
+    case vertical, horizontal, fade
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .vertical: return "Top / bottom"
+        case .horizontal: return "Left / right"
+        case .fade: return "Fade"
+        }
+    }
+    static func effective(stored: String, reduceMotion: Bool) -> Self {
+        reduceMotion ? .fade : (Self(rawValue: stored) ?? .vertical)
+    }
 }
 
 // Monotonic time prevents wall-clock adjustments from extending controls.

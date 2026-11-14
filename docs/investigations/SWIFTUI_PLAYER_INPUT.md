@@ -225,3 +225,25 @@ Fly regions now measure their content size and travel only their extent plus a 1
 The coordinate fixture now captures real onscreen mid-entry and mid-exit snapshots through [UIKit drawHierarchy](https://developer.apple.com/documentation/uikit/uiview/drawhierarchy(in:afterscreenupdates:)). For center, shared actions and audio-control regions it compares partial rendered RGB against measured hidden/shown endpoints, requiring at least 20 high-contrast control/material pixels and an intermediate projection ratio (0.15...0.85). The low-opacity video shade is excluded by the contrast threshold. Incomplete snapshots, invalid regions, absent contrast and endpoint-only images fail. Only synthetic fixture content is captured, with no stored images or donor/account content. Both glass/plain cases require pixel checks in addition to all existing interpolated-value, action and auto-hide checks. The component receipt requires `motion_pixels=true`; no samples are logged on device.
 
 All 69 host tests pass and documentation checks pass. Apple compilation, actual snapshot checks and physical-device visual confirmation remain pending for this source. Pixel checks run during the existing slowed sampling phase; normal-speed reversal, actions and auto-hide still run separately. These snapshots can test visible opacity in the owned renderer, but cannot establish iPhone smoothness or donor-video glass appearance.
+
+## Validated compositing build and package
+
+Source `9217acda5772bdc5f872face64c2a2034e3f8705` passed [Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43580104451), [Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43580104456), and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43580104420). Both glass/plain cases passed all interpolation, action, auto-hide and reversal assertions plus actual mid-entry/mid-exit opacity snapshots. The center, shared actions and audio regions all had sufficient high-contrast pixels and intermediate projection ratios: glass approximately 0.45–0.46 entering and 0.59 leaving; plain approximately 0.36–0.37 entering and 0.57–0.58 leaving. These are pixel projection ratios, not exact measured alpha or physical-device results. Sampling and snapshot phases use fixture scale three; normal action/reversal/auto-hide phases use scale one.
+
+The [opacity artifact record](SWIFTUI_PLAYER_OPACITY_ARTIFACTS.json) preserves source, proof, exact toolchain, receipts, complete bounded pixel/interpolation results and hashes. Local packaging re-admitted the exact Twitch 32.0 donor, 51 Swift boundaries, 13 Objective-C methods and 25 runtime probes, then verified all retained archive entries including unchanged HBC. A single Native IPA was produced outside the repository, with no donor/signing material exposed to public Actions and no VM use. It requires Feather re-signing with the existing application/keychain identity. Physical-device opacity, center sequencing and smoother travel remain pending.
+
+Reproduce from the clean source revision or a compatible documentation-only descendant:
+
+```sh
+gh run download 43580104451 \
+  --name swiftui-components-9217acda5772bdc5f872face64c2a2034e3f8705 \
+  --dir ../artifacts/ci/9217acda5772bdc5f872face64c2a2034e3f8705
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/9217acda5772bdc5f872face64c2a2034e3f8705
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/9217acda5772bdc5f872face64c2a2034e3f8705 \
+  --output ../artifacts/native-frontend/swiftui/player-opacity-reproduction
+```
+
+On the phone, check all animation choices with glass enabled/disabled, actual Fade entry/exit, center fade after arrival and before departure, and smooth interruption/reversal. Confirm system Reduce Motion still forces Fade and disables the selector. Check ordinary controls and export Native diagnostics after playback. The synthetic pixel pass does not by itself establish donor-video compositing, physical smoothness, audible mute or a new positive control.

@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from workspace_paths import ARTIFACTS_DIR
 from macho import dylib_id, header, loaded_dylibs, MH_DYLIB
 from apple_inputs import build_inputs
+from build_progress import run_logged
 from identity import source_identity
 from probes import generate_header
 
@@ -149,25 +150,23 @@ def build(output):
                 destination = stage / name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(data)
-            result = subprocess.run([sys.executable, str(stage / "tools/native_frontend/apple_worker.py"), str(stage)],
-                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            (local / "build.log").write_bytes(result.stdout)
-            if (stage / "output/build.log").exists():
-                (local / "build.log").write_bytes((stage / "output/build.log").read_bytes() + (result.stdout if result.returncode else b""))
-            if result.returncode:
-                raise RuntimeError("Apple compilation/linking/validation failed for " + mode + "; see " + str(local / "build.log"))
+            run_logged([sys.executable, "-u", str(stage / "tools/native_frontend/apple_worker.py"), str(stage)],
+                       cwd=ROOT, log_path=local / "build.log", timeout=1500,
+                       label="Build and validate " + mode + " component", group=False, heartbeat=False, summary=True)
             framework = local / (FRAMEWORK + ".framework")
             framework.mkdir()
             for name in FILES - {"SSNBuild.h", "build.log", f"{FRAMEWORK}.framework/Info.plist", f"{FRAMEWORK}.framework/{FRAMEWORK}"}:
                 shutil.copy2(stage / "output" / name, local / name)
             shutil.copy2(stage / "output" / FRAMEWORK, framework / FRAMEWORK)
             (framework / "Info.plist").write_bytes(plistlib.dumps(framework_info(mode, proof, revision)))
+        print("Verify " + mode + " framework dependencies and artifact hashes", flush=True)
         check_binary(framework / FRAMEWORK)
         for name in sorted(FILES):
             data = (local / name).read_bytes()
             manifest["files"][mode + "/" + name] = dict(bytes=len(data), sha256=sha(data))
     manifest["validated"] = True
     (output / "components.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    print("Final validation: source, toolchain, required test receipts and every component hash", flush=True)
     verify(output, revision)
     print("Validated donor-free SwiftUI components: " + str(output))
 

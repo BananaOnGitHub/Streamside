@@ -63,9 +63,10 @@ private struct InputTestContent: View {
             Spacer()
         }
         .onAppear { interact() }
+        .onChange(of: holdOpen) { if $0 { interact() } }
         .task {
             while !Task.isCancelled {
-                visibility.tick(now: ProcessInfo.processInfo.systemUptime, keepVisible: holdOpen || presenting)
+                visibility.tick(now: ProcessInfo.processInfo.systemUptime, keepVisible: (holdOpen && visibility.visible) || presenting)
                 try? await Task.sleep(nanoseconds: 100_000_000)
             }
         }

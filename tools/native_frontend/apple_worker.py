@@ -5,8 +5,8 @@ import os
 import platform
 import plistlib
 from pathlib import Path
-import subprocess
 import sys
+from build_progress import run_logged, command_title
 
 
 def main():
@@ -16,17 +16,11 @@ def main():
         if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest:
             raise ValueError('Transferred build input mismatch: '+name)
     output=root/'output';output.mkdir(exist_ok=True)
-    def run(args, timeout=240):
-        try:
-            result=subprocess.run(args,cwd=root,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout)
-        except subprocess.TimeoutExpired as error:
-            partial=error.stdout or b''
-            if isinstance(partial,bytes):partial=partial.decode('utf-8',errors='replace')
-            with (output/'build.log').open('a') as log:log.write(str(args)+'\n'+partial+'\nCOMMAND TIMED OUT\n')
-            raise
-        with (output/'build.log').open('a') as log:log.write(str(args)+'\n'+result.stdout+'\n')
-        if result.returncode:raise RuntimeError(result.stdout)
-        return result.stdout.strip()
+    mode_name = "Native frontend" if config['mode']=='native' else "Original-startup control"
+    print(f"Building {mode_name}: source {config['source_revision']}; {len(config['inputs'])} owned inputs verified", flush=True)
+    def run(args, timeout=240, label=None):
+        return run_logged(args, cwd=root, log_path=output/'build.log', timeout=timeout,
+                          label=mode_name + " / " + (label or command_title(args)), summary=label is not None)
     sdk=run(['xcrun','--sdk','iphoneos','--show-sdk-path'])
     info={'xcode':run(['xcodebuild','-version']),'swift':run(['swift','--version']),
           'sdk_path':sdk,'sdk_version':run(['xcrun','--sdk','iphoneos','--show-sdk-version']),
@@ -48,7 +42,7 @@ def main():
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-O','-swift-version','5','-warnings-as-errors',
          '-module-name','StreamsideNativeProof','-import-objc-header','native/SSNNativeBridge.h',
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
-         '-o','output/SwiftFrontend.o']+swift)
+         '-o','output/SwiftFrontend.o']+swift, label='Compile SwiftUI frontend for iPhone')
     objects=['output/SwiftFrontend.o']
     for name in ['SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
@@ -61,14 +55,15 @@ def main():
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-emit-library','-o',binary]+objects+
         ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics','-framework','AVFAudio',
          '-Xlinker','-install_name','-Xlinker','@rpath/StreamsideNativeProof.framework/StreamsideNativeProof',
-         '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'])
+         '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
-    run(['codesign','--verify','--strict',binary])
+    run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
     run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
-    info['model_tests']=run([str(output/'models-tests')])
+    info['model_tests']=run([str(output/'models-tests')], label='Test account, feed and presentation models')
     info['uikit_ownership_tests']=test_window_ownership(root, output, config, run)
     info['codesign']='ad-hoc; IPA still requires device-authorized re-signing'
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
+    print(f'PASS: {mode_name} compiled, linked and all required receipts verified', flush=True)
 
 
 def test_window_ownership(root, output, config, run):
@@ -132,15 +127,15 @@ def test_window_ownership(root, output, config, run):
     device=run(['xcrun','simctl','create','Streamside ownership test',device_type,runtime])
     try:
         run(['xcrun','simctl','boot',device])
-        run(['xcrun','simctl','bootstatus',device,'-b'])
+        run(['xcrun','simctl','bootstatus',device,'-b'], label='Boot iPhone simulator and wait for readiness')
         run(['xcrun','simctl','install',device,str(bundle)])
-        run(['xcrun','simctl','launch','--console',device,bundle_id])
+        run(['xcrun','simctl','launch','--console',device,bundle_id], label='Test native window and navigation ownership')
         container=Path(run(['xcrun','simctl','get_app_container',device,bundle_id,'data']))
         receipt=json.loads((container/'Documents/ownership-test.json').read_text())
         if receipt != dict(passed=True,native=config['mode']=='native',blocked=2 if config['mode']=='native' else 0,failures=0):
             raise ValueError('UIKit ownership test failed: '+str(receipt))
         run(['xcrun','simctl','install',device,str(clock_bundle)])
-        run(['xcrun','simctl','launch','--console',device,clock_id])
+        run(['xcrun','simctl','launch','--console',device,clock_id], label='Test clock, full-title measurement and haptics')
         clock_container=Path(run(['xcrun','simctl','get_app_container',device,clock_id,'data']))
         observed=json.loads((clock_container/'Documents/clock-test.json').read_text())
         if observed != dict(passed=True,ticking=True,paused=True,resumed=True,title_measurement=True,haptic_pattern=True):
@@ -148,13 +143,14 @@ def test_window_ownership(root, output, config, run):
         clock_receipt={k:observed[k] for k in ['passed','ticking','paused','resumed']}
         interactions={k:observed[k] for k in ['title_measurement','haptic_pattern']}
         run(['xcrun','simctl','install',device,str(playback_bundle)])
-        run(['xcrun','simctl','launch','--console',device,playback_id])
+        run(['xcrun','simctl','launch','--console',device,playback_id], label='Test synthetic native playback lifecycle and mute')
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
         expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
-        for _ in range(3):run(['xcrun','simctl','launch','--console',device,launch_id])
+        for index in range(3):
+            run(['xcrun','simctl','launch','--console',device,launch_id], label=f'Test one-shot frontend selection: process {index + 1}/3')
         launch_container=Path(run(['xcrun','simctl','get_app_container',device,launch_id,'data']))
         launches=json.loads((launch_container/'Documents/launch-test.json').read_text())
         expected_launches=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]

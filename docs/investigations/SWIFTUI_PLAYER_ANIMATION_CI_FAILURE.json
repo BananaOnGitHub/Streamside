@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "source_revision": "b2a50ec635595d71a546fd0edaf035baeb74e478",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43539146284",
+  "result": "failure; no admitted components or IPA",
+  "observations": {
+    "native_compilation": "passed",
+    "glass_ui": "failed Fade second mute label assertion after deadline; remaining vertical/close checks not reached",
+    "plain_ui": "passed full coordinate sequence",
+    "glass_snapshot": "hold=false popup=false visible=false; mute button absent",
+    "timing_seconds": {
+      "first_mute_touch_up": 147.77,
+      "second_mute_touch_up": 151.89,
+      "production_timeout": 4
+    }
+  },
+  "local_artifact_directory": "../artifacts/ci/failure-player-animation-b2a50ec",
+  "files": {
+    "native/build.log": "bf5cb07fa0caf18f78c1ffc2c9a753845c3b3bb102f43fd243d9ce17f3bc4122",
+    "failure.json": "fd0a6ef7e8c0fdd18c6926b11640ce2109f791b7369f589093e38376ec7427d2",
+    "workflow-logs.zip": "4e97621752b59ecb155a12b59d6efdcdfdca7fd8ec499eeb060b6ffb5a2e0d21"
+  },
+  "correction": "Hold visible fixture controls during mode/action checks; explicit video hide remains allowed. Original four-second auto-hide test and all action assertions retained. No production changes or timeout increases."
+}

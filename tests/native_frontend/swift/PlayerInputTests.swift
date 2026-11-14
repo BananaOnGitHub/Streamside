@@ -79,6 +79,11 @@ final class PlayerInputTests: XCTestCase {
         // Empty video area, away from top/bottom bars and the central play button.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.16)).tap()
         XCTAssertTrue(mute.waitForExistence(timeout: 5), "Video tap did not reveal controls")
+        // The separate auto-hide check above runs with the real four-second
+        // deadline. Hold visible controls during action checks: XCTest's idle
+        // waits must not race a fresh deadline between existence and touch-up.
+        holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        waitValue(holdControls, value: "1")
         for style in ["horizontal", "fade", "vertical"] {
             app.buttons["next-animation"].tap()
             wait(app.staticTexts["animation-style"], label: style)
@@ -90,8 +95,7 @@ final class PlayerInputTests: XCTestCase {
             tap(mute); wait(mute, label: "Unmute stream")
             tap(mute); wait(mute, label: "Mute stream")
         }
-        holdControls.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
-        waitValue(holdControls, value: "1")
+        XCTAssertEqual(holdControls.value as? String, "1")
         tap(app.buttons["player.close"])
         XCTAssertTrue(app.staticTexts["closed"].waitForExistence(timeout: 5))
     }

@@ -71,8 +71,11 @@ final class PlayerInputTests: XCTestCase {
         tap(app.buttons["motion-checks"])
         let renderedMotion = app.staticTexts["motion-check-result"]
         let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Passed'"), object: renderedMotion)
-        XCTAssertEqual(XCTWaiter.wait(for: [sampled], timeout: 20), .completed, "Rendered motion checks failed")
-        print("PLAYER_MOTION_CHECKS PASS: " + (renderedMotion.value as? String ?? "No frame detail"))
+        let samplingResult = XCTWaiter.wait(for: [sampled], timeout: 20)
+        let frameDetail = renderedMotion.value as? String ?? "No frame detail"
+        print("PLAYER_MOTION_CHECKS RESULT: " + renderedMotion.label + ": " + frameDetail)
+        XCTAssertEqual(samplingResult, .completed, "Rendered motion checks failed: " + frameDetail)
+        print("PLAYER_MOTION_CHECKS PASS: " + frameDetail)
         // The fixture ends with a reversed fly transition. A stale hide
         // completion must not remove its controls or swallow the next action.
         tap(mute); wait(mute, label: "Unmute stream")

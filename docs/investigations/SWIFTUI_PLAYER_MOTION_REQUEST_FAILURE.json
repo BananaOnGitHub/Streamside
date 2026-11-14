@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source_revision": "965a9ba91bc811ef62341368ce288177849e6f7e",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43570061646",
+  "result": "failure; no admitted components or IPA",
+  "observations": {
+    "production_and_fixture_compilation": "passed",
+    "glass_and_plain": "failed rendered-motion check during first vertical entry",
+    "snapshot": "hold=true popup=false visible=true progress=0.0, alpha=0.0",
+    "frame_summary": "vertical in: edges... (accessibility snapshot truncated the remaining details)",
+    "later_checks": "not reached"
+  },
+  "limits": "The snapshot is after the sampling failure and restoration. It does not supply the missing frame counts or conclusively identify a SwiftUI internal cause.",
+  "local_artifact_directory": "../artifacts/ci/failure-player-motion-965a9ba",
+  "files": {
+    "native/build.log": "267e9bc14a8daa89164d1c08bed76c4690fdf66df3aad6c36d894c3e162f801e",
+    "failure.json": "56593f9ec4a124b4ded3a6a66d9a9f46403f9729dde3747055132f8bc0bbec92"
+  },
+  "correction": "Use the onChange callback new visibility argument as the animation request and retain it in state for delayed guards. Emit the full frame-check result before asserting, rather than relying on the truncated hierarchy."
+}

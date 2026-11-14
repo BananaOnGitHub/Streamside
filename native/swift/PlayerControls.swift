@@ -19,6 +19,7 @@ struct PlayerControls: View {
     var motionReductionOverride: Bool? = nil
     @State private var motionProgress = 0.0
     @State private var motionMounted = true
+    @State private var motionRequestedVisible = true
     @State private var motionGeneration: UInt64 = 0
     @State private var motionTask: Task<Void, Never>?
     @AppStorage(PlayerPreferences.glassButtonsKey) private var glassButtons = true
@@ -33,8 +34,8 @@ struct PlayerControls: View {
                 GlassEffectContainer(spacing: 0) { controlLayer }
             } else { controlLayer }
         }
-        .onAppear { animateVisibility() }
-        .onChange(of: visible) { _ in animateVisibility() }
+        .onAppear { animateVisibility(visible) }
+        .onChange(of: visible) { requested in animateVisibility(requested) }
         .onChange(of: sharing || settings) { presentationChanged($0) }
         .onDisappear {
             motionGeneration &+= 1
@@ -45,12 +46,13 @@ struct PlayerControls: View {
     private var animationStyle: PlayerControlAnimation {
         PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: motionReductionOverride ?? reduceMotion)
     }
-    private func animateVisibility() {
+    private func animateVisibility(_ requested: Bool) {
+        motionRequestedVisible = requested
         motionGeneration &+= 1
         let generation = motionGeneration
         motionTask?.cancel()
         let duration = PlayerControlMotion.duration(style: animationStyle)
-        if visible {
+        if requested {
             if motionMounted {
                 withAnimation(.linear(duration: duration)) { motionProgress = 1 }
             } else {
@@ -58,7 +60,7 @@ struct PlayerControls: View {
                 withTransaction(Transaction(animation: nil)) { motionMounted = true }
                 motionTask = Task { @MainActor in
                     do { try await Task.sleep(nanoseconds: 20_000_000) } catch { return }
-                    guard generation == motionGeneration, visible, !Task.isCancelled else { return }
+                    guard generation == motionGeneration, motionRequestedVisible, !Task.isCancelled else { return }
                     withAnimation(.linear(duration: duration)) { motionProgress = 1 }
                 }
             }
@@ -80,7 +82,7 @@ struct PlayerControls: View {
         }
     }
     private func finishHiding(generation: UInt64) {
-        guard generation == motionGeneration, !visible else { return }
+        guard generation == motionGeneration, !motionRequestedVisible else { return }
         withTransaction(Transaction(animation: nil)) { motionMounted = false }
     }
     private func motion(_ region: PlayerControlRegion, size: CGSize) -> PlayerControlMotionEffect {

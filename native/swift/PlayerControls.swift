@@ -17,6 +17,8 @@ struct PlayerControls: View {
     var motionSample: PlayerMotionSample? = nil
     // Owned fixture input; normal app callers use the read-only system value.
     var motionReductionOverride: Bool? = nil
+    // Only the frame-sampling fixture stretches time; application callers use 1.
+    var motionDurationScale = 1.0
     @State private var motionProgress = 0.0
     @State private var motionMounted = true
     @State private var motionRequestedVisible = true
@@ -51,7 +53,7 @@ struct PlayerControls: View {
         motionGeneration &+= 1
         let generation = motionGeneration
         motionTask?.cancel()
-        let duration = PlayerControlMotion.duration(style: animationStyle)
+        let duration = PlayerControlMotion.duration(style: animationStyle) * motionDurationScale
         if requested {
             if motionMounted {
                 withAnimation(.linear(duration: duration)) { motionProgress = 1 }

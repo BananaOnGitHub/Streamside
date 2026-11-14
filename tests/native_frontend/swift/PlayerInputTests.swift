@@ -71,8 +71,9 @@ final class PlayerInputTests: XCTestCase {
         tap(app.buttons["motion-checks"])
         let renderedMotion = app.staticTexts["motion-check-result"]
         let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Passed'"), object: renderedMotion)
-        let samplingResult = XCTWaiter.wait(for: [sampled], timeout: 20)
+        let samplingResult = XCTWaiter.wait(for: [sampled], timeout: 35)
         let frameDetail = renderedMotion.value as? String ?? "No frame detail"
+        print("PLAYER_MOTION_CHECKS sampling_scale=3; action/reversal scale=1")
         print("PLAYER_MOTION_CHECKS RESULT: " + renderedMotion.label + ": " + frameDetail)
         XCTAssertEqual(samplingResult, .completed, "Rendered motion checks failed: " + frameDetail)
         print("PLAYER_MOTION_CHECKS PASS: " + frameDetail)

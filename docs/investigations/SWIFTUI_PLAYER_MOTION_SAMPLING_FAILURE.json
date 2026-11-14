@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "source_revision": "7464798dd7e57941abcfb747422102e40e603ed3",
+  "workflow": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43574387370",
+  "result": "failure; no admitted components or IPA",
+  "observations": {
+    "glass": "All eight sampling stages observed intermediate edge and center values with sequenced=true and invalid=false; final stage fails remaining progress-range coverage criterion. Later coordinate assertions not reached.",
+    "plain": "Entire coordinate, sampling, auto-hide and close case passed.",
+    "glass_post_failure_state": "visible=true progress=1.0 alpha=1.0",
+    "full_frame_results": [
+      "Failed: vertical in: edges=21, center=9, sequenced=true, invalid=false; vertical out: edges=21, center=11, sequenced=true, invalid=false; horizontal in: edges=20, center=11, sequenced=true, invalid=false; horizontal out: edges=17, center=8, sequenced=true, invalid=false; fade in: edges=16, center=16, sequenced=true, invalid=false; fade out: edges=14, center=14, sequenced=true, invalid=false; fade in: edges=10, center=10, sequenced=true, invalid=false; fade out: edges=7, center=7, sequenced=true, invalid=false",
+      "Passed: vertical in: edges=21, center=8, sequenced=true, invalid=false; vertical out: edges=19, center=12, sequenced=true, invalid=false; horizontal in: edges=26, center=10, sequenced=true, invalid=false; horizontal out: edges=17, center=12, sequenced=true, invalid=false; fade in: edges=13, center=13, sequenced=true, invalid=false; fade out: edges=14, center=14, sequenced=true, invalid=false; fade in: edges=15, center=15, sequenced=true, invalid=false; fade out: edges=12, center=12, sequenced=true, invalid=false"
+    ]
+  },
+  "limits": "Old stage summaries omit minimum/maximum, so which endpoint was missed cannot be determined. Modifier samples do not establish physical display smoothness.",
+  "local_artifact_directory": "../artifacts/ci/failure-player-motion-7464798",
+  "files": {
+    "native/build.log": "d1e05da6eb0213f8c0a3750048692bda2250c415dc424b623f1efc604a8dd348",
+    "failure.json": "56593f9ec4a124b4ded3a6a66d9a9f46403f9729dde3747055132f8bc0bbec92"
+  },
+  "correction": "Stretch only the fixture frame-sampling timeline by 3. Keep minimum/maximum, intermediate-count, direction and sequencing requirements unchanged. Restore scale 1 before reversal/action/auto-hide tests. Log numeric sampling range and admit the sampling scale in component receipts."
+}

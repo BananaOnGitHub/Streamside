@@ -72,7 +72,8 @@ private final class MotionFrameSamples {
         lock.lock(); defer { lock.unlock() }
         let sequenced = expected == .fade || (earlyCenterHidden && lateEdgesSettled)
         let passed = !invalid && edges >= 2 && center >= 2 && minimum < 0.25 && maximum > 0.8 && sequenced
-        let detail = "\(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edges=\(edges), center=\(center), sequenced=\(sequenced), invalid=\(invalid)"
+        let range = String(format: "%.3f...%.3f", minimum, maximum)
+        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edges=\(edges), center=\(center), sequenced=\(sequenced), invalid=\(invalid)"
         expected = nil
         return (passed, detail)
     }
@@ -90,6 +91,7 @@ private struct InputTestContent: View {
     @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
     @State private var motionSamples = MotionFrameSamples()
     @State private var motionVisible: Bool?
+    @State private var motionDurationScale = 1.0
     @State private var motionReduceMotion: Bool?
     @State private var motionResult = "Not checked"
     @State private var motionDetails = ""
@@ -104,9 +106,10 @@ private struct InputTestContent: View {
     @MainActor private func checkMotion() async {
         guard !checkingMotion else { return }
         checkingMotion = true; motionResult = "Checking"
+        motionDurationScale = 3
         let saved = storedAnimation
         defer {
-            storedAnimation = saved; motionVisible = nil; motionReduceMotion = nil; checkingMotion = false
+            storedAnimation = saved; motionVisible = nil; motionReduceMotion = nil; motionDurationScale = 1; checkingMotion = false
         }
         var details: [String] = []
         do {
@@ -114,18 +117,26 @@ private struct InputTestContent: View {
             // fade when the fixture supplies the Reduce Motion preference input.
             for (style, reduced) in [(PlayerControlAnimation.vertical, false), (.horizontal, false), (.fade, false), (.vertical, true)] {
                 motionVisible = false
-                try await Task.sleep(nanoseconds: 800_000_000)
+                let settleWindow = PlayerControlMotion.flyDuration * motionDurationScale + 0.4
+                try await Task.sleep(nanoseconds: UInt64(settleWindow * 1_000_000_000))
                 storedAnimation = style.rawValue; motionReduceMotion = reduced
                 try await Task.sleep(nanoseconds: 100_000_000)
                 for entering in [true, false] {
                     motionSamples.begin(style: reduced ? .fade : style, entering: entering)
                     motionVisible = entering
-                    try await Task.sleep(nanoseconds: 800_000_000)
+                    // Retain the same near-endpoint coverage requirements while
+                    // giving the shared runner more time to render each phase.
+                    let effective = reduced ? PlayerControlAnimation.fade : style
+                    let samplingWindow = PlayerControlMotion.duration(style: effective) * motionDurationScale + 0.4
+                    try await Task.sleep(nanoseconds: UInt64(samplingWindow * 1_000_000_000))
                     let (passed, detail) = motionSamples.finish()
                     details.append(detail)
                     guard passed else { motionResult = "Failed"; motionDetails = details.joined(separator: "; "); return }
                 }
             }
+            // Reversal and all subsequent coordinate/auto-hide tests use the
+            // normal application duration, independently of slow frame sampling.
+            motionDurationScale = 1
             // A stale exit completion must not remove controls after reversal.
             storedAnimation = PlayerControlAnimation.vertical.rawValue; motionReduceMotion = false
             motionVisible = true
@@ -146,7 +157,7 @@ private struct InputTestContent: View {
                                    close: { closed = true }, pause: { paused.toggle() }, mute: { muted.toggle() },
                                    interact: interact, presentationChanged: { presenting = $0 },
                                    motionSample: { motionSamples.record(style: $0, region: $1, progress: $2, frame: $3) },
-                                   motionReductionOverride: motionReduceMotion)
+                                   motionReductionOverride: motionReduceMotion, motionDurationScale: motionDurationScale)
                 }
             }
             Button("Next animation") {

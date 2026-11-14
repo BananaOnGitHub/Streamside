@@ -46,7 +46,7 @@ struct PlayerCanvas<Controls: View>: View {
                     .accessibilityIdentifier("player.video")
                     .accessibilityAddTraits(.isButton)
                 // Keep the overlay's layout owner alive so each region can
-                // finish its removal animation. Regions remove their own controls.
+                // animate persistent control opacity/position through both directions.
                 controls()
             }
             .frame(width: geometry.size.width, height: geometry.size.height)

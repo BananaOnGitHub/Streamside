@@ -5,11 +5,11 @@ from pathlib import Path
 import plistlib
 import re
 
-SOURCES = ['native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift',
+SOURCES = ['native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'])
+EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'], motion_frames=True)
 
 
 def project(root, stage):
@@ -80,4 +80,6 @@ def run_controls_ui(root, stage, device, run):
             raise ValueError('Player coordinate test did not pass: '+name)
     if not re.search(r'Executed 2 tests?, with 0 failures',observed):
         raise ValueError('Two actual player coordinate tests were not observed')
+    if observed.count('PLAYER_MOTION_CHECKS PASS:') != 2:
+        raise ValueError('Both rendered-motion fixture checks must pass')
     return dict(EXPECTED)

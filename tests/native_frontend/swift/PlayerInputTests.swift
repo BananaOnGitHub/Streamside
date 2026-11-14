@@ -96,6 +96,11 @@ final class PlayerInputTests: XCTestCase {
             tap(mute); wait(mute, label: "Mute stream")
         }
         XCTAssertEqual(holdControls.value as? String, "1")
+        tap(app.buttons["motion-checks"])
+        let renderedMotion = app.staticTexts["motion-check-result"]
+        let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Passed'"), object: renderedMotion)
+        XCTAssertEqual(XCTWaiter.wait(for: [sampled], timeout: 20), .completed, "Rendered motion checks failed")
+        print("PLAYER_MOTION_CHECKS PASS: " + (renderedMotion.value as? String ?? "No frame detail"))
         tap(app.buttons["player.close"])
         XCTAssertTrue(app.staticTexts["closed"].waitForExistence(timeout: 5))
     }

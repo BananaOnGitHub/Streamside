@@ -14,6 +14,8 @@ struct PlayerControls: View {
     let mute: () -> Void
     let interact: () -> Void
     let presentationChanged: (Bool) -> Void
+    var motionSample: PlayerMotionSample? = nil
+    @State private var motionProgress = 0.0
     @AppStorage(PlayerPreferences.glassButtonsKey) private var glassButtons = true
     @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -26,70 +28,54 @@ struct PlayerControls: View {
                 GlassEffectContainer(spacing: 0) { controlLayer }
             } else { controlLayer }
         }
+        .onAppear { animateVisibility() }
+        .onChange(of: visible) { _ in animateVisibility() }
         .onChange(of: sharing || settings) { presentationChanged($0) }
         .onDisappear { presentationChanged(false) }
     }
     private var animationStyle: PlayerControlAnimation {
         PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: reduceMotion)
     }
-    private func transition(size: CGSize, top: Bool, leading: Bool) -> AnyTransition {
-        switch animationStyle {
-        case .fade: return .opacity
-        case .vertical: return .offset(y: (top ? -1 : 1) * size.height)
-        case .horizontal: return .offset(x: (leading ? -1 : 1) * size.width)
+    private func animateVisibility() {
+        withAnimation(.linear(duration: PlayerControlMotion.duration(style: animationStyle))) {
+            motionProgress = visible ? 1 : 0
         }
+    }
+    private func motion(_ region: PlayerControlRegion, size: CGSize) -> PlayerControlMotionEffect {
+        PlayerControlMotionEffect(progress: motionProgress, style: animationStyle, region: region,
+                                  size: size, sample: motionSample)
     }
     private var controlLayer: some View {
         GeometryReader { geometry in
             ZStack {
-                if visible {
-                    Color.black.opacity(0.06).allowsHitTesting(false).transition(.opacity)
-                }
+                Color.black.opacity(0.06).modifier(motion(.shade, size: geometry.size)).allowsHitTesting(false)
                 VStack(spacing: 0) {
                     HStack(spacing: 2) {
-                        ZStack {
-                            if visible {
-                                control("Close stream", "chevron.down", id: "close", event: 1, action: close)
-                                    .transition(transition(size: geometry.size, top: true, leading: true))
-                            }
-                        }.frame(width: 44, height: 44)
+                        control("Close stream", "chevron.down", id: "close", event: 1, action: close)
+                            .modifier(motion(.topLeading, size: geometry.size))
                         Spacer(minLength: 0)
-                        ZStack {
-                            if visible {
-                                topActions
-                                    .transition(transition(size: geometry.size, top: true, leading: false))
-                            }
-                        }.frame(width: 182, height: 44)
+                        topActions.frame(width: 182, height: 44)
+                            .modifier(motion(.topTrailing, size: geometry.size))
                     }
                     Spacer(minLength: 0)
-                    ZStack {
-                        if visible {
-                            control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
-                                .transition(.opacity)
-                        }
-                    }.frame(width: 44, height: 44)
+                    control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
+                        .modifier(motion(.center, size: geometry.size))
                     Spacer(minLength: 0)
                     HStack(spacing: 2) {
-                        ZStack(alignment: .leading) {
-                            if visible {
-                                PlayerLiveInfo(channel: channel, clock: clock)
-                                    .transition(transition(size: geometry.size, top: false, leading: true))
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        ZStack {
-                            if visible {
-                                HStack(spacing: 2) {
-                                    control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
-                                    control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
-                                }.transition(transition(size: geometry.size, top: false, leading: false))
-                            }
+                        PlayerLiveInfo(channel: channel, clock: clock)
+                            .modifier(motion(.bottomLeading, size: geometry.size))
+                            .accessibilityHidden(!visible)
+                        Spacer(minLength: 2)
+                        HStack(spacing: 2) {
+                            control(muted ? "Unmute stream" : "Mute stream", muted ? "speaker.slash.fill" : "speaker.wave.2.fill", id: "mute", event: 3, action: mute)
+                            control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
                         }.frame(width: 90, height: 44)
+                            .modifier(motion(.bottomTrailing, size: geometry.size))
                     }.frame(height: 44)
                 }.padding(6)
             }
-            // Animate concrete layout regions, rather than a disappearing Group.
-            // Ease-in/out has zero endpoint velocity, without a spring overshoot.
-            .animation(.timingCurve(0.4, 0, 0.2, 1, duration: animationStyle == .fade ? 0.22 : 0.38), value: visible)
+            // Hide interaction immediately while keeping the rendered controls
+            // alive to finish their exit. Each button also hides from accessibility.
             .allowsHitTesting(visible)
             .accessibilityHidden(!visible)
         }
@@ -133,6 +119,7 @@ struct PlayerControls: View {
         .disabled(disabled)
         .opacity(disabled ? 0.45 : 1)
         .accessibilityLabel(title)
+        .accessibilityHidden(!visible)
     }
 }
 
@@ -144,7 +131,7 @@ private struct PlayerActionsSurface: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if !enabled { content }
         else if reduceTransparency { content.background(.black.opacity(0.9), in: Capsule()) }
-        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Capsule()).glassEffectTransition(.materialize) }
+        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Capsule()) }
         else { content.background(.ultraThinMaterial, in: Capsule()) }
     }
 }
@@ -155,7 +142,7 @@ private struct PlayerButtonSurface: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if !enabled { content }
         else if reduceTransparency { content.background(.black.opacity(0.9), in: Circle()) }
-        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Circle()).glassEffectTransition(.materialize) }
+        else if #available(iOS 26.0, *) { content.glassEffect(.regular.interactive(), in: Circle()) }
         else { content.background(.ultraThinMaterial, in: Circle()) }
     }
 }
@@ -188,7 +175,7 @@ private struct PlayerLiveInfo: View {
     }
     @ViewBuilder var body: some View {
         if reduceTransparency { label.background(.black.opacity(0.9), in: Capsule()) }
-        else if #available(iOS 26.0, *) { label.glassEffect(.regular, in: Capsule()).glassEffectTransition(.materialize) }
+        else if #available(iOS 26.0, *) { label.glassEffect(.regular, in: Capsule()) }
         else { label.background(.ultraThinMaterial, in: Capsule()) }
     }
 }

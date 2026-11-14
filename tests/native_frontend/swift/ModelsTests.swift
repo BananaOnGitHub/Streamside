@@ -8,6 +8,24 @@ import Foundation
             precondition(PlayerControlAnimation.effective(stored: style.rawValue, reduceMotion: true) == .fade)
         }
         precondition(PlayerControlAnimation.effective(stored: "unknown", reduceMotion: false) == .vertical)
+        for style in PlayerControlAnimation.allCases {
+            for region in [PlayerControlRegion.topLeading, .topTrailing, .bottomLeading, .bottomTrailing, .center, .shade] {
+                let shown = PlayerControlMotion.frame(progress: 1, style: style, region: region, width: 400, height: 225)
+                precondition(shown.x == 0 && shown.y == 0 && shown.opacity == 1)
+                let hidden = PlayerControlMotion.frame(progress: 0, style: style, region: region, width: 400, height: 225)
+                precondition(hidden.opacity == 0)
+                if style == .fade { precondition(hidden.x == 0 && hidden.y == 0) }
+            }
+        }
+        for style in [PlayerControlAnimation.vertical, .horizontal] {
+            let earlyCenter = PlayerControlMotion.frame(progress: 0.4, style: style, region: .center, width: 400, height: 225)
+            let lateCenter = PlayerControlMotion.frame(progress: 0.85, style: style, region: .center, width: 400, height: 225)
+            let lateEdge = PlayerControlMotion.frame(progress: 0.85, style: style, region: .topTrailing, width: 400, height: 225)
+            precondition(earlyCenter.opacity == 0 && lateCenter.opacity > 0 && lateCenter.opacity < 1)
+            precondition(lateCenter.x == 0 && lateCenter.y == 0 && lateEdge.x == 0 && lateEdge.y == 0)
+        }
+        let halfFade = PlayerControlMotion.frame(progress: 0.5, style: .fade, region: .topTrailing, width: 400, height: 225)
+        precondition(abs(halfFade.opacity - 0.5) < 0.0001 && halfFade.x == 0 && halfFade.y == 0)
         var controls = PlayerControlsVisibility()
         controls.reveal(now: 100)
         controls.tick(now: 103.99, keepVisible: false); precondition(controls.visible)

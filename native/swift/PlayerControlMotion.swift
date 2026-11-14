@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Observe only synthetic fixture renders; application callers leave this nil.
-typealias PlayerMotionSample = (PlayerControlAnimation, PlayerControlRegion, Double, PlayerControlFrame) -> Void
+typealias PlayerMotionSample = (PlayerControlAnimation, PlayerControlRegion, Double, CGSize, PlayerControlFrame) -> Void
 private struct PlayerRegionSize: PreferenceKey {
     static let defaultValue = CGSize.zero
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
@@ -19,13 +19,14 @@ struct PlayerControlMotionEffect: AnimatableModifier {
         set { progress = newValue }
     }
     private func frame() -> PlayerControlFrame {
-        // Travel only far enough to clear this region's nearest canvas edge.
-        // A viewport-sized journey clips most of the easing curve offscreen.
-        let width = contentSize.width > 0 ? min(size.width, contentSize.width + 16) : size.width
-        let height = contentSize.height > 0 ? min(size.height, contentSize.height + 16) : size.height
+        // Match the canvas inset exactly. Extra hidden travel delays smaller
+        // controls by a larger fraction of the timeline than wider controls.
+        let inset = CGFloat(PlayerControlMotion.canvasInset)
+        let width = contentSize.width > 0 ? min(size.width, contentSize.width + inset) : size.width
+        let height = contentSize.height > 0 ? min(size.height, contentSize.height + inset) : size.height
         let value = PlayerControlMotion.frame(progress: progress, style: style, region: region,
                                              width: Double(width), height: Double(height))
-        sample?(style, region, progress, value)
+        sample?(style, region, progress, CGSize(width: width, height: height), value)
         return value
     }
     @ViewBuilder private func rendered(_ content: Content) -> some View {

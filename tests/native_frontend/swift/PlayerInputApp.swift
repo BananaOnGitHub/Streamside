@@ -27,26 +27,29 @@ private final class MotionFrameSamples {
     private var edges = 0, center = 0, samples = 0
     private var minimum = 1.0, maximum = 0.0
     private var midCenterFading = false, midEdgesMoving = false, invalid = false
-    private var previous: Double?
+    private var previous: [PlayerControlRegion: Double] = [:]
+    private var edgeRegions: [PlayerControlRegion: Int] = [:]
+    private var earlyRegions = Set<PlayerControlRegion>()
     private var latest = "No modifier frames"
     func begin(style: PlayerControlAnimation, entering: Bool) {
         lock.lock(); defer { lock.unlock() }
         expected = style; self.entering = entering
         edges = 0; center = 0; samples = 0; minimum = 1; maximum = 0
-        midCenterFading = false; midEdgesMoving = false; invalid = false; previous = nil
+        midCenterFading = false; midEdgesMoving = false; invalid = false; previous = [:]; edgeRegions = [:]; earlyRegions = []
     }
-    func record(style: PlayerControlAnimation, region: PlayerControlRegion, progress: Double, frame: PlayerControlFrame) {
+    func record(style: PlayerControlAnimation, region: PlayerControlRegion, progress: Double, travel: CGSize, frame: PlayerControlFrame) {
         lock.lock(); defer { lock.unlock() }
         if region == .center { latest = "progress=\(progress), alpha=\(frame.opacity)" }
         guard let expected, progress > 0.001, progress < 0.999,
-              region == .topTrailing || region == .center, samples < 512 else { return }
+              region != .shade, samples < 2048 else { return }
         samples += 1; invalid = invalid || style != expected
         minimum = min(minimum, progress); maximum = max(maximum, progress)
-        if region == .topTrailing {
-            if let previous {
-                invalid = invalid || (entering ? progress < previous - 0.03 : progress > previous + 0.03)
+        if region != .center {
+            if let old = previous[region] {
+                invalid = invalid || (entering ? progress < old - 0.03 : progress > old + 0.03)
             }
-            previous = progress
+            previous[region] = progress
+            edgeRegions[region, default: 0] += 1
             let distance = abs(frame.x) + abs(frame.y)
             if style == .fade {
                 if frame.opacity > 0.01 && frame.opacity < 0.99 { edges += 1 }
@@ -54,12 +57,16 @@ private final class MotionFrameSamples {
             } else {
                 if distance > 1 && progress > 0.05 { edges += 1 }
                 if progress > 0.25 && progress < 0.75 && distance > 1 { midEdgesMoving = true }
+                let extent = style == .horizontal ? Double(travel.width) : Double(travel.height)
+                let alpha = PlayerControlMotion.frame(progress: progress, style: style, region: .center, width: 1, height: 1).opacity
+                invalid = invalid || extent <= 0 || abs(distance / max(1, extent) + alpha - 1) > 0.000001
+                if progress > 0.05 && progress < 0.2 && alpha > 0.14 { earlyRegions.insert(region) }
             }
         } else {
             invalid = invalid || abs(frame.x) + abs(frame.y) > 0.001
             if frame.opacity > 0.01 && frame.opacity < 0.99 { center += 1 }
             // Fade must occupy the same complete timeline as edge travel.
-            let expectedAlpha = PlayerControlMotion.frame(progress: progress, style: .fade, region: .center, width: 1, height: 1).opacity
+            let expectedAlpha = PlayerControlMotion.frame(progress: progress, style: style, region: .shade, width: 1, height: 1).opacity
             invalid = invalid || abs(frame.opacity - expectedAlpha) > 0.000001
             if progress > 0.25 && progress < 0.75 && frame.opacity > 0.01 && frame.opacity < 0.99 {
                 midCenterFading = true
@@ -72,10 +79,11 @@ private final class MotionFrameSamples {
     }
     func finish() -> (Bool, String) {
         lock.lock(); defer { lock.unlock() }
-        let synchronized = midCenterFading && (expected == .fade || midEdgesMoving)
+        let allEdges = edgeRegions.count == 4 && edgeRegions.values.allSatisfy { $0 >= 2 }
+        let synchronized = allEdges && midCenterFading && (expected == .fade || (midEdgesMoving && earlyRegions.count == 4))
         let passed = !invalid && edges >= 2 && center >= 2 && minimum < 0.25 && maximum > 0.8 && synchronized
         let range = String(format: "%.3f...%.3f", minimum, maximum)
-        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edges=\(edges), center=\(center), synchronized=\(synchronized), invalid=\(invalid)"
+        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edgeRegions=\(edgeRegions.count), earlyRegions=\(earlyRegions.count), edges=\(edges), center=\(center), synchronized=\(synchronized), invalid=\(invalid)"
         expected = nil
         return (passed, detail)
     }
@@ -259,7 +267,7 @@ private struct InputTestContent: View {
                     PlayerControls(visible: motionVisible ?? visibility.visible, channel: channel, clock: clock, paused: paused, muted: muted,
                                    close: { closed = true }, pause: { paused.toggle() }, mute: { muted.toggle() },
                                    interact: interact, presentationChanged: { presenting = $0 },
-                                   motionSample: { motionSamples.record(style: $0, region: $1, progress: $2, frame: $3) },
+                                   motionSample: { motionSamples.record(style: $0, region: $1, progress: $2, travel: $3, frame: $4) },
                                    motionReductionOverride: motionReduceMotion, motionDurationScale: motionDurationScale)
                 }
             }

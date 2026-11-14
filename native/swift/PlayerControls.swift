@@ -104,8 +104,8 @@ struct PlayerControls: View {
                         control(paused ? "Play" : "Pause", paused ? "play.fill" : "pause.fill", id: "pause", event: 2, action: pause)
                             .modifier(motion(.center, size: geometry.size))
                         Spacer(minLength: 0)
-                        HStack(spacing: 2) {
-                            PlayerLiveInfo(channel: channel, clock: clock)
+                        HStack(alignment: .bottom, spacing: 2) {
+                            PlayerLiveInfo(channel: channel, clock: clock, glassEnabled: glassButtons)
                                 .modifier(motion(.bottomLeading, size: geometry.size))
                                 .accessibilityHidden(!visible)
                             Spacer(minLength: 2)
@@ -115,7 +115,7 @@ struct PlayerControls: View {
                             }.frame(width: 90, height: 44)
                                 .modifier(motion(.bottomTrailing, size: geometry.size))
                         }.frame(height: 44)
-                    }.padding(6)
+                    }.padding(CGFloat(PlayerControlMotion.canvasInset))
                 }
                 // Block input now, retaining rendering until exit completion.
                 .allowsHitTesting(visible)
@@ -193,6 +193,7 @@ private struct PlayerButtonSurface: ViewModifier {
 private struct PlayerLiveInfo: View {
     let channel: FollowedChannel
     @ObservedObject var clock: StreamClock
+    let glassEnabled: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var elapsed: Int? { channel.startedAt.map { StreamElapsed.seconds(startedAt: $0, now: clock.now) } }
@@ -217,7 +218,8 @@ private struct PlayerLiveInfo: View {
         .accessibilityValue("\(elapsed.map { StreamElapsed.label(seconds: $0) } ?? "Duration unavailable"), \(channel.viewerCount.map { "\($0) viewers" } ?? "Viewers unavailable")")
     }
     @ViewBuilder var body: some View {
-        if reduceTransparency { label.background(.black.opacity(0.9), in: Capsule()) }
+        if !glassEnabled { label.background(.black.opacity(reduceTransparency ? 0.9 : 0.35), in: Capsule()) }
+        else if reduceTransparency { label.background(.black.opacity(0.9), in: Capsule()) }
         else if #available(iOS 26.0, *) { label.glassEffect(.regular, in: Capsule()) }
         else { label.background(.ultraThinMaterial, in: Capsule()) }
     }
@@ -256,7 +258,7 @@ private struct StreamSharePopover: View {
 
 struct PlayerSettingsOptions: View {
     @AppStorage(PlayerPreferences.glassButtonsKey) private var glassButtons = true
-    var body: some View { Toggle("Liquid Glass buttons", isOn: $glassButtons) }
+    var body: some View { Toggle("Liquid Glass", isOn: $glassButtons) }
 }
 
 struct PlayerAnimationOptions: View {

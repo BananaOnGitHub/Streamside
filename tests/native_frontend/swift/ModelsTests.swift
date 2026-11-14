@@ -31,6 +31,12 @@ import Foundation
                 }
             }
         }
+        // No slow-start dead zone: ten percent of entry has already covered
+        // over a quarter of the travel; Fade retains its existing curve.
+        for style in [PlayerControlAnimation.vertical, .horizontal] {
+            let early = PlayerControlMotion.frame(progress: 0.1, style: style, region: .center, width: 400, height: 225)
+            precondition(early.opacity > 0.25 && early.opacity < 0.3)
+        }
         let halfFade = PlayerControlMotion.frame(progress: 0.5, style: .fade, region: .topTrailing, width: 400, height: 225)
         precondition(abs(halfFade.opacity - 0.5) < 0.0001 && halfFade.x == 0 && halfFade.y == 0)
         var controls = PlayerControlsVisibility()

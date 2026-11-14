@@ -65,7 +65,7 @@ final class PlayerInputTests: XCTestCase {
         app.buttons["read-clipboard"].tap()
         wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
         tap(app.buttons["player.settings"])
-        let glassSetting = app.switches["Liquid Glass buttons"]
+        let glassSetting = app.switches["Liquid Glass"]
         XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))
         dismissPopover(glassSetting, in: app)
         tap(app.buttons["motion-checks"])

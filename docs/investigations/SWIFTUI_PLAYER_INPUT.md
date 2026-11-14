@@ -255,3 +255,25 @@ Device review of the Native package built from `9217acda5772bdc5f872face64c2a203
 The successor removes the two-phase fly timeline. Edge movement and the stationary center fade now both use the complete 0.70-second quintic curve in each direction. Previously edges took 0.48 seconds and the center had a separate 0.22-second phase. Both glass and plain use the same duration, easing and measured travel calculation; the cause of their perceived difference has not been measured. Fade remains 0.26 seconds and the validated local glass/compositing boundaries remain intact. No player, session or runtime-isolation integration is changed.
 
 Model checks cover all four edges across 99 intermediate positions for both axes and assert that normalized remaining travel plus center alpha equals one. The owned UI fixture now requires mid-transition edge movement and center fading in both directions, validates center alpha against the full fade curve, and retains real opacity pixels, reversal, action and auto-hide checks in both material modes. Component admission requires the synchronized-motion receipt. Sampling remains three-times duration and action/reversal checks remain normal speed. Apple compilation and physical-device smoothness/timing for this successor are pending.
+
+## Validated simultaneous-motion build and package
+
+Source `562279e86cf6e6b1a9286e5f359db6153785327c` passed [Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43619637264), [Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43619637288), and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43619637269). Both glass/plain UI cases passed all eight sampled transitions with `synchronized=true`, no invalid frames and the required progress coverage. Model checks for full-timeline center alpha and edge travel passed. Actual Fade pixels also remained intermediate during entry/exit in the center, shared actions and audio regions for both material modes. Reversal, actions, sharing and auto-hide passed at normal speed; interpolation and snapshot sampling used scale three. These results establish the owned fixture behavior, not physical-device visual smoothness.
+
+The [simultaneous-motion artifact record](SWIFTUI_PLAYER_SYNCHRONIZED_ARTIFACTS.json) retains exact source, proof, toolchain, full bounded motion/pixel results, validation receipts and hashes. Local packaging validated the exact Twitch 32.0 donor, 51 Swift boundaries and 25 runtime probes, and verified all retained archive entries including unchanged HBC. The single Native IPA is outside the source tree and requires Feather re-signing with the existing application/keychain identity. No donor/signing material was uploaded to Actions and the VM was unused. No new physical-device result or runtime calibration is claimed for this build.
+
+Reproduce from this clean source or a compatible documentation-only descendant:
+
+```sh
+gh run download 43619637264 \
+  --name swiftui-components-562279e86cf6e6b1a9286e5f359db6153785327c \
+  --dir ../artifacts/ci/562279e86cf6e6b1a9286e5f359db6153785327c
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/562279e86cf6e6b1a9286e5f359db6153785327c
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/562279e86cf6e6b1a9286e5f359db6153785327c \
+  --output ../artifacts/native-frontend/swiftui/player-synchronized-reproduction
+```
+
+Device checks: compare both fly directions with glass enabled/disabled, confirm center fade and edge movement start/finish together, check interrupted/reversed animations, and verify Fade and Reduce Motion remain correct. Check ordinary player actions and export Native diagnostics after playback. Actual perceived glass/plain smoothness remains pending.

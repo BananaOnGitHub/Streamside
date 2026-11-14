@@ -79,6 +79,63 @@ private final class MotionFrameSamples {
     }
 }
 
+// Actual onscreen snapshots of this owned fixture, never donor/account content.
+@MainActor private enum OpacityPixelCheck {
+    static func snapshot(_ window: UIWindow) -> CGImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1; format.opaque = true
+        var complete = false
+        let image = UIGraphicsImageRenderer(size: window.bounds.size, format: format).image { _ in
+            complete = window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
+        }
+        return complete ? image.cgImage : nil
+    }
+    private static func rgba(_ image: CGImage, region: CGRect) -> [UInt8]? {
+        let rect = region.integral
+        guard CGRect(x: 0, y: 0, width: CGFloat(image.width), height: CGFloat(image.height)).contains(rect),
+              let crop = image.cropping(to: rect) else { return nil }
+        let width = crop.width, height = crop.height
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return false }
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+            return true
+        }
+        return drawn ? bytes : nil
+    }
+    static func evaluate(hidden: CGImage, shown: CGImage, partial: CGImage, canvas: CGRect) -> (Bool, String) {
+        let regions = [("center", CGRect(x: canvas.midX - 22, y: canvas.midY - 22, width: 44, height: 44)),
+                       ("actions", CGRect(x: canvas.maxX - 188, y: canvas.minY + 6, width: 182, height: 44)),
+                       ("audio", CGRect(x: canvas.maxX - 96, y: canvas.maxY - 50, width: 90, height: 44))]
+        var details: [String] = []
+        var passed = true
+        for (name, rect) in regions {
+            guard let a = rgba(hidden, region: rect), let b = rgba(shown, region: rect),
+                  let m = rgba(partial, region: rect), a.count == b.count, a.count == m.count else { return (false, "Invalid snapshot region: " + name) }
+            var numerator = 0.0, denominator = 0.0, count = 0
+            for index in stride(from: 0, to: a.count, by: 4) {
+                // Ignore the subtle video shade; require contrast from actual
+                // glyph/material pixels, measured against hidden/shown endpoints.
+                let contrast = (0..<3).map { abs(Int(b[index + $0]) - Int(a[index + $0])) }.max() ?? 0
+                guard contrast >= 64 else { continue }
+                count += 1
+                for channel in 0..<3 {
+                    let delta = Double(b[index + channel]) - Double(a[index + channel])
+                    numerator += (Double(m[index + channel]) - Double(a[index + channel])) * delta
+                    denominator += delta * delta
+                }
+            }
+            let ratio = denominator > 0 ? numerator / denominator : -1
+            passed = passed && count >= 20 && ratio > 0.15 && ratio < 0.85
+            details.append(name + " ratio=" + String(format: "%.3f", ratio) + " pixels=\(count)")
+        }
+        return (passed, details.joined(separator: ", "))
+    }
+}
+
 private struct InputTestContent: View {
     @State private var media = InputHungryVideo()
     @StateObject private var clock = StreamClock()
@@ -96,6 +153,8 @@ private struct InputTestContent: View {
     @State private var motionResult = "Not checked"
     @State private var motionDetails = ""
     @State private var checkingMotion = false
+    @State private var pixelResult = "Not checked"
+    @State private var pixelDetails = ""
     @State private var copied = "Not copied"
     private var channel: FollowedChannel {
         var c = FollowedChannel(username: "fixture_channel", displayName: "Fixture")
@@ -103,6 +162,44 @@ private struct InputTestContent: View {
         return c
     }
     private func interact() { visibility.reveal(now: ProcessInfo.processInfo.systemUptime) }
+    @MainActor private func checkOpacityPixels() async throws -> Bool {
+        pixelResult = "Checking"
+        guard let window = (UIApplication.shared.delegate as? InputTestDelegate)?.window else {
+            pixelDetails = "Missing owned window"; pixelResult = "Failed"; return false
+        }
+        let canvas = media.convert(media.bounds, to: window)
+        guard canvas.width > 200, canvas.height > 100 else {
+            pixelDetails = "Invalid canvas bounds"; pixelResult = "Failed"; return false
+        }
+        storedAnimation = PlayerControlAnimation.fade.rawValue; motionReduceMotion = false
+        let duration = PlayerControlMotion.fadeDuration * motionDurationScale
+        motionVisible = false
+        try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
+        guard let hidden = OpacityPixelCheck.snapshot(window) else {
+            pixelDetails = "Incomplete hidden snapshot"; pixelResult = "Failed"; return false
+        }
+        motionVisible = true
+        try await Task.sleep(nanoseconds: UInt64((duration * 0.5 + 0.02) * 1_000_000_000))
+        guard let entering = OpacityPixelCheck.snapshot(window) else {
+            pixelDetails = "Incomplete entry snapshot"; pixelResult = "Failed"; return false
+        }
+        try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
+        guard let shown = OpacityPixelCheck.snapshot(window) else {
+            pixelDetails = "Incomplete shown snapshot"; pixelResult = "Failed"; return false
+        }
+        motionVisible = false
+        try await Task.sleep(nanoseconds: UInt64(duration * 0.5 * 1_000_000_000))
+        guard let leaving = OpacityPixelCheck.snapshot(window) else {
+            pixelDetails = "Incomplete exit snapshot"; pixelResult = "Failed"; return false
+        }
+        let entry = OpacityPixelCheck.evaluate(hidden: hidden, shown: shown, partial: entering, canvas: canvas)
+        let exit = OpacityPixelCheck.evaluate(hidden: hidden, shown: shown, partial: leaving, canvas: canvas)
+        pixelDetails = "in: " + entry.1 + "; out: " + exit.1
+        pixelResult = entry.0 && exit.0 ? "Passed" : "Failed"
+        // Settle the preceding exit before returning to normal-speed reversal.
+        try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
+        return entry.0 && exit.0
+    }
     @MainActor private func checkMotion() async {
         guard !checkingMotion else { return }
         checkingMotion = true; motionResult = "Checking"
@@ -133,6 +230,10 @@ private struct InputTestContent: View {
                     details.append(detail)
                     guard passed else { motionResult = "Failed"; motionDetails = details.joined(separator: "; "); return }
                 }
+            }
+            guard try await checkOpacityPixels() else {
+                motionDetails = details.joined(separator: "; ") + "; pixels: " + pixelDetails
+                motionResult = "Failed"; return
             }
             // Reversal and all subsequent coordinate/auto-hide tests use the
             // normal application duration, independently of slow frame sampling.
@@ -170,6 +271,7 @@ private struct InputTestContent: View {
             Button("Check animation frames") { Task { await checkMotion() } }
                 .disabled(checkingMotion).accessibilityIdentifier("motion-checks")
             Text(motionResult).accessibilityIdentifier("motion-check-result").accessibilityValue(motionDetails)
+            Text(pixelResult).accessibilityIdentifier("opacity-pixel-result").accessibilityValue(pixelDetails)
             Text("Harness").accessibilityIdentifier("harness-title")
             Toggle("Hold controls open", isOn: $holdOpen).accessibilityIdentifier("hold-controls")
             Button("Change renderer") { media.changedRenderer.toggle(); interact() }.accessibilityIdentifier("resize")

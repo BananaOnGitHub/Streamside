@@ -31,11 +31,7 @@ struct PlayerControls: View {
     @State private var settings = false
 
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *), glassButtons {
-                GlassEffectContainer(spacing: 0) { controlLayer }
-            } else { controlLayer }
-        }
+        controlLayer
         .onAppear { animateVisibility(visible) }
         .onChange(of: visible) { requested in animateVisibility(requested) }
         .onChange(of: sharing || settings) { presentationChanged($0) }
@@ -89,7 +85,7 @@ struct PlayerControls: View {
     }
     private func motion(_ region: PlayerControlRegion, size: CGSize) -> PlayerControlMotionEffect {
         PlayerControlMotionEffect(progress: motionProgress, style: animationStyle, region: region,
-                                  size: size, sample: motionSample)
+                                  size: size, glassEnabled: glassButtons, sample: motionSample)
     }
     private var controlLayer: some View {
         GeometryReader { geometry in

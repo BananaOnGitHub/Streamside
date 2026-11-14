@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "review_date": "2026-11-14",
+  "source_revision": "db0b02bb98d861a8bb9df32f4942f63c2a7bdba2",
+  "report_sha256": "044cece2d9692dc2d3258e059e617902c2c0b91d505671df756e0861b919ca78",
+  "local_report": "../artifacts/native-frontend/device/player-motion-db0b02b/native-latest-2.json",
+  "user_observation": {
+    "fly_entry_and_exit": "work; requested smoother/fluid motion",
+    "center_fade": "not visibly fading with fly sequence or Fade mode",
+    "fade_all_controls": "still appears instantaneous",
+    "reduce_motion_detection": "works"
+  },
+  "diagnostics": {
+    "proof_id": "208f404b958214ebf96bc03b255e87d9b2f5c2875ae51e97f64de0fc62273a80",
+    "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "probe_contract": "4bbaa1a78713a04ee8ba8fb4ae5a81191cdc670140530d378237fc48aa6f03be",
+    "armed_mask": 15,
+    "failures": 0,
+    "baseline_calibrated": false,
+    "ui_root_owner": 1,
+    "navigation_guard_armed": 1,
+    "navigation_events": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "player_control_events": [
+      28,
+      4,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "foregrounds": 2,
+    "backgrounds": 1,
+    "playback_error": 0,
+    "playback_last_error": 0,
+    "returned_channel_count": 100,
+    "probes": {
+      "twitch_holder": 0,
+      "warmup": 0,
+      "twitch_factory": 0,
+      "bundle_url": 0,
+      "rn_factory": 0,
+      "rn_runtime_factory": 0,
+      "rn_host": 0,
+      "rn_host_start": 0,
+      "rn_surface": 0,
+      "rn_root_surface": 0,
+      "rn_instance": 0,
+      "rn_bundle_load": 0,
+      "rn_script_load": 0,
+      "rn_hermes_instance": 0,
+      "hermes_factory": 0,
+      "hermes_factory_nothrow": 0,
+      "hermes_runtime": 0,
+      "hermes_eval": 0,
+      "hermes_eval_prepared": 0,
+      "hermes_eval_source_map": 0,
+      "worklet_factory": 0,
+      "worklet_ui_factory": 0,
+      "worklet_runtime": 0,
+      "hermes_implementation": 0,
+      "hermes_engine": 0
+    }
+  },
+  "limits": "This export has no pixel or animation frame data and no new positive control. Prior sampled scalar progress did not establish visible alpha compositing."
+}

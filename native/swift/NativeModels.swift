@@ -211,13 +211,13 @@ struct PlayerControlFrame {
     let opacity: Double
 }
 enum PlayerControlMotion {
-    static let flyDuration = 0.56
-    static let fadeDuration = 0.22
-    static let edgeFraction = 0.38 / flyDuration
+    static let flyDuration = 0.70
+    static let fadeDuration = 0.26
+    static let edgeFraction = 0.48 / flyDuration
     static func duration(style: PlayerControlAnimation) -> Double { style == .fade ? fadeDuration : flyDuration }
     private static func smooth(_ value: Double) -> Double {
         let t = min(1, max(0, value))
-        return t * t * (3 - 2 * t)
+        return t * t * t * (t * (6 * t - 15) + 10)
     }
     static func frame(progress: Double, style: PlayerControlAnimation, region: PlayerControlRegion,
                       width: Double, height: Double) -> PlayerControlFrame {

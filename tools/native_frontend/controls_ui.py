@@ -9,7 +9,7 @@ SOURCES = ['native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3)
+EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True)
 
 
 def project(root, stage):
@@ -82,4 +82,6 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Two actual player coordinate tests were not observed')
     if observed.count('PLAYER_MOTION_CHECKS PASS:') != 2:
         raise ValueError('Both rendered-motion fixture checks must pass')
+    if observed.count('PLAYER_OPACITY_PIXELS PASS:') != 2:
+        raise ValueError('Both rendered opacity pixel checks must pass')
     return dict(EXPECTED)

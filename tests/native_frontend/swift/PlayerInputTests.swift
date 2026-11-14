@@ -77,6 +77,11 @@ final class PlayerInputTests: XCTestCase {
         print("PLAYER_MOTION_CHECKS RESULT: " + renderedMotion.label + ": " + frameDetail)
         XCTAssertEqual(samplingResult, .completed, "Rendered motion checks failed: " + frameDetail)
         print("PLAYER_MOTION_CHECKS PASS: " + frameDetail)
+        let pixels = app.staticTexts["opacity-pixel-result"]
+        let pixelDetail = pixels.value as? String ?? "No pixel detail"
+        print("PLAYER_OPACITY_PIXELS RESULT: " + pixels.label + ": " + pixelDetail)
+        XCTAssertEqual(pixels.label, "Passed", "Rendered opacity pixels failed: " + pixelDetail)
+        print("PLAYER_OPACITY_PIXELS PASS: " + pixelDetail)
         // The fixture ends with a reversed fly transition. A stale hide
         // completion must not remove its controls or swallow the next action.
         tap(mute); wait(mute, label: "Unmute stream")

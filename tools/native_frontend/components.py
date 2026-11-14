@@ -114,7 +114,7 @@ def verify(directory, revision=None):
             raise ValueError("UIKit title measurement/haptic pattern validation missing or failed")
         if uikit.get("launch_receipt") != [dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]:
             raise ValueError("Three-process launch selection validation missing or failed")
-        expected_ui=dict(passed=True,tests=2,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3) if mode=='native' else None
+        expected_ui=dict(passed=True,tests=2,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True) if mode=='native' else None
         if uikit.get("controls_ui_receipt") != expected_ui:
             raise ValueError("Player coordinate interaction validation missing or failed")
         if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained']}:

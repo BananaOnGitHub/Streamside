@@ -287,3 +287,25 @@ The successor retains the shared reversible 0.70-second fly timeline but replace
 The player setting is now labeled “Liquid Glass” while retaining its existing stored preference key. It controls the time/viewer pill as well as the buttons: disabled uses a simple translucent dark capsule, with an opaque fallback under Reduce Transparency. All glass extraction and opacity boundaries remain local to their animated region.
 
 The owned render fixture now samples all four edges as well as the center, requires early movement from every edge for fly modes, and checks normalized remaining travel against the shared center alpha. The bounded callback includes only synthetic geometry. Component admission requires all-region motion coverage; prior pixel, action, reversal and auto-hide checks remain. The existing coordinate tests use the renamed setting. Model checks additionally require substantial travel early in entry. All 70 Linux-compatible host tests and documentation checks pass. Apple compilation and phone visual validation for this successor are pending; the suspected sources of perceived delay have not been measured on the phone.
+
+## Validated responsive-entry build and package
+
+Source `53fa05b0cf8ddb04bce820e1bdb3bf997e015691` passed [Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43636909993), [Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43636909802), and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43636909778). Both glass/plain UI cases passed all eight sampled transitions with four edge regions, `synchronized=true`, no invalid frames and the required progress coverage. All four fly stages in each material mode observed early movement in every edge region. Model checks for early entry and shared center alpha/normalized edge travel passed. The renamed Liquid Glass setting was found through the existing coordinate action checks. Actual Fade pixels also remained intermediate during entry/exit in the center, shared actions and audio regions for both material modes. Reversal, actions, sharing and auto-hide passed at normal speed; interpolation and snapshot sampling used scale three. These results establish the owned fixture behavior, not physical-device visual smoothness.
+
+The [responsive-entry artifact record](SWIFTUI_PLAYER_RESPONSIVE_ARTIFACTS.json) retains exact source, proof, toolchain, full bounded motion/pixel results, validation receipts and hashes. Local packaging validated the exact Twitch 32.0 donor, 51 Swift boundaries and 25 runtime probes, and verified all retained archive entries including unchanged HBC. The single Native IPA is outside the source tree and requires Feather re-signing with the existing application/keychain identity. No donor/signing material was uploaded to Actions and the VM was unused. No new physical-device result or runtime calibration is claimed for this build.
+
+Reproduce from this clean source or a compatible documentation-only descendant:
+
+```sh
+gh run download 43636909993 \
+  --name swiftui-components-53fa05b0cf8ddb04bce820e1bdb3bf997e015691 \
+  --dir ../artifacts/ci/53fa05b0cf8ddb04bce820e1bdb3bf997e015691
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/53fa05b0cf8ddb04bce820e1bdb3bf997e015691
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/53fa05b0cf8ddb04bce820e1bdb3bf997e015691 \
+  --output ../artifacts/native-frontend/swiftui/player-responsive-reproduction
+```
+
+Device checks: compare left/right entry and response immediately after tapping with glass enabled/disabled, confirm the center fade follows edge motion, and check interruptions/reversals. Verify the time/viewer pill follows the renamed Liquid Glass setting. Check Fade, Reduce Motion and ordinary player actions, then export Native diagnostics after playback. Actual perceived timing/smoothness and donor-video pill appearance remain pending.

@@ -106,6 +106,7 @@ struct LiveChannelRow: View {
                 .accessibilityHint(canPreviewTitle ? "Hold for the full stream title" : "")
             Text(channel.category.isEmpty ? "Category unavailable" : channel.category)
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            if !channel.tags.isEmpty { StreamTags(tags: channel.tags) }
             if let viewers = channel.viewerCount {
                 Text("\(viewers.formatted()) viewers").font(.caption).foregroundStyle(.secondary)
             } else {

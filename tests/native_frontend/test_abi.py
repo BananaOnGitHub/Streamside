@@ -105,4 +105,8 @@ class SwiftCalls(unittest.TestCase):
         self.call('call_playback_field',[0x5678],[0x5678])
         self.call('call_playback_string',[0x5678],[0x5678])
 
+    def test_tag_array_uses_native_self_and_direct_array_result(self):
+        u=self.call('call_tags',[0x123456],[],context=0x123456)
+        self.assertEqual(u.reg_read(UC_ARM64_REG_X0),0xabcdef01)
+
 if __name__=='__main__':unittest.main()

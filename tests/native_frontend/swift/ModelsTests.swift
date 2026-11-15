@@ -60,6 +60,32 @@ import Foundation
         for name in ["", "../token", "user?token=x", "user@evil.invalid", "é", String(repeating: "a", count: 129)] {
             precondition(StreamShareLink.url(username: name) == nil)
         }
+        // Tags stay structured, bounded, localized and absent for offline rows.
+        let tagSnapshot: [String: Any] = ["username": "fixture", "isLive": "1", "tags": [" English ", "Anime", "English", "", "日本語"]]
+        precondition(FollowedChannel(snapshot: tagSnapshot)?.tags == ["English", "Anime", "日本語"])
+        precondition(FollowedChannel(snapshot: ["username": "fixture", "isLive": "0", "tags": ["stale"]])?.tags == [])
+        precondition(FollowedChannel(snapshot: ["username": "fixture", "isLive": "1", "tags": 7])?.tags == [])
+        precondition(FollowedChannel(snapshot: ["username": 7, "isLive": "1"]) == nil)
+        precondition(StreamTagPacking.indices(widths: [110, 30, 30, 30], available: 102) == [1, 2, 3])
+        precondition(StreamTagPacking.indices(widths: [60, 30, 30, 30], available: 102) == [1, 2, 3])
+        precondition(StreamTagPacking.indices(widths: [60, 30, 30], available: 96) == [0, 1])
+        precondition(StreamTagPacking.indices(widths: [90, 20], available: 20) == [1])
+        precondition(StreamTagPacking.indices(widths: [.infinity, 20, .nan], available: 20) == [1])
+        precondition(StreamTagPacking.indices(widths: [20], available: 19).isEmpty)
+        // Exhaustive subset oracle independently checks maximum count and native
+        // priority for every width in a small varied-width fixture.
+        let tagWidths = [65.0, 22, 41, 18, 90, 35]
+        for width in 0...260 {
+            let selected = StreamTagPacking.indices(widths: tagWidths, available: Double(width))
+            var best: [Int] = []
+            for mask in 1..<(1 << tagWidths.count) {
+                let indices = tagWidths.indices.filter { mask & (1 << $0) != 0 }
+                let used = indices.map { tagWidths[$0] }.reduce(0, +) + Double(indices.count - 1) * 6
+                if used <= Double(width), indices.count > best.count ||
+                    (used <= Double(width) && indices.count == best.count && indices.lexicographicallyPrecedes(best)) { best = indices }
+            }
+            precondition(selected == best, "Tag packing lost width or native priority")
+        }
         let account = StreamsideAccount(username: "fixture", displayName: "Fixture")
         let channels = [FollowedChannel(username: "channel", displayName: "Channel")]
         var state = NativeServiceState(phase: 4, account: account, channels: channels)

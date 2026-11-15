@@ -11,6 +11,7 @@ struct FollowedChannel: Identifiable, Equatable {
     var isLive = false
     var title = ""
     var category = ""
+    var tags: [String] = []
     var viewerCount: Int?
     var startedAt: Date?
     var avatarURL: URL?
@@ -21,20 +22,21 @@ struct FollowedChannel: Identifiable, Equatable {
     init(username: String, displayName: String) {
         self.username = username; self.displayName = displayName
     }
-    init?(snapshot: [String: String]) {
-        guard let username = snapshot["username"], !username.isEmpty,
-              snapshot["isLive"] == "0" || snapshot["isLive"] == "1" else { return nil }
-        self.init(username: username, displayName: snapshot["displayName"] ?? username)
-        isLive = snapshot["isLive"] == "1"
-        title = snapshot["title"] ?? ""
-        category = snapshot["category"] ?? ""
-        if let text = snapshot["viewerCount"], let count = Int(text), count >= 0 { viewerCount = count }
-        if let text = snapshot["startedAt"], let epoch = Double(text), epoch.isFinite, epoch > 0 {
+    init?(snapshot: [String: Any]) {
+        guard let username = snapshot["username"] as? String, !username.isEmpty,
+              let live = snapshot["isLive"] as? String, live == "0" || live == "1" else { return nil }
+        self.init(username: username, displayName: snapshot["displayName"] as? String ?? username)
+        isLive = live == "1"
+        title = snapshot["title"] as? String ?? ""
+        category = snapshot["category"] as? String ?? ""
+        if isLive { tags = StreamTagPacking.names(snapshot["tags"] as? [String] ?? []) }
+        if let text = snapshot["viewerCount"] as? String, let count = Int(text), count >= 0 { viewerCount = count }
+        if let text = snapshot["startedAt"] as? String, let epoch = Double(text), epoch.isFinite, epoch > 0 {
             startedAt = Date(timeIntervalSince1970: epoch)
         }
-        avatarURL = snapshot["avatarURL"].flatMap(URL.init(string:))
-        thumbnailURL = snapshot["thumbnailURL"].flatMap(URL.init(string:))
-        thumbnailRestricted = snapshot["thumbnailRestricted"] == "1"
+        avatarURL = (snapshot["avatarURL"] as? String).flatMap(URL.init(string:))
+        thumbnailURL = (snapshot["thumbnailURL"] as? String).flatMap(URL.init(string:))
+        thumbnailRestricted = snapshot["thumbnailRestricted"] as? String == "1"
         if thumbnailRestricted { thumbnailURL = nil }
     }
 }
@@ -267,5 +269,40 @@ enum StreamShareLink {
         guard !username.isEmpty, username.count <= 128,
               username.rangeOfCharacter(from: allowed.inverted) == nil else { return nil }
         return URL(string: "https://www.twitch.tv/" + username)
+    }
+}
+
+
+// Choose the most complete pills that fit. Among equally full selections,
+// prefer earlier native tags and keep their presentation order unchanged.
+enum StreamTagPacking {
+    static func names(_ input: [String]) -> [String] {
+        var seen = Set<String>()
+        return input.prefix(100).compactMap { raw in
+            let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, name.utf16.count <= 256,
+                  name.rangeOfCharacter(from: .controlCharacters) == nil,
+                  seen.insert(name.lowercased()).inserted else { return nil }
+            return name
+        }.prefix(32).map { $0 }
+    }
+    static func indices(widths: [Double], available: Double, spacing: Double = 6) -> [Int] {
+        guard available.isFinite, available > 0, spacing.isFinite, spacing >= 0 else { return [] }
+        let candidates = widths.prefix(32).enumerated().filter { $0.element.isFinite && $0.element > 0 }
+        var remaining = available + spacing
+        var count = 0, sum = 0.0
+        for width in candidates.map({ $0.element + spacing }).sorted() {
+            if sum + width > remaining { break }
+            sum += width; count += 1
+        }
+        var selected: [Int] = []
+        for (position, candidate) in candidates.enumerated() where count > 0 {
+            let cost = candidate.element + spacing
+            let suffix = candidates.dropFirst(position + 1).map { $0.element + spacing }.sorted()
+            guard suffix.count >= count - 1,
+                  cost + suffix.prefix(count - 1).reduce(0, +) <= remaining else { continue }
+            selected.append(candidate.offset); remaining -= cost; count -= 1
+        }
+        return selected
     }
 }

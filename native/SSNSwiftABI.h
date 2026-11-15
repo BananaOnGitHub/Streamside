@@ -30,6 +30,7 @@ typedef SW uintptr_t (*SectionsGetter)(uintptr_t,uintptr_t);
 typedef SW void (*ItemGetter)(void * OUT,const void*,const void * CTX);
 typedef SW Words3 (*ThumbnailsGetter)(const void * CTX);
 typedef SW void (*ThumbnailGetter)(void * OUT,uint8_t,uintptr_t,uintptr_t,uintptr_t);
+typedef SW uintptr_t (*ArrayGetter)(const void * CTX);
 typedef SW intptr_t (*IntegerGetter)(const void * CTX);
 
 /* Twitch 32 generated query and native Apollo convenience overload. Verified

@@ -78,3 +78,5 @@ and updating navigation.
 - [Portrait native playback trial](SWIFTUI_NATIVE_PLAYBACK.md) — existing authenticated GraphQL token path, bundled IVS UIKit theatre, lifecycle evidence and pending device playback/runtime validation.
 
 - [Native player input correction](SWIFTUI_PLAYER_INPUT.md) — failed device taps, display-only media surface, coordinate UI tests and bounded control/mute evidence.
+
+- [Native followed-stream tags](SWIFTUI_STREAM_TAGS.md): exact-donor tag access, maximum-count single-line packing and Liquid Glass pills.

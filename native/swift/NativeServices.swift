@@ -59,7 +59,7 @@ final class NativeServices: ObservableObject, AccountService {
            let name = account["username"], !name.isEmpty {
             next.account = StreamsideAccount(username: name, displayName: account["displayName"] ?? name)
         }
-        next.channels = (snapshot["channels"] as? [[String: String]] ?? []).compactMap {
+        next.channels = (snapshot["channels"] as? [[String: Any]] ?? []).compactMap {
             FollowedChannel(snapshot: $0)
         }
         next.enforceSessionBoundary()

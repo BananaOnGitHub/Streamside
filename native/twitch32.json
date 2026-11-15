@@ -498,6 +498,21 @@
       "image": "TwitchGraphQLAPI",
       "address": 7697504,
       "bytes": "c02200b000c02591010080d2c0035fd6"
+    },
+    "_$s10TwitchCore3TagOMa": {
+      "image": "TwitchCore",
+      "address": 342668,
+      "bytes": "210200f021e01691820100f042102b91"
+    },
+    "_$s10TwitchCore10LiveStreamV4tagsSayAA3TagOGvg": {
+      "image": "TwitchCore",
+      "address": 249876,
+      "bytes": "fd7bbfa9fd030091000080d2a8ffff97"
+    },
+    "_$s10TwitchCore3TagO11displayNameSSvg": {
+      "image": "TwitchCore",
+      "address": 345248,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
     }
   },
   "gate": {

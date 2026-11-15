@@ -12,7 +12,7 @@
 static bool initialized,available;
 static const void *response_type,*stream_type,*game_type,*thumb_type,*date_type,*url_optional;
 static const void *user_type,*string_type,*optional_game,*objc_type,*promise_type;
-static const void *track_live,*track_user,*array_live,*array_user,*set_type;
+static const void *track_live,*track_user,*array_live,*array_user,*set_type,*tag_type,*array_tag;
 static uintptr_t empty_set;
 static Bridge bridge;
 static bool (*cast)(void*,void*,const void*,const void*,uintptr_t);
@@ -22,7 +22,8 @@ static ItemGetter item_getter;
 static Getter broadcaster_getter,game_getter,date_getter;
 static ThumbnailsGetter stream_thumbnails,profile_thumbnails;
 static ThumbnailGetter thumbnail_url;
-static StringGetter title_getter,game_name;
+static StringGetter title_getter,game_name,tag_name;
+static ArrayGetter tags_getter;
 static IntegerGetter viewers_getter;
 static SW uint8_t (*watchable)(const void * CTX),(*blur_reason)(const void * CTX);
 
@@ -78,6 +79,7 @@ static bool initialize(PairMeta promise,const void *error) {
     PairMeta set=dlsym(RTLD_DEFAULT,"$sShMa");
     PairMeta track=(PairMeta)ssn_resolve("$s19TwitchAnalyticsCore13TrackableItemVMa");
     response_type=meta("$s9TwitchKit9TKGraphQLC24PersonalSectionsResponseVMa",false);
+    tag_type=meta("$s10TwitchCore3TagOMa",false);
     stream_type=meta("$s10TwitchCore10LiveStreamVMa",false);
     user_type=meta("$s10TwitchCore4UserVMa",false);
     game_type=meta("$s10TwitchCore4GameVMa",false);
@@ -95,13 +97,15 @@ static bool initialize(PairMeta promise,const void *error) {
     stream_thumbnails=(ThumbnailsGetter)ssn_resolve("$s10TwitchCore10LiveStreamV10thumbnailsAA10ThumbnailsVvg");
     profile_thumbnails=(ThumbnailsGetter)ssn_resolve("$s10TwitchCore4UserV13profileImagesAA10ThumbnailsVvg");
     thumbnail_url=(ThumbnailGetter)ssn_resolve("$s10TwitchCore10ThumbnailsVy10Foundation3URLVSgAA9ThumbnailV4SizeOcig");
+    tags_getter=(ArrayGetter)ssn_resolve("$s10TwitchCore10LiveStreamV4tagsSayAA3TagOGvg");
+    tag_name=(StringGetter)ssn_resolve("$s10TwitchCore3TagO11displayNameSSvg");
     title_getter=(StringGetter)ssn_resolve("$s10TwitchCore10LiveStreamV5titleSSvg");
     game_name=(StringGetter)ssn_resolve("$s10TwitchCore4GameV11displayNameSSvg");
     viewers_getter=(IntegerGetter)ssn_resolve("$s10TwitchCore10LiveStreamV12viewersCountSivg");
     watchable=(void*)ssn_resolve("$s10TwitchCore10LiveStreamV19currentUserCanWatchSbvg");
     blur_reason=(void*)ssn_resolve("$s10TwitchCore10LiveStreamV19thumbnailBlurReasonAA09ThumbnailfG0Ovg");
     if(!bridge||!cast||!objc_meta||!conformance||!array||!optional||!set||!track||
-       !stream_type||!user_type||!game_type||!date_type||!url_type||size_of(string_type)!=16||
+       !tag_type||!tags_getter||!tag_name||!stream_type||!user_type||!game_type||!date_type||!url_type||size_of(string_type)!=16||
        size_of(response_type)!=16||size_of(thumb_type)!=24||!personal||!live_getter||!offline_getter||
        !item_getter||!broadcaster_getter||!game_getter||!date_getter||!stream_thumbnails||!profile_thumbnails||
        !thumbnail_url||!title_getter||!game_name||!viewers_getter||!watchable||!blur_reason) return false;
@@ -112,11 +116,11 @@ static bool initialize(PairMeta promise,const void *error) {
     Response tl=track(0,stream_type,live_eq),tu=track(0,user_type,user_eq);
     if(tl.state||tu.state||!size_of(tl.value)||!size_of(tu.value)) return false;
     track_live=tl.value; track_user=tu.value;
-    Response al=array(0,track_live),au=array(0,track_user),og=optional(0,game_type),ou=optional(0,url_type);
+    Response at=array(0,tag_type),al=array(0,track_live),au=array(0,track_user),og=optional(0,game_type),ou=optional(0,url_type);
     Response se=set(0,uint,uint_hash),pr=promise(0,response_type,error);
-    if(al.state||au.state||og.state||ou.state||se.state||pr.state||size_of(al.value)!=8||size_of(au.value)!=8||
+    if(at.state||size_of(at.value)!=8||al.state||au.state||og.state||ou.state||se.state||pr.state||size_of(al.value)!=8||size_of(au.value)!=8||
        !size_of(og.value)||!size_of(ou.value)||size_of(se.value)!=8||size_of(pr.value)!=8) return false;
-    array_live=al.value;array_user=au.value;optional_game=og.value;url_optional=ou.value;set_type=se.value;promise_type=pr.value;
+    array_tag=at.value;array_live=al.value;array_user=au.value;optional_game=og.value;url_optional=ou.value;set_type=se.value;promise_type=pr.value;
     objc_type=objc_meta(objc_getClass("NSObject"));
     id empty=m0(c("NSSet"),"set");
     if(!objc_type||!cast(&empty_set,&empty,objc_meta(objc_getClass("NSSet")),set_type,0)) return false;
@@ -127,6 +131,26 @@ void ssn_feed_request(void *out,id graph) {
     /* nil Optional<String>, inspected enum tag 0 = recommended, native empty Set.
      * Presentation sorts returned live channels by viewers, with stable ties. */
     personal(out,0,0,0,empty_set,graph);
+}
+/* The owned snapshot contains display names only. Array and enum values are
+ * bridged/cast through runtime metadata; no Tag payload or array storage layout
+ * is read. Tag.displayName preserves Twitch's localization/freeform naming. */
+static id stream_tags(const void *value) {
+    uintptr_t raw=tags_getter(value);
+    id source=bridge(&raw,array_tag);release_value(&raw,array_tag);
+    if(!kind(source,"NSArray")||num(source,"count")>100) { objc_release(source);return nil; }
+    id result=m0(c("NSMutableArray"),"new");
+    for(uintptr_t i=0;i<num(source,"count");i++) {
+        id boxed=at(source,i);void *tag=storage(tag_type);
+        if(!tag||!cast(tag,&boxed,objc_type,tag_type,0)) {
+            free(tag);objc_release(source);objc_release(result);return nil;
+        }
+        id name=string_value(tag_name,tag,256);dispose(tag,tag_type);
+        if(!name) { objc_release(source);objc_release(result);return nil; }
+        if(num(name,"length") && num(result,"count")<32) v1(result,"addObject:",name);
+        objc_release(name);
+    }
+    objc_release(source);return result;
 }
 static id channel_dictionary(const void *value,bool live) {
     void *user=live?storage(user_type):NULL;
@@ -139,6 +163,9 @@ static id channel_dictionary(const void *value,bool live) {
     if(avatar) { put(result,"avatarURL",avatar); objc_release(avatar); }
     put(result,"isLive",ns(live?"1":"0"));
     if(live) {
+        id tags=stream_tags(value);
+        if(!tags) { objc_release(result);dispose(user,user_type);return failure(); }
+        put(result,"tags",tags);objc_release(tags);
         id title=string_value(title_getter,value,4096);
         intptr_t viewers=viewers_getter(value);
         void *date=storage(date_type),*game=storage(optional_game);

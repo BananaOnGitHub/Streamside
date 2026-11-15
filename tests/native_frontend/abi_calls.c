@@ -23,3 +23,5 @@ uintptr_t call_playback_query(PlaybackQueryInit fn,const void *type) { return fn
 void call_playback_fetch(PlaybackFetch fn,void *out,const void *type,const void *witness) { fn(out,11,1,22,33,type,witness); }
 uintptr_t call_playback_field(PlaybackField fn,uintptr_t value) { return fn(value); }
 Words2 call_playback_string(PlaybackString fn,uintptr_t value) { return fn(value); }
+
+uintptr_t call_tags(ArrayGetter fn,const void *value) { return fn(value); }

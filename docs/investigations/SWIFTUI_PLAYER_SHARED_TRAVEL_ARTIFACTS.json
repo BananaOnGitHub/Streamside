@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "source_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+  "packaging_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+  "proof_id": "0de6d7a66be34cdb5a1e6c3045e154cd76a4d0a64dc95b86478c7efb74b4e13e",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "inspection": {
+    "abi_entries": 51,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "component_manifest_sha256": "0dab3c9c7c2ac344beecdc86c6fc07cbbeb17a77cef709df5d48e489b6dd8e2c",
+  "device_validation": "not performed",
+  "toolchain": {
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk_version": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "runner_image": {
+      "version": "20261102.0473.1",
+      "name": "macos26"
+    }
+  },
+  "workflows": {
+    "native_swiftui": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504705",
+      "conclusion": "success"
+    },
+    "linux": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504791",
+      "conclusion": "success"
+    },
+    "documentation": {
+      "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504772",
+      "conclusion": "success"
+    }
+  },
+  "validation": {
+    "host_native": 70,
+    "macos_logger": 4,
+    "controls_ui_receipt": {
+      "passed": true,
+      "tests": 2,
+      "styles": [
+        "glass",
+        "plain"
+      ],
+      "motion_frames": true,
+      "motion_sampling_scale": 3,
+      "motion_pixels": true,
+      "motion_synchronized": true,
+      "motion_all_regions": true,
+      "motion_shared_travel": true
+    },
+    "motion_results": {
+      "glass": "range=0.008...0.991, vertical in: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=348, center=99, synchronized=true, invalid=false; range=0.008...0.992, vertical out: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=324, center=94, synchronized=true, invalid=false; range=0.008...0.994, horizontal in: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=412, center=100, synchronized=true, invalid=false; range=0.008...0.992, horizontal out: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=392, center=98, synchronized=true, invalid=false; range=0.021...0.983, fade in: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=168, center=42, synchronized=true, invalid=false; range=0.017...0.979, fade out: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=152, center=38, synchronized=true, invalid=false; range=0.021...0.983, fade in: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=132, center=33, synchronized=true, invalid=false; range=0.017...0.979, fade out: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=148, center=37, synchronized=true, invalid=false",
+      "plain": "range=0.008...0.992, vertical in: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=344, center=99, synchronized=true, invalid=false; range=0.008...0.992, vertical out: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=300, center=86, synchronized=true, invalid=false; range=0.011...0.997, horizontal in: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=344, center=86, synchronized=true, invalid=false; range=0.008...0.992, horizontal out: sharedTravel=188x50, edgeRegions=4, earlyRegions=4, edges=412, center=101, synchronized=true, invalid=false; range=0.021...0.983, fade in: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=156, center=39, synchronized=true, invalid=false; range=0.009...0.970, fade out: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=172, center=43, synchronized=true, invalid=false; range=0.021...0.983, fade in: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=172, center=43, synchronized=true, invalid=false; range=0.021...0.973, fade out: sharedTravel=188x50, edgeRegions=4, earlyRegions=0, edges=176, center=44, synchronized=true, invalid=false"
+    },
+    "pixel_results": {
+      "glass": "in: center ratio=0.429 pixels=1532, actions ratio=0.433 pixels=7577, audio ratio=0.430 pixels=3060; out: center ratio=0.511 pixels=1532, actions ratio=0.512 pixels=7577, audio ratio=0.511 pixels=3060",
+      "plain": "in: center ratio=0.441 pixels=201, actions ratio=0.447 pixels=416, audio ratio=0.442 pixels=222; out: center ratio=0.529 pixels=201, actions ratio=0.537 pixels=416, audio ratio=0.530 pixels=222"
+    },
+    "model_receipt": "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy",
+    "uikit_receipts": {
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 2,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "passed": true,
+        "background_resume": 1,
+        "control_intent_retained": true,
+        "account_stop": true,
+        "playing_observed": true,
+        "cancellation": true,
+        "teardown": true,
+        "source_encoding": true,
+        "stream_only_mute": true,
+        "local_pause_resume": 1
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "other_ci_tests": {
+      "abi": 17,
+      "admission": 14,
+      "core": 10,
+      "launch_policy": 1,
+      "probes": 6,
+      "launch_reports": 3,
+      "report_comparisons": 5,
+      "foundation_http": 1
+    },
+    "scope": "Owned simulator window, synthetic renderer/player. Real mid-fade pixels and all-region equal absolute travel and synchronized interpolation checks use fixture scale 3. Reversal, actions and auto-hide use scale 1. Physical smoothness, donor-video glass appearance, audio and fresh runtime calibration are not validated by these tests."
+  },
+  "artifact": {
+    "bytes": 196785237,
+    "sha256": "0bf4c14869c4759d4ed28a7819ab784700fb60c953a3475d745c21fa4cf3b1fc",
+    "framework_sha256": "5245b1df2c823e346d0160e3e205eabd84939a716e627d173b842b98a5fac154",
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "filename": "StreamsideNativeProof-Twitch32-native.ipa"
+  },
+  "local_artifact_directory": "../artifacts/native-frontend/swiftui/player-shared-travel-28eb9bc",
+  "manifest_sha256": "b16bfa0e265cf822eb7ca4d61040a1919974639acae504b870dbd53e52869ba9",
+  "workflow_log_archive_sha256": "6dc27ba248d1fe821a755506dd93009fccdd25d697dc22dd314a58b600a95764",
+  "probe_contract": "4bbaa1a78713a04ee8ba8fb4ae5a81191cdc670140530d378237fc48aa6f03be"
+}

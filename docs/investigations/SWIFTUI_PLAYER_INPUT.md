@@ -319,3 +319,25 @@ Inspection finds that each modifier derived its absolute displacement from its o
 The successor removes the modifier's size PreferenceKey, geometry feedback and per-region State. Every edge now derives the same axis displacement directly from logical control layout: the four-action group's 182-point width plus the six-point inset horizontally, and the 44-point control row plus inset vertically, capped to the canvas size. The corresponding layout dimensions use those same constants. All edges therefore share the same absolute movement curve, independently of glass and intrinsic label size. The accepted 0.70-second cubic fly curve, simultaneous center fade, 0.26-second Fade, input guards and local glass compositing boundaries remain intact. A narrower control can spend a larger portion of a shared path clipped; physical entry onset and perceived synchronization still need review.
 
 The owned render fixture now rejects differing travel dimensions across any of the four edge regions or changing dimensions within a sampled stage, and logs the common dimensions. Model checks exercise equal displacement for all four regions across 99 intermediate positions in both fly modes, plus normal/narrow canvas bounds. Component admission requires the shared-travel receipt. Existing rendered pixels, actions, reversal, all-region early samples and auto-hide checks remain. All 70 Linux-compatible host tests and documentation checks pass. Apple compilation and device visual acceptance are pending for this successor.
+
+## Validated shared-travel build and package
+
+Source `28eb9bc800865373e906ed28eab0f885ccc97331` passed [Apple CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504705), [Linux CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504791), and [documentation CI](https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504772). Both glass/plain UI cases passed all eight sampled transitions with four edge regions, no invalid frames and matching `sharedTravel=188x50` throughout. All fly stages also observed early scalar movement in every edge region and synchronized center alpha. Model checks for equal absolute displacement across all four edges passed. Rendered Fade pixels remained intermediate during entry and exit in the center, shared actions and audio regions. Reversal, actions, sharing and auto-hide passed at normal speed; frame/pixel sampling used scale three. Scalar early movement does not establish when a narrow control first becomes visible past the canvas clip.
+
+The [shared-travel artifact record](SWIFTUI_PLAYER_SHARED_TRAVEL_ARTIFACTS.json) retains exact source, proof, toolchain, complete bounded motion/pixel results, validation receipts and artifact hashes. Local packaging validated the exact Twitch 32.0 donor, 51 Swift boundaries and 25 runtime probes, then verified all retained archive entries including unchanged HBC. One Native IPA was assembled outside the source tree; it requires Feather re-signing with the existing application/keychain identity. The VM was unused, and no donor/signing material entered public Actions. Phone timing, clipping/onset and perceived speed matching remain unvalidated for this package.
+
+Reproduce from this clean source or a compatible documentation-only descendant:
+
+```sh
+gh run download 43658504705 \
+  --name swiftui-components-28eb9bc800865373e906ed28eab0f885ccc97331 \
+  --dir ../artifacts/ci/28eb9bc800865373e906ed28eab0f885ccc97331
+python3 tools/native_frontend/components.py verify \
+  --output ../artifacts/ci/28eb9bc800865373e906ed28eab0f885ccc97331
+python3 tools/native_frontend/build.py \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --components ../artifacts/ci/28eb9bc800865373e906ed28eab0f885ccc97331 \
+  --output ../artifacts/native-frontend/swiftui/player-shared-travel-reproduction
+```
+
+On the phone, compare left/right speeds during entry and exit in both fly directions, with glass disabled and enabled. Check response after a tap, center fading, interruption/reversal, Fade, Reduce Motion and ordinary controls. Confirm the time/viewer pill still follows Liquid Glass, then export Native diagnostics after playback. No new physical runtime calibration is claimed by the simulator or packaging results.

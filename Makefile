@@ -53,6 +53,8 @@ test-investigation-runtime:
 	python3 tools/validate_investigation_runtime.py --donor "$(TAS_RN_DONOR)" --zig "$(ZIG)" --hermesc "$(TAS_HERMESC)" --runner "$(TAS_HERMES_SNAPSHOT_RUNNER)" --runtime-source "$(TAS_HERMES_SOURCE)"
 
 # Select exactly one hosted Apple provider using current quota and build history.
+NATIVE_CI_PYTHON ?= python3
+NATIVE_CI_TEST_PATH ?= $(abspath ../toolchains/python)
 .PHONY: native-ci-plan native-ci native-ci-status native-ci-fetch
 native-ci-plan:
 	python3 tools/apple_builds.py plan
@@ -61,4 +63,4 @@ native-ci:
 native-ci-status:
 	python3 tools/apple_builds.py status
 native-ci-fetch:
-	python3 tools/apple_builds.py fetch
+	PYTHONPATH="$(NATIVE_CI_TEST_PATH):$(PYTHONPATH)" $(NATIVE_CI_PYTHON) tools/apple_builds.py fetch

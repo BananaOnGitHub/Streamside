@@ -60,7 +60,11 @@ Foundation integration and host comparison/routing tests, then publishes only
 owned components, logs and a source-bound validation receipt. Retrieval verifies
 the archive hash, every component hash, source/toolchain/test receipts, and runs
 the existing Ubuntu ARM64 ABI/admission/runtime-policy tests. The local ABI tests
-need the repository's existing pinned Unicorn 2.1.4 test dependency.
+need the repository's existing pinned Unicorn 2.1.4 test dependency. The Makefile
+adds the external `../toolchains/python` directory to the test import path;
+`NATIVE_CI_TEST_PATH` and `NATIVE_CI_PYTHON` can select an existing test environment.
+On a new workspace with pip available, install it outside Git with
+`python3 -m pip install --target ../toolchains/python unicorn==2.1.4`.
 
 ## Failed or interrupted builds
 

@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "source_revision": "ea9567b0c324efc1b60d67fe65b5ec5f3f248ab2",
+  "provider": "codemagic",
+  "build_id": "6af94f0790e83b09c4fa7689",
+  "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6af94f0790e83b09c4fa7689",
+  "status": "finished",
+  "started_at": "2026-11-15T06:19:57.320000Z",
+  "finished_at": "2026-11-15T06:31:55.655000Z",
+  "elapsed_seconds": 718.335,
+  "instance_type": "mac_mini_m2",
+  "xcode": "26.6",
+  "validation": {
+    "schema": 1,
+    "source_revision": "ea9567b0c324efc1b60d67fe65b5ec5f3f248ab2",
+    "passed": true,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 2.669
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": true,
+        "seconds": 671.866
+      },
+      {
+        "name": "Foundation networking integration",
+        "passed": true,
+        "seconds": 8.198
+      },
+      {
+        "name": "Report comparison tests",
+        "passed": true,
+        "seconds": 0.049
+      },
+      {
+        "name": "Build provider routing tests",
+        "passed": true,
+        "seconds": 0.126
+      }
+    ],
+    "archive_sha256": "fa6e31bb1274f3f11750c00348d69995ff6bd79f28988d261ba40aaa6349ac68",
+    "archive_bytes": 833713
+  },
+  "ubuntu_validation": {
+    "abi_tests": 17,
+    "admission_tests": 14,
+    "core_tests": 10,
+    "launch_tests": 1,
+    "probe_tests": 6,
+    "comparison_tests": 3,
+    "all_passed": true
+  },
+  "host_native_regression": {
+    "tests": 70,
+    "passed": true
+  },
+  "routing_tests": {
+    "tests": 12,
+    "passed": true
+  },
+  "github_fallback": {
+    "selection_tests_passed": true,
+    "artifact_extraction_admission_passed": true,
+    "new_live_apple_run": false
+  },
+  "latest_budget": {
+    "provider": "codemagic",
+    "remaining_minutes": 477,
+    "active_builds": 0,
+    "reserved_minutes": 0,
+    "sample_count": 1,
+    "predicted_minutes": 25,
+    "required_minutes": 50,
+    "reason": "Verified free budget available"
+  },
+  "linux_run": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43684935022",
+  "docs_run": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43684934991",
+  "toolchain_pin": {
+    "xcode_version": "26.6",
+    "xcode_build": "17F113",
+    "iphoneos_sdk": "26.5"
+  },
+  "component_manifest_sha256": "75a0934bc1f31ebc4177401185685ded3ee4623428bfcd2145c1e9f79eaa3f74",
+  "proof_id": "0de6d7a66be34cdb5a1e6c3045e154cd76a4d0a64dc95b86478c7efb74b4e13e"
+}

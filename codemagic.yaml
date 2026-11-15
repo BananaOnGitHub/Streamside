@@ -1,56 +1,23 @@
-# Manual timing experiment; no automatic triggers or signing integrations.
-# Only owned components are published. Donor-dependent packaging stays local.
+# Explicit Ubuntu dispatcher selects one provider; no automatic duplicate builds.
+# Owned components only. Donor IPA, signing and final assembly stay local.
 workflows:
-  apple-build-benchmark:
-    name: Streamside Apple build benchmark
+  native-swiftui:
+    name: Streamside SwiftUI components
     instance_type: mac_mini_m2
-    max_build_duration: 60
+    max_build_duration: 40
     environment:
       xcode: "26.6"
       vars:
         PYTHONDONTWRITEBYTECODE: "1"
         PYTHONUNBUFFERED: "1"
-        SSN_BENCHMARK_REVISION: "28eb9bc800865373e906ed28eab0f885ccc97331"
     scripts:
-      - name: Prepare exact previous Apple source, outside the configuration checkout
+      - name: Validate requested source and run pinned Apple compilation and simulator gates
         script: |
           set -eu
-          git fetch origin "$SSN_BENCHMARK_REVISION" --depth=1
-          git worktree add --detach "$CM_BUILD_DIR/../streamside-benchmark-source" "$SSN_BENCHMARK_REVISION"
-          mkdir -p "$CM_BUILD_DIR/../artifacts/apple-benchmark"
-          git rev-parse HEAD > "$CM_BUILD_DIR/../artifacts/apple-benchmark/configuration-revision.txt"
-      - name: Time the existing Apple compile, simulator UI, Foundation and comparison tests
-        script: |
-          python3 -u - <<'PY'
-          import json, os, platform, subprocess, sys, time
-          from pathlib import Path
-          checkout = Path(os.environ['CM_BUILD_DIR'])
-          source = checkout.parent / 'streamside-benchmark-source'
-          output = checkout.parent / 'artifacts/apple-benchmark'
-          revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip()
-          assert revision == os.environ['SSN_BENCHMARK_REVISION']
-          result = dict(source_revision=revision, architecture=platform.machine(), python=platform.python_version(), stages=[])
-          for key, args in [('macos', ['sw_vers']), ('cpu', ['sysctl', '-n', 'machdep.cpu.brand_string']),
-                            ('cpus', ['sysctl', '-n', 'hw.ncpu']), ('memory', ['sysctl', '-n', 'hw.memsize'])]:
-              result[key] = subprocess.check_output(args, text=True).strip()
-          commands = [
-              ('logger', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests/native_frontend', '-p', 'test_build_progress.py', '-v']),
-              ('components', [sys.executable, '-u', 'tools/native_frontend/components.py', 'build', '--output', str(output / 'components')]),
-              ('foundation', ['make', 'test-foundation-cache']),
-              ('comparisons', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests/native_frontend', '-p', 'test_comparison.py', '-v'])]
-          suite_started = time.monotonic()
-          for name, args in commands:
-              print('BENCHMARK START: ' + name + ' / source ' + revision, flush=True)
-              started = time.monotonic()
-              code = subprocess.call(args, cwd=source)
-              seconds = round(time.monotonic() - started, 3)
-              result['stages'].append(dict(name=name, seconds=seconds, passed=code == 0, exit_code=code))
-              result['elapsed_seconds'] = round(time.monotonic() - suite_started, 3)
-              result['passed'] = all(stage['passed'] for stage in result['stages'])
-              (output / 'timings.json').write_text(json.dumps(result, indent=2) + '\n')
-              print('BENCHMARK END: ' + name + ' / ' + str(seconds) + 's / exit ' + str(code), flush=True)
-              if code:
-                  raise SystemExit(code)
-          PY
+          test -n "${SSN_EXPECTED_REVISION:-}"
+          test "$(git rev-parse HEAD)" = "$SSN_EXPECTED_REVISION"
+          python3 -u tools/apple_ci.py --output "$CM_BUILD_DIR/../artifacts/apple-ci"
     artifacts:
-      - $CM_BUILD_DIR/../artifacts/apple-benchmark/**
+      - $CM_BUILD_DIR/../artifacts/apple-ci/streamside-components.tar.gz
+      - $CM_BUILD_DIR/../artifacts/apple-ci/validation.json
+      - $CM_BUILD_DIR/../artifacts/apple-ci/*.log

@@ -1,0 +1,11 @@
+{
+  "repository": "BananaOnGitHub/Streamside",
+  "branch": "feat/native-frontend",
+  "codemagic_app": "6af941a4db82100031adf1d4",
+  "codemagic_personal_team": "6ad8f3b29da34f565491acae",
+  "codemagic_workflow": "native-swiftui",
+  "github_workflow": "native-swiftui.yml",
+  "max_minutes": 40,
+  "reserve_minutes": 10,
+  "bootstrap_minutes": 25
+}

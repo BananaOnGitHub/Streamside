@@ -1,32 +1,13 @@
 name: Native SwiftUI
 
 on:
-  push:
-    branches: ["**"]
-    paths:
-      - 'native/**'
-      - 'tools/native_frontend/**'
-      - 'tools/macho.py'
-      - 'tools/workspace_paths.py'
-      - 'tests/native_frontend/**'
-      - 'tests/test_foundation_cache.py'
-      - 'tests/native/foundation*.m'
-      - 'src/**'
-      - '.github/workflows/native-swiftui.yml'
-      - 'Makefile'
-  pull_request:
-    paths:
-      - 'native/**'
-      - 'tools/native_frontend/**'
-      - 'tools/macho.py'
-      - 'tools/workspace_paths.py'
-      - 'tests/native_frontend/**'
-      - 'tests/test_foundation_cache.py'
-      - 'tests/native/foundation*.m'
-      - 'src/**'
-      - '.github/workflows/native-swiftui.yml'
-      - 'Makefile'
+  # Ubuntu's dispatcher chooses Codemagic or this fallback once per source commit.
   workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Exact pushed source commit to compile
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -37,34 +18,26 @@ concurrency:
 
 jobs:
   apple:
-    # Internal PRs already have a push run; fork PRs get their own read-only run.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: macos-26
-    timeout-minutes: 25
+    timeout-minutes: 40
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       PYTHONDONTWRITEBYTECODE: '1'
       PYTHONUNBUFFERED: '1'
+      SSN_EXPECTED_REVISION: ${{ inputs.expected_revision }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Test live build logging and timeout cleanup
-        run: python3 -m unittest discover -s tests/native_frontend -p test_build_progress.py -v
-      - name: Compile, link and test native frontend and original-startup control
-        run: |
-          echo "## Streamside Apple build" >> "$GITHUB_STEP_SUMMARY"
-          echo "Source: $GITHUB_SHA. Owned components only; donor packaging and device testing happen separately." >> "$GITHUB_STEP_SUMMARY"
-          python3 -u tools/native_frontend/components.py build --output "$RUNNER_TEMP/streamside-components"
-      - name: Test Foundation HTTP integration
-        run: make test-foundation-cache
-      - name: Test synthetic report comparisons
-        run: python3 -m unittest discover -s tests/native_frontend -p test_comparison.py -v
+      - name: Validate exact source and run pinned Apple compilation and simulator gates
+        run: python3 -u tools/apple_ci.py --output "$RUNNER_TEMP/apple-ci"
       - name: Upload distributable components
         uses: actions/upload-artifact@v4
         with:
           name: swiftui-components-${{ github.sha }}
-          path: ${{ runner.temp }}/streamside-components/
+          path: |
+            ${{ runner.temp }}/apple-ci/streamside-components.tar.gz
+            ${{ runner.temp }}/apple-ci/validation.json
           if-no-files-found: error
           retention-days: 14
       - name: Preserve bounded failure diagnostics
@@ -73,8 +46,10 @@ jobs:
         with:
           name: swiftui-failure-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/streamside-components/failure.json
-            ${{ runner.temp }}/streamside-components/*/build.log
+            ${{ runner.temp }}/apple-ci/validation.json
+            ${{ runner.temp }}/apple-ci/*.log
+            ${{ runner.temp }}/apple-ci/components/failure.json
+            ${{ runner.temp }}/apple-ci/components/*/build.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -97,7 +72,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: swiftui-components-${{ github.sha }}
-          path: ${{ runner.temp }}/streamside-components
+          path: ${{ runner.temp }}/apple-download
+      - name: Extract donor-free component archive
+        run: |
+          mkdir "$RUNNER_TEMP/streamside-components"
+          tar -xzf "$RUNNER_TEMP/apple-download/streamside-components.tar.gz" -C "$RUNNER_TEMP/streamside-components" --strip-components=1
       - name: Verify component identities and Apple-compiled Swift ABI calls
         run: |
           python3 tools/native_frontend/components.py verify --output "$RUNNER_TEMP/streamside-components"

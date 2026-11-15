@@ -38,3 +38,10 @@ Detached auxiliary recovery first exposed a header omitted from the transfer all
 The recovered VM outputs were wrapped in standard component metadata on Ubuntu and passed existing complete source/toolchain/receipt/hash admission. All 17 ABI emulation tests passed against the VM's Apple-compiled object. An initial Ubuntu import failure from omitting the existing Unicorn dependency path is retained separately; the corrected run used the already installed pinned dependency. Admission/emulation and transfer overhead are outside the VM's Apple worker durations.
 
 Only the allowlisted owned sources and fixtures were transferred to the VM, including the supplemental header closure. No Git database or donor was transferred. Both trial simulator IDs were confirmed absent, the created temporary VM workspace was removed after recovering the outputs, and cleanup evidence was retained. GitHub Actions remains the primary environment. Codemagic is available as an explicitly manual timing workflow; there are no automatic triggers, signing integrations or release publishing in its configuration.
+
+## Routing follow-up
+
+The subsequent [Codemagic-preferred routing trial](APPLE_BUILD_ROUTING.md) replaces
+the fixed-source benchmark workflow with current-source builds and records
+successful Ubuntu API retrieval/verification of the original benchmark artifact.
+The measurements and original download limitation above remain historical.

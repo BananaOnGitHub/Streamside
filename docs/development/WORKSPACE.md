@@ -15,10 +15,11 @@ candidates elsewhere in `artifacts/` intact.
 
 The native frontend builder defaults to
 `artifacts/native-frontend/<frontend>/<revision>-<proof>/`. An explicit `--output`
-must also be outside the checkout. For SwiftUI, use verified GitHub Actions
+must also be outside the checkout. For SwiftUI, use verified hosted Apple
 components through `--components`; see [the CI build guide](NATIVE_SWIFTUI_CI.md).
 Ubuntu owns source, donor inspection, orchestration and local IPA assembly;
-standard GitHub-hosted macOS runners own routine Apple compilation. An explicit
+Codemagic or GitHub-hosted macOS runners own routine Apple compilation, selected
+through the [quota-aware build commands](APPLE_BUILDS.md). An explicit
 `--apple-build-host` is optional fallback for a configured Mac. No VM or SSH alias
 is assumed available. The UIKit checkpoint remains buildable with `--frontend
 uikit --zig /path/to/zig`. Reusable compilers are selected with `ZIG` or PATH;
@@ -33,3 +34,13 @@ record preserve provenance, but do not promise a byte-identical future rebuild.
 
 See [documentation maintenance](DOCUMENTATION.md) for evidence ownership and
 [the cleanup record](../investigations/WORKSPACE_CLEANUP.md) for historical paths.
+
+Keep the artifact root indexed and compact: retain the current device candidate,
+one device-confirmed native rollback, matching usable components, and deliberately
+selected historical controls/recovery packages. Consolidate older raw reports and
+failure evidence into a private archive with an inventory and verified hashes.
+Do not publish raw device data merely to tidy local folders. Commit compact
+original package metadata and meaningful findings before deleting superseded
+packages; remove obsolete extracted products and regenerable caches afterward.
+The [2026-11-15 cleanup record](../investigations/ARTIFACT_CLEANUP_2026_11_15.md)
+records the retained candidates, archive and relocation map for this checkpoint.

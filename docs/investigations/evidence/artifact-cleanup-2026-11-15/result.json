@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "preservation_commit": "6265de6950d542c45851c0b26101c2bfeee6af1b",
+  "archive": {
+    "path": "archive/development-evidence-2026-11-15.tar.gz",
+    "bytes": 8183917,
+    "sha256": "ef2ba97378e176e5c7b8aa74f49e39f78132288c7c62ca056c855b72073b1c1d",
+    "members": 577,
+    "roundtrip_verified": true
+  },
+  "before": {
+    "files": 3534,
+    "bytes": 7139805963,
+    "allocated_bytes": 7147958272
+  },
+  "after": {
+    "files": 75,
+    "bytes": 812890841,
+    "allocated_bytes": 813043712
+  },
+  "removed_source_files": 3462,
+  "removed_ipa_count": 31,
+  "bytes_reclaimed": 6326915122,
+  "retained_files_rehashed": true,
+  "archive_roundtrip_verified": true
+}

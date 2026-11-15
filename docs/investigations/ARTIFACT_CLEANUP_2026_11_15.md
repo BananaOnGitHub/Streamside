@@ -50,3 +50,28 @@ candidates and archive. No Apple build or VM session is needed for this cleanup.
 
 Final removal totals and post-cleanup hash checks are recorded below after the
 preservation checkpoint is published.
+
+## Completed cleanup
+
+Preservation checkpoint `6265de6950d542c45851c0b26101c2bfeee6af1b` was published
+before deletion. The cleanup checked that its GitHub branch matched the local
+commit, verified the artifact tree had not changed since inventory, then applied
+the recorded selection. It removed 31 superseded IPA files and consolidated or
+removed 3,462 original artifact files in total. The 577 archived evidence files
+were read back and individually hash-checked before their originals were removed.
+
+The resulting tree contains **75 files totaling 812,890,841 bytes**, with about
+**776 MiB allocated**, compared with the former 6.65 GiB of file contents.
+Net reclaimed file contents: **6,326,915,122 bytes** (5.89 GiB). Four original
+IPAs remain: current tags, device-confirmed rollback, historical independent
+baseline, and legacy build 24. Every kept/relocated file was rehashed after the
+operation. The evidence archive's hash remained unchanged. The current hosted
+components also passed their existing source/toolchain/receipt/hash validator
+after cleanup; no rebuild was performed.
+
+[The cleanup result](evidence/artifact-cleanup-2026-11-15/result.json) records
+exact totals and verification scope. `artifacts/README.md` indexes the new local
+layout, and [workspace guidance](../development/WORKSPACE.md) now states the
+retention policy. Historical paths remain intact in original manifests and map
+to the preserved archive or explicit new location through the inventory.
+Application/device behavior was not changed or revalidated by this cleanup.

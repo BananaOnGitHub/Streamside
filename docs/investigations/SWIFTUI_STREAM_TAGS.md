@@ -80,3 +80,45 @@ Apple compilation, component download/admission and local packaging results are
 recorded below when complete. Device review must check real live-channel tags,
 refresh/background continuity, one/two-line titles, larger text, Reduce
 Transparency, row taps and unchanged RN/Hermes counters.
+
+## Hosted build and packaged candidate
+
+Source `b3fbef1197c2435dbe34cf7eb8d1ff674333e286` passed
+[Codemagic build `6af967d590e83b09c4fa7bdc`](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6af967d590e83b09c4fa7bdc)
+in **668.244 seconds** (11m 8s), using the quota-aware selector with 477 verified
+free minutes available before submission. The worker admitted Xcode 26.6 /
+17F113 and SDK 26.5. Both native and original-startup components compiled, the
+Swift model suite (including the exhaustive tag-packing oracle) passed, and the
+existing lifecycle, playback and player-control simulator regressions passed.
+The [Linux build](https://github.com/BananaOnGitHub/Streamside/actions/runs/43692889356)
+and [documentation workflow](https://github.com/BananaOnGitHub/Streamside/actions/runs/43692889350)
+also passed. No duplicate GitHub Apple build or VM build was started.
+
+API retrieval admitted the archive, source, toolchain, required receipts and all
+component hashes. **52 Ubuntu verification tests passed**: 18 ABI, 14 component
+admission, 10 diagnostic core, one launch policy, six probes and three launch
+comparisons. Additional emulation of the actual pinned donor getter at `0x3d014`
+with synthetic metadata verified X20 self, runtime field-offset lookup and the
+retained X0 array return. This is register/ownership evidence, not device execution.
+
+Local packaging validated the exact donor again, retained unrelated donor
+entries and verified the original HBC unchanged. Only the native IPA was
+assembled; original-startup selection remains available through the existing
+one-shot development control. No donor or final IPA was uploaded to Codemagic.
+
+Candidate `StreamsideNativeProof-Twitch32-native.ipa`: **196,803,512 bytes**,
+SHA-256 `9dc6e887c1f466d75711c4d3842e709ce5f5f3ab92ee4c8581960341a34a6d9a`.
+It remains outside Git under `artifacts/native-frontend/stream-tags-b3fbef1/`,
+beside the checkout, and requires local Feather signing. The owned component
+archive SHA-256 is
+`c8a7821d189ff27851543c0c5d3591dd7e2775195c94208b3d67f2da825af2b3`.
+[Structured validation](SWIFTUI_STREAM_TAGS_VALIDATION.json) records source/proof,
+timings, test groups, donor emulation and package identities.
+
+Physical-device validation remains pending. Install the candidate with Feather,
+open live follows and inspect the new line below categories. Pull to refresh,
+try one/two-line titles and larger text, toggle Reduce Transparency, and check
+that row taps still open playback. Export a native diagnostic report after the
+usual refresh/background/reopen sequence to review guarded runtime counts.
+Neither successful packaging nor the existing player simulator tests establish
+actual tag availability, pill appearance or zero runtime creation on a device.

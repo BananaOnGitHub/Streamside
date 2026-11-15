@@ -80,3 +80,5 @@ and updating navigation.
 - [Native player input correction](SWIFTUI_PLAYER_INPUT.md) — failed device taps, display-only media surface, coordinate UI tests and bounded control/mute evidence.
 
 - [Native followed-stream tags](SWIFTUI_STREAM_TAGS.md): exact-donor tag access, maximum-count single-line packing and Liquid Glass pills.
+
+- [Artifact cleanup, 2026-11-15](ARTIFACT_CLEANUP_2026_11_15.md): retained current/rollback packages, archived evidence and superseded binary removal.

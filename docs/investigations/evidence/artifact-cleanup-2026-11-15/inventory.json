@@ -1,0 +1,290 @@
+{
+  "schema": 1,
+  "starting_commit": "a22745aae80ba72773c59b3c36f57a1c695698c7",
+  "before": {
+    "files": 3534,
+    "bytes": 7139805963,
+    "allocated_bytes": 7147958272
+  },
+  "archive": {
+    "path": "archive/development-evidence-2026-11-15.tar.gz",
+    "bytes": 8183917,
+    "sha256": "ef2ba97378e176e5c7b8aa74f49e39f78132288c7c62ca056c855b72073b1c1d",
+    "members": 577,
+    "roundtrip_verified": true
+  },
+  "selection_counts": {
+    "move": 19,
+    "archive": 577,
+    "remove": 2885,
+    "keep": 53
+  },
+  "package_inventory": [
+    {
+      "path": "Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+      "bytes": 194526063,
+      "mtime_ns": 1794443954183967056,
+      "action": "move",
+      "destination": "archive/legacy-build24/Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+      "sha256": "1d7179fc899c32c297803623a2e1808838e3262c56bded4021e00ec14e87d530"
+    },
+    {
+      "path": "native-frontend/stream-tags-b3fbef1/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196803512,
+      "mtime_ns": 1794730676075927742,
+      "action": "keep",
+      "sha256": "9dc6e887c1f466d75711c4d3842e709ce5f5f3ab92ee4c8581960341a34a6d9a"
+    },
+    {
+      "path": "native-frontend/swiftui/actions-026bf6c/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196475830,
+      "mtime_ns": 1794446094916076555,
+      "action": "remove",
+      "sha256": "bad60252f1dc00680cc3923974d80ffdd1a386ca6737191e8755e6d9ade4c83d"
+    },
+    {
+      "path": "native-frontend/swiftui/actions-026bf6c/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196479932,
+      "mtime_ns": 1794446108028077134,
+      "action": "remove",
+      "sha256": "82a2aeb15e8f399cc9fd20fa86449c45795eef4a8e82598c7f5cb211b883139d"
+    },
+    {
+      "path": "native-frontend/swiftui/authentication-ownership-1c059c1/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196486756,
+      "mtime_ns": 1794458900896179959,
+      "action": "remove",
+      "sha256": "8a8cdea7c3f8a173192ce5d5eb66d297ae94da317a4789004741f282bfb5cd7f"
+    },
+    {
+      "path": "native-frontend/swiftui/authentication-ownership-1c059c1/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196491539,
+      "mtime_ns": 1794458913820181933,
+      "action": "remove",
+      "sha256": "3b0d1bbf95a3ceb32f5a4ed61a8ae76dcdf6f0ce984b3e19873c7a5a64b957c3"
+    },
+    {
+      "path": "native-frontend/swiftui/cycle-slider-866bd92/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196635102,
+      "mtime_ns": 1794525041567557283,
+      "action": "remove",
+      "sha256": "b7c2736cb49e512f0fb59daf559603db12a8f2cfc6e34605510c129e24f94d1d"
+    },
+    {
+      "path": "native-frontend/swiftui/cycle-slider-866bd92/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196644199,
+      "mtime_ns": 1794525054487557915,
+      "action": "remove",
+      "sha256": "0d568a1ecad356b9f6fb5259e4a604dd58ea5f47464c3ca0a638c5f640c012eb"
+    },
+    {
+      "path": "native-frontend/swiftui/export-isolation-83c71dc/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196685803,
+      "mtime_ns": 1794541616787373044,
+      "action": "remove",
+      "sha256": "c78d2809554bd50d9490d414e57a3b5493a8823583c66f2ebe5e1b0b18df40ab"
+    },
+    {
+      "path": "native-frontend/swiftui/feed-continuity-cad1e03/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196585748,
+      "mtime_ns": 1794502851994423310,
+      "action": "remove",
+      "sha256": "76007bcbb9212d31d3bdc29be48d09b6d0e4e3d86cffc9d973932e78714e7b13"
+    },
+    {
+      "path": "native-frontend/swiftui/feed-continuity-cad1e03/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196594113,
+      "mtime_ns": 1794502864938423993,
+      "action": "remove",
+      "sha256": "9c9e2e803bee6ec0ec3a2282fbe48d6ecab39ac8b01df22f5353235df68abb60"
+    },
+    {
+      "path": "native-frontend/swiftui/followed-streams-d534f4e/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196572667,
+      "mtime_ns": 1794469049032697984,
+      "action": "remove",
+      "sha256": "d19f76da80fae1bf3744bfb838e268f62c83735786059cb23e6c5bb044a8d2e9"
+    },
+    {
+      "path": "native-frontend/swiftui/followed-streams-d534f4e/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196580246,
+      "mtime_ns": 1794469061928698868,
+      "action": "remove",
+      "sha256": "91554dc980d47606a94dbdf5d2157021bf7f9cae59393889f0a728b8a0de73ee"
+    },
+    {
+      "path": "native-frontend/swiftui/live-polish-94d2ee3/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196620705,
+      "mtime_ns": 1794519169107256150,
+      "action": "remove",
+      "sha256": "a3b32b6e58a6602aa5930a1eb72ba740686835250f73ea9d710fa7f1ef8087e0"
+    },
+    {
+      "path": "native-frontend/swiftui/live-polish-94d2ee3/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196630713,
+      "mtime_ns": 1794519183179254877,
+      "action": "remove",
+      "sha256": "8aca31864827f38203ac12454d2ae0303cad99ec1dae874bf7ee26c31e08011d"
+    },
+    {
+      "path": "native-frontend/swiftui/logout-diagnostics-a454012/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196477933,
+      "mtime_ns": 1794453096415883818,
+      "action": "remove",
+      "sha256": "17c85a7209dc97fe73809bb1277fcbe05e6922df23d84f9c776601af7b21837b"
+    },
+    {
+      "path": "native-frontend/swiftui/logout-diagnostics-a454012/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196482220,
+      "mtime_ns": 1794453109447884569,
+      "action": "remove",
+      "sha256": "2dfc1a2f4ebceb5dffbd792ff88f32e3976f4f68840cdbefa032b965ec8d2083"
+    },
+    {
+      "path": "native-frontend/swiftui/one-shot-1ca1414/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196685163,
+      "mtime_ns": 1794538084687193417,
+      "action": "move",
+      "destination": "archive/twitch32-baseline/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "sha256": "b4455d037596931c4983a2d2d3c749b0e4200526f1bc9169485d3d70195eb425"
+    },
+    {
+      "path": "native-frontend/swiftui/one-shot-1ca1414/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196685917,
+      "mtime_ns": 1794538097543194051,
+      "action": "remove",
+      "sha256": "65697aa21c12c3955399f82c973e17dae934d6080ddb5063052634a9a020eb0b"
+    },
+    {
+      "path": "native-frontend/swiftui/playback-2bbfb86/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196665986,
+      "mtime_ns": 1794531684863895350,
+      "action": "remove",
+      "sha256": "ce04706a6180ec1c54cddc1b46390b6fd9435d86d935869ec4b9f876821a323d"
+    },
+    {
+      "path": "native-frontend/swiftui/playback-2bbfb86/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196678744,
+      "mtime_ns": 1794531697907895986,
+      "action": "remove",
+      "sha256": "164ddf3517a20c121ab44b8cff4a70cac754a0fec649f77da4ece8e232b1c8ce"
+    },
+    {
+      "path": "native-frontend/swiftui/player-animation-c1a56aa/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196780398,
+      "mtime_ns": 1794621836895467645,
+      "action": "remove",
+      "sha256": "13d0175dfdd773c2f2df7e20d497268aed5ef53ffcf0bb6e4699504c69f19743"
+    },
+    {
+      "path": "native-frontend/swiftui/player-controls-f7366b2/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196745314,
+      "mtime_ns": 1794552055707902629,
+      "action": "remove",
+      "sha256": "8d8bd99fa0605feb62a31b088d138088c4a6f4c60e0a8f7709eeb3ccff3d71ff"
+    },
+    {
+      "path": "native-frontend/swiftui/player-input-e151b5f/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196757318,
+      "mtime_ns": 1794570321908837271,
+      "action": "remove",
+      "sha256": "8e46ff340ce4b44c792924b869ffcd8a84a078482821d610f6bc999f79dde069"
+    },
+    {
+      "path": "native-frontend/swiftui/player-motion-db0b02b/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196787459,
+      "mtime_ns": 1794646401868441974,
+      "action": "remove",
+      "sha256": "a0feba774cf4633994d88e72d53d03537c8cbb15a2eaf45a626a01ce665bdf4c"
+    },
+    {
+      "path": "native-frontend/swiftui/player-opacity-9217acd/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196787354,
+      "mtime_ns": 1794674424041871867,
+      "action": "remove",
+      "sha256": "514ff45c066c191a94bad74a899352d1f6b30296e6b05d9e81afd3ef015716f2"
+    },
+    {
+      "path": "native-frontend/swiftui/player-responsive-53fa05b/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196788250,
+      "mtime_ns": 1794690244026678977,
+      "action": "remove",
+      "sha256": "c9a3040a7adb767950854b00ed043340f942ebd3d731cea11ed03b8becd8bc58"
+    },
+    {
+      "path": "native-frontend/swiftui/player-shared-travel-28eb9bc/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196785237,
+      "mtime_ns": 1794707046695538229,
+      "action": "keep",
+      "sha256": "0bf4c14869c4759d4ed28a7819ab784700fb60c953a3475d745c21fa4cf3b1fc"
+    },
+    {
+      "path": "native-frontend/swiftui/player-synchronized-562279e/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196787304,
+      "mtime_ns": 1794677563322032431,
+      "action": "remove",
+      "sha256": "a4bb1a7bb1052623c1966e5dd48104909d8ff681d21cafb8f04e6c7aca463d2f"
+    },
+    {
+      "path": "native-frontend/swiftui/silent-refresh-48fe696/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196586969,
+      "mtime_ns": 1794506730966620400,
+      "action": "remove",
+      "sha256": "6a72d79c474ee796a526e759af898c898c92a8cae50b104ae060842c707e2144"
+    },
+    {
+      "path": "native-frontend/swiftui/silent-refresh-48fe696/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196595768,
+      "mtime_ns": 1794506744042621058,
+      "action": "remove",
+      "sha256": "e57af4abf56f380893c81baa551e302b49a354be17b3dd5cd44bf635c2a0dfa0"
+    },
+    {
+      "path": "native-frontend-export-v3/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196413132,
+      "mtime_ns": 1794433255647421325,
+      "action": "remove",
+      "sha256": "128340ab2cdbab9e047f2f6c4ca016d922c6451cd72171142d7d25483c561656"
+    },
+    {
+      "path": "native-frontend-export-v3/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196417386,
+      "mtime_ns": 1794433268707422354,
+      "action": "remove",
+      "sha256": "aa652dfa2a9b0ebedc5a8ea79a093866b9dba04f98fd10a174f9ca30c70af52c"
+    },
+    {
+      "path": "native-swiftui/StreamsideNativeProof-Twitch32-baseline.ipa",
+      "bytes": 196475822,
+      "mtime_ns": 1794438807515704617,
+      "action": "remove",
+      "sha256": "e6e6a317be5f352fc2a0bbccd3dc4433e34faf2c1515cb9876fed20bccdf1b2d"
+    },
+    {
+      "path": "native-swiftui/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196479929,
+      "mtime_ns": 1794438825623705532,
+      "action": "remove",
+      "sha256": "b9f5c836e728f82e109ed1c71679f3b3ab6de408cd86d6fd1d6c8f204b45ff9b"
+    }
+  ],
+  "moves": {
+    "Streamside-3.1.0-build.24-modular-diagnostics.ipa": "archive/legacy-build24/Streamside-3.1.0-build.24-modular-diagnostics.ipa",
+    "Streamside-3.1.0-build.24-modular-diagnostics.ipa.sha256": "archive/legacy-build24/Streamside-3.1.0-build.24-modular-diagnostics.ipa.sha256",
+    "BUILD24_TESTING.md": "archive/legacy-build24/BUILD24_TESTING.md",
+    "build24-validation.json": "archive/legacy-build24/build24-validation.json",
+    "build24-native-archive": "archive/legacy-build24/native-products",
+    "dist": "archive/legacy-build24/dist",
+    "native-frontend/swiftui/one-shot-1ca1414/StreamsideNativeProof-Twitch32-baseline.ipa": "archive/twitch32-baseline/StreamsideNativeProof-Twitch32-baseline.ipa",
+    "stream-tags-inspection": "native-frontend/stream-tags-b3fbef1/validation/tag-inspection",
+    "stream-tags-b3fbef1-packaging.log": "native-frontend/stream-tags-b3fbef1/validation/packaging.log"
+  },
+  "kept_roots": [
+    "native-frontend/stream-tags-b3fbef1",
+    "native-frontend/swiftui/player-shared-travel-28eb9bc",
+    "ci/b3fbef1197c2435dbe34cf7eb8d1ff674333e286",
+    "ci/28eb9bc800865373e906ed28eab0f885ccc97331",
+    "ci/.dispatch.lock"
+  ],
+  "device_reports_committed": false
+}

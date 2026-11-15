@@ -97,7 +97,7 @@ struct PlayerControls: View {
                             control("Close stream", "chevron.down", id: "close", event: 1, action: close)
                                 .modifier(motion(.topLeading, size: geometry.size))
                             Spacer(minLength: 0)
-                            topActions.frame(width: 182, height: 44)
+                            topActions.frame(width: CGFloat(PlayerControlMotion.actionsWidth), height: CGFloat(PlayerControlMotion.controlsHeight))
                                 .modifier(motion(.topTrailing, size: geometry.size))
                         }
                         Spacer(minLength: 0)
@@ -114,7 +114,7 @@ struct PlayerControls: View {
                                 control("Full screen — coming later", "arrow.up.left.and.arrow.down.right", disabled: true) {}
                             }.frame(width: 90, height: 44)
                                 .modifier(motion(.bottomTrailing, size: geometry.size))
-                        }.frame(height: 44)
+                        }.frame(height: CGFloat(PlayerControlMotion.controlsHeight))
                     }.padding(CGFloat(PlayerControlMotion.canvasInset))
                 }
                 // Block input now, retaining rendering until exit completion.

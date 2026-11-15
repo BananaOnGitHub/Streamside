@@ -30,12 +30,13 @@ private final class MotionFrameSamples {
     private var previous: [PlayerControlRegion: Double] = [:]
     private var edgeRegions: [PlayerControlRegion: Int] = [:]
     private var earlyRegions = Set<PlayerControlRegion>()
+    private var sharedTravel: CGSize?
     private var latest = "No modifier frames"
     func begin(style: PlayerControlAnimation, entering: Bool) {
         lock.lock(); defer { lock.unlock() }
         expected = style; self.entering = entering
         edges = 0; center = 0; samples = 0; minimum = 1; maximum = 0
-        midCenterFading = false; midEdgesMoving = false; invalid = false; previous = [:]; edgeRegions = [:]; earlyRegions = []
+        midCenterFading = false; midEdgesMoving = false; invalid = false; previous = [:]; edgeRegions = [:]; earlyRegions = []; sharedTravel = nil
     }
     func record(style: PlayerControlAnimation, region: PlayerControlRegion, progress: Double, travel: CGSize, frame: PlayerControlFrame) {
         lock.lock(); defer { lock.unlock() }
@@ -45,6 +46,10 @@ private final class MotionFrameSamples {
         samples += 1; invalid = invalid || style != expected
         minimum = min(minimum, progress); maximum = max(maximum, progress)
         if region != .center {
+            // Matching normalized progress alone permits different speeds.
+            // Require identical absolute travel for all edges throughout a stage.
+            if let sharedTravel { invalid = invalid || travel != sharedTravel }
+            else { sharedTravel = travel }
             if let old = previous[region] {
                 invalid = invalid || (entering ? progress < old - 0.03 : progress > old + 0.03)
             }
@@ -80,10 +85,10 @@ private final class MotionFrameSamples {
     func finish() -> (Bool, String) {
         lock.lock(); defer { lock.unlock() }
         let allEdges = edgeRegions.count == 4 && edgeRegions.values.allSatisfy { $0 >= 2 }
-        let synchronized = allEdges && midCenterFading && (expected == .fade || (midEdgesMoving && earlyRegions.count == 4))
+        let synchronized = sharedTravel != nil && allEdges && midCenterFading && (expected == .fade || (midEdgesMoving && earlyRegions.count == 4))
         let passed = !invalid && edges >= 2 && center >= 2 && minimum < 0.25 && maximum > 0.8 && synchronized
         let range = String(format: "%.3f...%.3f", minimum, maximum)
-        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): edgeRegions=\(edgeRegions.count), earlyRegions=\(earlyRegions.count), edges=\(edges), center=\(center), synchronized=\(synchronized), invalid=\(invalid)"
+        let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): sharedTravel=\(sharedTravel.map { "\(Int($0.width))x\(Int($0.height))" } ?? "missing"), edgeRegions=\(edgeRegions.count), earlyRegions=\(earlyRegions.count), edges=\(edges), center=\(center), synchronized=\(synchronized), invalid=\(invalid)"
         expected = nil
         return (passed, detail)
     }

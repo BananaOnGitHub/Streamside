@@ -212,6 +212,13 @@ struct PlayerControlFrame {
 }
 enum PlayerControlMotion {
     static let canvasInset = 6.0
+    static let controlsHeight = 44.0
+    static let actionsWidth = 182.0
+    // Equal displacement gives every edge the same points-per-second curve.
+    // Use logical control layout, never material-dependent rendered bounds.
+    static func travel(canvasWidth: Double, canvasHeight: Double) -> (width: Double, height: Double) {
+        (min(canvasWidth, actionsWidth + canvasInset), min(canvasHeight, controlsHeight + canvasInset))
+    }
     static let flyDuration = 0.70
     static let fadeDuration = 0.26
     static func duration(style: PlayerControlAnimation) -> Double { style == .fade ? fadeDuration : flyDuration }

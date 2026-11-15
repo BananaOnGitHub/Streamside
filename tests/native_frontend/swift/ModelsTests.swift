@@ -17,6 +17,10 @@ import Foundation
                 if style == .fade { precondition(hidden.x == 0 && hidden.y == 0) }
             }
         }
+        let travel = PlayerControlMotion.travel(canvasWidth: 400, canvasHeight: 225)
+        precondition(travel.width == 188 && travel.height == 50)
+        let narrow = PlayerControlMotion.travel(canvasWidth: 160, canvasHeight: 90)
+        precondition(narrow.width == 160 && narrow.height == 50)
         for style in [PlayerControlAnimation.vertical, .horizontal] {
             // Exercise entry and reversed exit through the whole interval.
             // Center alpha must track normalized edge travel, with no separate phase.
@@ -24,9 +28,13 @@ import Foundation
                 let progress = Double(step) / 100
                 let center = PlayerControlMotion.frame(progress: progress, style: style, region: .center, width: 400, height: 225)
                 precondition(center.x == 0 && center.y == 0 && center.opacity > 0 && center.opacity < 1)
+                var pairedDistance: Double?
                 for region in [PlayerControlRegion.topLeading, .topTrailing, .bottomLeading, .bottomTrailing] {
-                    let edge = PlayerControlMotion.frame(progress: progress, style: style, region: region, width: 400, height: 225)
-                    let distance = style == .horizontal ? abs(edge.x) / 400 : abs(edge.y) / 225
+                    let edge = PlayerControlMotion.frame(progress: progress, style: style, region: region, width: travel.width, height: travel.height)
+                    let absoluteDistance = abs(edge.x) + abs(edge.y)
+                    if let pairedDistance { precondition(abs(absoluteDistance - pairedDistance) < 0.000001) }
+                    else { pairedDistance = absoluteDistance }
+                    let distance = style == .horizontal ? abs(edge.x) / travel.width : abs(edge.y) / travel.height
                     precondition(abs(distance + center.opacity - 1) < 0.000001, "Center and edges must finish together")
                 }
             }

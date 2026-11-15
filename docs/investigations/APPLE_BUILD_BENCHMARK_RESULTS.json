@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "source_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+  "proof_id": "0de6d7a66be34cdb5a1e6c3045e154cd76a4d0a64dc95b86478c7efb74b4e13e",
+  "toolchain_required": {
+    "xcode_version": "26.6",
+    "xcode_build": "17F113",
+    "iphoneos_sdk": "26.5"
+  },
+  "repetitions_per_environment": 1,
+  "scope": "Native and original-startup Apple components, model/UIKit/clock/title/playback/three-launch tests and two player UI cases, plus separate logger/Foundation/comparison tests. No donor packaging, signing identity, device execution or downstream hosted Linux job in Apple timing.",
+  "github": {
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43658504705",
+    "status": "success",
+    "runner_labels": [
+      "macos-26"
+    ],
+    "native_worker_seconds": 801.6,
+    "baseline_worker_seconds": 290.4,
+    "component_worker_sum_seconds": 1092.0,
+    "native_swift_compile_seconds": 13.0,
+    "apple_job_seconds": 1129.0,
+    "delay_to_apple_job_start_seconds": 3.0,
+    "foundation_step_seconds": 19.0
+  },
+  "codemagic": {
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6af942e690e83b09c4fa7473",
+    "configuration_revision": "567b2276e6e10c46b12d7ce790e7ff1de6693f26",
+    "source_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+    "status": "finished",
+    "machine": "Mac mini M2",
+    "macos_observed_in_live_log": "26.5.1 (25F80)",
+    "full_build_seconds_displayed": 660,
+    "preparing_machine_seconds_displayed": 23,
+    "fetching_sources_seconds_displayed": 3,
+    "preparing_pinned_worktree_seconds_displayed": 1,
+    "timed_suite_seconds_displayed": 627,
+    "stages": {
+      "components": {
+        "seconds": 615.498,
+        "exit_code": 0
+      },
+      "foundation": {
+        "seconds": 8.018,
+        "exit_code": 0
+      },
+      "comparisons": {
+        "seconds": 0.067,
+        "exit_code": 0
+      }
+    },
+    "native_swift_compile_seconds_observed_in_live_log": 9.6,
+    "logger_seconds_observed_in_live_log": 2.692,
+    "artifact_download": "Blocked by in-app browser: storage.googleapis.com ERR_BLOCKED_BY_CLIENT; no bypass attempted",
+    "artifact_hashes_locally_verified": false,
+    "artifact_name": "Streamside_1_artifacts.zip",
+    "artifact_size_displayed": "802.82 KB",
+    "validation": "Existing component builder reported final source/toolchain/receipt/hash validation success on runner; Foundation 1 test and comparisons 5 tests passed. Downloaded binaries were not independently re-admitted on Ubuntu."
+  },
+  "vm": {
+    "architecture": "x86_64",
+    "cpu": "Intel Core Processor (Haswell, no TSX)",
+    "visible_cpus": 16,
+    "memory_bytes": 12582912000,
+    "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241",
+    "python": "3.9.6",
+    "native_worker_seconds": 804.121,
+    "baseline_worker_seconds": 196.997,
+    "component_worker_sum_seconds": 1001.118,
+    "native_swift_compile_seconds": 10.2,
+    "logger_seconds": 3.237,
+    "foundation_completion": {
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 7.197,
+      "reason": "Complete existing Foundation test after transferring omitted transitive header dependencies; no test/source change"
+    },
+    "comparison_completion": {
+      "name": "comparisons",
+      "passed": true,
+      "seconds": 0.069,
+      "exit_code": 0
+    },
+    "component_admission": {
+      "passed": true,
+      "source_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+      "proof_id": "0de6d7a66be34cdb5a1e6c3045e154cd76a4d0a64dc95b86478c7efb74b4e13e",
+      "scope": "Ubuntu assembled standard component metadata around recovered VM worker outputs, then ran existing full component admission; excluded from VM Apple timing"
+    },
+    "ubuntu_abi_tests_passed": 17,
+    "controls_ui_receipt": {
+      "passed": true,
+      "tests": 2,
+      "styles": [
+        "glass",
+        "plain"
+      ],
+      "motion_frames": true,
+      "motion_sampling_scale": 3,
+      "motion_pixels": true,
+      "motion_synchronized": true,
+      "motion_all_regions": true,
+      "motion_shared_travel": true
+    },
+    "cleanup": {
+      "owned_simulators_absent": true,
+      "remote_workspace_removed": true
+    },
+    "full_suite_single_uninterrupted_pass": false,
+    "interruptions": [
+      "Live local SSH orchestrator exited 143 after component success; unfinished auxiliary phases recorded Broken pipe",
+      "Detached auxiliary retry exposed omitted transitive Foundation test headers; transferred 12 existing include dependencies and completed unmodified test",
+      "Ubuntu optional ABI check initially omitted the installed Unicorn path; preserved import failure and reran with the existing pinned dependency path"
+    ]
+  },
+  "interpretation": {
+    "fastest_completed_component_workload": "codemagic",
+    "codemagic_component_seconds": 615.498,
+    "codemagic_reduction_vs_actions_percent": 43.6,
+    "limits": [
+      "Single trials, different architectures/hardware and existing machine caches; no cold-cache or statistical equivalence claim",
+      "Codemagic component timer includes generation/metadata/admission overhead; Actions and VM worker sums exclude surrounding collection/admission work",
+      "VM auxiliary phases completed separately after transport/input corrections; no uninterrupted end-to-end VM total",
+      "Codemagic status/final validation read on build page; storage host blocked artifact download and local binary/hash verification",
+      "No automatic provider migration; GitHub Actions remains primary and Codemagic workflow is manual-only"
+    ]
+  },
+  "evidence_files": {
+    "github-reference/run.json": {
+      "bytes": 291,
+      "sha256": "be9ea5e5475b206c0b9e3c5e5564186e85f7fe395453aa9a42624121eb91213c"
+    },
+    "github-reference/jobs.json": {
+      "bytes": 3764,
+      "sha256": "b58c0cea59f644bf3f41ab41c9fad4e7149846ab082b1153f66347b75291c3e7"
+    },
+    "github-reference/phases.json": {
+      "bytes": 10087,
+      "sha256": "f2bf01c498705d3f4a4cb9502dd0abeb16d3421c4fca0e1660929b8acde6009a"
+    },
+    "github-reference/workflow-logs.zip": {
+      "bytes": 251642,
+      "sha256": "6dc27ba248d1fe821a755506dd93009fccdd25d697dc22dd314a58b600a95764"
+    },
+    "codemagic-01/visible-final-log.txt": {
+      "bytes": 3177,
+      "sha256": "60035a20a86be007dee2a24d9ec9df00a8129fec0dd54dc4ffc631b8fa2cccc0"
+    },
+    "codemagic-01/observations.json": {
+      "bytes": 1391,
+      "sha256": "692120c48d8b48dfd38b00b346fc51cf239935be141e58c93ed53fc5b4fdcd6d"
+    },
+    "codemagic-01/build-overview.png": {
+      "bytes": 45840,
+      "sha256": "9ec31d8ab2112994186ca1665d8bb58aca199cba9b69af19073e89183ac54452"
+    },
+    "tahoe-01/owned-inputs.tar.gz": {
+      "bytes": 197700,
+      "sha256": "7725b39e4fc23abfa52da6a1813abaa5d31fbe72261e1146c7e0f794b1fb4ad7"
+    },
+    "tahoe-01/input-hashes.json": {
+      "bytes": 12728,
+      "sha256": "7aeb6ebd3789eb587692d04abe3e944889adf3a4901804ae50aa6a4d94a3d427"
+    },
+    "tahoe-01/supplemental-inputs.tar.gz": {
+      "bytes": 18678,
+      "sha256": "d7ae4b1208c5ef23e2b245eb8f5d86eac72887a1160c2e2774edf63600c26493"
+    },
+    "tahoe-01/supplemental-input-hashes.json": {
+      "bytes": 1218,
+      "sha256": "162592056fcc589af1c4e9c9eca7bb7f6f0b6a9d9ce2c7706157a8e75aa93760"
+    },
+    "tahoe-01/outputs.tar.gz": {
+      "bytes": 2037760,
+      "sha256": "0dd1be693ae401ee1e5789a289e3486d0ee75a4cb610245c4bdb9674fece6d49"
+    },
+    "tahoe-01/admitted-components/components.json": {
+      "bytes": 2418,
+      "sha256": "7e414e95bcc4ad4b4fed01ee6789aa8ef8c658f004d652e4804739b99a72d63d"
+    },
+    "tahoe-01/abi-import-failure.log": {
+      "bytes": 925,
+      "sha256": "fa5ff3f1d1301cf00f58f551e8eb11bef7bcc08049e07afba826ff0fb504e0ef"
+    },
+    "tahoe-01/abi-validation.log": {
+      "bytes": 2090,
+      "sha256": "a063a1dfb96ba3c048074725c170e5fa661b5a2706708d7a262b083f37774e30"
+    },
+    "tahoe-01/collection-interruption.json": {
+      "bytes": 561,
+      "sha256": "a1852b165e1b3315daafb041d0419287b77143995beeace452840ffc144411c3"
+    },
+    "tahoe-01/cleanup.json": {
+      "bytes": 68,
+      "sha256": "33059f99480800985bdcaa6b30feeab8a2574ba69704f9d50bf516a7e8cf8e93"
+    }
+  },
+  "local_evidence_directory": "../artifacts/benchmarks/apple-28eb9bc"
+}

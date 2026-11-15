@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "source_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+  "report_sha256": "f0dfc0945b0caf9a488b7fcee5570b5bad9884b493e6e466cd7318109c66b664",
+  "local_report": "../artifacts/native-frontend/device/player-shared-travel-28eb9bc/native-latest-2.json",
+  "user_observation": {
+    "fly_in_timing": "Confirmed fixed on device",
+    "fly_out_timing": "Confirmed fixed on device in follow-up"
+  },
+  "diagnostics": {
+    "proof_id": "0de6d7a66be34cdb5a1e6c3045e154cd76a4d0a64dc95b86478c7efb74b4e13e",
+    "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "probe_contract": "4bbaa1a78713a04ee8ba8fb4ae5a81191cdc670140530d378237fc48aa6f03be",
+    "armed_mask": 15,
+    "failures": 0,
+    "baseline_calibrated": false,
+    "ui_root_owner": 1,
+    "navigation_guard_armed": 1,
+    "foregrounds": 2,
+    "backgrounds": 1,
+    "playback_phase": 0,
+    "playback_error": 0,
+    "playback_last_error": 0,
+    "player_control_events": [
+      28,
+      2,
+      0,
+      0,
+      1,
+      2,
+      0
+    ],
+    "returned_channel_count": 100,
+    "probes": {
+      "twitch_holder": 0,
+      "warmup": 0,
+      "twitch_factory": 0,
+      "bundle_url": 0,
+      "rn_factory": 0,
+      "rn_runtime_factory": 0,
+      "rn_host": 0,
+      "rn_host_start": 0,
+      "rn_surface": 0,
+      "rn_root_surface": 0,
+      "rn_instance": 0,
+      "rn_bundle_load": 0,
+      "rn_script_load": 0,
+      "rn_hermes_instance": 0,
+      "hermes_factory": 0,
+      "hermes_factory_nothrow": 0,
+      "hermes_runtime": 0,
+      "hermes_eval": 0,
+      "hermes_eval_prepared": 0,
+      "hermes_eval_source_map": 0,
+      "worklet_factory": 0,
+      "worklet_ui_factory": 0,
+      "worklet_runtime": 0,
+      "hermes_implementation": 0,
+      "hermes_engine": 0
+    }
+  },
+  "limits": "Visual timing acceptance is supplied by device review, not measured in JSON. All 25 guarded counters report zero with armed mask 15 and no failures, but there is no fresh baseline calibration. Playback is inactive at export. No new measurements of launch speed, memory comparisons or audio behavior are inferred."
+}

@@ -341,3 +341,9 @@ python3 tools/native_frontend/build.py \
 ```
 
 On the phone, compare left/right speeds during entry and exit in both fly directions, with glass disabled and enabled. Check response after a tap, center fading, interruption/reversal, Fade, Reduce Motion and ordinary controls. Confirm the time/viewer pill still follows Liquid Glass, then export Native diagnostics after playback. No new physical runtime calibration is claimed by the simulator or packaging results.
+
+## Shared-travel device timing acceptance
+
+Device review confirms that both fly-in and fly-out timing are fixed for source `28eb9bc800865373e906ed28eab0f885ccc97331`. The [device result](SWIFTUI_PLAYER_SHARED_TRAVEL_DEVICE_RESULT.json) preserves the supplied report hash, exact source/proof/donor identities and bounded diagnostic values. The report matches the previously packaged [shared-travel artifact](SWIFTUI_PLAYER_SHARED_TRAVEL_ARTIFACTS.json). This adds the physical visual timing outcome without changing earlier failure or simulator records.
+
+All 25 guarded RN/Hermes/worklet counters report zero, with armed mask 15, no failures, native root ownership and the navigation guard retained. The export records two foregrounds and one background; playback is inactive at export and both current/last playback errors are zero. No fresh positive control is present, so this is a native diagnostic observation rather than a new runtime calibration. The JSON contains no animation timing measurements; acceptance of entry and exit comes from the accompanying device review. No implementation change or replacement IPA is needed for this result.

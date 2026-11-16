@@ -326,13 +326,36 @@ private struct ThumbnailInputContent: View {
         }
     }
 }
+private struct PreviewPanelInputContent: View {
+    let long: Bool
+    @State private var watched = false
+    var body: some View {
+        if watched { Text("Watched").accessibilityIdentifier("preview-watched") }
+        else {
+            QuickLookPanel(watch: { watched = true }, close: {}) {
+                Color.indigo.accessibilityElement().accessibilityLabel("Synthetic preview")
+                    .accessibilityIdentifier("fixture.preview-video")
+            } details: {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Fixture channel").font(.headline)
+                    Text(long ? String(repeating: "Full stream title 👋 ", count: 30) : "Full stream title").font(.subheadline)
+                    Text("Category").font(.subheadline)
+                    AllStreamTags(tags: long ? (0..<20).map { "Tag\($0)" } : ["English", "Music"])
+                    Text("Final preview detail").font(.caption).accessibilityIdentifier("preview-last-detail")
+                }
+            }
+        }
+    }
+}
 @main @MainActor final class InputTestDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("--plain"), forKey: PlayerPreferences.glassButtonsKey)
         UserDefaults.standard.set(PlayerControlAnimation.vertical.rawValue, forKey: PlayerPreferences.animationKey)
         let window = UIWindow(frame: UIScreen.main.bounds)
-        if ProcessInfo.processInfo.arguments.contains("--thumbnail") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-panel") {
+            window.rootViewController = UIHostingController(rootView: PreviewPanelInputContent(long: ProcessInfo.processInfo.arguments.contains("--long-panel")))
+        } else if ProcessInfo.processInfo.arguments.contains("--thumbnail") {
             window.rootViewController = UIHostingController(rootView: ThumbnailInputContent())
         } else { window.rootViewController = UIHostingController(rootView: InputTestContent()) }
         window.makeKeyAndVisible(); self.window = window; return true

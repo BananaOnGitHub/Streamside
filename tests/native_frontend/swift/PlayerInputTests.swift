@@ -32,6 +32,41 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 1", "Scrolling must not watch")
         print("THUMBNAIL_COORDINATES PASS: hold consumes release; tap watches; scroll cancels")
     }
+    func testPreviewPanelLayoutAndActions() {
+        continueAfterFailure = false
+        let app = XCUIApplication(); testedApp = app
+        for long in [false, true] {
+            app.launchArguments = ["--preview-panel"] + (long ? ["--long-panel"] : [])
+            app.launch()
+            let card = app.otherElements["quicklook.card"].firstMatch
+            let menu = app.otherElements["quicklook.menu"].firstMatch
+            let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 5))
+            XCTAssertTrue(menu.waitForExistence(timeout: 5))
+            XCTAssertTrue(video.waitForExistence(timeout: 5))
+            let frame = video.frame
+            XCTAssertEqual(frame.height, frame.width * 9 / 16, accuracy: 1, "Preview video must remain landscape")
+            XCTAssertGreaterThan(menu.frame.minY, card.frame.maxY + 8, "Action menu must be a separate surface below the card")
+            XCTAssertLessThan(menu.frame.width, card.frame.width, "Action menu should be compact")
+            XCTAssertLessThanOrEqual(menu.frame.maxY, app.frame.maxY - 10)
+            XCTAssertGreaterThanOrEqual(card.frame.minY, app.frame.minY + 10)
+            if !long {
+                XCTAssertLessThan(card.frame.height, frame.height + 230, "Short details must not produce a tall empty panel")
+            } else {
+                for _ in 0..<8 {
+                    if app.staticTexts["preview-last-detail"].isHittable { break }
+                    app.scrollViews.firstMatch.swipeUp()
+                }
+                XCTAssertTrue(app.staticTexts["preview-last-detail"].isHittable, "Full details and all tags must remain reachable")
+                XCTAssertEqual(video.frame.minY, frame.minY, accuracy: 1, "Scrolling details must not move the video")
+            }
+            XCTAssertFalse(app.buttons["View profile"].isEnabled)
+            app.buttons["quicklook.watch"].tap()
+            XCTAssertTrue(app.staticTexts["preview-watched"].waitForExistence(timeout: 5), "Glass menu Watch action must work")
+            app.terminate()
+        }
+        print("PREVIEW_PANEL PASS: 16:9 video, natural height, separate compact menu, scrollable details, Watch action")
+    }
     func testGlassControls() { exercise(plain: false) }
     func testPlainControls() { exercise(plain: true) }
     private func wait(_ element: XCUIElement, label: String) {

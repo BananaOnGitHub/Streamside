@@ -84,3 +84,5 @@ and updating navigation.
 - [Artifact cleanup, 2026-11-15](ARTIFACT_CLEANUP_2026_11_15.md): retained current/rollback packages, archived evidence and superseded binary removal.
 
 - [Native stream Quick Look](SWIFTUI_QUICK_LOOK.md): muted thumbnail preview, full metadata and shared-player theatre fade.
+
+- [Quick Look preview styling follow-up](SWIFTUI_QUICK_LOOK_STYLE.md): prior-candidate device observations and separate content-sized card/glass action menu.

@@ -141,3 +141,7 @@ outside dismissal, preview-tap and Watch handoffs, repeated cancellation,
 background/foreground, account loss, tap/scroll and accessibility settings. Export
 native diagnostics and confirm the existing RN/Hermes counters stay zero. The
 previous runtime report is historical evidence and does not validate this change.
+
+## First Apple build failure
+
+The [first build](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afad00790e83b09c4faec35), source `5afb9f968a32ee5a739a0c8daff4f94f8d0ba493`, failed during iPhone Swift compilation with Xcode 26.6 / Swift 6.3.3. The compiler rejected access to the main-actor `phase` property inside the autoclosure created by `&&` in `ContextPreviewSession.deinit`. No simulator checks ran. The follow-up evaluates that state separately before the Boolean combination, preserving the same cleanup decision. The original provider log and downloaded failure archive remain associated with the failed revision. The archive SHA-256 is `5ced3a624028d6997bee4b6a83d77c87313be84edc42864a41e15f876e2cd6a0`.

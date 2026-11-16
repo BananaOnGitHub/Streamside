@@ -79,7 +79,8 @@ final class ContextPreviewSession {
     deinit {
         observers.forEach(NotificationCenter.default.removeObserver)
         // A source row disappearing must never strand the facade's native timer.
-        let needsStop = !stopped && phase != .transferred
+        let transferred = phase == .transferred
+        let needsStop = !stopped && !transferred
         let needsRelease = !released
         let stop = self.stop, release = self.release, id = self.id
         if needsStop || needsRelease {

@@ -77,3 +77,52 @@ IVS compatibility or zero device runtime counts for the replacement. Once Apple
 validation passes, perform local donor packaging and review source lift/return,
 long-details scrolling, preview silence, handoff and lifecycle behavior on device,
 including Reduce Motion/Transparency and the RN/Hermes report.
+
+
+## Successful Apple build and local package
+
+Source `e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c` passed the
+[Codemagic build](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afb259c01609fea8f690184).
+The [validation record](SWIFTUI_ANCHORED_PREVIEW_VALIDATION.json) preserves exact
+source, donor, toolchain, component archive, framework and IPA identities.
+This result supersedes the pending-at-submission status above; the failed system
+prototype remains recorded separately.
+
+Xcode 26.6 (17F113), Swift 6.3.3 and iPhoneOS SDK 26.5 compiled the arm64 iOS 16.4
+component. All five Apple validation stages passed. Four mandatory UI tests
+passed with zero failures: glass controls (275.952 seconds), plain controls
+(163.227), preview layout/actions (92.295), and thumbnail hold/tap (44.945).
+The source animation, outside return, long-details scrolling to the final tag,
+actual decoded-video clipping and both single-player handoff paths passed.
+These fixtures use AVPlayerLayer with owned H.264 video through the production
+passive surface/card/controller. They do not execute Twitch's IVS donor service.
+The existing account/root, launch selector, playback lifecycle and networking
+gates also passed. Ubuntu verified the downloaded source/hash receipts and all
+53 post-download tests before assembly.
+
+The exact local Twitch 32.0 donor SHA-256 was checked again, and native-only
+packaging passed all 54 ABI and 25 probe entries, retained-image verification
+and unchanged original HBC validation. No independent baseline IPA was created.
+The resulting IPA is 196,885,011 bytes; SHA-256:
+`415fdf9b6b52267b8c25ce11d28c5aaa57c6d3d279b928f55b23412d13d9b2d3`.
+It remains local under the artifact directory and requires Feather signing with
+the existing app/keychain identity.
+
+Reproduce from the source revision by fetching its admitted components through
+`make native-ci-fetch`, then assembling locally:
+
+```sh
+python3 tools/native_frontend/build.py --frontend swiftui --mode native \
+  --components ../artifacts/ci/e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c/download/components \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --output ../artifacts/native-frontend/quick-look-anchored-e883ecf
+```
+
+For device review, install with Feather using the same app identity. Hold a live
+thumbnail, release and inspect: preview must remain muted, video must keep its
+16:9 rounded clipping, and long details/tags must scroll. Tap outside and check
+return toward the source. Repeat using Watch stream and a video tap, checking
+continuous playback and audio only after theatre opens. Background/reopen,
+repeat with Reduce Motion/Transparency, then export Native diagnostics. Physical
+IVS behavior, visual feel and zero RN/Hermes counts remain unverified for this
+candidate until those results are reviewed.

@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+  "packaging_revision": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+  "proof_id": "0338255c13ec4e894956ecf7c860901b084ad3988894767bc516d90a1662ef79",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "new_abi_entries": false
+  },
+  "tests": {
+    "linux_native_frontend": 74,
+    "ubuntu_download_verification": 53,
+    "apple": {
+      "schema": 1,
+      "source_revision": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.72
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 1046.638
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 9.58
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.065
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.169
+        }
+      ],
+      "archive_sha256": "f1cfc39f828a7036b6749b05360abc2a6e5b5ae4db86887787bad2d04de68479",
+      "archive_bytes": 1040355
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "dismiss_before_handoff": true,
+        "all_tags_wrap": true,
+        "failures": [],
+        "lifecycle_cancellation": true,
+        "passed": true,
+        "source_target": true,
+        "teardown": true,
+        "single_handoff": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 4,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true,
+        "source_anchored_preview": true,
+        "source_animation": true,
+        "real_video_clipping": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "passed": true,
+        "background_resume": 1,
+        "preview_muted_before_load": true,
+        "control_intent_retained": true,
+        "account_stop": true,
+        "playing_observed": true,
+        "cancellation": true,
+        "teardown": true,
+        "source_encoding": true,
+        "stream_only_mute": true,
+        "local_pause_resume": 1
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "decoded_video_scope": "H.264 fixture through AVPlayerLayer and production passive surface/card/controller; Twitch IVS remains device-only."
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afb259c01609fea8f690184",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afb259c01609fea8f690184",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "artifact": {
+    "bytes": 196885011,
+    "sha256": "415fdf9b6b52267b8c25ce11d28c5aaa57c6d3d279b928f55b23412d13d9b2d3",
+    "framework_sha256": "b918edb609b572188bcda415c932e332298a4bc01d1f0ffd51328ee1473b5ab0",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "c843ad8c293659d9116be9279f2f568e659fb0c079ab2a1d18434629aa444e82",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "ba2fe8abaed2e2221ff705ba488a0ee545c788e8f6fed66f5fd0f526c02b8ca6",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "d4849c78494c30facbb080716b35dbd74556e2de2fbdf1d7dbdd21aeece90945",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "f429c61d72fd225dcc91cb8ea7e8b9bc0994dd6ef30a97457b231ad3b0b95eac"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "relative_path": "native-frontend/quick-look-anchored-e883ecf/StreamsideNativeProof-Twitch32-native.ipa"
+  },
+  "component_manifest_sha256": "c14e35a81b20ddac0129999f79ccd68f9a4dc4aef91b714b9f63734b7551547a",
+  "inspection": {
+    "abi_entries": 54,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "Pending. Apple simulator and local packaging do not establish live IVS compatibility, device animation quality or zero RN/Hermes creation."
+}

@@ -176,3 +176,23 @@ refinement is pending. Physical testing must play music or a podcast in another
 app, open/dismiss multiple previews and confirm uninterrupted audio, then Watch
 and confirm that theatre takes over. Device settling/hold feel and the actual
 IVS implementation still need review. No new IPA is claimed before Apple passes.
+
+
+### Hold refinement: first Apple compile failure
+
+Source `1225f0e156e8f17cbf54a1a83eac19e71cb84f57` failed in
+[Codemagic build 6afb722101609fea8f6921ba](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afb722101609fea8f6921ba).
+The iPhone Swift compile rejected the default value of `beginPress(reduceMotion:)`:
+`UIAccessibility.isReduceMotionEnabled` is main-actor isolated, while a default
+argument is evaluated in a nonisolated context under the pinned compiler settings.
+The archived failure bundle `Streamside_10_artifacts.zip` is retained locally;
+2,689 bytes, SHA-256
+`822bda94e633fc4d6e70dcc6ac02c457b6c557c29d6d53785021cda54c0a20ff`.
+
+The correction replaces the default argument with a no-argument overload that
+reads Reduce Motion inside the main-actor-owned SourceView method, then calls
+the explicit Boolean overload. Gesture timing, motion, preview mixing and theatre
+promotion are unchanged. No compiler isolation or warning gate was relaxed.
+Simulator and audio tests were not reached in this failed run; they remain
+mandatory for the replacement. No new IPA was produced. Host tests do not
+validate Apple's actor isolation rules.

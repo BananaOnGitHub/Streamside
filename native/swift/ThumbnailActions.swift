@@ -27,7 +27,8 @@ struct ThumbnailActions: UIViewRepresentable {
         required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
         // Feedback while the long press is still possible; this never recognizes
         // a gesture, claims playback, or delays the containing scroll view.
-        func beginPress(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
+        func beginPress() { beginPress(reduceMotion: UIAccessibility.isReduceMotionEnabled) }
+        func beginPress(reduceMotion: Bool) {
             guard !pressing, window != nil, !isHidden else { return }
             resetPress(); pressing = true; observeHold?(self)
             guard !reduceMotion else { return }

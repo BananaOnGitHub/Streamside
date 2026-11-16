@@ -45,6 +45,7 @@ final class PlayerInputTests: XCTestCase {
         openContext(app)
         dismissPopover(app.buttons["Watch stream"], in: app)
         wait(app.staticTexts["thumbnail-previews"], label: "Previews: 1")
+        wait(app.staticTexts["hold-motion"], label: "Thumbnail lifted before preview")
         wait(app.staticTexts["preview-stops"], label: "Stops: 1")
         wait(app.staticTexts["source-target"], label: "Returned to source")
         wait(app.staticTexts["source-motion"], label: "Animated source")
@@ -69,6 +70,7 @@ final class PlayerInputTests: XCTestCase {
         wait(account.staticTexts["preview-stops"], label: "Stops: 1", timeout: 10)
         XCTAssertFalse(account.buttons["Watch stream"].exists)
         XCTAssertEqual(account.staticTexts["thumbnail-watches"].label, "Watches: 0")
+        print("THUMBNAIL_LIFT PASS: real source expansion before player creation; early release/scroll retain tap semantics")
         print("THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
     }
     // Classify an actual screen pixel from AVPlayerLayer's decoded movie. A

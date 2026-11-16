@@ -8,7 +8,7 @@
 static BOOL authorized=YES,pending;
 bool ssn_native_mode(void) { return true; }
 static unsigned requests,cancels,created,released,pauses,decodedEvents;
-static BOOL sourceEncoding,lastMuted,mutedBeforeLoad;
+static BOOL sourceEncoding,lastMuted,mutedBeforeLoad,mixingBeforeLoad;
 static unsigned muteCalls;
 static id identity;
 bool ssn_playback_authorized(void) { return authorized; }
@@ -57,6 +57,7 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
 - (void)setMuted:(BOOL)value { _muted=value;lastMuted=value;muteCalls++; }
 - (void)load:(NSURL *)url {
     mutedBeforeLoad=self.muted;
+    mixingBeforeLoad=AVAudioSession.sharedInstance.categoryOptions==AVAudioSessionCategoryOptionMixWithOthers;
     NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     NSMutableDictionary *items=[NSMutableDictionary dictionary];
     for(NSURLQueryItem *item in parts.queryItems) if(item.value) items[item.name]=item.value;
@@ -99,8 +100,12 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
     self.window=[[[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds] autorelease];
     self.window.rootViewController=[[[UIViewController alloc] init] autorelease];[self.window makeKeyAndVisible];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,1000000000),dispatch_get_main_queue(),^{
-        SSNPlayback *playback=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel"];
-        playback.muted=YES;[playback start];
+        AVAudioSession *audio=AVAudioSession.sharedInstance;
+        NSString *originalCategory=[audio.category copy],*originalMode=[audio.mode copy];
+        AVAudioSessionCategoryOptions originalOptions=audio.categoryOptions;
+        SSNPlayback *playback=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel" preview:YES];
+        playback.muted=NO; // Preview mode must reject accidental unmute even before load.
+        [playback start];
         waitPlaying(playback,1,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed) {
             BOOL initial=observed&&playback.phase==3&&sourceEncoding&&decodedEvents==1;
             BOOL previewMuted=mutedBeforeLoad&&playback.isMuted&&observedMuteActual;
@@ -110,7 +115,17 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
             playback.muted=YES;
             BOOL muteLocal=observedMuteKnown&&observedMuteIntent&&observedMuteActual&&playback.isMuted&&lastMuted&&muteCalls>=2&&volume==AVAudioSession.sharedInstance.outputVolume&&
                 [category isEqual:AVAudioSession.sharedInstance.category];
+            BOOL previewMixing=mixingBeforeLoad&&audio.categoryOptions==AVAudioSessionCategoryOptionMixWithOthers&&playback.isMuted;
+            // Dismissed previews restore their own category without promoting.
+            [playback stop];
+            BOOL previewRestored=[audio.category isEqual:originalCategory]&&[audio.mode isEqual:originalMode]&&audio.categoryOptions==originalOptions;
+            [playback start];
+            waitPlaying(playback,2,NSProcessInfo.processInfo.systemUptime+10,^(BOOL previewRestarted) {
             unsigned initialCreated=created,initialRequests=requests;
+            BOOL promoted=previewRestarted&&[playback enterTheatre]&&playback.isMuted&&audio.categoryOptions==0;
+            playback.muted=NO;
+            promoted=promoted&&!playback.isMuted&&!lastMuted&&created==initialCreated&&requests==initialRequests;
+            playback.muted=YES;
             playback.paused=YES;
             [playback performSelector:@selector(tick:) withObject:nil];
             BOOL paused=playback.phase==8&&playback.isPaused&&created==initialCreated&&requests==initialRequests;
@@ -124,8 +139,8 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
             waitPaused(playback,NSProcessInfo.processInfo.systemUptime+10,^(BOOL stayedPaused) {
             BOOL intentRetained=stayedPaused&&playback.isPaused&&playback.isMuted&&lastMuted;
             playback.paused=NO;
-            waitPlaying(playback,2,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observedResume) {
-                BOOL resumed=observedResume&&playback.phase==3&&requests==2;
+            waitPlaying(playback,3,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observedResume) {
+                BOOL resumed=observedResume&&playback.phase==3&&requests==3;
                 playback.paused=YES;authorized=NO;
                 [NSNotificationCenter.defaultCenter postNotificationName:@"SSNNativeServiceDidChange" object:nil];
                 BOOL accountStop=playback.phase==7&&playback.errorCode==1&&created==released;
@@ -133,12 +148,13 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
                 unsigned before=cancels;[playback stop];
                 BOOL cancellation=cancels==before+1&&playback.phase==0;
                 BOOL teardown=created==released;
-                BOOL passed=previewMuted&&initial&&background&&resumed&&accountStop&&cancellation&&teardown&&paused&&localResume&&muteLocal&&intentRetained;
-                NSMutableDictionary *receipt=[@{@"preview_muted_before_load":@(previewMuted),@"local_pause_resume":@(paused&&localResume),@"stream_only_mute":@(muteLocal),@"control_intent_retained":@(intentRetained),@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
+                BOOL passed=previewMixing&&previewRestored&&promoted&&previewMuted&&initial&&background&&resumed&&accountStop&&cancellation&&teardown&&paused&&localResume&&muteLocal&&intentRetained;
+                NSMutableDictionary *receipt=[@{@"preview_mixes_audio":@(previewMixing&&previewRestored),@"theatre_audio_promotion":@(promoted),@"preview_muted_before_load":@(previewMuted),@"local_pause_resume":@(paused&&localResume),@"stream_only_mute":@(muteLocal),@"control_intent_retained":@(intentRetained),@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
                 if(!passed) receipt[@"initial_state"]=initialState;
                 NSURL *documents=[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
                 [[NSJSONSerialization dataWithJSONObject:receipt options:0 error:NULL] writeToURL:[documents URLByAppendingPathComponent:@"playback-test.json"] atomically:YES];
-                [receipt release];[playback release];exit(passed?0:1);
+                [receipt release];[playback release];[originalCategory release];[originalMode release];exit(passed?0:1);
+            });
             });
             });
         });

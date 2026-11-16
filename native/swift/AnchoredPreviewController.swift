@@ -54,6 +54,7 @@ private struct PreviewActions: View {
 final class AnchoredPreviewController: UIViewController {
     private let content: UIViewController
     private weak var source: UIView?
+    private let initialLiftFrame: CGRect?
     private let onWatch: () -> Void
     private let onDismiss: () -> Void
     private let observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
@@ -69,7 +70,8 @@ final class AnchoredPreviewController: UIViewController {
     private var appeared = false
 
     init(content: UIViewController, source: UIView, watch: @escaping () -> Void, dismiss: @escaping () -> Void,
-         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?) {
+         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLiftFrame: CGRect? = nil) {
+        self.initialLiftFrame = initialLiftFrame
         self.content = content; self.source = source; onWatch = watch; onDismiss = dismiss; self.observeTarget = observeTarget
         super.init(nibName: nil, bundle: nil)
     }
@@ -124,9 +126,10 @@ final class AnchoredPreviewController: UIViewController {
         actions.view.layer.shadowColor = UIColor.black.cgColor; actions.view.layer.shadowOpacity = 0.15
         actions.view.layer.shadowRadius = 14; actions.view.layer.shadowOffset = CGSize(width: 0, height: 6)
         view.layoutIfNeeded()
+        let liftFrame = initialLiftFrame.map { view.convert($0, from: source.window) } ?? sourceFrame
         lifted = source.snapshotView(afterScreenUpdates: false)
         if let lifted {
-            lifted.frame = sourceFrame; lifted.isUserInteractionEnabled = false
+            lifted.frame = liftFrame; lifted.isUserInteractionEnabled = false
             lifted.layer.cornerCurve = .continuous; lifted.layer.cornerRadius = 7; lifted.layer.masksToBounds = true
             view.addSubview(lifted)
         }
@@ -134,8 +137,8 @@ final class AnchoredPreviewController: UIViewController {
         let windowRect = source.convert(source.bounds, to: source.window)
         observeTarget?(false, windowRect, CGPoint(x: windowRect.midX, y: windowRect.midY))
         let destination = card.center
-        let scale = sourceFrame.width / card.bounds.width
-        card.center = PreviewPlacement.collapsedCenter(source: sourceFrame, card: card.bounds.size)
+        let scale = liftFrame.width / card.bounds.width
+        card.center = PreviewPlacement.collapsedCenter(source: liftFrame, card: card.bounds.size)
         card.transform = CGAffineTransform(scaleX: scale, y: scale); card.alpha = 0
         actions.view.alpha = 0; actions.view.transform = CGAffineTransform(translationX: 0, y: 8); backdrop.alpha = 0
         if UIAccessibility.isReduceMotionEnabled {
@@ -183,7 +186,14 @@ final class AnchoredPreviewController: UIViewController {
             lifted.frame = content.view.convert(CGRect(x: 0, y: 0, width: card.bounds.width, height: card.bounds.width * 9 / 16), to: view)
             lifted.alpha = 0; view.addSubview(lifted)
         }
-        let animation = UIViewPropertyAnimator(duration: UIApplication.shared.applicationState == .active ? (moving ? 0.34 : 0.18) : 0, curve: .easeInOut)
+        // A critically damped spring sheds velocity as it reaches the source,
+        // without an overshoot or a constant-speed final segment. Watch remains
+        // a fade; only the spatial return gets the longer settling motion.
+        let returning = moving && !watching
+        let duration = UIApplication.shared.applicationState == .active ? (returning ? 0.52 : 0.18) : 0
+        let animation = returning
+            ? UIViewPropertyAnimator(duration: duration, dampingRatio: 1)
+            : UIViewPropertyAnimator(duration: duration, curve: .easeInOut)
         animation.addAnimations {
             self.backdrop.alpha = 0; self.actions?.view.alpha = 0; self.card.alpha = 0; self.lifted?.alpha = 0
             if moving && !watching {

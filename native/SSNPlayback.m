@@ -24,12 +24,12 @@ static BOOL playerABI(void) {
 @implementation SSNPlayback {
     UIView *_view,*_playerView;
     NSString *_channel,*_previousCategory,*_previousMode;
-    AVAudioSessionCategoryOptions _previousOptions;
+    AVAudioSessionCategoryOptions _previousOptions,_installedOptions;
     id _player,_promise,_requestAuth;
     NSTimer *_timer;
     NSInteger _phase,_errorCode;
     NSTimeInterval _deadline;
-    BOOL _opened,_foreground,_audioActive,_wasPlaying,_decoded,_paused,_muted;
+    BOOL _opened,_foreground,_audioActive,_wasPlaying,_decoded,_paused,_muted,_preview;
 }
 @synthesize view=_view,phase=_phase,errorCode=_errorCode;
 - (BOOL)isPaused { return _paused; }
@@ -40,8 +40,8 @@ static BOOL playerABI(void) {
 }
 - (void)setMuted:(BOOL)muted {
     NSAssert(NSThread.isMainThread,@"Playback controls belong to the main thread");
-    _muted=muted;
-    if(_player) ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setMuted:"),muted);
+    _muted=_preview?YES:muted;
+    if(_player) ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setMuted:"),_muted);
     [self observeMute];ssn_report();
 }
 - (void)setPaused:(BOOL)paused {
@@ -51,8 +51,10 @@ static BOOL playerABI(void) {
     if(paused) { v0(_player,"pause");[self setPhase:8 error:0]; }
     else { _deadline=NSProcessInfo.processInfo.systemUptime+30;v0(_player,"play");[self setPhase:2 error:0]; }
 }
-- (instancetype)initWithChannel:(NSString *)channel {
+- (instancetype)initWithChannel:(NSString *)channel { return [self initWithChannel:channel preview:NO]; }
+- (instancetype)initWithChannel:(NSString *)channel preview:(BOOL)preview {
     if((self=[super init])) {
+        _preview=preview;_muted=preview;
         _channel=[channel copy];_view=[UIView new];_view.backgroundColor=UIColor.blackColor;
         NSNotificationCenter *n=NSNotificationCenter.defaultCenter;
         [n addObserver:self selector:@selector(background:) name:UIApplicationWillResignActiveNotification object:nil];
@@ -73,7 +75,7 @@ static BOOL playerABI(void) {
         AVAudioSession *audio=AVAudioSession.sharedInstance;
         // Restore only the configuration we installed; never overwrite a later
         // donor/account/audio-route owner that has changed the shared session.
-        if(same(audio.category,AVAudioSessionCategoryPlayback)&&same(audio.mode,AVAudioSessionModeMoviePlayback)&&audio.categoryOptions==0) {
+        if(same(audio.category,AVAudioSessionCategoryPlayback)&&same(audio.mode,AVAudioSessionModeMoviePlayback)&&audio.categoryOptions==_installedOptions) {
             [audio setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:NULL];
             [audio setCategory:_previousCategory mode:_previousMode options:_previousOptions error:NULL];
         }
@@ -105,6 +107,28 @@ static BOOL playerABI(void) {
     _deadline=NSProcessInfo.processInfo.systemUptime+30;
     if(!_timer) _timer=[[NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(tick:) userInfo:nil repeats:YES] retain];
 }
+- (BOOL)configureAudio {
+    AVAudioSession *audio=AVAudioSession.sharedInstance;
+    if(!_audioActive) {
+        _previousCategory=[audio.category copy];_previousMode=[audio.mode copy];_previousOptions=audio.categoryOptions;
+    }
+    // Mute alone does not prevent an exclusive session from interrupting music.
+    // Configure mixing before IVS is created/loaded; never duck spoken audio.
+    AVAudioSessionCategoryOptions options=_preview?AVAudioSessionCategoryOptionMixWithOthers:0;
+    if(![audio setCategory:AVAudioSessionCategoryPlayback mode:AVAudioSessionModeMoviePlayback options:options error:NULL]) return NO;
+    _installedOptions=options;_audioActive=YES;
+    return [audio setActive:YES error:NULL];
+}
+- (BOOL)enterTheatre {
+    NSAssert(NSThread.isMainThread,@"Playback promotion belongs to the main thread");
+    if(!_opened||!_foreground||!ssn_playback_authorized()||!ssn_navigation_guarded()||(_requestAuth&&auth()!=_requestAuth)) return NO;
+    if(!_preview) return YES;
+    _preview=NO;
+    // If authorization is still pending, loadValue installs the exclusive
+    // session later. If loaded, promote in place without another request/player.
+    if(_audioActive&&![self configureAudio]) { [self fail:5];return NO; }
+    return YES;
+}
 - (void)loadValue:(NSDictionary *)value {
     NSString *token=[value objectForKey:@"value"],*signature=[value objectForKey:@"signature"];
     if(![token isKindOfClass:NSString.class]||![signature isKindOfClass:NSString.class]) { [self fail:4];return; }
@@ -119,11 +143,7 @@ static BOOL playerABI(void) {
                      [NSURLQueryItem queryItemWithName:@"allow_audio_only" value:@"true"]];
     NSURL *source=url.URL;[url release];
     if(!source) { [self fail:4];return; }
-    AVAudioSession *audio=AVAudioSession.sharedInstance;
-    _previousCategory=[audio.category copy];_previousMode=[audio.mode copy];_previousOptions=audio.categoryOptions;
-    if(![audio setCategory:AVAudioSessionCategoryPlayback mode:AVAudioSessionModeMoviePlayback options:0 error:NULL]) { [self fail:5];return; }
-    _audioActive=YES;
-    if(![audio setActive:YES error:NULL]) { [self fail:5];return; }
+    if(![self configureAudio]) { [self fail:5];return; }
     _player=[[NSClassFromString(@"IVSPlayer") alloc] init];
     _playerView=[[NSClassFromString(@"IVSPlayerView") alloc] initWithFrame:_view.bounds];
     if(!_player||!_playerView) { [self fail:2];return; }

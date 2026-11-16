@@ -126,3 +126,53 @@ continuous playback and audio only after theatre opens. Background/reopen,
 repeat with Reduce Motion/Transparency, then export Native diagnostics. Physical
 IVS behavior, visual feel and zero RN/Hermes counts remain unverified for this
 candidate until those results are reviewed.
+
+
+## Device review and hold/audio refinements
+
+The [device review](SWIFTUI_ANCHORED_PREVIEW_DEVICE_REVIEW.json) matches source
+`e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c` and its donor/proof. The floating
+preview looks better on device. Its return motion was reported as linear with
+an abrupt stop; the requested refinement includes a preliminary thumbnail lift.
+The report has zero failures, native root ownership, two backgrounds, five
+foregrounds and six balanced playback starts/releases/stops. All 25 probe counts
+are zero. Baseline calibration is false, so this report alone does not establish
+verified runtime absence. The raw report is retained privately with its recorded
+SHA-256; the committed summary contains bounded diagnostics only.
+
+The return to source now uses a 0.52-second critically damped UIKit spring.
+Apple documents damping ratio 1 as smoothly decelerating without oscillation:
+[UIViewPropertyAnimator spring timing](https://developer.apple.com/documentation/uikit/uiviewpropertyanimator/init(duration:dampingratio:animations:)).
+Watch and Reduce Motion remain fades. Initial hold feedback enlarges the actual
+thumbnail by at most 4.5 percent, starting after 60 milliseconds. The existing
+long-press recognizer still admits the preview after 450 milliseconds. Its
+possible phase observes touch-down without recognizing a competing gesture.
+Early release, movement/scroll failure, source removal and inactivity reset the
+feedback. Recognition captures the actual presentation rectangle, resets the
+layout view, and starts the floating snapshot from that rectangle to avoid a
+snap between stages. The existing single player/media transaction is unchanged.
+
+Muted previews previously configured the same exclusive audio session as theatre;
+muting the player did not prevent that session from interrupting other apps.
+The owned facade now has explicit preview intent: it forces mute before IVS
+creation/load and uses Playback/MoviePlayback with MixWithOthers, without ducking.
+[Apple's mixing option](https://developer.apple.com/documentation/avfaudio/avaudiosession/categoryoptions-swift.struct/mixwithothers)
+permits concurrent background audio; removing it and activating the session
+interrupts other audio. Only the completed, authorized theatre presentation
+promotes the existing facade to exclusive audio and then unmutes it. A pending
+media request retains this intent and installs the appropriate session when it
+loads. Promotion creates no new IVS player or GraphQL request. Dismissal/failure
+restores the prior category only if the facade's installed configuration still
+owns the shared session. No donor ABI or hooks changed.
+
+The full Linux-compatible suite passed 76 tests after these changes. Apple gates
+now additionally require an observed presentation-layer thumbnail enlargement
+before preview/player admission, hold cancellation and Reduce Motion behavior,
+mixing configured before the synthetic IVS load, restoration after preview
+cancellation, and exclusive theatre promotion without another player/request.
+The existing decoded-video, clipping, actions, source-return, lifecycle and player
+control tests remain mandatory. Apple compilation/simulator validation for this
+refinement is pending. Physical testing must play music or a podcast in another
+app, open/dismiss multiple previews and confirm uninterrupted audio, then Watch
+and confirm that theatre takes over. Device settling/hold feel and the actual
+IVS implementation still need review. No new IPA is claimed before Apple passes.

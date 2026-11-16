@@ -42,7 +42,7 @@ class ComponentAdmission(unittest.TestCase):
             compiler = dict(source_revision=self.revision, proof_id=proof, mode=mode, transferred_inputs=config["inputs"],
                             xcode="Xcode " + pin["xcode_version"] + "\nBuild version " + pin["xcode_build"], sdk_version=pin["iphoneos_sdk"],
                             model_tests="PASS: synthetic fixture",
-                            uikit_ownership_tests=dict(quicklook_receipt=dict(passed=True,failures=[],source_target=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True),controls_ui_receipt=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,real_video_clipping=True) if mode=='native' else None,launch_receipt=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)],playback_receipt={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load']},title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
+                            uikit_ownership_tests=dict(quicklook_receipt=dict(passed=True,failures=[],source_target=True,hold_cancellation=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True),controls_ui_receipt=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,real_video_clipping=True) if mode=='native' else None,launch_receipt=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)],playback_receipt={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion']},title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
             (directory / "compiler.json").write_text(json.dumps(compiler))
             (directory / (FRAMEWORK + ".framework") / "Info.plist").write_bytes(plistlib.dumps(framework_info(mode, proof, self.revision)))
             (directory / (FRAMEWORK + ".framework") / FRAMEWORK).write_bytes(binary)
@@ -79,7 +79,7 @@ class ComponentAdmission(unittest.TestCase):
     def test_missing_synchronized_motion_validation_is_rejected(self):
         path=self.directory/'native/compiler.json'
         compiler=json.loads(path.read_text())
-        for key in ['motion_synchronized','motion_all_regions','motion_shared_travel','preview_panel','source_anchored_preview','source_animation','real_video_clipping']:
+        for key in ['motion_synchronized','motion_all_regions','motion_shared_travel','preview_panel','source_anchored_preview','source_animation','hold_feedback','real_video_clipping']:
             with self.subTest(key=key):
                 changed=json.loads(json.dumps(compiler));changed['uikit_ownership_tests']['controls_ui_receipt'].pop(key)
                 path.write_text(json.dumps(changed));self.record()
@@ -90,6 +90,21 @@ class ComponentAdmission(unittest.TestCase):
         compiler=json.loads(path.read_text());compiler['uikit_ownership_tests'].pop('playback_receipt')
         path.write_text(json.dumps(compiler));self.record()
         with self.assertRaisesRegex(ValueError,'playback lifecycle'):verify(self.directory,self.revision)
+
+    def test_missing_preview_audio_policy_validation_is_rejected(self):
+        path=self.directory/'native/compiler.json'
+        original=json.loads(path.read_text())
+        for key in ['preview_mixes_audio','theatre_audio_promotion']:
+            with self.subTest(key=key):
+                changed=json.loads(json.dumps(original));changed['uikit_ownership_tests']['playback_receipt'].pop(key)
+                path.write_text(json.dumps(changed));self.record()
+                with self.assertRaisesRegex(ValueError,'playback lifecycle'):verify(self.directory,self.revision)
+
+    def test_missing_hold_cancellation_validation_is_rejected(self):
+        path=self.directory/'native/compiler.json'
+        compiler=json.loads(path.read_text());compiler['uikit_ownership_tests']['quicklook_receipt'].pop('hold_cancellation')
+        path.write_text(json.dumps(compiler));self.record()
+        with self.assertRaisesRegex(ValueError,'Quick Look'):verify(self.directory,self.revision)
 
     def test_changed_binary_is_rejected(self):
         (self.directory / "native" / (FRAMEWORK + ".framework") / FRAMEWORK).write_bytes(b"corrupt")

@@ -117,6 +117,28 @@ private final class FixtureVideo: UIView {
     func finish() { link?.invalidate(); link = nil }
 }
 
+// Sample the real source layer while the gesture is still possible, before
+// preview admission creates any player. A target transform alone is not a pass.
+@MainActor private final class HoldMotionProbe: NSObject {
+    private weak var source: UIView?
+    private var link: CADisplayLink?
+    private var samples = 0
+    private(set) var expanded = false
+    func begin(_ source: UIView) {
+        finish(); self.source = source; expanded = false; samples = 0
+        link = CADisplayLink(target: self, selector: #selector(sample))
+        link?.add(to: .main, forMode: .common)
+    }
+    @objc private func sample() {
+        samples += 1
+        guard samples < 120, let source else { finish(); return }
+        guard let shown = source.layer.presentation() else { return }
+        let scale = CATransform3DGetAffineTransform(shown.transform).a
+        if scale > 1.005 && scale < 1.06 { expanded = true }
+    }
+    func finish() { link?.invalidate(); link = nil }
+}
+
 @MainActor final class ContextPreviewFixture: ObservableObject {
     @Published var ready = "Preparing video"
     @Published var previews = 0
@@ -125,6 +147,9 @@ private final class FixtureVideo: UIView {
     @Published var creations = 0
     @Published var targetResult = "Not checked"
     @Published var motionResult = "Not checked"
+    @Published var holdResult = "Not checked"
+    private let holdProbe = HoldMotionProbe()
+    func holding(_ source: UIView) { holdProbe.begin(source) }
     private var movie: URL?
     private var valid = true
     private var sourceCenter: CGPoint?
@@ -166,6 +191,7 @@ private final class FixtureVideo: UIView {
     }
     func preview(_ source: UIView) -> ContextPreviewSession? {
         guard let movie, player == nil else { return nil }
+        holdProbe.finish(); holdResult = holdProbe.expanded ? "Thumbnail lifted before preview" : "No hold lift observed"
         valid = true
         let player = AVQueuePlayer(); player.isMuted = true
         let surface = FixtureVideo(); surface.videoLayer.player = player; surface.videoLayer.videoGravity = .resizeAspect
@@ -226,11 +252,12 @@ struct ContextPreviewFixtureView: View {
                 Text("Stops: \(fixture.stops)").accessibilityIdentifier("preview-stops")
                 Text(fixture.targetResult).accessibilityIdentifier("source-target")
                 Text(fixture.motionResult).accessibilityIdentifier("source-motion")
+                Text(fixture.holdResult).accessibilityIdentifier("hold-motion")
             }.font(.caption).frame(height: 17)
             ScrollView {
                 VStack(spacing: 24) {
                     ThumbnailActions(image: fixture.image, label: "Stream thumbnail", open: fixture.directWatch,
-                                     preview: fixture.preview, observeTarget: fixture.target)
+                                     preview: fixture.preview, observeTarget: fixture.target, observeHold: fixture.holding)
                         .frame(width: 160, height: 90).accessibilityIdentifier("preview-thumbnail")
                         .padding(.top, 40)
                     ForEach(0..<30) { Text("Scroll row \($0)").frame(height: 50) }

@@ -11,7 +11,7 @@ SOURCES = ['native/swift/AnchoredPreviewController.swift', 'native/swift/Context
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,real_video_clipping=True)
+EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,real_video_clipping=True)
 
 
 def project(root, stage):
@@ -121,6 +121,8 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Both rendered opacity pixel checks must pass')
     if 'THUMBNAIL_COORDINATES PASS:' not in observed:
         raise ValueError('Actual thumbnail hold/tap/scroll checks must pass')
+    if 'THUMBNAIL_LIFT PASS:' not in observed:
+        raise ValueError('Rendered thumbnail enlargement before preview admission must pass')
     if 'PREVIEW_PANEL PASS:' not in observed:
         raise ValueError('Actual interactive preview sizing/menu/scroll checks must pass')
     if 'CONTEXT_VIDEO PASS:' not in observed:

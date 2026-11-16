@@ -103,7 +103,7 @@ public final class SSNSwiftUIHost: NSObject {
                       services.state.session == .authenticated, sharedPlayback.native.errorCode != 1 else {
                     sharedPlayback.stop(); return
                 }
-                sharedPlayback.setMuted(false)
+                sharedPlayback.enterTheatre()
             }
         }
         return true

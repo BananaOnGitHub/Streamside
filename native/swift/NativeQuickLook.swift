@@ -65,7 +65,7 @@ enum NativeQuickLook {
     static func session(channel: FollowedChannel, services: NativeServices, source: UIView,
                         claim: @escaping (UUID) -> Bool, release: @escaping (UUID) -> Void,
                         handoff: @escaping (TheatrePlayback) -> Bool) -> ContextPreviewSession {
-        let playback = TheatrePlayback(channel: channel.username)
+        let playback = TheatrePlayback(channel: channel.username, preview: true)
         playback.setMuted(true) // Intent precedes authorization and IVS load/play.
         let account = services.state.account
         let windowSize = source.window?.bounds.size ?? CGSize(width: 390, height: 700)

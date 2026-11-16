@@ -8,7 +8,11 @@ final class TheatrePlayback: ObservableObject {
     @Published private(set) var error = 0
     @Published private(set) var paused = false
     @Published private(set) var muted = false
-    init(channel: String) { native = SSNPlayback(channel: channel) }
+    init(channel: String, preview: Bool = false) { native = SSNPlayback(channel: channel, preview: preview) }
+    func enterTheatre() {
+        if native.enterTheatre() { native.isMuted = false }
+        update()
+    }
     func start() { native.start(); update() }
     func startIfNeeded() { if phase == 0 { start() } }
     func setMuted(_ muted: Bool) { native.isMuted = muted; update() }

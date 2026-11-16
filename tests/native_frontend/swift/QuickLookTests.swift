@@ -84,7 +84,27 @@ import UIKit
         late.end(after: animator.addCompletion); late.requestWatch(); animator.finish()
         DispatchQueue.main.async {
             self.check(starts == 1 && stops == 2 && releases == 2 && handoffs == 1 && late.phase == .cancelled, "Action delivered during dismissal and rejected handoff clean once")
-            self.sourceTarget()
+            self.holdFeedback()
+        }
+    }
+    func holdFeedback() {
+        guard let root = window?.rootViewController else { fatalError("Missing fixture root") }
+        let source = ThumbnailActions.SourceView(frame: CGRect(x: 40, y: 200, width: 160, height: 90))
+        root.view.addSubview(source); source.beginPress(reduceMotion: false)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            let lifted = source.takePressFrame()
+            self.check((lifted?.width ?? 0) > 160.8 && (lifted?.width ?? 999) < 170, "Actual hold expansion is small and survives capture")
+            self.check(source.transform == .identity, "Capture restores layout source without retaining scale")
+            source.beginPress(reduceMotion: true)
+            self.check(source.transform == .identity, "Reduce Motion skips preliminary enlargement")
+            source.resetPress(); source.beginPress(reduceMotion: false); source.endPress()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
+                self.check(source.transform == .identity, "An early release settles the source without opening playback")
+                source.beginPress(reduceMotion: false)
+                NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+                self.check(source.transform == .identity, "Inactive app clears pending hold feedback")
+                source.removeFromSuperview(); self.sourceTarget()
+            }
         }
     }
     func sourceTarget() {
@@ -124,7 +144,7 @@ import UIKit
         }
     }
     func finishReceipt() {
-        let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true,
+        let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true, "hold_cancellation": true,
             "dismiss_before_handoff": true, "single_handoff": true, "teardown": true, "all_tags_wrap": true, "lifecycle_cancellation": true]
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("quicklook-test.json")
         try! JSONSerialization.data(withJSONObject: receipt).write(to: path)

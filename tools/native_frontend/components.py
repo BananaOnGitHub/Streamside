@@ -116,7 +116,7 @@ def verify(directory, revision=None):
             raise ValueError("Three-process launch selection validation missing or failed")
         if uikit.get("quicklook_receipt") != dict(passed=True,failures=[],source_target=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True):
             raise ValueError("Native Quick Look simulator validation missing or failed")
-        expected_ui=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,system_context_preview=True,source_animation=True,real_video_clipping=True) if mode=='native' else None
+        expected_ui=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,real_video_clipping=True) if mode=='native' else None
         if uikit.get("controls_ui_receipt") != expected_ui:
             raise ValueError("Player coordinate interaction validation missing or failed")
         if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load']}:

@@ -1,7 +1,7 @@
 import UIKit
 
-// UIKit owns presentation. This transaction owns the media lifetime only.
-// A menu action and preview-commit callback converge here; neither starts a
+// The source-anchored presenter owns motion; this transaction owns media lifetime.
+// The Watch action and video tap converge here; neither starts a
 // second request or unmutes a preview during dismissal.
 @MainActor
 final class ContextPreviewSession {
@@ -10,7 +10,7 @@ final class ContextPreviewSession {
     let controller: UIViewController
     private(set) var phase = Phase.prepared
     private(set) var watchRequested = false
-    var dismissMenu: (() -> Void)?
+    var dismissPreview: (() -> Void)?
     private let claim: (UUID) -> Bool
     private let release: (UUID) -> Void
     private let valid: () -> Bool
@@ -48,23 +48,23 @@ final class ContextPreviewSession {
         guard phase == .visible || phase == .ending else { return }
         watchRequested = true
     }
-    func end(animator: UIContextMenuInteractionAnimating?) {
+    func end(after registerCompletion: (@escaping () -> Void) -> Void) {
         guard phase == .visible || phase == .prepared else { return }
         phase = .ending
-        dismissMenu = nil // UIKit is already ending; never request a second dismissal.
+        dismissPreview = nil // Presentation is already ending; never dismiss twice.
         let complete = { [self] in
-            // UIKit's animator completes before we ask the guarded root to
-            // present the theatre. One main-queue turn also orders a UIAction
-            // delivered during willEnd ahead of this final decision.
+            // The presenter detaches before we ask the guarded root to
+            // present the theatre. One main-queue turn orders any late action
+            // ahead of this final decision.
             DispatchQueue.main.async { self.completeEnd() }
         }
-        if let animator { animator.addCompletion(complete) } else { complete() }
+        registerCompletion(complete)
     }
     private func completeEnd() {
         guard phase == .ending else { return }
         if watchRequested && valid() {
             releaseOnce()
-            if handoff() { phase = .transferred; dismissMenu = nil; return }
+            if handoff() { phase = .transferred; dismissPreview = nil; return }
         }
         cancel()
     }
@@ -72,7 +72,7 @@ final class ContextPreviewSession {
         guard phase != .transferred, phase != .cancelled else { return }
         phase = .cancelled
         stopOnce(); releaseOnce()
-        let dismiss = dismissMenu; dismissMenu = nil; dismiss?()
+        let dismiss = dismissPreview; dismissPreview = nil; dismiss?()
     }
     private func stopOnce() { if !stopped { stopped = true; stop() } }
     private func releaseOnce() { if !released { released = true; release(id) } }

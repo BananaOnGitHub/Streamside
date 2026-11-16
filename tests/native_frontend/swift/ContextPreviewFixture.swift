@@ -1,5 +1,5 @@
 // Donor-free integration fixture. A locally encoded movie exercises a real
-// AVPlayerLayer through the production passive surface and system context menu.
+// AVPlayerLayer through the production passive surface and anchored preview.
 import SwiftUI
 import UIKit
 import AVFoundation
@@ -73,8 +73,11 @@ private final class FixtureVideo: UIView {
     private(set) var intermediate = false
     func begin(source: UIView, finalWidth: CGFloat) {
         guard let window = source.window else { return }
-        self.source = source.convert(source.bounds, to: window)
-        self.finalWidth = finalWidth
+        begin(source: source.convert(source.bounds, to: window), finalWidth: finalWidth)
+    }
+    func begin(source: CGRect, finalWidth: CGFloat) {
+        finish(); frames = 0; intermediate = false
+        self.source = source; self.finalWidth = finalWidth
         link = CADisplayLink(target: self, selector: #selector(sample))
         link?.add(to: .main, forMode: .common)
     }
@@ -95,7 +98,10 @@ private final class FixtureVideo: UIView {
                     pending.append(contentsOf: layer.sublayers ?? [])
                     guard let shown = layer.presentation() else { continue }
                     let rect = shown.convert(shown.bounds, to: nil)
-                    guard rect.width > source.width + 5, rect.width < finalWidth - 5,
+                    var visibleAlpha: Float = 1
+                    var visibleAncestor: CALayer? = shown
+                    while let current = visibleAncestor { visibleAlpha *= current.opacity; visibleAncestor = current.superlayer }
+                    guard visibleAlpha > 0.05, rect.width > source.width + 5, rect.width < finalWidth - 5,
                           rect.height >= source.height * 0.8,
                           rect.insetBy(dx: -5, dy: -5).contains(point) else { continue }
                     var ancestor: CALayer? = layer
@@ -127,6 +133,8 @@ private final class FixtureVideo: UIView {
     private var looper: AVPlayerLooper?
     private var surface: FixtureVideo?
     private var motion: PreviewMotionProbe?
+    private var entryAnimated = false
+    private var previewWidth: CGFloat = 0
     private let long = ProcessInfo.processInfo.arguments.contains("--long-panel")
     let image = UIGraphicsImageRenderer(size: CGSize(width: 160, height: 90)).image { context in
         UIColor.systemIndigo.setFill(); context.fill(CGRect(x: 0, y: 0, width: 160, height: 90))
@@ -143,6 +151,8 @@ private final class FixtureVideo: UIView {
         let aligned = abs(source.midX - center.x) < 0.5 && abs(source.midY - center.y) < 0.5
         if !dismissing { sourceCenter = center; highlighted = aligned }
         else {
+            entryAnimated = motion?.intermediate == true
+            motion?.begin(source: source, finalWidth: previewWidth)
             let same = sourceCenter.map { hypot($0.x - center.x, $0.y - center.y) < 1 } ?? false
             targetResult = aligned && highlighted && same ? "Returned to source" : "Invalid source target"
         }
@@ -152,7 +162,7 @@ private final class FixtureVideo: UIView {
         stops += 1; player?.pause(); player?.removeAllItems()
         surface?.videoLayer.player = nil
         looper = nil; player = nil; surface = nil
-        motion?.finish(); motionResult = motion?.intermediate == true ? "Animated source" : "No observed animation"
+        motion?.finish(); motionResult = entryAnimated && motion?.intermediate == true ? "Animated source" : "No observed animation"
     }
     func preview(_ source: UIView) -> ContextPreviewSession? {
         guard let movie, player == nil else { return nil }
@@ -162,6 +172,7 @@ private final class FixtureVideo: UIView {
         self.player = player; self.surface = surface
         looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: movie)); creations += 1
         let width = min(380, (source.window?.bounds.width ?? 390) - 32)
+        previewWidth = width; entryAnimated = false
         let detailsHeight: CGFloat = long ? 220 : 150
         let content = UIHostingController(rootView: QuickLookPanel(width: width, detailsHeight: detailsHeight) {
             PassivePlayerSurface(surface: surface, topCornerRadius: 24)

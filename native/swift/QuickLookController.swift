@@ -1,6 +1,6 @@
 import UIKit
 
-// A preview-provider controller, never presented by Streamside as a modal.
+// Content controller embedded by the source-anchored presenter.
 // Mask the media subtree at the UIKit boundary as well as in SwiftUI.
 @MainActor
 final class QuickLookController: UIViewController {
@@ -13,8 +13,8 @@ final class QuickLookController: UIViewController {
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .clear
-        content.view.backgroundColor = .clear
+        view.backgroundColor = .clear; view.isOpaque = false
+        content.view.backgroundColor = .clear; content.view.isOpaque = false
         view.layer.cornerRadius = 24; view.layer.cornerCurve = .continuous
         view.layer.masksToBounds = true
         addChild(content)

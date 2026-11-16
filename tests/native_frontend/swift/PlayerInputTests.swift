@@ -69,7 +69,7 @@ final class PlayerInputTests: XCTestCase {
         wait(account.staticTexts["preview-stops"], label: "Stops: 1", timeout: 10)
         XCTAssertFalse(account.buttons["Watch stream"].exists)
         XCTAssertEqual(account.staticTexts["thumbnail-watches"].label, "Watches: 0")
-        print("THUMBNAIL_COORDINATES PASS: native lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
+        print("THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
     }
     // Classify an actual screen pixel from AVPlayerLayer's decoded movie. A
     // static image or readyForDisplay alone cannot satisfy the changing frames.
@@ -95,15 +95,15 @@ final class PlayerInputTests: XCTestCase {
         for (long, commit) in [(false, false), (false, true), (true, false)] {
             let app = contextApp(long ? ["--long-panel"] : [])
             openContext(app)
-            let card = app.otherElements["Preview"].firstMatch
+            let card = app.otherElements["quicklook.card"].firstMatch
             let watch = app.buttons["Watch stream"]
-            let video = app.otherElements["Decoded fixture video"].firstMatch
+            let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 5))
             XCTAssertTrue(video.waitForExistence(timeout: 5))
             let frame = video.frame
             XCTAssertEqual(frame.height, frame.width * 9 / 16, accuracy: 1, "Preview video must remain landscape")
-            XCTAssertGreaterThan(watch.frame.minY, card.frame.maxY, "System action menu must be below the preview")
-            XCTAssertLessThan(watch.frame.width, card.frame.width, "System action menu should be compact")
+            XCTAssertGreaterThan(watch.frame.minY, card.frame.maxY, "Separate glass action menu must be below the preview")
+            XCTAssertLessThan(watch.frame.width, card.frame.width, "Glass action menu should be compact")
             XCTAssertGreaterThanOrEqual(card.frame.minY, app.frame.minY + 10)
             var colors = Set<Int>()
             for _ in 0..<24 {
@@ -111,19 +111,18 @@ final class PlayerInputTests: XCTestCase {
                 if colors.count == 2 { break }
                 Thread.sleep(forTimeInterval: 0.15)
             }
-            XCTAssertEqual(colors.count, 2, "Real decoded video must advance in the system preview after releasing the hold")
+            XCTAssertEqual(colors.count, 2, "Real decoded video must advance in the interactive preview after releasing the hold")
             XCTAssertNil(videoColor(CGPoint(x: frame.minX + 1, y: frame.minY + 1), in: app), "The real upper-left video corner must be clipped")
             XCTAssertNil(videoColor(CGPoint(x: frame.maxX - 1, y: frame.minY + 1), in: app), "The real upper-right video corner must be clipped")
             if !long {
                 XCTAssertLessThan(card.frame.height, frame.height + 230, "Short details must not produce a tall empty panel")
             } else {
                 for _ in 0..<8 {
-                    if app.otherElements["Final preview detail"].isHittable { break }
-                    let start = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.86))
-                    let end = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.66))
-                    start.press(forDuration: 0.05, thenDragTo: end)
+                    if app.staticTexts["preview-last-detail"].isHittable { break }
+                    card.scrollViews.firstMatch.swipeUp()
                 }
-                XCTAssertTrue(app.otherElements["Final preview detail"].isHittable, "Full details and all tags must remain reachable in a system preview")
+                XCTAssertTrue(app.staticTexts["preview-last-detail"].isHittable, "Full details and all tags must remain reachable")
+                XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Tag19")).firstMatch.exists, "The last tag must be present after scrolling")
                 XCTAssertEqual(video.frame.minY, frame.minY, accuracy: 1, "Scrolling details must not move the video")
             }
             if commit {
@@ -131,7 +130,7 @@ final class PlayerInputTests: XCTestCase {
                 app.coordinate(withNormalizedOffset: point).tap()
             } else { watch.tap() }
             let watched = app.staticTexts["preview-watched"]
-            XCTAssertTrue(watched.waitForExistence(timeout: 5), "System menu Watch action must transfer into theatre")
+            XCTAssertTrue(watched.waitForExistence(timeout: 5), "Watch action must transfer into theatre")
             XCTAssertEqual(watched.label, "Same player: 1", "Watch must reuse the decoded preview player")
             let theatreVideo = app.descendants(matching: .any)["fixture.theatre-video"].firstMatch
             XCTAssertTrue(theatreVideo.waitForExistence(timeout: 5))
@@ -150,7 +149,7 @@ final class PlayerInputTests: XCTestCase {
             app.terminate()
         }
         print("CONTEXT_VIDEO PASS: changing decoded frames; 16:9; real upper-corner clipping; one player into theatre")
-        print("PREVIEW_PANEL PASS: genuine native preview/menu; full details; no X; Watch action; teardown")
+        print("PREVIEW_PANEL PASS: source-anchored preview; scrollable full details; no X; Watch action; teardown")
     }
     func testGlassControls() { exercise(plain: false) }
     func testPlainControls() { exercise(plain: true) }

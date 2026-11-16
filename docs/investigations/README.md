@@ -88,3 +88,5 @@ and updating navigation.
 - [Quick Look preview styling follow-up](SWIFTUI_QUICK_LOOK_STYLE.md): prior-candidate device observations and separate content-sized card/glass action menu.
 
 - [System context preview trial](SWIFTUI_SYSTEM_CONTEXT_PREVIEW.md): genuine UIKit lift/menu/dismissal, guarded media handoff, decoded-video prototype and pending Apple/device acceptance.
+
+- [Interactive source-anchored preview](SWIFTUI_ANCHORED_PREVIEW.md): fallback after the system scrolling limitation, interactive full details and retained media/animation gates.

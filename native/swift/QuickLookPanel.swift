@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Content only. UIKit supplies the native menu, backdrop, lift and dismissal.
+// Interactive content for the owned source-anchored presenter.
 struct QuickLookPanel<Video: View, Details: View>: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let width: CGFloat
@@ -13,18 +13,20 @@ struct QuickLookPanel<Video: View, Details: View>: View {
         self.video = video; self.details = details
     }
     var body: some View {
-        VStack(spacing: 0) {
-            video().frame(width: width, height: width * 9 / 16).clipped()
-            information
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                video().frame(width: width, height: width * 9 / 16).clipped()
+                information(height: max(1, min(detailsHeight, geometry.size.height - width * 9 / 16)))
+            }
         }
         .frame(width: width)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("quicklook.card")
     }
-    @ViewBuilder private var information: some View {
+    @ViewBuilder private func information(height: CGFloat) -> some View {
         let content = ScrollView { details().frame(maxWidth: .infinity, alignment: .leading).padding(16) }
-            .scrollBounceBehavior(.basedOnSize).frame(height: detailsHeight)
+            .scrollBounceBehavior(.basedOnSize).frame(height: height)
         if reduceTransparency {
             content.background(Color(uiColor: .secondarySystemBackground))
         } else if #available(iOS 26.0, *) {

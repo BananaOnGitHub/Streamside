@@ -1,17 +1,20 @@
 import SwiftUI
 import UIKit
 
+@MainActor
 struct ThumbnailActions: UIViewRepresentable {
     var image: UIImage?
     var label = "Stream thumbnail"
     let open: () -> Void
     let preview: (UIView) -> ContextPreviewSession?
-    // Fixture-only observations of public target geometry; production leaves nil.
+    // Fixture-only observations of source geometry; production leaves nil.
     var observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
 
     final class SourceView: UIImageView {
         var activate: (() -> Void)?
         var removed: (() -> Void)?
+        var previewActivate: (() -> Void)?
+        @objc func accessibilityPreview(_ action: UIAccessibilityCustomAction) -> Bool { previewActivate?(); return true }
         override func accessibilityActivate() -> Bool { activate?(); return true }
         override func didMoveToWindow() {
             super.didMoveToWindow()
@@ -22,61 +25,45 @@ struct ThumbnailActions: UIViewRepresentable {
             }
         }
     }
-    final class Coordinator: NSObject, UIContextMenuInteractionDelegate {
+    @MainActor final class Coordinator: NSObject {
         var owner: ThumbnailActions
         private var session: ContextPreviewSession?
+        private var presenter: AnchoredPreviewController?
         init(_ owner: ThumbnailActions) { self.owner = owner }
         @objc func tap(_ gesture: UITapGestureRecognizer) {
             guard gesture.state == .ended, session == nil else { return }
             owner.open()
         }
-        func removed() { session?.cancel(); session = nil }
-        func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
-            guard session == nil, let source = interaction.view, source.window != nil,
-                  let created = owner.preview(source) else { return nil }
+        func activate() { if session == nil { owner.open() } }
+        @objc func hold(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began, let source = gesture.view else { return }
+            preview(from: source)
+        }
+        func preview(from source: UIView) {
+            guard session == nil, let root = source.window?.rootViewController,
+                  let created = owner.preview(source) else { return }
             session = created
-            created.dismissMenu = { [weak interaction] in interaction?.dismissMenu() }
-            let configuration = UIContextMenuConfiguration(identifier: created.id.uuidString as NSString, previewProvider: { created.controller }) { _ in
-                let watch = UIAction(title: "Watch stream", image: UIImage(systemName: "play.fill")) { [weak created] _ in created?.requestWatch() }
-                let profile = UIAction(title: "View profile", image: UIImage(systemName: "person.fill"), attributes: .disabled) { _ in }
-                return UIMenu(children: [watch, profile])
+            let presenter = AnchoredPreviewController(content: created.controller, source: source,
+                watch: { [weak self] in self?.finish(watch: true) },
+                dismiss: { [weak self] in self?.finish(watch: false) }, observeTarget: owner.observeTarget)
+            self.presenter = presenter
+            created.dismissPreview = { [weak self, weak presenter, weak created] in
+                presenter?.dismiss(watching: false) { [weak self, weak created] in self?.clear(created) }
             }
-            configuration.preferredMenuElementOrder = .fixed
-            return configuration
+            guard created.display(), presenter.install(in: root) else { created.cancel(); clear(created); return }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willDisplayMenuFor configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
-            if session?.display() != true { interaction.dismissMenu() }
+        private func finish(watch: Bool) {
+            guard let session, session.phase == .visible, let presenter else { return }
+            if watch { session.requestWatch() }
+            session.end(after: { complete in
+                presenter.dismiss(watching: watch) { [weak self, weak session] in self?.clear(session); complete() }
+            })
         }
-        func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willEndFor configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
-            guard let ending = session else { return }
-            ending.end(animator: animator)
-            let clear = { [weak self, weak ending] in
-                if self?.session === ending { self?.session = nil }
-            }
-            if let animator { animator.addCompletion(clear) } else { DispatchQueue.main.async(execute: clear) }
+        private func clear(_ ended: ContextPreviewSession?) {
+            if session === ended { presenter = nil; session = nil }
         }
-        func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willPerformPreviewActionForMenuWith configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionCommitAnimating) {
-            animator.preferredCommitStyle = .dismiss
-            session?.requestWatch()
-            session?.end(animator: animator)
-        }
-        func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configuration: UIContextMenuConfiguration, highlightPreviewForItemWithIdentifier identifier: NSCopying) -> UITargetedPreview? {
-            target(interaction, dismissing: false)
-        }
-        func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configuration: UIContextMenuConfiguration, dismissalPreviewForItemWithIdentifier identifier: NSCopying) -> UITargetedPreview? {
-            target(interaction, dismissing: true)
-        }
-        private func target(_ interaction: UIContextMenuInteraction, dismissing: Bool) -> UITargetedPreview? {
-            guard let source = interaction.view, let window = source.window else { return nil }
-            let parameters = UIPreviewParameters()
-            parameters.backgroundColor = .clear
-            parameters.visiblePath = UIBezierPath(roundedRect: source.bounds, cornerRadius: 7)
-            parameters.shadowPath = parameters.visiblePath
-            let preview = UITargetedPreview(view: source, parameters: parameters)
-            let target = preview.target.container.convert(preview.target.center, to: window)
-            owner.observeTarget?(dismissing, source.convert(source.bounds, to: window), target)
-            return preview
-        }
+        func removed() { session?.cancel() }
     }
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeUIView(context: Context) -> SourceView {
@@ -87,9 +74,16 @@ struct ThumbnailActions: UIViewRepresentable {
         view.backgroundColor = .secondarySystemBackground
         view.contentMode = .scaleAspectFill; view.clipsToBounds = true
         view.layer.cornerRadius = 7; view.layer.cornerCurve = .continuous
-        view.addInteraction(UIContextMenuInteraction(delegate: context.coordinator))
-        view.addGestureRecognizer(UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tap(_:))))
-        view.activate = { [weak coordinator = context.coordinator] in coordinator?.owner.open() }
+        let hold = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.hold(_:)))
+        hold.minimumPressDuration = 0.45; hold.allowableMovement = 10
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tap(_:)))
+        tap.require(toFail: hold)
+        view.addGestureRecognizer(hold); view.addGestureRecognizer(tap)
+        view.activate = { [weak coordinator = context.coordinator] in coordinator?.activate() }
+        view.previewActivate = { [weak view, weak coordinator = context.coordinator] in
+            if let view { coordinator?.preview(from: view) }
+        }
+        view.accessibilityCustomActions = [UIAccessibilityCustomAction(name: "Preview stream", target: view, selector: #selector(SourceView.accessibilityPreview(_:)))]
         view.removed = { [weak coordinator = context.coordinator] in coordinator?.removed() }
         return view
     }

@@ -106,10 +106,10 @@ def test_window_ownership(root, output, config, run):
     (preview_bundle/'Info.plist').write_bytes(plistlib.dumps(preview_plist))
     run(['xcrun','swiftc','-target',architecture+'-apple-ios16.4-simulator','-sdk',simulator_sdk,
          '-swift-version','5','-warnings-as-errors','-parse-as-library',
-         'native/swift/QuickLookController.swift','native/swift/ThumbnailActions.swift','native/swift/ContextPreviewSession.swift',
+         'native/swift/AnchoredPreviewController.swift','native/swift/QuickLookController.swift','native/swift/ThumbnailActions.swift','native/swift/ContextPreviewSession.swift',
          'native/swift/StreamTags.swift','native/swift/NativeModels.swift',
          'tests/native_frontend/swift/QuickLookTests.swift','-o',str(preview_bundle/'QuickLookTest')],
-         label='Build system-preview ownership and source-target tests')
+         label='Build anchored-preview ownership and source-target tests')
     run(['codesign','--force','--sign','-','--timestamp=none',str(preview_bundle)])
     playback_bundle=stage/'PlaybackTest.app';playback_bundle.mkdir()
     playback_id='dev.streamside.playbacktest'

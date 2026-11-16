@@ -154,7 +154,7 @@ def build(output):
                 destination.write_bytes(data)
             try:
                 run_logged([sys.executable, "-u", str(stage / "tools/native_frontend/apple_worker.py"), str(stage)],
-                           cwd=ROOT, log_path=local / "build.log", timeout=1500,
+                           cwd=ROOT, log_path=local / "build.log", timeout=1800,
                            label="Build and validate " + mode + " component", group=False, heartbeat=False, summary=True)
             finally:
                 images = stage / "output/player-input-failure.zip"

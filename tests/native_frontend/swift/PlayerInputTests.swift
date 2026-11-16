@@ -95,9 +95,9 @@ final class PlayerInputTests: XCTestCase {
         for (long, commit) in [(false, false), (false, true), (true, false)] {
             let app = contextApp(long ? ["--long-panel"] : [])
             openContext(app)
-            let card = app.otherElements["quicklook.card"].firstMatch
+            let card = app.otherElements["Preview"].firstMatch
             let watch = app.buttons["Watch stream"]
-            let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
+            let video = app.otherElements["Decoded fixture video"].firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 5))
             XCTAssertTrue(video.waitForExistence(timeout: 5))
             let frame = video.frame
@@ -118,13 +118,18 @@ final class PlayerInputTests: XCTestCase {
                 XCTAssertLessThan(card.frame.height, frame.height + 230, "Short details must not produce a tall empty panel")
             } else {
                 for _ in 0..<8 {
-                    if app.staticTexts["preview-last-detail"].isHittable { break }
-                    app.scrollViews.firstMatch.swipeUp()
+                    if app.otherElements["Final preview detail"].isHittable { break }
+                    let start = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.86))
+                    let end = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.66))
+                    start.press(forDuration: 0.05, thenDragTo: end)
                 }
-                XCTAssertTrue(app.staticTexts["preview-last-detail"].isHittable, "Full details and all tags must remain reachable in a system preview")
+                XCTAssertTrue(app.otherElements["Final preview detail"].isHittable, "Full details and all tags must remain reachable in a system preview")
                 XCTAssertEqual(video.frame.minY, frame.minY, accuracy: 1, "Scrolling details must not move the video")
             }
-            if commit { video.tap() } else { watch.tap() }
+            if commit {
+                let point = CGVector(dx: (frame.midX - app.frame.minX) / app.frame.width, dy: (frame.midY - app.frame.minY) / app.frame.height)
+                app.coordinate(withNormalizedOffset: point).tap()
+            } else { watch.tap() }
             let watched = app.staticTexts["preview-watched"]
             XCTAssertTrue(watched.waitForExistence(timeout: 5), "System menu Watch action must transfer into theatre")
             XCTAssertEqual(watched.label, "Same player: 1", "Watch must reuse the decoded preview player")

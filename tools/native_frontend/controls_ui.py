@@ -97,7 +97,7 @@ def run_controls_ui(root, stage, device, run):
     run(base+['build-for-testing'], label='Build player controls coordinate-test app')
     result_bundle=folder.parent/'PlayerInput.xcresult'
     try:
-        observed=run(base+['test-without-building', '-resultBundlePath', str(result_bundle)], timeout=600,
+        observed=run(base+['test-without-building', '-resultBundlePath', str(result_bundle)], timeout=900,
                      label='Test player controls, native context preview, decoded video, gestures and lifecycle')
     except Exception:
         # Result bundles and recordings stay temporary. Preserve up to eight

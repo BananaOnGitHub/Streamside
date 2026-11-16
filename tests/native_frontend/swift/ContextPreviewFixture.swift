@@ -66,31 +66,46 @@ private final class FixtureVideo: UIView {
 // Observe the actual UIKit presentation tree, not a synthetic animation model.
 // Bounded to this owned fixture; no snapshots of account or donor content.
 @MainActor private final class PreviewMotionProbe: NSObject {
-    weak var view: UIView?
     private var link: CADisplayLink?
     private var frames = 0
-    private var minimum = CGFloat.greatestFiniteMagnitude
-    private var maximum: CGFloat = 0
-    private var minimumOpacity: Float = 1
-    private var maximumOpacity: Float = 0
+    private var source = CGRect.zero
+    private var finalWidth: CGFloat = 0
     private(set) var intermediate = false
-    func begin(_ view: UIView) {
-        self.view = view
+    func begin(source: UIView, finalWidth: CGFloat) {
+        guard let window = source.window else { return }
+        self.source = source.convert(source.bounds, to: window)
+        self.finalWidth = finalWidth
         link = CADisplayLink(target: self, selector: #selector(sample))
         link?.add(to: .main, forMode: .common)
     }
     @objc private func sample() {
-        guard frames < 600 else { finish(); return }
+        guard frames < 600, !intermediate else { finish(); return }
         frames += 1
-        guard let view, view.window != nil, let layer = view.layer.presentation() else { return }
-        let rect = layer.convert(layer.bounds, to: nil)
-        var opacity: Float = 1
-        var ancestor: CALayer? = layer
-        while let current = ancestor { opacity *= current.opacity; ancestor = current.superlayer }
-        if rect.width > 10 {
-            minimum = min(minimum, rect.width); maximum = max(maximum, rect.width)
-            minimumOpacity = min(minimumOpacity, opacity); maximumOpacity = max(maximumOpacity, opacity)
-            intermediate = maximum - minimum > 8 || maximumOpacity - minimumOpacity > 0.15
+        // UIKit may animate a separate snapshot, rather than the supplied
+        // controller's layer. Inspect public presentation layers in the scene,
+        // bounded by count, and require an animated intermediate rectangle
+        // that contains the actual source center on its way to preview width.
+        let point = CGPoint(x: source.midX, y: source.midY)
+        for scene in UIApplication.shared.connectedScenes {
+            guard let scene = scene as? UIWindowScene else { continue }
+            for window in scene.windows where !window.isHidden {
+                var pending = [window.layer], examined = 0
+                while let layer = pending.popLast(), examined < 3000 {
+                    examined += 1
+                    pending.append(contentsOf: layer.sublayers ?? [])
+                    guard let shown = layer.presentation() else { continue }
+                    let rect = shown.convert(shown.bounds, to: nil)
+                    guard rect.width > source.width + 5, rect.width < finalWidth - 5,
+                          rect.height >= source.height * 0.8,
+                          rect.insetBy(dx: -5, dy: -5).contains(point) else { continue }
+                    var ancestor: CALayer? = layer
+                    while let current = ancestor {
+                        if !(current.animationKeys() ?? []).isEmpty { intermediate = true; break }
+                        ancestor = current.superlayer
+                    }
+                    if intermediate { return }
+                }
+            }
         }
     }
     func finish() { link?.invalidate(); link = nil }
@@ -162,7 +177,7 @@ private final class FixtureVideo: UIView {
             }
         })
         let controller = QuickLookController(content: content, size: CGSize(width: width, height: width * 9 / 16 + detailsHeight))
-        let probe = PreviewMotionProbe(); motion = probe; probe.begin(controller.view)
+        let probe = PreviewMotionProbe(); motion = probe; probe.begin(source: source, finalWidth: width)
         let session = ContextPreviewSession(controller: controller, claim: { _ in true }, release: { _ in }, valid: { self.valid }, start: {
             self.previews += 1; player.play()
             if ProcessInfo.processInfo.arguments.contains("--cancel-preview") {

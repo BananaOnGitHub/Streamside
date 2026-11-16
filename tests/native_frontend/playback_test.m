@@ -8,7 +8,7 @@
 static BOOL authorized=YES,pending;
 bool ssn_native_mode(void) { return true; }
 static unsigned requests,cancels,created,released,pauses,decodedEvents;
-static BOOL sourceEncoding,lastMuted;
+static BOOL sourceEncoding,lastMuted,mutedBeforeLoad;
 static unsigned muteCalls;
 static id identity;
 bool ssn_playback_authorized(void) { return authorized; }
@@ -56,6 +56,7 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
 - (id)error { return nil; }
 - (void)setMuted:(BOOL)value { _muted=value;lastMuted=value;muteCalls++; }
 - (void)load:(NSURL *)url {
+    mutedBeforeLoad=self.muted;
     NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     NSMutableDictionary *items=[NSMutableDictionary dictionary];
     for(NSURLQueryItem *item in parts.queryItems) if(item.value) items[item.name]=item.value;
@@ -99,9 +100,10 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
     self.window.rootViewController=[[[UIViewController alloc] init] autorelease];[self.window makeKeyAndVisible];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,1000000000),dispatch_get_main_queue(),^{
         SSNPlayback *playback=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel"];
-        [playback start];
+        playback.muted=YES;[playback start];
         waitPlaying(playback,1,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed) {
             BOOL initial=observed&&playback.phase==3&&sourceEncoding&&decodedEvents==1;
+            BOOL previewMuted=mutedBeforeLoad&&playback.isMuted&&observedMuteActual;
             NSDictionary *initialState=@{@"phase":@(playback.phase),@"error":@(playback.errorCode),@"requests":@(requests),@"created":@(created),@"decoded":@(decodedEvents)};
             float volume=AVAudioSession.sharedInstance.outputVolume;
             NSString *category=AVAudioSession.sharedInstance.category;
@@ -131,8 +133,8 @@ static void waitPaused(SSNPlayback *playback,NSTimeInterval deadline,void (^comp
                 unsigned before=cancels;[playback stop];
                 BOOL cancellation=cancels==before+1&&playback.phase==0;
                 BOOL teardown=created==released;
-                BOOL passed=initial&&background&&resumed&&accountStop&&cancellation&&teardown&&paused&&localResume&&muteLocal&&intentRetained;
-                NSMutableDictionary *receipt=[@{@"local_pause_resume":@(paused&&localResume),@"stream_only_mute":@(muteLocal),@"control_intent_retained":@(intentRetained),@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
+                BOOL passed=previewMuted&&initial&&background&&resumed&&accountStop&&cancellation&&teardown&&paused&&localResume&&muteLocal&&intentRetained;
+                NSMutableDictionary *receipt=[@{@"preview_muted_before_load":@(previewMuted),@"local_pause_resume":@(paused&&localResume),@"stream_only_mute":@(muteLocal),@"control_intent_retained":@(intentRetained),@"passed":@(passed),@"background_resume":@(background&&resumed),@"account_stop":@(accountStop),@"cancellation":@(cancellation),@"teardown":@(teardown),@"source_encoding":@(sourceEncoding),@"playing_observed":@(initial)} mutableCopy];
                 if(!passed) receipt[@"initial_state"]=initialState;
                 NSURL *documents=[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
                 [[NSJSONSerialization dataWithJSONObject:receipt options:0 error:NULL] writeToURL:[documents URLByAppendingPathComponent:@"playback-test.json"] atomically:YES];

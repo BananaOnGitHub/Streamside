@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-private struct RemoteChannelImage: View {
+struct RemoteChannelImage: View {
     let url: URL?
     let images: ChannelImageCache
     let generation: UInt64
@@ -34,6 +34,7 @@ struct LiveChannelRow: View {
     let clock: StreamClock
     let haptics: TitleHaptics
     let open: () -> Void
+    let preview: () -> Void
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     @State private var showFullTitle = false
     @State private var titleMeasurement: TitleMeasurement?
@@ -62,9 +63,9 @@ struct LiveChannelRow: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture(perform: open)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(named: "Watch live stream", open)
+        .accessibilityAction(named: "Preview live stream", preview)
         .padding(.vertical, 2)
         .listRowSeparator(.hidden)
         .accessibilityElement(children: .combine)
@@ -91,6 +92,7 @@ struct LiveChannelRow: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))
+            .overlay { ThumbnailActions(open: open, preview: preview) }
     }
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -113,6 +115,8 @@ struct LiveChannelRow: View {
                 Text("Viewers unavailable").font(.caption).foregroundStyle(.secondary)
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: open)
     }
 }
 

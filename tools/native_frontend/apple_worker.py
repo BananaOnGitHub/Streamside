@@ -100,6 +100,17 @@ def test_window_ownership(root, output, config, run):
          'tests/native_frontend/swift/ClockTests.swift','-framework','CoreHaptics','-framework','AVFAudio',
          '-o',str(clock_bundle/'ClockTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(clock_bundle)])
+    preview_bundle=stage/'QuickLookTest.app';preview_bundle.mkdir()
+    preview_id='dev.streamside.quicklooktest'
+    preview_plist=dict(clock_plist,CFBundleIdentifier=preview_id,CFBundleExecutable='QuickLookTest',CFBundleName='QuickLookTest')
+    (preview_bundle/'Info.plist').write_bytes(plistlib.dumps(preview_plist))
+    run(['xcrun','swiftc','-target',architecture+'-apple-ios16.4-simulator','-sdk',simulator_sdk,
+         '-swift-version','5','-warnings-as-errors','-parse-as-library',
+         'native/swift/QuickLookController.swift','native/swift/ThumbnailActions.swift',
+         'native/swift/StreamTags.swift','native/swift/NativeModels.swift',
+         'tests/native_frontend/swift/QuickLookTests.swift','-o',str(preview_bundle/'QuickLookTest')],
+         label='Build native Quick Look containment and fade tests')
+    run(['codesign','--force','--sign','-','--timestamp=none',str(preview_bundle)])
     playback_bundle=stage/'PlaybackTest.app';playback_bundle.mkdir()
     playback_id='dev.streamside.playbacktest'
     (playback_bundle/'Info.plist').write_bytes(plistlib.dumps(dict(CFBundleExecutable='PlaybackTest',CFBundleIdentifier=playback_id,
@@ -142,11 +153,17 @@ def test_window_ownership(root, output, config, run):
             raise ValueError('UIKit clock/title interaction test failed: '+str(observed))
         clock_receipt={k:observed[k] for k in ['passed','ticking','paused','resumed']}
         interactions={k:observed[k] for k in ['title_measurement','haptic_pattern']}
+        run(['xcrun','simctl','install',device,str(preview_bundle)])
+        run(['xcrun','simctl','launch','--console',device,preview_id], label='Test preview hold, all-tag wrapping, shared fade and cancellation')
+        preview_container=Path(run(['xcrun','simctl','get_app_container',device,preview_id,'data']))
+        quicklook=json.loads((preview_container/'Documents/quicklook-test.json').read_text())
+        expected_quicklook=dict(passed=True,failures=[],synchronized_fade=True,single_handoff=True,teardown=True,all_tags_wrap=True,thumbnail_hold=True)
+        if quicklook!=expected_quicklook:raise ValueError('Native Quick Look lifecycle failed: '+str(quicklook))
         run(['xcrun','simctl','install',device,str(playback_bundle)])
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test synthetic native playback lifecycle and mute')
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
-        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained']}
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
         for index in range(3):
@@ -159,7 +176,7 @@ def test_window_ownership(root, output, config, run):
         if config['mode']=='native':
             from controls_ui import run_controls_ui
             controls_ui=run_controls_ui(root,stage,device,run)
-        return dict(controls_ui_receipt=controls_ui,launch_receipt=launches,playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
+        return dict(quicklook_receipt=quicklook,controls_ui_receipt=controls_ui,launch_receipt=launches,playback_receipt=playback,title_interaction_receipt=interactions,clock_receipt=clock_receipt,result='PASS',environment='iOS Simulator; real UIKit, synthetic owned controllers, no donor',receipt=receipt)
     finally:
         run(['xcrun','simctl','shutdown',device])
         run(['xcrun','simctl','delete',device])

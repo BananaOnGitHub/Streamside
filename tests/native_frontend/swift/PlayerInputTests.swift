@@ -15,6 +15,23 @@ final class PlayerInputTests: XCTestCase {
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
     }
+    func testThumbnailHoldAndTap() {
+        continueAfterFailure = false
+        let app = XCUIApplication(); testedApp = app
+        app.launchArguments = ["--thumbnail"]; app.launch()
+        let thumbnail = app.descendants(matching: .any)["preview-thumbnail"].firstMatch
+        XCTAssertTrue(thumbnail.waitForExistence(timeout: 5))
+        thumbnail.press(forDuration: 0.7)
+        wait(app.staticTexts["thumbnail-previews"], label: "Previews: 1")
+        XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 0", "A hold must not also watch on release")
+        thumbnail.tap()
+        wait(app.staticTexts["thumbnail-watches"], label: "Watches: 1")
+        XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1")
+        thumbnail.swipeUp(velocity: .fast)
+        XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1", "Scrolling must not preview")
+        XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 1", "Scrolling must not watch")
+        print("THUMBNAIL_COORDINATES PASS: hold consumes release; tap watches; scroll cancels")
+    }
     func testGlassControls() { exercise(plain: false) }
     func testPlainControls() { exercise(plain: true) }
     private func wait(_ element: XCUIElement, label: String) {

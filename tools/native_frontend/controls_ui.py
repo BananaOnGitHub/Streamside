@@ -5,11 +5,11 @@ from pathlib import Path
 import plistlib
 import re
 
-SOURCES = ['native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=2, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True)
+EXPECTED = dict(passed=True, tests=3, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True)
 
 
 def project(root, stage):
@@ -75,13 +75,15 @@ def run_controls_ui(root, stage, device, run):
           '-parallel-testing-enabled','NO','CODE_SIGNING_ALLOWED=NO']
     run(base+['build-for-testing'], label='Build player controls coordinate-test app')
     observed=run(base+['test-without-building'], timeout=600, label='Test player taps, popovers, animation modes and auto-hide (glass + plain)')
-    for name in ['testGlassControls','testPlainControls']:
+    for name in ['testGlassControls','testPlainControls','testThumbnailHoldAndTap']:
         if not re.search(r"Test Case .*"+name+r".* passed",observed):
             raise ValueError('Player coordinate test did not pass: '+name)
-    if not re.search(r'Executed 2 tests?, with 0 failures',observed):
-        raise ValueError('Two actual player coordinate tests were not observed')
+    if not re.search(r'Executed 3 tests?, with 0 failures',observed):
+        raise ValueError('Three actual player/thumbnail coordinate tests were not observed')
     if observed.count('PLAYER_MOTION_CHECKS PASS:') != 2:
         raise ValueError('Both rendered-motion fixture checks must pass')
     if observed.count('PLAYER_OPACITY_PIXELS PASS:') != 2:
         raise ValueError('Both rendered opacity pixel checks must pass')
+    if 'THUMBNAIL_COORDINATES PASS:' not in observed:
+        raise ValueError('Actual thumbnail hold/tap/scroll checks must pass')
     return dict(EXPECTED)

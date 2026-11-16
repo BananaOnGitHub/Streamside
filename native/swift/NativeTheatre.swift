@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 @MainActor
-private final class TheatrePlayback: ObservableObject {
+final class TheatrePlayback: ObservableObject {
     let native: SSNPlayback
     @Published private(set) var phase = 0
     @Published private(set) var error = 0
@@ -10,6 +10,8 @@ private final class TheatrePlayback: ObservableObject {
     @Published private(set) var muted = false
     init(channel: String) { native = SSNPlayback(channel: channel) }
     func start() { native.start(); update() }
+    func startIfNeeded() { if phase == 0 { start() } }
+    func setMuted(_ muted: Bool) { native.isMuted = muted; update() }
     func stop() { native.stop(); update() }
     func togglePaused() { native.isPaused.toggle(); update() }
     func toggleMuted() { native.isMuted.toggle(); update() }
@@ -46,6 +48,7 @@ private struct TheatreContent: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
     let close: () -> Void
+    let managesPlayback: Bool
     @StateObject private var playback: TheatrePlayback
     @State private var controls = PlayerControlsVisibility()
     @State private var overlayPresented = false
@@ -54,9 +57,10 @@ private struct TheatreContent: View {
         services.state.channels.first { $0.id == channel.id } ?? channel
     }
     private func interact() { controls.reveal(now: ProcessInfo.processInfo.systemUptime) }
-    init(channel: FollowedChannel, services: NativeServices, close: @escaping () -> Void) {
+    init(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback?, close: @escaping () -> Void) {
         self.channel = channel; self.services = services; self.close = close
-        _playback = StateObject(wrappedValue: TheatrePlayback(channel: channel.username))
+        self.managesPlayback = playback == nil
+        _playback = StateObject(wrappedValue: playback ?? TheatrePlayback(channel: channel.username))
     }
     var body: some View {
         VStack(spacing: 0) {
@@ -88,8 +92,8 @@ private struct TheatreContent: View {
             Spacer()
         }
         .background(Color(uiColor: .systemBackground))
-        .onAppear { playback.start(); interact() }
-        .onDisappear { playback.stop() }
+        .onAppear { if managesPlayback { playback.startIfNeeded() }; interact() }
+        .onDisappear { if managesPlayback { playback.stop() } }
         .task {
             while !Task.isCancelled {
                 playback.update()
@@ -130,8 +134,8 @@ private final class PortraitTheatreController: UIHostingController<TheatreConten
 
 @MainActor
 enum NativeTheatre {
-    static func controller(channel: FollowedChannel, services: NativeServices, close: @escaping () -> Void) -> UIViewController {
-        let controller = PortraitTheatreController(rootView: TheatreContent(channel: channel, services: services, close: close))
+    static func controller(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback? = nil, close: @escaping () -> Void) -> UIViewController {
+        let controller = PortraitTheatreController(rootView: TheatreContent(channel: channel, services: services, playback: playback, close: close))
         controller.modalPresentationStyle = .fullScreen
         return controller
     }

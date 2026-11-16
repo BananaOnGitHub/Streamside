@@ -3,7 +3,7 @@ import UIKit
 
 // The media view is display-only. It must never participate in input routing,
 // including when its internal video/ad renderer changes size or adds subviews.
-private struct PassivePlayerSurface: UIViewRepresentable {
+struct PassivePlayerSurface: UIViewRepresentable {
     let surface: UIView
     func makeUIView(context: Context) -> UIView {
         let container = UIView()

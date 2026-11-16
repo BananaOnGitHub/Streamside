@@ -78,11 +78,12 @@ final class NativeServices: ObservableObject, AccountService {
         actionError = bridge.scheduleOriginalLaunch(requested) ? nil : "The next-launch preference could not be saved. Try again before closing the app."
         reloadSnapshot()
     }
-    func open(_ channel: FollowedChannel) {
+    func preview(_ channel: FollowedChannel) { open(channel, preview: true) }
+    func open(_ channel: FollowedChannel, preview: Bool = false) {
         actionError = nil
         if channel.thumbnailRestricted {
             actionError = "This channel requires Twitch’s content gate. It isn’t supported by this playback build yet."
-        } else if !SSNSwiftUIHost.beginPlayback(channel) {
+        } else if !SSNSwiftUIHost.beginPlayback(channel, preview: preview) {
             actionError = "The stream could not open. Check your account and diagnostics."
         }
     }

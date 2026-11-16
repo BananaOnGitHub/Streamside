@@ -307,13 +307,34 @@ private struct InputTestContent: View {
         }
     }
 }
+private struct ThumbnailInputContent: View {
+    @State private var watches = 0
+    @State private var previews = 0
+    var body: some View {
+        VStack {
+            Text("Watches: \(watches)").accessibilityIdentifier("thumbnail-watches")
+            Text("Previews: \(previews)").accessibilityIdentifier("thumbnail-previews")
+            ScrollView {
+                VStack {
+                    Color.indigo.frame(width: 160, height: 90)
+                        .overlay { ThumbnailActions(open: { watches += 1 }, preview: { previews += 1 }) }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Stream thumbnail").accessibilityIdentifier("preview-thumbnail")
+                    ForEach(0..<30) { Text("Scroll row \($0)").frame(height: 50) }
+                }.frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
 @main @MainActor final class InputTestDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("--plain"), forKey: PlayerPreferences.glassButtonsKey)
         UserDefaults.standard.set(PlayerControlAnimation.vertical.rawValue, forKey: PlayerPreferences.animationKey)
         let window = UIWindow(frame: UIScreen.main.bounds)
-        window.rootViewController = UIHostingController(rootView: InputTestContent())
+        if ProcessInfo.processInfo.arguments.contains("--thumbnail") {
+            window.rootViewController = UIHostingController(rootView: ThumbnailInputContent())
+        } else { window.rootViewController = UIHostingController(rootView: InputTestContent()) }
         window.makeKeyAndVisible(); self.window = window; return true
     }
 }

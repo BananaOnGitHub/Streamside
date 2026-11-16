@@ -9,7 +9,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic,readonly) NSInteger phase;
 @property(nonatomic,readonly) NSInteger errorCode;
 /* Local player controls only; never change the shared system volume. Intent
- * survives inactive teardown/recreation, and is reset for a new start. */
+ * survives start and inactive teardown/recreation. Set muted before start for
+ * previews: it is applied before the player loads or plays any media. Pause is
+ * reset on start; a new facade defaults to unpaused/unmuted. */
 @property(nonatomic,getter=isPaused) BOOL paused;
 @property(nonatomic,getter=isMuted) BOOL muted;
 - (void)start;

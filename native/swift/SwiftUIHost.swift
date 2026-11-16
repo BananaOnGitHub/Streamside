@@ -73,19 +73,21 @@ public final class SSNSwiftUIHost: NSObject {
         }
     }
 
-    static func beginPlayback(_ channel: FollowedChannel) -> Bool {
+    static func beginPlayback(_ channel: FollowedChannel, preview: Bool = false) -> Bool {
         guard SSNNavigationPermitted(), rootOwner() == 1,
               channel.isLive, !channel.thumbnailRestricted,
               let services, services.state.session == .authenticated,
               let root = nativeController, root.presentedViewController == nil,
               theatreController == nil else { return false }
-        let controller = NativeTheatre.controller(channel: channel, services: services, close: { endPlayback() })
+        let controller = preview
+            ? NativeQuickLook.controller(channel: channel, services: services, close: { endPlayback() })
+            : NativeTheatre.controller(channel: channel, services: services, close: { endPlayback() })
         theatreController = controller
         root.present(controller, animated: true)
         return true
     }
     static func endPlayback() {
-        guard let controller = theatreController else { return }
+        guard let controller = theatreController, !controller.isBeingDismissed else { return }
         controller.dismiss(animated: true) {
             if theatreController === controller { theatreController = nil }
         }

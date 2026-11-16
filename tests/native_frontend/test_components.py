@@ -42,7 +42,7 @@ class ComponentAdmission(unittest.TestCase):
             compiler = dict(source_revision=self.revision, proof_id=proof, mode=mode, transferred_inputs=config["inputs"],
                             xcode="Xcode " + pin["xcode_version"] + "\nBuild version " + pin["xcode_build"], sdk_version=pin["iphoneos_sdk"],
                             model_tests="PASS: synthetic fixture",
-                            uikit_ownership_tests=dict(controls_ui_receipt=dict(passed=True,tests=2,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True) if mode=='native' else None,launch_receipt=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)],playback_receipt={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained']},title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
+                            uikit_ownership_tests=dict(quicklook_receipt=dict(passed=True,failures=[],synchronized_fade=True,single_handoff=True,teardown=True,all_tags_wrap=True,thumbnail_hold=True),controls_ui_receipt=dict(passed=True,tests=3,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True) if mode=='native' else None,launch_receipt=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)],playback_receipt={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load']},title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
             (directory / "compiler.json").write_text(json.dumps(compiler))
             (directory / (FRAMEWORK + ".framework") / "Info.plist").write_bytes(plistlib.dumps(framework_info(mode, proof, self.revision)))
             (directory / (FRAMEWORK + ".framework") / FRAMEWORK).write_bytes(binary)
@@ -104,6 +104,13 @@ class ComponentAdmission(unittest.TestCase):
         extra.unlink()
         extra.symlink_to(self.directory / "components.json")
         with self.assertRaisesRegex(ValueError, "Unexpected component files"):
+            verify(self.directory, self.revision)
+
+    def test_missing_quicklook_receipt_is_rejected(self):
+        path=self.directory / "native/compiler.json"
+        compiler=json.loads(path.read_text());compiler['uikit_ownership_tests'].pop('quicklook_receipt')
+        path.write_text(json.dumps(compiler));self.record()
+        with self.assertRaisesRegex(ValueError, "Quick Look"):
             verify(self.directory, self.revision)
 
     def test_wrong_revision_or_proof_is_rejected(self):

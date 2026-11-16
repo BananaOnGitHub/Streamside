@@ -76,3 +76,54 @@ verifies the exact clipboard URL. Timeouts and required gates are unchanged;
 there is no retry or skip. Production player/share code is unchanged. The
 [failure record](evidence/quick-look-style/first-build-failure.json) preserves the
 failed revision, run, assertion and external log hash.
+
+## Corrected hosted run and packaged candidate
+
+Source `acd5911b89fcf2cc1c76690015cd6332fa797cae` passed
+[Codemagic build `6afab43790e83b09c4fae23a`](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afab43790e83b09c4fae23a)
+in **1,050.885 seconds** (17m 31s). Xcode 26.6 / 17F113 and iPhoneOS SDK 26.5
+matched the pin. The quota selector admitted the run with 441 verified free
+minutes. Both owned frontend variants compiled, Swift models and required UIKit
+lifecycle/playback/ownership fixtures passed, and all four coordinate tests
+passed. The corrected system Copy action was tapped and its URL verified in
+both player styles; animation frame/pixel checks, compact panel geometry,
+long-details scrolling and thumbnail gestures all passed. Foundation networking,
+report comparison, logging and provider-routing gates passed. No required gate
+was skipped. Linux and documentation CI also passed for this exact revision.
+No GitHub Apple or VM duplicate build was started.
+
+Download admission verified source/input identities, toolchain, archive hash and
+mandatory receipts. **53 Ubuntu verification tests passed**: 18 ABI, 15 component
+admission, 10 diagnostic core, one launch policy, six probes and three launch
+comparisons. The owned component archive SHA-256 is
+`8ef26e5e444ac0bdbbb34798ee9be2343c0b02cb80d6e7c584a37d749e60aec5`.
+Local packaging revalidated the exact inspected donor SHA-256
+`076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`,
+all 12 pinned images and native contracts. Retained donor entries and original
+HBC were verified unchanged. Only the native IPA was assembled locally; donor,
+final IPA and signing material were not uploaded to either build provider.
+
+Candidate `quick-look-style-acd5911/StreamsideNativeProof-Twitch32-native.ipa`
+is **196,865,834 bytes**, SHA-256
+`2f0fd4d2ad9563771d3cd6e88dbb7ce5dbdab9c23056cbf5dec04648e2245cc8`.
+It resides under the sibling `artifacts/native-frontend/` directory. Its hash was
+independently recomputed after packaging. Compiler/packaging receipts and logs
+remain beside the candidate; failed-run logs remain under the failed source's
+external CI directory. [Structured validation](SWIFTUI_QUICK_LOOK_STYLE_VALIDATION.json)
+records identities, receipts, timings and the preserved first-run failure.
+
+Reproduce through `make native-ci`, `make native-ci-status`, then
+`make native-ci-fetch` on the committed/pushed source. Assemble with
+`python3 tools/native_frontend/build.py --frontend swiftui --components
+../artifacts/ci/<source-sha>/download/components --donor
+../donors/tv.twitch-32.0.ipa --output ../artifacts/native-frontend/<new-name>`.
+The [Apple build guide](../development/APPLE_BUILDS.md) owns provider/quota details.
+
+For device review, sign/install with Feather using the existing app identity.
+Hold a live thumbnail and inspect the landscape preview, full details and
+separate smaller glass action menu. Scroll long details and check that video and
+menu stay fixed; try Watch from video and menu, close, background/foreground,
+light/dark appearance, larger text and Reduce Transparency. View profile remains
+disabled. Export a native report afterward. The supplied prior-candidate report
+does not establish appearance or runtime behavior for this new binary; physical
+device validation of the restyle remains pending.

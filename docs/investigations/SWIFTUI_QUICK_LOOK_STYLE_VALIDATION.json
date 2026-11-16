@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "acd5911b89fcf2cc1c76690015cd6332fa797cae",
+  "feature_revision": "5f9310bd09812fed96e27811d3896a961219b2c7",
+  "proof_id": "e8c215c9b67db6ac4e84cc497ae7bdcfc5d97e825a67765f6c3b1c04fa821b9d",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "validated_images": 12,
+    "new_abi_entries": false
+  },
+  "tests": {
+    "linux_native_frontend": 72,
+    "ubuntu_download_verification": 53,
+    "docs": "PASS",
+    "apple": {
+      "schema": 1,
+      "source_revision": "acd5911b89fcf2cc1c76690015cd6332fa797cae",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.671
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 999.757
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 8.882
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.105
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.215
+        }
+      ],
+      "archive_sha256": "8ef26e5e444ac0bdbbb34798ee9be2343c0b02cb80d6e7c584a37d749e60aec5",
+      "archive_bytes": 1001549
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "failures": [],
+        "teardown": true,
+        "single_handoff": true,
+        "all_tags_wrap": true,
+        "synchronized_fade": true,
+        "thumbnail_hold": true,
+        "passed": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 4,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "passed": true,
+        "background_resume": 1,
+        "preview_muted_before_load": true,
+        "control_intent_retained": true,
+        "account_stop": true,
+        "playing_observed": true,
+        "cancellation": true,
+        "teardown": true,
+        "source_encoding": true,
+        "stream_only_mute": true,
+        "local_pause_resume": 1
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    }
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afab43790e83b09c4fae23a",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afab43790e83b09c4fae23a",
+    "seconds": 1050.885,
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "sdk": "26.5",
+    "quota_available_before_minutes": 441
+  },
+  "prior_failed_run": {
+    "source_revision": "5f9310bd09812fed96e27811d3896a961219b2c7",
+    "run": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afab05090e83b09c4fae114",
+    "result": "failed",
+    "log_sha256": "285c5c59fb3515596dd50c6a476af007e7c492e019578c7e3bbf699b1add15e3",
+    "failed_test": "testGlassControls",
+    "assertion": "System activity Copy cell did not appear",
+    "observed": "Share sheet ActivityListView has actionGroupCell with child StaticText label Copy, but no cell label until a later accessibility snapshot.",
+    "new_panel_test": "passed, 23.872 seconds",
+    "thumbnail_test": "passed, 12.443 seconds",
+    "correction": "Match the share action cell containing StaticText Copy within ActivityListView. Retain tapping, sheet dismissal and exact clipboard URL assertions; no skip or automatic retry.",
+    "production_change": false
+  },
+  "artifact": {
+    "bytes": 196865834,
+    "sha256": "2f0fd4d2ad9563771d3cd6e88dbb7ce5dbdab9c23056cbf5dec04648e2245cc8",
+    "framework_sha256": "623f57721c01411ef59b4bbba54d95eadf7f31f8f832f7e41cb2b72013af5780",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "76e00764a5e5d379c6587358081bc756af50a848f425cf5cd0c00bcb91183001",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "1f70c88f33ceeb5716347b04ca96b396e2cce8b488689dcc4f78d1a9bd5b6657",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "6eba7de43ce123ff193298326aba53cabc89001fb960620551f3de03cea5e53b",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "013f15aae5bb17b7a8d438ecc4386403c886fb883b52861d6e341ed7fd5694fc"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "relative_path": "native-frontend/quick-look-style-acd5911/StreamsideNativeProof-Twitch32-native.ipa"
+  },
+  "inspection": {
+    "abi_entries": 54,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "Pending for the restyled candidate. Prior b89c3f3 native report is recorded separately; its baseline-calibrated flag was false.",
+  "automatic_workflows": {
+    "linux": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43825845447",
+    "documentation": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43825845434"
+  }
+}

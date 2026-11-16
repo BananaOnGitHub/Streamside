@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "source_revision": "b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb",
+  "branch": "feat/native-frontend",
+  "proof_id": "0e8825bc1dd7715f60e51fa9c3c59fd94e9f329752e894a5ae2af4dc2898263f",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "validated_images": 12,
+    "new_abi_entries": false
+  },
+  "host_tests": {
+    "native_frontend": 72,
+    "post_download_verification": 53,
+    "docs_check": "PASS"
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afaa4ba90e83b09c4fadda0",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afaa4ba90e83b09c4fadda0",
+    "seconds": 703.429,
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "sdk": "26.5",
+    "quota_remaining_before_minutes": 465,
+    "duplicate_apple_runs": false,
+    "validation": {
+      "schema": 1,
+      "source_revision": "b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.694
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 661.651
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 8.668
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.052
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.122
+        }
+      ],
+      "archive_sha256": "0e8f965762ff7a3fd091bdaee77a059780297005d3b79476d3047f530e7b78b1",
+      "archive_bytes": 965428
+    }
+  },
+  "simulator": {
+    "quicklook_receipt": {
+      "all_tags_wrap": true,
+      "thumbnail_hold": true,
+      "passed": true,
+      "synchronized_fade": true,
+      "failures": [],
+      "single_handoff": true,
+      "teardown": true
+    },
+    "controls_ui_receipt": {
+      "passed": true,
+      "tests": 3,
+      "styles": [
+        "glass",
+        "plain"
+      ],
+      "motion_frames": true,
+      "motion_sampling_scale": 3,
+      "motion_pixels": true,
+      "motion_synchronized": true,
+      "motion_all_regions": true,
+      "motion_shared_travel": true,
+      "thumbnail_coordinates": true
+    },
+    "launch_receipt": [
+      {
+        "passed": true,
+        "native": true,
+        "pending": true,
+        "origin": 1,
+        "stage": 0
+      },
+      {
+        "passed": true,
+        "native": false,
+        "pending": false,
+        "origin": 2,
+        "stage": 1
+      },
+      {
+        "passed": true,
+        "native": true,
+        "pending": false,
+        "origin": 1,
+        "stage": 2
+      }
+    ],
+    "playback_receipt": {
+      "passed": true,
+      "background_resume": 1,
+      "preview_muted_before_load": true,
+      "control_intent_retained": true,
+      "account_stop": true,
+      "playing_observed": true,
+      "cancellation": true,
+      "teardown": true,
+      "source_encoding": true,
+      "stream_only_mute": true,
+      "local_pause_resume": 1
+    },
+    "title_interaction_receipt": {
+      "title_measurement": true,
+      "haptic_pattern": true
+    },
+    "clock_receipt": {
+      "passed": true,
+      "ticking": true,
+      "paused": true,
+      "resumed": true
+    },
+    "result": "PASS",
+    "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+    "receipt": {
+      "passed": true,
+      "native": 1,
+      "blocked": 2,
+      "failures": 0
+    }
+  },
+  "artifact": {
+    "bytes": 196850156,
+    "sha256": "7cbe4d14d4e2be0e56960d805f21f982aa58448cd791d1ac352d5fa360d3cc7b",
+    "framework_sha256": "23270f2f93da562e62152922b75465253a96f147d51e1443bc0299180bcf051f",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "ebc0b9bdc094456919fa2e96eb5450e1b84bd2688787d770cc5af2e0dfb9fdf1",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "5bdce4bbc6e6413450837663b96cc96e4320ecec0d145e011edc8cf615566080",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "324e69676a2daaf7f279d6174eb9bd8d3f3bcc7a73475d9cb2f910b364895d97",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "238a17bd587c0c6ce67d441d25465e621b8d49c955ee1a5e64667641f5a89c7f"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "relative_path": "native-frontend/quick-look-b89c3f3/StreamsideNativeProof-Twitch32-native.ipa"
+  },
+  "inspection": {
+    "abi_entries": 54,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "device_validation": "pending; no donor execution on hosted runners",
+  "automatic_workflows": {
+    "linux": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43818057422",
+    "documentation": "https://github.com/BananaOnGitHub/Streamside/actions/runs/43818057637"
+  }
+}

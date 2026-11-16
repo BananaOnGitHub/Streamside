@@ -53,3 +53,47 @@ long preview, repeated opens, background/foreground and closing during the fade.
 Check Reduce Motion/larger text and export native diagnostics after preview and
 Watch. Real authenticated playback/audio, animation appearance and unchanged zero
 RN/Hermes counts require physical-device evidence.
+
+## Hosted and packaged result — 2026-11-16
+
+Source `b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb` passed
+[Codemagic build `6afaa4ba90e83b09c4fadda0`](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afaa4ba90e83b09c4fadda0)
+in **703.429 seconds** (11m 43s). The quota selector verified 465 free minutes
+before submission. Xcode 26.6 / 17F113 and iPhoneOS SDK 26.5 matched the pin.
+Both owned frontend components compiled and linked, Swift models passed, and
+all mandatory simulator receipts passed. The three coordinate tests include
+actual thumbnail hold/release, tap and scroll cancellation, plus the existing
+Liquid Glass/plain controls. Paired intermediate compositor opacities and final
+containment verified the preview/theatre fade and cancellation behavior in an
+owned synthetic fixture. Foundation networking, logging, report comparison and
+build-routing gates passed. Linux and documentation workflows passed. There
+were no failed or skipped required gates and no duplicate Apple/VM build.
+
+Verified download admitted source/input hashes, toolchain, archive and required
+receipts. **53 Ubuntu post-download tests passed** (18 ABI, 15 component admission,
+10 diagnostic core, one launch policy, six probes and three launch comparisons).
+Local packaging revalidated the exact donor SHA-256
+`076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`,
+all 12 pinned images and existing ABI contracts, then verified every retained
+donor entry and unchanged original HBC. No new donor-specific service call or
+ABI entry was needed. Only the native IPA was assembled; donor and IPA stayed
+local, and no signing material was transferred to CI.
+
+Candidate `quick-look-b89c3f3/StreamsideNativeProof-Twitch32-native.ipa` is
+**196,850,156 bytes**, SHA-256
+`7cbe4d14d4e2be0e56960d805f21f982aa58448cd791d1ac352d5fa360d3cc7b`.
+It lives under the sibling `artifacts/native-frontend/` directory and requires
+local Feather signing with the existing app identity. The owned archive hash is
+`0e8f965762ff7a3fd091bdaee77a059780297005d3b79476d3047f530e7b78b1`.
+[Structured evidence](SWIFTUI_QUICK_LOOK_VALIDATION.json) records identities,
+workflow links and gate receipts. Packaging/verification logs remain outside Git.
+
+Build path: commit/push the source, run `make native-ci` once, then
+`make native-ci-status` and `make native-ci-fetch`. Assemble locally with
+`python3 tools/native_frontend/build.py --frontend swiftui --components
+../artifacts/ci/<source-sha>/download/components --donor
+../donors/tv.twitch-32.0.ipa --output ../artifacts/native-frontend/<new-name>`.
+The existing [Apple build guide](../development/APPLE_BUILDS.md) owns provider,
+quota and fallback details. This successful build/package does not establish
+real IVS preview rendering/audio, device transition appearance, login regression
+or zero RN/Hermes activity: the device checks above remain pending.

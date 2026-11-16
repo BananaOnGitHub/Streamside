@@ -86,3 +86,5 @@ and updating navigation.
 - [Native stream Quick Look](SWIFTUI_QUICK_LOOK.md): muted thumbnail preview, full metadata and shared-player theatre fade.
 
 - [Quick Look preview styling follow-up](SWIFTUI_QUICK_LOOK_STYLE.md): prior-candidate device observations and separate content-sized card/glass action menu.
+
+- [System context preview trial](SWIFTUI_SYSTEM_CONTEXT_PREVIEW.md): genuine UIKit lift/menu/dismissal, guarded media handoff, decoded-video prototype and pending Apple/device acceptance.

@@ -1,62 +1,59 @@
 import SwiftUI
 import UIKit
 
-private struct QuickLookContent: View {
+private struct QuickLookDetails: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
     @ObservedObject var playback: TheatrePlayback
-    let watch: () -> Void
-    let close: () -> Void
-    private var currentChannel: FollowedChannel {
-        services.state.channels.first { $0.id == channel.id } ?? channel
-    }
+    private var current: FollowedChannel { services.state.channels.first { $0.id == channel.id } ?? channel }
     var body: some View {
-        QuickLookPanel(watch: watch, close: close) {
-            ZStack(alignment: .topTrailing) {
-                ZStack {
-                    PassivePlayerSurface(surface: playback.native.view).allowsHitTesting(false)
-                    Button(action: watch) { Color.clear.contentShape(Rectangle()) }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Watch stream")
-                        .accessibilityIdentifier("quicklook.video")
-                }
-                HStack {
-                    Image(systemName: "speaker.slash.fill")
-                        .font(.caption).padding(8).background(.black.opacity(0.55), in: Circle())
-                        .accessibilityLabel("Muted preview")
-                    Spacer()
-                    Button(action: close) { Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 44, height: 44) }
-                        .background(.black.opacity(0.55), in: Circle())
-                        .accessibilityLabel("Close preview")
-                }.foregroundStyle(.white).padding(8)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                RemoteChannelImage(url: current.avatarURL, images: services.images, generation: services.imageGeneration, avatar: true)
+                    .frame(width: 36, height: 36).clipShape(Circle())
+                    .overlay { LiveRing(clock: services.clock) }
+                Text(current.displayName).font(.headline)
             }
-        } details: {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
-                    RemoteChannelImage(url: currentChannel.avatarURL, images: services.images,
-                                       generation: services.imageGeneration, avatar: true)
-                        .frame(width: 36, height: 36).clipShape(Circle())
-                        .overlay { LiveRing(clock: services.clock) }
-                    Text(currentChannel.displayName).font(.headline)
-                }
-                Text(currentChannel.title.isEmpty ? "Live stream" : currentChannel.title)
-                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                Text(currentChannel.category.isEmpty ? "Category unavailable" : currentChannel.category)
-                    .font(.subheadline).foregroundStyle(.secondary)
-                if !currentChannel.tags.isEmpty { AllStreamTags(tags: currentChannel.tags) }
+            Text(current.title.isEmpty ? "Live stream" : current.title)
+                .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+            Text(current.category.isEmpty ? "Category unavailable" : current.category)
+                .font(.subheadline).foregroundStyle(.secondary)
+            if !current.tags.isEmpty { AllStreamTags(tags: current.tags) }
+            if playback.phase != 3 {
                 HStack {
                     if [1, 2, 4].contains(playback.phase) { ProgressView() }
-                    Text(playback.phase == 3 ? "Live · Muted preview" : playback.message)
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text(playback.message).font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
-        .onChange(of: services.state.session) { session in
-            if session != .authenticated { playback.stop(); close() }
-        }
+    }
+}
+
+private struct QuickLookContent: View {
+    let width: CGFloat
+    let detailsHeight: CGFloat
+    let details: QuickLookDetails
+    @ObservedObject var playback: TheatrePlayback
+    @ObservedObject var services: NativeServices
+    let account: StreamsideAccount?
+    let cancel: () -> Void
+    var body: some View {
+        QuickLookPanel(width: width, detailsHeight: detailsHeight) {
+            PassivePlayerSurface(surface: playback.native.view, topCornerRadius: 24)
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "speaker.slash.fill").font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white).padding(5)
+                        .background(.black.opacity(0.4), in: Capsule()).padding(7)
+                        .accessibilityLabel("Muted live preview").allowsHitTesting(false)
+                }
+                .accessibilityIdentifier("quicklook.video")
+        } details: { details }
+        .onChange(of: services.state.account) { if $0 != account { cancel() } }
+        .onChange(of: services.state.session) { if $0 != .authenticated { cancel() } }
         .task {
             while !Task.isCancelled {
                 playback.update()
+                if playback.error == 1 { cancel(); return }
                 do { try await Task.sleep(nanoseconds: 250_000_000) } catch { return }
             }
         }
@@ -65,20 +62,28 @@ private struct QuickLookContent: View {
 
 @MainActor
 enum NativeQuickLook {
-    static func controller(channel: FollowedChannel, services: NativeServices, close: @escaping () -> Void) -> UIViewController {
+    static func session(channel: FollowedChannel, services: NativeServices, source: UIView,
+                        claim: @escaping (UUID) -> Bool, release: @escaping (UUID) -> Void,
+                        handoff: @escaping (TheatrePlayback) -> Bool) -> ContextPreviewSession {
         let playback = TheatrePlayback(channel: channel.username)
-        // Set intent before start, before authorization finishes, and before IVS
-        // load/play. The same intent survives background player recreation.
-        playback.setMuted(true)
-        weak var owner: QuickLookController?
-        let preview = UIHostingController(rootView: QuickLookContent(channel: channel, services: services,
-                                                                    playback: playback, watch: { owner?.watch() }, close: close))
-        preview.view.backgroundColor = .clear
-        preview.view.accessibilityViewIsModal = true
-        let controller = QuickLookController(preview: preview, makeTheatre: {
-            NativeTheatre.controller(channel: channel, services: services, playback: playback, close: close)
-        }, start: playback.start, watched: { playback.setMuted(false) }, stop: playback.stop)
-        owner = controller
-        return controller
+        playback.setMuted(true) // Intent precedes authorization and IVS load/play.
+        let account = services.state.account
+        let windowSize = source.window?.bounds.size ?? CGSize(width: 390, height: 700)
+        let width = max(1, min(380, windowSize.width - 32))
+        let maximumHeight = max(width * 9 / 16 + 80, min(560, windowSize.height - 220))
+        let details = QuickLookDetails(channel: channel, services: services, playback: playback)
+        let measure = UIHostingController(rootView: details.padding(16))
+        let natural = measure.sizeThatFits(in: CGSize(width: width, height: 10000)).height
+        let height = min(ceil(natural), maximumHeight - width * 9 / 16)
+        weak var transaction: ContextPreviewSession?
+        let content = UIHostingController(rootView: QuickLookContent(width: width, detailsHeight: height,
+            details: details, playback: playback, services: services, account: account, cancel: { transaction?.cancel() }))
+        let preview = QuickLookController(content: content, size: CGSize(width: width, height: width * 9 / 16 + height))
+        let session = ContextPreviewSession(controller: preview, claim: claim, release: release, valid: {
+            UIApplication.shared.applicationState == .active && services.state.session == .authenticated &&
+                services.state.account == account && playback.native.errorCode != 1
+        }, start: playback.start, stop: playback.stop, handoff: { handoff(playback) })
+        transaction = session
+        return session
     }
 }

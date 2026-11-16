@@ -1,15 +1,17 @@
 """Donor-free coordinate tests for the production SwiftUI player controls."""
+import hashlib
 import json
 import os
 from pathlib import Path
 import plistlib
 import re
+import zipfile
 
-SOURCES = ['native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True)
+EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,system_context_preview=True,source_animation=True,real_video_clipping=True)
 
 
 def project(root, stage):
@@ -68,13 +70,46 @@ def project(root, stage):
     return folder
 
 
+def preserve_failure_images(exported, archive):
+    """Publish only bounded owned-fixture PNGs, never the entire result bundle."""
+    files = {}; total = 0
+    with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as bundle:
+        for path in sorted(exported.rglob('*.png')):
+            if path.is_symlink() or not path.is_file():
+                continue
+            size = path.stat().st_size
+            if len(files) >= 8 or size > 2 * 1024 * 1024 or total + size > 16 * 1024 * 1024:
+                continue
+            data = path.read_bytes()
+            if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+                continue
+            name = str(path.relative_to(exported))
+            bundle.writestr(name, data); total += len(data)
+            files[name] = dict(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+        bundle.writestr('manifest.json', json.dumps(dict(scope='donor-free simulator fixture failures only', files=files), indent=2))
+
+
 def run_controls_ui(root, stage, device, run):
     folder=project(root,stage/'player-input-ui')
     base=['xcodebuild','-project',str(folder),'-scheme','PlayerInput','-configuration','Debug',
           '-destination','id='+device,'-derivedDataPath',str(folder.parent/'DerivedData'),
           '-parallel-testing-enabled','NO','CODE_SIGNING_ALLOWED=NO']
     run(base+['build-for-testing'], label='Build player controls coordinate-test app')
-    observed=run(base+['test-without-building'], timeout=600, label='Test player taps, popovers, animation modes and auto-hide (glass + plain)')
+    result_bundle=folder.parent/'PlayerInput.xcresult'
+    try:
+        observed=run(base+['test-without-building', '-resultBundlePath', str(result_bundle)], timeout=600,
+                     label='Test player controls, native context preview, decoded video, gestures and lifecycle')
+    except Exception:
+        # Result bundles and recordings stay temporary. Preserve up to eight
+        # owned-fixture stills alongside the existing failure logs before cleanup.
+        exported=folder.parent/'failure-attachments'
+        try:
+            run(['xcrun','xcresulttool','export','attachments','--path',str(result_bundle),'--output-path',str(exported)],
+                timeout=45, label='Export owned simulator failure screenshots')
+            preserve_failure_images(exported, root/'output/player-input-failure.zip')
+        except Exception as evidence_error:
+            print('Failure screenshot export unavailable: '+str(evidence_error), flush=True)
+        raise
     for name in ['testGlassControls','testPlainControls','testThumbnailHoldAndTap','testPreviewPanelLayoutAndActions']:
         if not re.search(r"Test Case .*"+name+r".* passed",observed):
             raise ValueError('Player coordinate test did not pass: '+name)
@@ -87,5 +122,7 @@ def run_controls_ui(root, stage, device, run):
     if 'THUMBNAIL_COORDINATES PASS:' not in observed:
         raise ValueError('Actual thumbnail hold/tap/scroll checks must pass')
     if 'PREVIEW_PANEL PASS:' not in observed:
-        raise ValueError('Actual preview sizing/menu/scroll checks must pass')
+        raise ValueError('Actual system preview sizing/menu/scroll checks must pass')
+    if 'CONTEXT_VIDEO PASS:' not in observed:
+        raise ValueError('Actual changing decoded video and clipping checks must pass')
     return dict(EXPECTED)

@@ -48,7 +48,6 @@ private struct TheatreContent: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
     let close: () -> Void
-    let managesPlayback: Bool
     @StateObject private var playback: TheatrePlayback
     @State private var controls = PlayerControlsVisibility()
     @State private var overlayPresented = false
@@ -59,7 +58,6 @@ private struct TheatreContent: View {
     private func interact() { controls.reveal(now: ProcessInfo.processInfo.systemUptime) }
     init(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback?, close: @escaping () -> Void) {
         self.channel = channel; self.services = services; self.close = close
-        self.managesPlayback = playback == nil
         _playback = StateObject(wrappedValue: playback ?? TheatrePlayback(channel: channel.username))
     }
     var body: some View {
@@ -92,8 +90,8 @@ private struct TheatreContent: View {
             Spacer()
         }
         .background(Color(uiColor: .systemBackground))
-        .onAppear { if managesPlayback { playback.startIfNeeded() }; interact() }
-        .onDisappear { if managesPlayback { playback.stop() } }
+        .onAppear { playback.startIfNeeded(); interact() }
+        .onDisappear { playback.stop() }
         .task {
             while !Task.isCancelled {
                 playback.update()

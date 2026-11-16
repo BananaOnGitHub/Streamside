@@ -7,12 +7,23 @@ struct RemoteChannelImage: View {
     let generation: UInt64
     var avatar = false
     var restricted = false
+    var thumbnailActions: ThumbnailActions?
     @State private var image: UIImage?
     private var requestID: String { "\(generation)|\(url?.absoluteString ?? "")" }
+    private var configuredActions: ThumbnailActions? {
+        var actions = thumbnailActions
+        actions?.image = restricted ? nil : image
+        return actions
+    }
     var body: some View {
         ZStack {
             Color(uiColor: .secondarySystemBackground)
-            if let image, !restricted { Image(uiImage: image).resizable().scaledToFill() }
+            if let actions = configuredActions {
+                actions
+                if image == nil || restricted {
+                    Image(systemName: restricted ? "eye.slash" : "photo").foregroundStyle(.secondary).allowsHitTesting(false)
+                }
+            } else if let image, !restricted { Image(uiImage: image).resizable().scaledToFill() }
             else { Image(systemName: avatar ? "person.fill" : restricted ? "eye.slash" : "photo").foregroundStyle(.secondary) }
         }
         .clipped()
@@ -22,7 +33,7 @@ struct RemoteChannelImage: View {
             guard !Task.isCancelled else { return }
             image = fetched
         }
-        .accessibilityHidden(true)
+        .accessibilityHidden(thumbnailActions == nil)
     }
 }
 
@@ -34,7 +45,7 @@ struct LiveChannelRow: View {
     let clock: StreamClock
     let haptics: TitleHaptics
     let open: () -> Void
-    let preview: () -> Void
+    let preview: (UIView) -> ContextPreviewSession?
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     @State private var showFullTitle = false
     @State private var titleMeasurement: TitleMeasurement?
@@ -63,12 +74,10 @@ struct LiveChannelRow: View {
             }
         }
         .contentShape(Rectangle())
-        .accessibilityAddTraits(.isButton)
         .accessibilityAction(named: "Watch live stream", open)
-        .accessibilityAction(named: "Preview live stream", preview)
         .padding(.vertical, 2)
         .listRowSeparator(.hidden)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityValue("Live")
         .accessibilityActions {
             if canPreviewTitle { Button("Show full stream title") { openTitle() } }
@@ -84,15 +93,15 @@ struct LiveChannelRow: View {
         }
     }
     private var thumbnail: some View {
-        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, restricted: channel.thumbnailRestricted)
+        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, restricted: channel.thumbnailRestricted,
+                           thumbnailActions: ThumbnailActions(label: channel.displayName + " stream thumbnail", open: open, preview: preview))
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .overlay(alignment: .bottomTrailing) {
                 if let started = channel.startedAt {
-                    StreamTimePill(startedAt: started, clock: clock).padding(4)
+                    StreamTimePill(startedAt: started, clock: clock).padding(4).allowsHitTesting(false)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))
-            .overlay { ThumbnailActions(open: open, preview: preview) }
     }
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -117,6 +126,9 @@ struct LiveChannelRow: View {
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: open)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { open() }
     }
 }
 

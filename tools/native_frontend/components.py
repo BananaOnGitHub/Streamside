@@ -114,9 +114,9 @@ def verify(directory, revision=None):
             raise ValueError("UIKit title measurement/haptic pattern validation missing or failed")
         if uikit.get("launch_receipt") != [dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]:
             raise ValueError("Three-process launch selection validation missing or failed")
-        if uikit.get("quicklook_receipt") != dict(passed=True,failures=[],synchronized_fade=True,single_handoff=True,teardown=True,all_tags_wrap=True,thumbnail_hold=True):
+        if uikit.get("quicklook_receipt") != dict(passed=True,failures=[],source_target=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True):
             raise ValueError("Native Quick Look simulator validation missing or failed")
-        expected_ui=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True) if mode=='native' else None
+        expected_ui=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,system_context_preview=True,source_animation=True,real_video_clipping=True) if mode=='native' else None
         if uikit.get("controls_ui_receipt") != expected_ui:
             raise ValueError("Player coordinate interaction validation missing or failed")
         if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load']}:
@@ -152,9 +152,14 @@ def build(output):
                 destination = stage / name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(data)
-            run_logged([sys.executable, "-u", str(stage / "tools/native_frontend/apple_worker.py"), str(stage)],
-                       cwd=ROOT, log_path=local / "build.log", timeout=1500,
-                       label="Build and validate " + mode + " component", group=False, heartbeat=False, summary=True)
+            try:
+                run_logged([sys.executable, "-u", str(stage / "tools/native_frontend/apple_worker.py"), str(stage)],
+                           cwd=ROOT, log_path=local / "build.log", timeout=1500,
+                           label="Build and validate " + mode + " component", group=False, heartbeat=False, summary=True)
+            finally:
+                images = stage / "output/player-input-failure.zip"
+                if images.is_file():
+                    shutil.copy2(images, output.parent / "player-input-failure.zip")
             framework = local / (FRAMEWORK + ".framework")
             framework.mkdir()
             for name in FILES - {"SSNBuild.h", "build.log", f"{FRAMEWORK}.framework/Info.plist", f"{FRAMEWORK}.framework/{FRAMEWORK}"}:

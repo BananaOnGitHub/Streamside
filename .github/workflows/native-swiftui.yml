@@ -48,6 +48,7 @@ jobs:
           path: |
             ${{ runner.temp }}/apple-ci/validation.json
             ${{ runner.temp }}/apple-ci/*.log
+            ${{ runner.temp }}/apple-ci/player-input-failure.zip
             ${{ runner.temp }}/apple-ci/components/failure.json
             ${{ runner.temp }}/apple-ci/components/*/build.log
           if-no-files-found: warn

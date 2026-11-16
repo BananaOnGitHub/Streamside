@@ -5,10 +5,14 @@ import UIKit
 // including when its internal video/ad renderer changes size or adds subviews.
 struct PassivePlayerSurface: UIViewRepresentable {
     let surface: UIView
+    var topCornerRadius: CGFloat = 0
     func makeUIView(context: Context) -> UIView {
         let container = UIView()
         container.backgroundColor = .black
         container.clipsToBounds = true
+        container.layer.cornerCurve = .continuous
+        container.layer.cornerRadius = topCornerRadius
+        container.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         container.isUserInteractionEnabled = false
         surface.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(surface)
@@ -20,7 +24,7 @@ struct PassivePlayerSurface: UIViewRepresentable {
         ])
         return container
     }
-    func updateUIView(_ view: UIView, context: Context) {}
+    func updateUIView(_ view: UIView, context: Context) { view.layer.cornerRadius = topCornerRadius }
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIView, context: Context) -> CGSize? {
         guard let width = proposal.width, let height = proposal.height else { return nil }
         return CGSize(width: width, height: height)

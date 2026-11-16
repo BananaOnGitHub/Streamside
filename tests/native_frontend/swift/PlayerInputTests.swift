@@ -1,10 +1,14 @@
 import XCTest
+import UIKit
 
 final class PlayerInputTests: XCTestCase {
     private var testedApp: XCUIApplication?
     override func tearDown() {
         if (testRun?.failureCount ?? 0) > 0, let app = testedApp {
             print("PLAYER_FAILURE_SNAPSHOT\n" + app.debugDescription)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Owned fixture failure"; screenshot.lifetime = .keepAlways
+            add(screenshot)
         }
         super.tearDown()
     }
@@ -15,41 +19,101 @@ final class PlayerInputTests: XCTestCase {
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
     }
+    private func contextApp(_ arguments: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication(); testedApp = app
+        app.launchArguments = ["--thumbnail"] + arguments; app.launch()
+        wait(app.staticTexts["fixture-ready"], label: "Video ready", timeout: 30)
+        return app
+    }
+    private func openContext(_ app: XCUIApplication) {
+        let source = app.descendants(matching: .any)["preview-thumbnail"].firstMatch
+        XCTAssertTrue(source.waitForExistence(timeout: 5))
+        source.press(forDuration: 0.7)
+        XCTAssertTrue(app.buttons["Watch stream"].waitForExistence(timeout: 5))
+        // press() has released the finger. The native preview must persist.
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertTrue(app.buttons["Watch stream"].exists)
+        XCTAssertFalse(app.buttons["View profile"].isEnabled)
+        XCTAssertFalse(app.buttons["quicklook.close"].exists)
+        XCTAssertFalse(app.buttons["Close preview"].exists)
+    }
     func testThumbnailHoldAndTap() {
         continueAfterFailure = false
-        let app = XCUIApplication(); testedApp = app
-        app.launchArguments = ["--thumbnail"]; app.launch()
+        let app = contextApp()
         let thumbnail = app.descendants(matching: .any)["preview-thumbnail"].firstMatch
-        XCTAssertTrue(thumbnail.waitForExistence(timeout: 5))
-        thumbnail.press(forDuration: 0.7)
+        let source = thumbnail.frame
+        openContext(app)
+        dismissPopover(app.buttons["Watch stream"], in: app)
         wait(app.staticTexts["thumbnail-previews"], label: "Previews: 1")
+        wait(app.staticTexts["preview-stops"], label: "Stops: 1")
+        wait(app.staticTexts["source-target"], label: "Returned to source")
+        wait(app.staticTexts["source-motion"], label: "Animated source")
+        XCTAssertEqual(thumbnail.frame.minY, source.minY, accuracy: 1)
+        XCTAssertEqual(thumbnail.frame.width, source.width, accuracy: 1)
         XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 0", "A hold must not also watch on release")
         thumbnail.tap()
         wait(app.staticTexts["thumbnail-watches"], label: "Watches: 1")
-        XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1")
         thumbnail.swipeUp(velocity: .fast)
         XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1", "Scrolling must not preview")
         XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 1", "Scrolling must not watch")
-        print("THUMBNAIL_COORDINATES PASS: hold consumes release; tap watches; scroll cancels")
+        app.terminate()
+        let background = contextApp()
+        openContext(background)
+        XCUIDevice.shared.press(.home); background.activate()
+        wait(background.staticTexts["preview-stops"], label: "Stops: 1")
+        XCTAssertFalse(background.buttons["Watch stream"].exists)
+        XCTAssertEqual(background.staticTexts["thumbnail-watches"].label, "Watches: 0")
+        background.terminate()
+        let account = contextApp(["--cancel-preview"])
+        openContext(account)
+        wait(account.staticTexts["preview-stops"], label: "Stops: 1", timeout: 10)
+        XCTAssertFalse(account.buttons["Watch stream"].exists)
+        XCTAssertEqual(account.staticTexts["thumbnail-watches"].label, "Watches: 0")
+        print("THUMBNAIL_COORDINATES PASS: native lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
+    }
+    // Classify an actual screen pixel from AVPlayerLayer's decoded movie. A
+    // static image or readyForDisplay alone cannot satisfy the changing frames.
+    private func videoColor(_ point: CGPoint, in app: XCUIApplication) -> Int? {
+        guard let image = app.screenshot().image.cgImage else { return nil }
+        let x = (point.x - app.frame.minX) / app.frame.width * CGFloat(image.width)
+        let y = (point.y - app.frame.minY) / app.frame.height * CGFloat(image.height)
+        guard let pixel = image.cropping(to: CGRect(x: x, y: y, width: 1, height: 1)) else { return nil }
+        var bytes = [UInt8](repeating: 0, count: 4)
+        let valid = bytes.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: 1, height: 1, bitsPerComponent: 8,
+                bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return false }
+            context.draw(pixel, in: CGRect(x: 0, y: 0, width: 1, height: 1)); return true
+        }
+        guard valid else { return nil }
+        if bytes[0] > 140 && bytes[1] < 70 && bytes[2] < 70 { return 0 }
+        if bytes[2] > 140 && bytes[1] < 70 && bytes[0] < 70 { return 1 }
+        return nil
     }
     func testPreviewPanelLayoutAndActions() {
         continueAfterFailure = false
-        let app = XCUIApplication(); testedApp = app
-        for long in [false, true] {
-            app.launchArguments = ["--preview-panel"] + (long ? ["--long-panel"] : [])
-            app.launch()
+        for (long, commit) in [(false, false), (false, true), (true, false)] {
+            let app = contextApp(long ? ["--long-panel"] : [])
+            openContext(app)
             let card = app.otherElements["quicklook.card"].firstMatch
-            let menu = app.otherElements["quicklook.menu"].firstMatch
+            let watch = app.buttons["Watch stream"]
             let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 5))
-            XCTAssertTrue(menu.waitForExistence(timeout: 5))
             XCTAssertTrue(video.waitForExistence(timeout: 5))
             let frame = video.frame
             XCTAssertEqual(frame.height, frame.width * 9 / 16, accuracy: 1, "Preview video must remain landscape")
-            XCTAssertGreaterThan(menu.frame.minY, card.frame.maxY + 8, "Action menu must be a separate surface below the card")
-            XCTAssertLessThan(menu.frame.width, card.frame.width, "Action menu should be compact")
-            XCTAssertLessThanOrEqual(menu.frame.maxY, app.frame.maxY - 10)
+            XCTAssertGreaterThan(watch.frame.minY, card.frame.maxY, "System action menu must be below the preview")
+            XCTAssertLessThan(watch.frame.width, card.frame.width, "System action menu should be compact")
             XCTAssertGreaterThanOrEqual(card.frame.minY, app.frame.minY + 10)
+            var colors = Set<Int>()
+            for _ in 0..<24 {
+                if let color = videoColor(CGPoint(x: frame.midX, y: frame.midY), in: app) { colors.insert(color) }
+                if colors.count == 2 { break }
+                Thread.sleep(forTimeInterval: 0.15)
+            }
+            XCTAssertEqual(colors.count, 2, "Real decoded video must advance in the system preview after releasing the hold")
+            XCTAssertNil(videoColor(CGPoint(x: frame.minX + 1, y: frame.minY + 1), in: app), "The real upper-left video corner must be clipped")
+            XCTAssertNil(videoColor(CGPoint(x: frame.maxX - 1, y: frame.minY + 1), in: app), "The real upper-right video corner must be clipped")
             if !long {
                 XCTAssertLessThan(card.frame.height, frame.height + 230, "Short details must not produce a tall empty panel")
             } else {
@@ -57,21 +121,37 @@ final class PlayerInputTests: XCTestCase {
                     if app.staticTexts["preview-last-detail"].isHittable { break }
                     app.scrollViews.firstMatch.swipeUp()
                 }
-                XCTAssertTrue(app.staticTexts["preview-last-detail"].isHittable, "Full details and all tags must remain reachable")
+                XCTAssertTrue(app.staticTexts["preview-last-detail"].isHittable, "Full details and all tags must remain reachable in a system preview")
                 XCTAssertEqual(video.frame.minY, frame.minY, accuracy: 1, "Scrolling details must not move the video")
             }
-            XCTAssertFalse(app.buttons["View profile"].isEnabled)
-            app.buttons["quicklook.watch"].tap()
-            XCTAssertTrue(app.staticTexts["preview-watched"].waitForExistence(timeout: 5), "Glass menu Watch action must work")
+            if commit { video.tap() } else { watch.tap() }
+            let watched = app.staticTexts["preview-watched"]
+            XCTAssertTrue(watched.waitForExistence(timeout: 5), "System menu Watch action must transfer into theatre")
+            XCTAssertEqual(watched.label, "Same player: 1", "Watch must reuse the decoded preview player")
+            let theatreVideo = app.descendants(matching: .any)["fixture.theatre-video"].firstMatch
+            XCTAssertTrue(theatreVideo.waitForExistence(timeout: 5))
+            var transferredColors = Set<Int>()
+            for _ in 0..<24 {
+                let frame = theatreVideo.frame
+                if let color = videoColor(CGPoint(x: frame.midX, y: frame.midY), in: app) { transferredColors.insert(color) }
+                if transferredColors.count == 2 { break }
+                Thread.sleep(forTimeInterval: 0.15)
+            }
+            XCTAssertEqual(transferredColors.count, 2, "The same video surface must keep decoding in theatre after reparenting")
+            app.buttons["Close fixture theatre"].tap()
+            wait(app.staticTexts["preview-stops"], label: "Stops: 1")
+            wait(app.staticTexts["thumbnail-previews"], label: "Previews: 1")
+            wait(app.staticTexts["thumbnail-watches"], label: "Watches: 1")
             app.terminate()
         }
-        print("PREVIEW_PANEL PASS: 16:9 video, natural height, separate compact menu, scrollable details, Watch action")
+        print("CONTEXT_VIDEO PASS: changing decoded frames; 16:9; real upper-corner clipping; one player into theatre")
+        print("PREVIEW_PANEL PASS: genuine native preview/menu; full details; no X; Watch action; teardown")
     }
     func testGlassControls() { exercise(plain: false) }
     func testPlainControls() { exercise(plain: true) }
-    private func wait(_ element: XCUIElement, label: String) {
+    private func wait(_ element: XCUIElement, label: String, timeout: TimeInterval = 5) {
         let check = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", label), object: element)
-        XCTAssertEqual(XCTWaiter.wait(for: [check], timeout: 5), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [check], timeout: timeout), .completed)
     }
     private func waitValue(_ element: XCUIElement, value: String) {
         let check = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", value), object: element)

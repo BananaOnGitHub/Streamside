@@ -1,79 +1,128 @@
-// Real UIKit containment and compositor checks; synthetic views, no Twitch.
+// Owned UIKit transaction/target tests. Real context-menu/video UI is exercised
+// separately by PlayerInputTests; this executable never claims donor playback.
 import SwiftUI
 import UIKit
+
+@MainActor private final class HeldMenuAnimator: NSObject, UIContextMenuInteractionAnimating {
+    let previewViewController: UIViewController?
+    var animations: [() -> Void] = []
+    var completions: [() -> Void] = []
+    init(_ preview: UIViewController) { previewViewController = preview }
+    func addAnimations(_ animations: @escaping () -> Void) { self.animations.append(animations) }
+    func addCompletion(_ completion: @escaping () -> Void) { completions.append(completion) }
+    func finish() { animations.forEach { $0() }; completions.forEach { $0() }; completions = [] }
+}
 
 @main @MainActor final class QuickLookTestDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     var failures: [String] = []
-    func check(_ passed: Bool, _ name: String) { if !passed { failures.append(name) } }
+    func check(_ condition: Bool, _ name: String) { if !condition { failures.append(name) } }
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         let window = UIWindow(frame: UIScreen.main.bounds)
-        let root = UIViewController()
-        root.view.backgroundColor = .blue
-        window.rootViewController = root; window.makeKeyAndVisible(); self.window = window
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.exercise(root) }
+        window.rootViewController = UIViewController(); window.makeKeyAndVisible(); self.window = window
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self.exercise() }
         return true
     }
-    func exercise(_ root: UIViewController) {
-        let tags = ["English", "TogetherForGood", "Cat", "Very long Unicode tag 👨‍👩‍👧‍👦 " + String(repeating: "wide ", count: 12), "LastTag"]
+    func exercise() {
+        let tags = ["English", "TogetherForGood", "Cat", String(repeating: "Unicode 👨‍👩‍👧‍👦 ", count: 12), "LastTag"]
         let all = UIHostingController(rootView: AllStreamTags(tags: tags))
         let short = UIHostingController(rootView: AllStreamTags(tags: ["English"]))
         let size = all.sizeThatFits(in: CGSize(width: 180, height: 10000))
         let one = short.sizeThatFits(in: CGSize(width: 180, height: 10000))
-        check(size.height > one.height * 3 && size.width <= 181 && size.height < 10000, "All tags wrap with an oversized Unicode tag")
-        let actions = ThumbnailActions(open: {}, preview: {})
-        // The production recognizer wiring must preserve native scroll cancel.
-        let host = UIHostingController(rootView: actions.frame(width: 140, height: 80))
-        root.addChild(host); host.view.frame = CGRect(x: 0, y: 80, width: 140, height: 80)
-        root.view.addSubview(host.view); host.didMove(toParent: root); host.view.layoutIfNeeded()
-        func recognizers(_ view: UIView) -> [UIGestureRecognizer] {
-            (view.gestureRecognizers ?? []) + view.subviews.flatMap(recognizers)
-        }
-        let hold = recognizers(host.view).compactMap { $0 as? UILongPressGestureRecognizer }.first
-        check(hold?.minimumPressDuration == 0.5 && hold?.allowableMovement == 10, "Thumbnail hold recognizer installed")
-        host.willMove(toParent: nil); host.view.removeFromSuperview(); host.removeFromParent()
-        var starts = 0, stops = 0, watched = 0, creations = 0
-        let preview = UIViewController(); preview.view.backgroundColor = .red
-        let theatre = UIViewController(); theatre.view.backgroundColor = .green
-        let controller = QuickLookController(preview: preview, makeTheatre: { creations += 1; return theatre },
-                                             start: { starts += 1 }, watched: { watched += 1 }, stop: { stops += 1 })
-        root.present(controller, animated: false) {
-            self.check(starts == 1 && controller.children.count == 1, "Preview starts once")
-            controller.watch(); controller.watch()
-            self.check(creations == 1 && controller.children.count == 2 && controller.transitioning, "Single Watch handoff")
-            DispatchQueue.main.asyncAfter(deadline: .now() + controller.fadeDuration * 0.45) {
-                let a = preview.view.layer.presentation()?.opacity ?? -1
-                let b = theatre.view.layer.presentation()?.opacity ?? -1
-                self.check(a > 0.01 && a < 0.99 && b > 0.01 && b < 0.99 && abs(a + b - 1) < 0.05,
-                           "Preview and theatre fade simultaneously")
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + controller.fadeDuration + 0.15) {
-                self.check(controller.children.count == 1 && controller.children.first === theatre && !controller.transitioning && watched == 1 && stops == 0 && starts == 1, "Theatre retained without restarting playback")
-                controller.dismiss(animated: false) {
-                    self.check(stops == 1, "Dismiss stops exactly once")
-                    self.cancelDuringFade(root)
-                }
-            }
+        check(size.height > one.height * 3 && size.width <= 181, "All admitted tags wrap")
+        let controller = UIViewController()
+        var starts = 0, stops = 0, handoffs = 0, releases = 0
+        let session = ContextPreviewSession(controller: controller, claim: { _ in true }, release: { _ in releases += 1 },
+            valid: { true }, start: { starts += 1 }, stop: { stops += 1 }, handoff: { handoffs += 1; return true })
+        check(session.display() && session.display() && starts == 1, "Start once")
+        session.requestWatch(); session.requestWatch()
+        let animator = HeldMenuAnimator(controller)
+        session.end(animator: animator); session.end(animator: animator)
+        check(handoffs == 0 && stops == 0 && releases == 0, "No handoff before UIKit finishes")
+        animator.finish()
+        DispatchQueue.main.async {
+            self.check(session.phase == .transferred && handoffs == 1 && starts == 1 && stops == 0 && releases == 1, "One ownership transfer")
+            session.cancel()
+            self.check(stops == 0, "Transferred player belongs to theatre")
+            self.cancelWhileEnding()
         }
     }
-    func cancelDuringFade(_ root: UIViewController) {
-        var stops = 0, watched = 0
-        let controller = QuickLookController(preview: UIViewController(), makeTheatre: { UIViewController() },
-                                             start: {}, watched: { watched += 1 }, stop: { stops += 1 })
-        root.present(controller, animated: false) {
-            controller.watch()
-            controller.dismiss(animated: false) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + controller.fadeDuration + 0.1) {
-                    self.check(stops == 1 && watched == 0, "Closing during handoff never unmutes")
-                    let receipt: [String: Any] = ["passed": self.failures.isEmpty, "failures": self.failures,
-                                                 "synchronized_fade": true, "single_handoff": true,
-                                                 "teardown": true, "all_tags_wrap": true, "thumbnail_hold": true]
-                    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("quicklook-test.json")
-                    try! JSONSerialization.data(withJSONObject: receipt).write(to: url)
-                    print("QUICKLOOK_CHECKS: \(self.failures.isEmpty ? "PASS" : self.failures.joined(separator: "; "))")
-                    exit(self.failures.isEmpty ? 0 : 1)
-                }
-            }
+    func cancelWhileEnding() {
+        var starts = 0, stops = 0, handoffs = 0, dismissals = 0
+        let controller = UIViewController()
+        let session = ContextPreviewSession(controller: controller, claim: { _ in true }, release: { _ in }, valid: { true },
+            start: { starts += 1 }, stop: { stops += 1 }, handoff: { handoffs += 1; return true })
+        session.dismissMenu = { dismissals += 1 }
+        session.display(); session.requestWatch()
+        let animator = HeldMenuAnimator(controller); session.end(animator: animator)
+        session.cancel(); session.cancel(); animator.finish()
+        DispatchQueue.main.async {
+            self.check(starts == 1 && stops == 1 && handoffs == 0 && dismissals == 0 && session.phase == .cancelled, "Cancellation during dismissal cannot watch or unmute")
+            self.backgroundAndAccount()
         }
+    }
+    func backgroundAndAccount() {
+        var valid = true, stops = 0
+        let session = ContextPreviewSession(controller: UIViewController(), claim: { _ in true }, release: { _ in }, valid: { valid }, start: {}, stop: { stops += 1 }, handoff: { false })
+        session.display(); valid = false
+        NotificationCenter.default.post(name: Notification.Name("SSNNativeServiceDidChange"), object: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            self.check(stops == 1 && session.phase == .cancelled, "Account invalidation cancels")
+            let background = ContextPreviewSession(controller: UIViewController(), claim: { _ in true }, release: { _ in }, valid: { true }, start: {}, stop: { stops += 1 }, handoff: { false })
+            background.display()
+            NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+            self.check(stops == 2 && background.phase == .cancelled, "Background cancels")
+            self.rejectedAndLateActions()
+        }
+    }
+    func rejectedAndLateActions() {
+        var starts = 0, stops = 0, releases = 0, handoffs = 0
+        let rejected = ContextPreviewSession(controller: UIViewController(), claim: { _ in false }, release: { _ in releases += 1 }, valid: { true },
+            start: { starts += 1 }, stop: { stops += 1 }, handoff: { handoffs += 1; return true })
+        check(!rejected.display() && starts == 0 && stops == 1 && releases == 1, "Rejected ownership cleans prepared resources")
+        let controller = UIViewController()
+        let late = ContextPreviewSession(controller: controller, claim: { _ in true }, release: { _ in releases += 1 }, valid: { true },
+            start: { starts += 1 }, stop: { stops += 1 }, handoff: { handoffs += 1; return false })
+        late.display()
+        let animator = HeldMenuAnimator(controller)
+        late.end(animator: animator); late.requestWatch(); animator.finish()
+        DispatchQueue.main.async {
+            self.check(starts == 1 && stops == 2 && releases == 2 && handoffs == 1 && late.phase == .cancelled, "Action delivered during dismissal and rejected handoff clean once")
+            self.sourceTarget()
+        }
+    }
+    func sourceTarget() {
+        guard let root = window?.rootViewController else { fatalError("Missing fixture root") }
+        var observations = 0
+        let actions = ThumbnailActions(open: {}, preview: { _ in nil }, observeTarget: { _, frame, center in
+            if abs(frame.midX - center.x) < 0.5 && abs(frame.midY - center.y) < 0.5 && frame.width > 10 { observations += 1 }
+        })
+        let host = UIHostingController(rootView: actions.frame(width: 160, height: 90))
+        let scroll = UIScrollView(frame: root.view.bounds)
+        scroll.contentInsetAdjustmentBehavior = .never
+        scroll.contentSize = CGSize(width: root.view.bounds.width, height: 1800)
+        root.view.addSubview(scroll)
+        root.addChild(host); host.view.frame = CGRect(x: 45, y: 560, width: 160, height: 90)
+        scroll.addSubview(host.view); host.didMove(toParent: root)
+        scroll.contentOffset = CGPoint(x: 0, y: 300); host.view.layoutIfNeeded()
+        func sources(_ view: UIView) -> [ThumbnailActions.SourceView] {
+            (view as? ThumbnailActions.SourceView).map { [$0] } ?? view.subviews.flatMap(sources)
+        }
+        guard let source = sources(host.view).first,
+              let interaction = source.interactions.first as? UIContextMenuInteraction,
+              let delegate = interaction.delegate as? ThumbnailActions.Coordinator else { fatalError("Missing native source interaction") }
+        let actual = source.convert(source.bounds, to: window)
+        check(abs(actual.minX - 45) < 0.5 && abs(actual.minY - 260) < 0.5 && abs(actual.width - 160) < 0.5, "Geometry follows scroll offset rather than unscrolled row coordinates")
+        let configuration = UIContextMenuConfiguration(identifier: "fixture" as NSString, previewProvider: nil, actionProvider: nil)
+        let lift = delegate.contextMenuInteraction(interaction, configuration: configuration, highlightPreviewForItemWithIdentifier: "fixture" as NSString)
+        let drop = delegate.contextMenuInteraction(interaction, configuration: configuration, dismissalPreviewForItemWithIdentifier: "fixture" as NSString)
+        check(observations == 2 && lift?.view === source && drop?.view === source && lift?.parameters.visiblePath?.bounds == source.bounds, "Lift and return use actual scrolled source and rounded path")
+        check(lift?.parameters.visiblePath?.contains(CGPoint(x: 0, y: 0)) == false && lift?.parameters.visiblePath?.contains(CGPoint(x: 80, y: 45)) == true, "Rounded source path excludes outer corners")
+        let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true,
+            "dismiss_before_handoff": true, "single_handoff": true, "teardown": true, "all_tags_wrap": true, "lifecycle_cancellation": true]
+        let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("quicklook-test.json")
+        try! JSONSerialization.data(withJSONObject: receipt).write(to: path)
+        print("QUICKLOOK_CHECKS: \(failures.isEmpty ? "PASS" : failures.joined(separator: "; "))")
+        exit(failures.isEmpty ? 0 : 1)
     }
 }

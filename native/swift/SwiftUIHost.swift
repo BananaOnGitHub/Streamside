@@ -14,6 +14,7 @@ public final class SSNSwiftUIHost: NSObject {
     private static var gestureTarget: SSNSwiftUIHost?
     private static var baseline = false
     private static var theatreController: UIViewController?
+    private static var previewID: UUID?
 
     @objc public static func rootOwner() -> Int {
         guard let window else { return 0 }
@@ -73,17 +74,38 @@ public final class SSNSwiftUIHost: NSObject {
         }
     }
 
-    static func beginPlayback(_ channel: FollowedChannel, preview: Bool = false) -> Bool {
+    static func preparePreview(_ channel: FollowedChannel, source: UIView) -> ContextPreviewSession? {
+        guard SSNNavigationPermitted(), rootOwner() == 1, channel.isLive, !channel.thumbnailRestricted,
+              let services, services.state.session == .authenticated,
+              theatreController == nil, previewID == nil,
+              nativeController?.presentedViewController == nil else { return nil }
+        return NativeQuickLook.session(channel: channel, services: services, source: source, claim: { id in
+            guard SSNNavigationPermitted(), rootOwner() == 1, previewID == nil,
+                  theatreController == nil, services.state.session == .authenticated else { return false }
+            previewID = id; return true
+        }, release: { id in if previewID == id { previewID = nil } }, handoff: { playback in
+            beginPlayback(channel, sharedPlayback: playback)
+        })
+    }
+
+    static func beginPlayback(_ channel: FollowedChannel, sharedPlayback: TheatrePlayback? = nil) -> Bool {
         guard SSNNavigationPermitted(), rootOwner() == 1,
               channel.isLive, !channel.thumbnailRestricted,
               let services, services.state.session == .authenticated,
               let root = nativeController, root.presentedViewController == nil,
-              theatreController == nil else { return false }
-        let controller = preview
-            ? NativeQuickLook.controller(channel: channel, services: services, close: { endPlayback() })
-            : NativeTheatre.controller(channel: channel, services: services, close: { endPlayback() })
+              theatreController == nil, previewID == nil else { return false }
+        let controller = NativeTheatre.controller(channel: channel, services: services, playback: sharedPlayback, close: { endPlayback() })
+        if sharedPlayback != nil { controller.modalTransitionStyle = .crossDissolve }
         theatreController = controller
-        root.present(controller, animated: true)
+        root.present(controller, animated: true) {
+            if let sharedPlayback {
+                guard controller.presentingViewController != nil, rootOwner() == 1,
+                      services.state.session == .authenticated, sharedPlayback.native.errorCode != 1 else {
+                    sharedPlayback.stop(); return
+                }
+                sharedPlayback.setMuted(false)
+            }
+        }
         return true
     }
     static func endPlayback() {

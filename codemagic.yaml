@@ -21,3 +21,4 @@ workflows:
       - $CM_BUILD_DIR/../artifacts/apple-ci/streamside-components.tar.gz
       - $CM_BUILD_DIR/../artifacts/apple-ci/validation.json
       - $CM_BUILD_DIR/../artifacts/apple-ci/*.log
+      - $CM_BUILD_DIR/../artifacts/apple-ci/player-input-failure.zip

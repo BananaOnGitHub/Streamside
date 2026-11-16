@@ -196,3 +196,48 @@ promotion are unchanged. No compiler isolation or warning gate was relaxed.
 Simulator and audio tests were not reached in this failed run; they remain
 mandatory for the replacement. No new IPA was produced. Host tests do not
 validate Apple's actor isolation rules.
+
+
+### Hold/audio refinement: successful replacement and package
+
+Source `e50bcc2d0fa03590f84d7c50233b4a96d43411a0` passed
+[Codemagic build 6afb784001609fea8f69241c](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afb784001609fea8f69241c).
+The [new validation record](SWIFTUI_PREVIEW_MOTION_AUDIO_VALIDATION.json) preserves
+this candidate's separate source, donor, component and IPA identities. The first
+compile failure and the earlier anchored-preview package retain their original
+records and hashes.
+
+Xcode 26.6 (17F113), Swift 6.3.3, iPhoneOS SDK 26.5 and all five Apple stages
+passed. All four mandatory coordinate UI tests passed with zero failures:
+glass controls (211.626 seconds), plain controls (173.751), preview panel/actions
+(78.450), thumbnail hold/tap (48.047). Rendered hold expansion, source targeting,
+return motion, full-details scrolling, changing decoded video, clipping, both
+single-player handoff paths and cancellation passed. The synthetic native player
+fixture passed mixing-before-load, mute enforcement, category restoration after
+preview dismissal and exclusive theatre promotion without a new player/request.
+Those audio checks use the real AVAudioSession API but a synthetic IVS player;
+they cannot prove continued playback from a separate app on a physical device.
+Ubuntu component admission and 55 post-download tests also passed.
+
+Local native-only packaging revalidated the Twitch 32.0 donor SHA-256 and all
+54 ABI/25 probe entries, retained donor-image checks and unchanged original HBC.
+The IPA is 196,888,792 bytes, SHA-256
+`64f69e934afc5a6b82f68f5de2de4f7bf8df3291eae6635f3178d8ebae12d113`.
+No donor or signing material entered CI, and no separate baseline IPA was made.
+
+Reproduce from that source with its verified component download, then:
+
+```sh
+python3 tools/native_frontend/build.py --frontend swiftui --mode native \
+  --components ../artifacts/ci/e50bcc2d0fa03590f84d7c50233b4a96d43411a0/download/components \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --output ../artifacts/native-frontend/quick-look-motion-audio-e50bcc2
+```
+
+Install through Feather using the same application/keychain identity. Play music
+or a podcast from another app, then hold a live thumbnail: check the small initial
+lift, silent preview and uninterrupted external audio. Tap outside, checking the
+smooth return and continued audio. Repeat with Watch stream and a video tap:
+only the full theatre should take over audio, retaining the same stream/player.
+Also check early release/scroll, Reduce Motion, background/reopen and export Native
+diagnostics. Actual IVS/audio behavior and device motion quality remain pending.

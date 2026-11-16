@@ -57,3 +57,22 @@ the exact source run completes. Physical-device review remains necessary for
 appearance with live IVS video, backdrop, light/dark mode, larger text and Reduce
 Transparency. Repeat preview, Watch, close and background/foreground, then export
 a native report to check the unchanged runtime guards.
+
+## First hosted run and test-query correction
+
+Source `5f9310bd09812fed96e27811d3896a961219b2c7` compiled and linked with the
+pinned toolchain. The new panel layout/action test passed in 23.872 seconds and
+thumbnail gestures passed in 12.443 seconds. The overall
+[Codemagic run](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afab05090e83b09c4fae114)
+failed in `testGlassControls`: the existing system-share test queried a cell
+named Copy, while its first accessibility snapshot exposed Copy only on the
+cell's child text. A later snapshot populated the cell label. The real share
+sheet and Copy action were present. No candidate was packaged from the failed
+run, and subsequent gates were not claimed as passed.
+
+The test now scopes to ActivityListView and finds the action cell containing the
+visible Copy text. It still taps the real system action, requires dismissal and
+verifies the exact clipboard URL. Timeouts and required gates are unchanged;
+there is no retry or skip. Production player/share code is unchanged. The
+[failure record](evidence/quick-look-style/first-build-failure.json) preserves the
+failed revision, run, assertion and external log hash.

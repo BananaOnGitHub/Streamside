@@ -1,0 +1,13 @@
+{
+  "source_revision": "5f9310bd09812fed96e27811d3896a961219b2c7",
+  "run": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afab05090e83b09c4fae114",
+  "result": "failed",
+  "log_sha256": "285c5c59fb3515596dd50c6a476af007e7c492e019578c7e3bbf699b1add15e3",
+  "failed_test": "testGlassControls",
+  "assertion": "System activity Copy cell did not appear",
+  "observed": "Share sheet ActivityListView has actionGroupCell with child StaticText label Copy, but no cell label until a later accessibility snapshot.",
+  "new_panel_test": "passed, 23.872 seconds",
+  "thumbnail_test": "passed, 12.443 seconds",
+  "correction": "Match the share action cell containing StaticText Copy within ActivityListView. Retain tapping, sheet dismissal and exact clipboard URL assertions; no skip or automatic retry.",
+  "production_change": false
+}

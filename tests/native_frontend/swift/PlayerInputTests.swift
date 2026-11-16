@@ -103,9 +103,11 @@ final class PlayerInputTests: XCTestCase {
         app.buttons["clear-clipboard"].tap()
         tap(app.buttons["player.share"])
         tap(app.buttons["player.system-share"])
-        // Observed on the pinned iOS 26 simulator: this is an actionGroupCell,
-        // not a button. Match its semantic label, then exercise the real action.
-        let copyActivity = app.cells["Copy"].firstMatch
+        // Cold share-sheet startup can expose the Copy child text before UIKit
+        // aggregates that label onto its action cell. Scope the actual cell by
+        // its visible child, then still tap it and verify the clipboard URL.
+        let copyActivity = app.otherElements["ActivityListView"].cells
+            .containing(.staticText, identifier: "Copy").firstMatch
         let systemShareAppeared = copyActivity.waitForExistence(timeout: 10)
         if !systemShareAppeared { print("SYSTEM_SHARE_SNAPSHOT\n" + app.debugDescription) }
         XCTAssertTrue(systemShareAppeared, "System activity Copy cell did not appear")

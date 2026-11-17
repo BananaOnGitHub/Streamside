@@ -25,6 +25,7 @@ static ThumbnailGetter thumbnail_url;
 static StringGetter title_getter,game_name,tag_name;
 static ArrayGetter tags_getter;
 static IntegerGetter viewers_getter;
+static BoolGetter is_partner;
 static SW uint8_t (*watchable)(const void * CTX),(*blur_reason)(const void * CTX);
 
 static const uintptr_t *witness(const void *type) { return type?((const uintptr_t*const*)type)[-1]:NULL; }
@@ -102,13 +103,14 @@ static bool initialize(PairMeta promise,const void *error) {
     title_getter=(StringGetter)ssn_resolve("$s10TwitchCore10LiveStreamV5titleSSvg");
     game_name=(StringGetter)ssn_resolve("$s10TwitchCore4GameV11displayNameSSvg");
     viewers_getter=(IntegerGetter)ssn_resolve("$s10TwitchCore10LiveStreamV12viewersCountSivg");
+    is_partner=(BoolGetter)ssn_resolve("$s10TwitchCore4UserV9isPartnerSbvg");
     watchable=(void*)ssn_resolve("$s10TwitchCore10LiveStreamV19currentUserCanWatchSbvg");
     blur_reason=(void*)ssn_resolve("$s10TwitchCore10LiveStreamV19thumbnailBlurReasonAA09ThumbnailfG0Ovg");
     if(!bridge||!cast||!objc_meta||!conformance||!array||!optional||!set||!track||
        !tag_type||!tags_getter||!tag_name||!stream_type||!user_type||!game_type||!date_type||!url_type||size_of(string_type)!=16||
        size_of(response_type)!=16||size_of(thumb_type)!=24||!personal||!live_getter||!offline_getter||
        !item_getter||!broadcaster_getter||!game_getter||!date_getter||!stream_thumbnails||!profile_thumbnails||
-       !thumbnail_url||!title_getter||!game_name||!viewers_getter||!watchable||!blur_reason) return false;
+       !thumbnail_url||!title_getter||!game_name||!viewers_getter||!is_partner||!watchable||!blur_reason) return false;
     const void *eq=dlsym(RTLD_DEFAULT,"$sSQMp"),*hash=dlsym(RTLD_DEFAULT,"$sSHMp"),*uint=dlsym(RTLD_DEFAULT,"$ss6UInt32VN");
     const void *live_eq=eq?conformance(stream_type,eq):NULL,*user_eq=eq?conformance(user_type,eq):NULL;
     const void *uint_hash=uint&&hash?conformance(uint,hash):NULL;
@@ -159,6 +161,9 @@ static id channel_dictionary(const void *value,bool live) {
     const void *user_value=live?user:value;
     id result=ssn_user_dictionary(user_value);
     if(!kind(result,"NSDictionary")) { dispose(user,user_type); return result; }
+    uint8_t partner=is_partner(user_value);
+    if(partner>1) { objc_release(result);dispose(user,user_type);return failure(); }
+    put(result,"isVerified",ns(partner?"1":"0"));
     id avatar=image_url(user_value,profile_thumbnails,1);
     if(avatar) { put(result,"avatarURL",avatar); objc_release(avatar); }
     put(result,"isLive",ns(live?"1":"0"));

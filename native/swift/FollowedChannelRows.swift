@@ -110,7 +110,7 @@ struct LiveChannelRow: View {
                     .frame(width: 22, height: 22)
                     .clipShape(Circle())
                     .overlay { LiveRing(clock: clock) }
-                Text(channel.displayName).font(.headline).lineLimit(1)
+                VerifiedChannelName(channel: channel).font(.headline)
             }
             MeasuredStreamTitle(text: displayedTitle, lines: titleLines) { titleMeasurement = $0 }
                 .modifier(TitleHold(enabled: canPreviewTitle, haptics: haptics, owner: holdOwner, open: openTitle))
@@ -140,7 +140,7 @@ struct OfflineChannelRow: View {
         HStack(spacing: 10) {
             RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, avatar: true)
                 .frame(width: 28, height: 28).clipShape(Circle())
-            Text(channel.displayName).lineLimit(1)
+            VerifiedChannelName(channel: channel)
             Spacer()
             Text("Offline").font(.caption).foregroundStyle(.secondary)
         }

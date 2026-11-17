@@ -60,7 +60,7 @@ private struct PreviewActions: View {
 }
 
 @MainActor
-final class AnchoredPreviewController: UIViewController {
+final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDelegate {
     private let content: UIViewController
     private weak var source: UIView?
     private let initialLift: UIView?
@@ -77,6 +77,11 @@ final class AnchoredPreviewController: UIViewController {
     private var closing = false
     private var installed = false
     private var appeared = false
+    private lazy var swipe = UIPanGestureRecognizer(target: self, action: #selector(dragPreview(_:)))
+    private weak var touchedScroll: UIScrollView?
+    private var dragging = false
+    private var dragStart = CGPoint.zero
+    private var menuStart = CGPoint.zero
 
     init(content: UIViewController, source: UIView, watch: @escaping () -> Void, dismiss: @escaping () -> Void,
          observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil) {
@@ -134,6 +139,15 @@ final class AnchoredPreviewController: UIViewController {
         actions.view.layer.shadowColor = UIColor.black.cgColor; actions.view.layer.shadowOpacity = 0.15
         actions.view.layer.shadowRadius = 14; actions.view.layer.shadowOffset = CGSize(width: 0, height: 6)
         view.layoutIfNeeded()
+        swipe.delegate = self; view.addGestureRecognizer(swipe)
+        // Let our direction/edge admission decide first; vertical content
+        // scrolling wins unless it is already at its outward boundary.
+        var pending: [UIView] = [content.view]
+        var count = 0
+        while let item = pending.popLast(), count < 256 {
+            count += 1; pending.append(contentsOf: item.subviews)
+            if let scroll = item as? UIScrollView { scroll.panGestureRecognizer.require(toFail: swipe) }
+        }
         let liftFrame = initialLift.map { view.convert($0.frame, from: source.window) } ?? sourceFrame
         lifted = initialLift ?? source.snapshotView(afterScreenUpdates: false)
         if let lifted {
@@ -169,7 +183,7 @@ final class AnchoredPreviewController: UIViewController {
     }
     func dismiss(watching: Bool, completion: @escaping () -> Void) {
         guard !closing else { return }
-        closing = true
+        closing = true; dragging = false
         guard installed || parent != nil else { completion(); return }
         // Preserve interpolated geometry when a lifecycle event interrupts entry.
         if let animator {
@@ -221,6 +235,63 @@ final class AnchoredPreviewController: UIViewController {
         willMove(toParent: nil); view.removeFromSuperview(); removeFromParent()
         if appeared { endAppearanceTransition(); appeared = false }
         if restoreFocus && UIAccessibility.isVoiceOverRunning { UIAccessibility.post(notification: .screenChanged, argument: source) }
+    }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard !closing else { return false }
+        let point = touch.location(in: view)
+        guard card.frame.contains(point) else { return false }
+        touchedScroll = nil
+        var item = touch.view
+        while let current = item, current !== view {
+            if let scroll = current as? UIScrollView { touchedScroll = scroll; break }
+            item = current.superview
+        }
+        return true
+    }
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard !closing, installed, animator == nil else { return false }
+        let velocity = swipe.velocity(in: view)
+        if abs(velocity.y) > abs(velocity.x), let scroll = touchedScroll,
+           scroll.contentSize.height > scroll.bounds.height + 1 {
+            let top = -scroll.adjustedContentInset.top
+            let bottom = max(top, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+            if (velocity.y > 0 && scroll.contentOffset.y > top + 1) ||
+               (velocity.y < 0 && scroll.contentOffset.y < bottom - 1) { return false }
+        }
+        return true
+    }
+    @objc private func dragPreview(_ gesture: UIPanGestureRecognizer) {
+        guard !closing else { return }
+        let translation = gesture.translation(in: view)
+        switch gesture.state {
+        case .began:
+            dragging = true
+            dragStart = card.center; menuStart = actions?.view.center ?? .zero
+            fallthrough
+        case .changed:
+            guard dragging else { return }
+            card.center = CGPoint(x: dragStart.x + translation.x, y: dragStart.y + translation.y)
+            actions?.view.center = CGPoint(x: menuStart.x + translation.x, y: menuStart.y + translation.y)
+            backdrop.alpha = max(0.6, 1 - hypot(translation.x, translation.y) / 500)
+        case .ended:
+            guard dragging else { return }
+            let velocity = gesture.velocity(in: view)
+            if hypot(translation.x, translation.y) >= 55 ||
+               (hypot(translation.x, translation.y) >= 12 && hypot(velocity.x, velocity.y) >= 700) {
+                onDismiss()
+            } else { settleDrag() }
+        case .cancelled, .failed: if dragging { settleDrag() }
+        default: break
+        }
+    }
+    private func settleDrag() {
+        guard !closing else { return }
+        dragging = false
+        let animation = UIViewPropertyAnimator(duration: UIAccessibility.isReduceMotionEnabled ? 0.15 : 0.3, dampingRatio: 1) {
+            self.card.center = self.dragStart; self.actions?.view.center = self.menuStart; self.backdrop.alpha = 1
+        }
+        animation.addCompletion { [weak self] _ in self?.animator = nil }
+        animator = animation; animation.startAnimation()
     }
     @objc private func outside() { onDismiss() }
     @objc private func watchPreview() { onWatch() }

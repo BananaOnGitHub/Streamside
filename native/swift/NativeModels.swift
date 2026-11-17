@@ -8,6 +8,7 @@ struct StreamsideAccount: Equatable {
 struct FollowedChannel: Identifiable, Equatable {
     let username: String
     let displayName: String
+    var isVerified = false
     var isLive = false
     var title = ""
     var category = ""
@@ -26,6 +27,7 @@ struct FollowedChannel: Identifiable, Equatable {
         guard let username = snapshot["username"] as? String, !username.isEmpty,
               let live = snapshot["isLive"] as? String, live == "0" || live == "1" else { return nil }
         self.init(username: username, displayName: snapshot["displayName"] as? String ?? username)
+        isVerified = snapshot["isVerified"] as? String == "1"
         isLive = live == "1"
         title = snapshot["title"] as? String ?? ""
         category = snapshot["category"] as? String ?? ""
@@ -305,4 +307,18 @@ enum StreamTagPacking {
         }
         return selected
     }
+}
+
+
+enum VerificationStyle: String, CaseIterable, Identifiable, Hashable {
+    case twitch, verifiedbtw, off
+    static let preferenceKey = "streamside.general.verifiedBadge"
+    var id: String { rawValue }
+    var label: String {
+        switch self { case .twitch: return "Twitch"; case .verifiedbtw: return "VERIFIEDBTW"; case .off: return "Off" }
+    }
+    var asset: String? {
+        switch self { case .twitch: return "twitch-verified"; case .verifiedbtw: return "verifiedbtw"; case .off: return nil }
+    }
+    static func resolve(_ stored: String) -> Self { Self(rawValue: stored) ?? .twitch }
 }

@@ -90,3 +90,5 @@ and updating navigation.
 - [System context preview trial](SWIFTUI_SYSTEM_CONTEXT_PREVIEW.md): genuine UIKit lift/menu/dismissal, guarded media handoff, decoded-video prototype and pending Apple/device acceptance.
 
 - [Interactive source-anchored preview](SWIFTUI_ANCHORED_PREVIEW.md): fallback after the system scrolling limitation, interactive full details and retained media/animation gates.
+
+- [Preview swipes and channel verification](SWIFTUI_PREVIEW_SWIPES_VERIFICATION.md): directional dismissal, stream avatar, inspected native eligibility, bundled official/custom artwork and General settings.

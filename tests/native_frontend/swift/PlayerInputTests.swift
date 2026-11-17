@@ -40,6 +40,7 @@ final class PlayerInputTests: XCTestCase {
     func testThumbnailHoldAndTap() {
         continueAfterFailure = false
         let app = contextApp()
+        verifyBadgeSettings(in: app)
         let thumbnail = app.descendants(matching: .any)["preview-thumbnail"].firstMatch
         let source = thumbnail.frame
         openContext(app)
@@ -73,6 +74,24 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(account.staticTexts["thumbnail-watches"].label, "Watches: 0")
         print("THUMBNAIL_LIFT PASS: slight centered expansion; rendered artwork outside clip; held scroll cancels without playback")
         print("THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
+    }
+    private func verifyBadgeSettings(in app: XCUIApplication) {
+        XCTAssertTrue(app.images["verification.twitch"].waitForExistence(timeout: 5))
+        let ordinary = app.descendants(matching: .any)["fixture.unverified"].firstMatch
+        XCTAssertTrue(ordinary.waitForExistence(timeout: 5))
+        XCTAssertEqual(ordinary.images.count, 0, "Ordinary channels must never receive a verification icon")
+        for (option, identifier) in [("VERIFIEDBTW", "verification.verifiedbtw"), ("Off", ""), ("Twitch", "verification.twitch")] {
+            app.buttons["General settings"].tap()
+            let picker = app.buttons["verification.style"].firstMatch
+            XCTAssertTrue(picker.waitForExistence(timeout: 5)); picker.tap()
+            let choice = app.buttons[option].firstMatch
+            XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+            app.buttons["Done"].tap()
+            if identifier.isEmpty {
+                XCTAssertFalse(app.images["verification.twitch"].exists); XCTAssertFalse(app.images["verification.verifiedbtw"].exists)
+            } else { XCTAssertTrue(app.images[identifier].waitForExistence(timeout: 5), "Selected bundled artwork must render") }
+        }
+        print("VERIFICATION_SETTINGS PASS: official artwork; custom artwork; Off; default; unverified suppression")
     }
     // Classify an actual screen pixel from AVPlayerLayer's decoded movie. A
     // static image or readyForDisplay alone cannot satisfy the changing frames.
@@ -151,6 +170,18 @@ final class PlayerInputTests: XCTestCase {
             wait(app.staticTexts["thumbnail-watches"], label: "Watches: 1")
             app.terminate()
         }
+        for direction in [CGVector(dx: -115, dy: 0), CGVector(dx: 115, dy: 0), CGVector(dx: 0, dy: -115), CGVector(dx: 0, dy: 115)] {
+            let app = contextApp(); openContext(app)
+            let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
+            let start = video.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: start.withOffset(direction))
+            wait(app.staticTexts["preview-stops"], label: "Stops: 1")
+            XCTAssertFalse(app.buttons["Watch stream"].exists)
+            XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 0", "Swipe must cancel the video-tap action")
+            XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1")
+            app.terminate()
+        }
+        print("PREVIEW_SWIPES PASS: left/right/up/down dismiss once; video button never watches; details scroll retained")
         print("CONTEXT_VIDEO PASS: changing decoded frames; 16:9; real upper-corner clipping; one player into theatre")
         print("PREVIEW_PANEL PASS: source-anchored preview; scrollable full details; no X; Watch action; teardown")
     }

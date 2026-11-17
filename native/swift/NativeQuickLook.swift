@@ -12,7 +12,7 @@ private struct QuickLookDetails: View {
                 RemoteChannelImage(url: current.avatarURL, images: services.images, generation: services.imageGeneration, avatar: true)
                     .frame(width: 36, height: 36).clipShape(Circle())
                     .overlay { LiveRing(clock: services.clock) }
-                Text(current.displayName).font(.headline)
+                VerifiedChannelName(channel: current).font(.headline)
             }
             Text(current.title.isEmpty ? "Live stream" : current.title)
                 .font(.subheadline).fixedSize(horizontal: false, vertical: true)

@@ -3,6 +3,14 @@ import Foundation
 // Synthetic presentation fixtures. No donor, network or live account is used.
 @main struct ModelsTests {
     static func main() {
+        precondition(VerificationStyle.resolve("unknown") == .twitch)
+        for style in VerificationStyle.allCases { precondition(VerificationStyle.resolve(style.rawValue) == style) }
+        for raw in ["0", "", "true", "partner"] {
+            precondition(FollowedChannel(snapshot: ["username":"fixture", "isLive":"1", "isVerified":raw])?.isVerified == false)
+        }
+        precondition(FollowedChannel(snapshot: ["username":"fixture", "isLive":"0", "isVerified":"1"])?.isVerified == true)
+        precondition(FollowedChannel(snapshot: ["username":"fixture", "isLive":"1", "isVerified":true])?.isVerified == false)
+
         for style in PlayerControlAnimation.allCases {
             precondition(PlayerControlAnimation.effective(stored: style.rawValue, reduceMotion: false) == style)
             precondition(PlayerControlAnimation.effective(stored: style.rawValue, reduceMotion: true) == .fade)

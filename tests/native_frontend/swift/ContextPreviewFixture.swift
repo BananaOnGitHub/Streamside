@@ -277,8 +277,19 @@ private final class FixtureVideo: UIView {
 
 struct ContextPreviewFixtureView: View {
     @StateObject private var fixture = ContextPreviewFixture()
+    @State private var general = false
+    private var verified: FollowedChannel {
+        var channel = FollowedChannel(username: "fixture", displayName: "Verified fixture")
+        channel.isVerified = true; return channel
+    }
     var body: some View {
         VStack {
+            HStack {
+                VerifiedChannelName(channel: verified)
+                Button("General settings") { general = true }
+            }
+            VerifiedChannelName(channel: FollowedChannel(username: "ordinary", displayName: "Ordinary fixture"))
+                .accessibilityElement(children: .contain).accessibilityIdentifier("fixture.unverified")
             Group {
                 Text(fixture.ready).accessibilityIdentifier("fixture-ready")
                 Text("Watches: \(fixture.watches)").accessibilityIdentifier("thumbnail-watches")
@@ -300,5 +311,10 @@ struct ContextPreviewFixtureView: View {
                 }.frame(maxWidth: .infinity)
             }
         }.task { await fixture.prepare() }
+        .sheet(isPresented: $general) {
+            NavigationStack {
+                GeneralSettings().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { general = false } } }
+            }
+        }
     }
 }

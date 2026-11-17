@@ -25,3 +25,5 @@ uintptr_t call_playback_field(PlaybackField fn,uintptr_t value) { return fn(valu
 Words2 call_playback_string(PlaybackString fn,uintptr_t value) { return fn(value); }
 
 uintptr_t call_tags(ArrayGetter fn,const void *value) { return fn(value); }
+
+uint8_t call_bool(BoolGetter fn,const void *value) { return fn(value); }

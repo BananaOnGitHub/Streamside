@@ -7,11 +7,11 @@ import plistlib
 import re
 import zipfile
 
-SOURCES = ['native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,real_video_clipping=True)
+EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True)
 
 
 def project(root, stage):
@@ -24,7 +24,10 @@ def project(root, stage):
         counter+=1;key=f'{counter:024X}';objects[key]=dict(isa=isa,**values);return key
     app_product=obj('PBXFileReference',explicitFileType='wrapper.application',path='InputTest.app',sourceTree='BUILT_PRODUCTS_DIR')
     ui_product=obj('PBXFileReference',explicitFileType='wrapper.cfbundle',path='PlayerInputTests.xctest',sourceTree='BUILT_PRODUCTS_DIR')
-    app_files=[];ui_files=[];refs=[]
+    app_files=[];ui_files=[];refs=[];asset_files=[]
+    for asset in ['twitch-verified.png', 'verifiedbtw.png']:
+        ref=obj('PBXFileReference',lastKnownFileType='image.png',path=os.path.relpath(root/'native/assets'/asset,stage),sourceTree='<group>')
+        refs.append(ref);asset_files.append(obj('PBXBuildFile',fileRef=ref))
     for name in SOURCES:
         ref=obj('PBXFileReference',lastKnownFileType='sourcecode.swift',path=os.path.relpath(root/name,stage),sourceTree='<group>');refs.append(ref)
         build=obj('PBXBuildFile',fileRef=ref)
@@ -43,7 +46,7 @@ def project(root, stage):
         return [obj('PBXSourcesBuildPhase',buildActionMask=2147483647,files=files,runOnlyForDeploymentPostprocessing=0),
                 obj('PBXFrameworksBuildPhase',buildActionMask=2147483647,files=[],runOnlyForDeploymentPostprocessing=0)]
     app=obj('PBXNativeTarget',name='InputTest',productName='InputTest',productReference=app_product,
-        productType='com.apple.product-type.application',buildConfigurationList=app_configs,buildPhases=phases(app_files),buildRules=[],dependencies=[])
+        productType='com.apple.product-type.application',buildConfigurationList=app_configs,buildPhases=phases(app_files)+[obj('PBXResourcesBuildPhase',buildActionMask=2147483647,files=asset_files,runOnlyForDeploymentPostprocessing=0)],buildRules=[],dependencies=[])
     # Container proxy points back to the eventual PBXProject object.
     proxy=obj('PBXContainerItemProxy',containerPortal='',proxyType=1,remoteGlobalIDString=app,remoteInfo='InputTest')
     dependency=obj('PBXTargetDependency',target=app,targetProxy=proxy)
@@ -125,6 +128,8 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Rendered thumbnail enlargement before preview admission must pass')
     if 'PREVIEW_PANEL PASS:' not in observed:
         raise ValueError('Actual interactive preview sizing/menu/scroll checks must pass')
+    if 'PREVIEW_SWIPES PASS:' not in observed or 'VERIFICATION_SETTINGS PASS:' not in observed:
+        raise ValueError('Swipe dismissal and verification-settings UI checks must pass')
     if 'CONTEXT_VIDEO PASS:' not in observed:
         raise ValueError('Actual changing decoded video and clipping checks must pass')
     return dict(EXPECTED)

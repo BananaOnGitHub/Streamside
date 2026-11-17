@@ -65,6 +65,23 @@ class NativeFeedContract(unittest.TestCase):
         u.emu_start(self.plan['abi']['_$s19TwitchAnalyticsCore13TrackableItemV4itemxvg']['address'],0x1200000,count=40)
         self.assertEqual(seen,[[0x1000500,0x1000600,payload_type]])
 
+    def test_actual_partner_getter_uses_runtime_field_offset_and_partner_bit(self):
+        # Hook only the inspected metadata accessor. Execute the donor's getter
+        # itself, with multiple synthetic offsets and affiliate/staff combinations.
+        for offset in [32, 160]:
+            for roles in [0, 1, 2, 4, 6, 7, 32]:
+                with self.subTest(offset=offset,roles=roles):
+                    u=self.machine('TwitchCore');user=0x1000100;metadata=0x1000500
+                    u.mem_write(metadata+0x3c,struct.pack('<i',offset));u.mem_write(user+offset,struct.pack('<I',roles))
+                    u.reg_write(UC_ARM64_REG_X20,user)
+                    def hook(vm,pc,size,unused):
+                        if pc==0x67b18:
+                            vm.reg_write(UC_ARM64_REG_X0,metadata)
+                            vm.reg_write(UC_ARM64_REG_PC,vm.reg_read(UC_ARM64_REG_X30))
+                    u.hook_add(UC_HOOK_CODE,hook)
+                    u.emu_start(self.plan['abi']['_$s10TwitchCore4UserV9isPartnerSbvg']['address'],0x1200000,count=40)
+                    self.assertEqual(u.reg_read(UC_ARM64_REG_X0),roles & 1)
+
     def test_changed_enum_case_or_generic_requirement_rejected(self):
         plan=copy.deepcopy(self.plan)
         plan['feed_contract']['enum_descriptors']['ThumbnailBlurReason']['cases'][2]='unknown'

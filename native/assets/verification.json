@@ -1,0 +1,17 @@
+{
+  "twitch-verified.png": {
+    "source": "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/3",
+    "owner": "Twitch",
+    "pixels": 72,
+    "sha256": "26411df94adf72b95e2a27defbd37029499e797958e460ce7bf8095397f674d0"
+  },
+  "verifiedbtw.png": {
+    "source": "https://cdn.7tv.app/emote/01GCR0DKM00006PE9P72Y03BED/2x.png",
+    "page": "https://7tv.app/emotes/01GCR0DKM00006PE9P72Y03BED",
+    "owner": "CrxstalStar via 7TV",
+    "upstream_name": "Verified",
+    "display_option": "VERIFIEDBTW",
+    "pixels": 64,
+    "sha256": "1e2540c0af12b9634a04771f8789db985a4966413663c254f6ea7839a48df917"
+  }
+}

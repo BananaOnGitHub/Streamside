@@ -10,6 +10,6 @@ def source_identity(frontend="swiftui"):
     digest.update((ROOT / "tools/workspace_paths.py").read_bytes())
     for directory in ("native", "tools/native_frontend"):
         for path in sorted((ROOT / directory).rglob("*")):
-            if path.is_file() and path.suffix in {".c", ".h", ".m", ".swift", ".json", ".py", ".tbd"}:
+            if path.is_file() and path.suffix in {".c", ".h", ".m", ".swift", ".json", ".py", ".tbd", ".png"}:
                 digest.update(str(path.relative_to(ROOT)).encode() + b"\0" + path.read_bytes())
     return digest.hexdigest()

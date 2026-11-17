@@ -77,7 +77,12 @@ private struct TheatreContent: View {
                                presentationChanged: { overlayPresented = $0 })
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text(currentChannel.displayName).font(.headline)
+                HStack(spacing: 10) {
+                    RemoteChannelImage(url: currentChannel.avatarURL, images: services.images,
+                        generation: services.imageGeneration, avatar: true)
+                        .frame(width: 32, height: 32).clipShape(Circle())
+                    VerifiedChannelName(channel: currentChannel).font(.headline)
+                }
                 Text(currentChannel.title).font(.subheadline).lineLimit(2)
                 HStack {
                     if playback.phase == 1 || playback.phase == 2 || playback.phase == 4 { ProgressView() }

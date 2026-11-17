@@ -513,6 +513,11 @@
       "image": "TwitchCore",
       "address": 345248,
       "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
+    "_$s10TwitchCore4UserV9isPartnerSbvg": {
+      "image": "TwitchCore",
+      "address": 426924,
+      "bytes": "fd7bbfa9fd030091000080d2d8fdff97"
     }
   },
   "gate": {

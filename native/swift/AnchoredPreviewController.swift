@@ -6,6 +6,25 @@ import UIKit
 struct PreviewPlacement {
     let card: CGRect
     let menu: CGRect
+    @MainActor static func viewport(in view: UIView) -> CGRect {
+        let safe = view.safeAreaInsets
+        return view.bounds.inset(by: UIEdgeInsets(top: safe.top + 12, left: safe.left + 16,
+            bottom: safe.bottom + 16, right: safe.right + 16))
+    }
+    // Before media admission, gently approach the expected video region. Exact
+    // content sizing happens on admission; the visible lift is then handed over.
+    static func holdTarget(viewport: CGRect, source: CGRect) -> CGRect {
+        let width = min(380, viewport.width)
+        let card = CGSize(width: width, height: width * 9 / 16 + 150)
+        guard let placement = make(viewport: viewport, source: source, card: card,
+            menu: CGSize(width: min(280, width * 0.75), height: 112)) else { return source }
+        let size = CGSize(width: min(source.width * 1.14, width), height: min(source.width * 1.14, width) * 9 / 16)
+        let dx = max(-24, min(24, (placement.card.midX - source.midX) * 0.18))
+        let dy = max(-24, min(24, (placement.card.minY + width * 9 / 32 - source.midY) * 0.18))
+        return CGRect(x: min(max(source.midX + dx - size.width / 2, viewport.minX), viewport.maxX - size.width),
+            y: min(max(source.midY + dy - size.height / 2, viewport.minY), viewport.maxY - size.height),
+            width: size.width, height: size.height)
+    }
     static func collapsedCenter(source: CGRect, card: CGSize) -> CGPoint {
         let scale = source.width / max(1, card.width)
         return CGPoint(x: source.midX, y: source.minY + card.height * scale / 2)
@@ -54,7 +73,7 @@ private struct PreviewActions: View {
 final class AnchoredPreviewController: UIViewController {
     private let content: UIViewController
     private weak var source: UIView?
-    private let initialLiftFrame: CGRect?
+    private let initialLift: UIView?
     private let onWatch: () -> Void
     private let onDismiss: () -> Void
     private let observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
@@ -70,8 +89,8 @@ final class AnchoredPreviewController: UIViewController {
     private var appeared = false
 
     init(content: UIViewController, source: UIView, watch: @escaping () -> Void, dismiss: @escaping () -> Void,
-         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLiftFrame: CGRect? = nil) {
-        self.initialLiftFrame = initialLiftFrame
+         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil) {
+        self.initialLift = initialLift
         self.content = content; self.source = source; onWatch = watch; onDismiss = dismiss; self.observeTarget = observeTarget
         super.init(nibName: nil, bundle: nil)
     }
@@ -105,8 +124,7 @@ final class AnchoredPreviewController: UIViewController {
         root.view.addSubview(view); didMove(toParent: root)
         endAppearanceTransition(); appeared = true; view.layoutIfNeeded()
         sourceFrame = source.convert(source.bounds, to: view)
-        let safe = view.safeAreaInsets
-        let viewport = view.bounds.inset(by: UIEdgeInsets(top: safe.top + 12, left: safe.left + 16, bottom: safe.bottom + 16, right: safe.right + 16))
+        let viewport = PreviewPlacement.viewport(in: view)
         let width = content.preferredContentSize.width
         let menuWidth = traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? width : min(280, width * 0.75)
         guard let actions = actions as? UIHostingController<PreviewActions>,
@@ -126,8 +144,8 @@ final class AnchoredPreviewController: UIViewController {
         actions.view.layer.shadowColor = UIColor.black.cgColor; actions.view.layer.shadowOpacity = 0.15
         actions.view.layer.shadowRadius = 14; actions.view.layer.shadowOffset = CGSize(width: 0, height: 6)
         view.layoutIfNeeded()
-        let liftFrame = initialLiftFrame.map { view.convert($0, from: source.window) } ?? sourceFrame
-        lifted = source.snapshotView(afterScreenUpdates: false)
+        let liftFrame = initialLift.map { view.convert($0.frame, from: source.window) } ?? sourceFrame
+        lifted = initialLift ?? source.snapshotView(afterScreenUpdates: false)
         if let lifted {
             lifted.frame = liftFrame; lifted.isUserInteractionEnabled = false
             lifted.layer.cornerCurve = .continuous; lifted.layer.cornerRadius = 7; lifted.layer.masksToBounds = true

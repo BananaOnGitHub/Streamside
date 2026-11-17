@@ -88,22 +88,40 @@ import UIKit
         }
     }
     func holdFeedback() {
-        guard let root = window?.rootViewController else { fatalError("Missing fixture root") }
-        let source = ThumbnailActions.SourceView(frame: CGRect(x: 40, y: 200, width: 160, height: 90))
-        root.view.addSubview(source); source.beginPress(reduceMotion: false)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
-            let lifted = source.takePressFrame()
-            self.check((lifted?.width ?? 0) > 160.8 && (lifted?.width ?? 999) < 170, "Actual hold expansion is small and survives capture")
-            self.check(source.transform == .identity, "Capture restores layout source without retaining scale")
-            source.beginPress(reduceMotion: true)
-            self.check(source.transform == .identity, "Reduce Motion skips preliminary enlargement")
-            source.resetPress(); source.beginPress(reduceMotion: false); source.endPress()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
-                self.check(source.transform == .identity, "An early release settles the source without opening playback")
-                source.beginPress(reduceMotion: false)
-                NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
-                self.check(source.transform == .identity, "Inactive app clears pending hold feedback")
-                source.removeFromSuperview(); self.sourceTarget()
+        guard let window, let root = window.rootViewController else { fatalError("Missing fixture root") }
+        let clip = UIView(frame: CGRect(x: 40, y: 200, width: 160, height: 90)); clip.clipsToBounds = true
+        let source = ThumbnailActions.SourceView(frame: clip.bounds); source.backgroundColor = .systemIndigo
+        root.view.addSubview(clip); clip.addSubview(source)
+        let original = source.convert(source.bounds, to: window)
+        // snapshotView captures already rendered content; admit a display turn.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            source.beginPress(reduceMotion: false)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                let lifted = source.takePressLift()
+                self.check((lifted?.frame.width ?? 0) > 162 && (lifted?.frame.width ?? 999) < 183, "Intermediate hold enlarges gradually and survives capture")
+                self.check(!clip.bounds.contains(source.convert(lifted?.frame ?? .zero, from: window)), "Lift extends beyond clipping ancestor")
+                self.check(source.transform == .identity && source.layer.opacity == 1, "Capture restores unchanged layout source")
+                let content = QuickLookController(content: UIViewController(), size: CGSize(width: 370, height: 360))
+                let preview = AnchoredPreviewController(content: content, source: source, watch: {}, dismiss: {}, observeTarget: nil, initialLift: lifted)
+                self.check(preview.install(in: root) && lifted?.isDescendant(of: preview.view) == true, "Opening reuses the lifted object")
+                preview.dismiss(watching: false) {
+                    self.check(!source.isHidden && source.convert(source.bounds, to: window) == original, "Return preserves source geometry")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        source.beginPress(reduceMotion: true)
+                        self.check(source.takePressLift() == nil && source.layer.opacity == 1, "Reduce Motion skips preliminary enlargement")
+                        source.beginPress(reduceMotion: false)
+                        self.check(source.layer.opacity == 0, "Early-release test must first install a lift")
+                        source.endPress()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            self.check(source.layer.opacity == 1 && source.takePressLift() == nil, "Early release removes passive lift and restores source")
+                            source.beginPress(reduceMotion: false)
+                            self.check(source.layer.opacity == 0, "Inactive test must first install a lift")
+                            NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+                            self.check(source.takePressLift() == nil && source.layer.opacity == 1, "Inactive app removes pending hold snapshot")
+                            clip.removeFromSuperview(); self.sourceTarget()
+                        }
+                    }
+                }
             }
         }
     }

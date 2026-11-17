@@ -18,6 +18,8 @@ struct ThumbnailActions: UIViewRepresentable {
         var previewActivate: (() -> Void)?
         var observeHold: ((UIView) -> Void)?
         private var pressAnimator: UIViewPropertyAnimator?
+        private var pressLift: UIView?
+        private var sourceOpacity: Float = 1
         private var pressing = false
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -25,43 +27,55 @@ struct ThumbnailActions: UIViewRepresentable {
                 name: UIApplication.willResignActiveNotification, object: nil)
         }
         required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
-        // Feedback while the long press is still possible; this never recognizes
-        // a gesture, claims playback, or delays the containing scroll view.
+        // Keep feedback outside SwiftUI's thumbnail/row clips. This is a passive
+        // child of the existing window, never another window or a media request.
         func beginPress() { beginPress(reduceMotion: UIAccessibility.isReduceMotionEnabled) }
         func beginPress(reduceMotion: Bool) {
-            guard !pressing, window != nil, !isHidden else { return }
-            resetPress(); pressing = true; observeHold?(self)
-            guard !reduceMotion else { return }
-            let animator = UIViewPropertyAnimator(duration: 0.34, dampingRatio: 1) {
-                self.transform = CGAffineTransform(scaleX: 1.045, y: 1.045)
-            }
-            pressAnimator = animator; animator.startAnimation(afterDelay: 0.06)
+            guard !pressing, let window, !isHidden else { return }
+            resetPress(); pressing = true
+            guard !reduceMotion, let lift = snapshotView(afterScreenUpdates: false) else { return }
+            let frame = convert(bounds, to: window)
+            lift.frame = frame; lift.isUserInteractionEnabled = false; lift.accessibilityElementsHidden = true
+            lift.layer.cornerRadius = 7; lift.layer.cornerCurve = .continuous; lift.layer.masksToBounds = true
+            window.addSubview(lift); pressLift = lift
+            sourceOpacity = layer.opacity; layer.opacity = 0
+            observeHold?(lift)
+            // A slow outward pull throughout the possible phase, without a
+            // spring bounce or an inward press. Recognition continues this view.
+            let target = PreviewPlacement.holdTarget(viewport: PreviewPlacement.viewport(in: window), source: frame)
+            let animator = UIViewPropertyAnimator(duration: 0.4, curve: .easeIn) { lift.frame = target }
+            pressAnimator = animator; animator.startAnimation(afterDelay: 0.05)
         }
-        // Return the displayed rectangle before resetting the layout view. The
-        // preview snapshot starts here, so recognition does not snap back first.
-        func takePressFrame() -> CGRect? {
-            let frame = window.map { window in
-                let shown = layer.presentation() ?? layer
-                return shown.convert(shown.bounds, to: window.layer)
-            }
-            resetPress(); return frame
+        // Freeze the actual onscreen snapshot and transfer that same object to
+        // the presenter. Do not recreate it from the clipped layout source.
+        func takePressLift() -> UIView? {
+            guard let lift = pressLift else { resetPress(); return nil }
+            freezeLift(lift); pressLift = nil; pressing = false
+            layer.opacity = sourceOpacity; lift.removeFromSuperview(); return lift
         }
         func endPress() {
-            guard pressing else { return }
-            pressing = false
-            let shown = layer.presentation().map { CATransform3DGetAffineTransform($0.transform) } ?? transform
-            stopPressAnimation()
-            transform = shown
-            guard !UIAccessibility.isReduceMotionEnabled, window != nil else { transform = .identity; return }
-            let animator = UIViewPropertyAnimator(duration: 0.3, dampingRatio: 1) { self.transform = .identity }
+            guard pressing, let lift = pressLift, let window, lift.window === window,
+                  !UIAccessibility.isReduceMotionEnabled else { resetPress(); return }
+            pressing = false; freezeLift(lift)
+            let target = convert(bounds, to: window)
+            let animator = UIViewPropertyAnimator(duration: 0.22, dampingRatio: 1) { lift.frame = target }
+            animator.addCompletion { [weak self, weak lift] _ in
+                guard let self, let lift, self.pressLift === lift else { return }
+                self.resetPress()
+            }
             pressAnimator = animator; animator.startAnimation()
+        }
+        private func freezeLift(_ lift: UIView) {
+            let frame = lift.layer.presentation().map { $0.convert($0.bounds, to: lift.superview?.layer) } ?? lift.frame
+            stopPressAnimation(); lift.frame = frame
         }
         private func stopPressAnimation() {
             if let animator = pressAnimator, animator.state == .active { animator.stopAnimation(true) }
             pressAnimator = nil
         }
         @objc func resetPress() {
-            pressing = false; stopPressAnimation(); transform = .identity
+            pressing = false; stopPressAnimation()
+            if let lift = pressLift { lift.removeFromSuperview(); pressLift = nil; layer.opacity = sourceOpacity }
         }
         @objc func accessibilityPreview(_ action: UIAccessibilityCustomAction) -> Bool { previewActivate?(); return true }
         override func accessibilityActivate() -> Bool { activate?(); return true }
@@ -84,13 +98,13 @@ struct ThumbnailActions: UIViewRepresentable {
         }
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
             super.touchesMoved(touches, with: event)
-            if state == .failed || state == .cancelled { (view as? SourceView)?.endPress() }
+            if state == .failed || state == .cancelled { (view as? SourceView)?.resetPress() }
         }
         override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
             super.touchesEnded(touches, with: event); (view as? SourceView)?.endPress()
         }
         override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
-            super.touchesCancelled(touches, with: event); (view as? SourceView)?.endPress()
+            super.touchesCancelled(touches, with: event); (view as? SourceView)?.resetPress()
         }
         override func reset() {
             (view as? SourceView)?.endPress(); super.reset()
@@ -103,7 +117,7 @@ struct ThumbnailActions: UIViewRepresentable {
         init(_ owner: ThumbnailActions) { self.owner = owner }
         @objc func tap(_ gesture: UITapGestureRecognizer) {
             guard gesture.state == .ended, session == nil else { return }
-            owner.open()
+            (gesture.view as? SourceView)?.resetPress(); owner.open()
         }
         func activate() { if session == nil { owner.open() } }
         @objc func hold(_ gesture: UILongPressGestureRecognizer) {
@@ -111,14 +125,14 @@ struct ThumbnailActions: UIViewRepresentable {
             preview(from: source)
         }
         func preview(from source: UIView) {
-            let liftedFrame = (source as? SourceView)?.takePressFrame()
+            let lift = (source as? SourceView)?.takePressLift()
             guard session == nil, let root = source.window?.rootViewController,
                   let created = owner.preview(source) else { return }
             session = created
             let presenter = AnchoredPreviewController(content: created.controller, source: source,
                 watch: { [weak self] in self?.finish(watch: true) },
                 dismiss: { [weak self] in self?.finish(watch: false) }, observeTarget: owner.observeTarget,
-                initialLiftFrame: liftedFrame)
+                initialLift: lift)
             self.presenter = presenter
             created.dismissPreview = { [weak self, weak presenter, weak created] in
                 presenter?.dismiss(watching: false) { [weak self, weak created] in self?.clear(created) }

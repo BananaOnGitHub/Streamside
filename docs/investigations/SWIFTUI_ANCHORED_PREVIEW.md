@@ -241,3 +241,61 @@ smooth return and continued audio. Repeat with Watch stream and a video tap:
 only the full theatre should take over audio, retaining the same stream/player.
 Also check early release/scroll, Reduce Motion, background/reopen and export Native
 diagnostics. Actual IVS/audio behavior and device motion quality remain pending.
+
+
+## Visible outward hold: clipping correction
+
+2026-11-17. The [next device report](SWIFTUI_PREVIEW_HOLD_DEVICE_REVIEW.json)
+matches source `e50bcc2d0fa03590f84d7c50233b4a96d43411a0`, proof and donor.
+Preview audio no longer interrupts other media; dismissal looks smoother. Hold
+feedback still appears as an inward crop/bounce instead of a gradual outward
+pull. The export has zero failures, native root/guard ownership, matching baseline
+calibration enabled and all 25 probes zero. Four background transitions and seven
+foregrounds are recorded. The original bounded report is retained privately with
+its SHA-256. The preceding simulator pass did not establish visible preliminary
+motion in the real feed.
+
+Source inspection found two production clipping boundaries: RemoteChannelImage's
+`.clipped()` and the thumbnail's rounded clip. Scaling SourceView within these
+bounds hides the enlarged edges. The earlier fixture animated a bare representable
+and checked its presentation transform; it omitted those clips. That fixture gap
+explains why a passing geometric check was insufficient, although no on-device
+frame recording was supplied to isolate every part of the reported bounce.
+
+The preliminary animation now uses a passive snapshot added to the existing
+window above the clipped feed. The source keeps its layout, transform and hit
+gestures; its image is hidden only while the snapshot stands in for it. There
+is no new window, root, modal, player or request during this possible phase.
+[Apple's snapshot API](https://developer.apple.com/documentation/uikit/uiview/snapshotview(afterscreenupdates:))
+supplies the rendered visual stand-in. After 50 milliseconds, a 0.4-second ease-in
+progressively enlarges it by up to 14 percent and shifts it toward the estimated
+preview video region, with bounded displacement and safe-area clamping. This
+replaces the spring press; it does not shrink inward or settle to a preliminary
+scale early. Exact card sizing is still deferred until actual preview admission.
+
+At recognition, the actual visible snapshot rectangle is frozen and the same
+view object is moved into the existing presenter. The full preview continues
+from that position rather than recapturing the clipped source. Early tap removes
+feedback before Watch; early release returns it, scroll failure/cancellation or
+inactivity removes it immediately. Source disappearance also removes it. Reduce
+Motion skips the pull and retains the existing preview fade. The established
+0.52-second dismissal spring, authenticated playback, single-player handoff,
+audio mixing/promotion, account/root guards and RN instrumentation are unchanged.
+
+The real-video UI fixture now includes both SwiftUI clipping modifiers. Its hold
+probe must observe progressive width and position changes AND rendered indigo
+fixture pixels beyond the original clipped right edge before player admission.
+Captures are bounded to three transient owned-fixture images; no device/feed
+artwork is captured by production diagnostics. A layer target alone cannot pass.
+UIKit transaction checks cover clipped-source coordinates, reuse of the same
+lifted object, early release, inactive cleanup and Reduce Motion. Existing
+video clipping, outside return, long-details scrolling, handoff, lifecycle and
+player-control gates remain mandatory.
+
+All 76 Linux-compatible frontend tests passed after this correction, along with
+documentation/link and whitespace checks. Apple compilation and the strengthened
+simulator fixture are pending submission. No new IPA or device visual acceptance
+is claimed. Physical review should hold without releasing: the thumbnail should
+pull outward toward the preview until it opens, then stay open on release. Also
+check short tap/scroll, early cancellation, Reduce Motion and the already-confirmed
+external-audio behavior.

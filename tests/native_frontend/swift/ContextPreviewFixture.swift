@@ -117,24 +117,58 @@ private final class FixtureVideo: UIView {
     func finish() { link?.invalidate(); link = nil }
 }
 
-// Sample the real source layer while the gesture is still possible, before
-// preview admission creates any player. A target transform alone is not a pass.
+// The production thumbnail is clipped twice. Require visible fixture artwork
+// outside its original rectangle during the hold, not only a larger layer.
 @MainActor private final class HoldMotionProbe: NSObject {
     private weak var source: UIView?
     private var link: CADisplayLink?
     private var samples = 0
+    private var original = CGRect.zero
+    private var firstWidth: CGFloat?
+    private var grew = false
+    private var moved = false
+    private var visibleOutside = false
+    private var captures = 0
     private(set) var expanded = false
     func begin(_ source: UIView) {
-        finish(); self.source = source; expanded = false; samples = 0
+        finish(); self.source = source; original = source.frame; samples = 0
+        firstWidth = nil; grew = false; moved = false; visibleOutside = false; captures = 0; expanded = false
         link = CADisplayLink(target: self, selector: #selector(sample))
         link?.add(to: .main, forMode: .common)
     }
     @objc private func sample() {
         samples += 1
-        guard samples < 120, let source else { finish(); return }
+        guard samples < 120, let source, let window = source.window else { finish(); return }
         guard let shown = source.layer.presentation() else { return }
-        let scale = CATransform3DGetAffineTransform(shown.transform).a
-        if scale > 1.005 && scale < 1.06 { expanded = true }
+        let rect = shown.convert(shown.bounds, to: window.layer)
+        if firstWidth == nil { firstWidth = rect.width }
+        grew = grew || rect.width > (firstWidth ?? rect.width) + 2
+        moved = moved || hypot(rect.midX - original.midX, rect.midY - original.midY) > 1
+        // Sample no more than three owned-fixture images, and only once the
+        // animated image has crossed the clipped source's original right edge.
+        if !visibleOutside, captures < 3, rect.maxX > original.maxX + 5, rect.width > original.width * 1.025 {
+            captures += 1
+            let point = CGPoint(x: (original.maxX + rect.maxX) / 2, y: rect.midY)
+            let format = UIGraphicsImageRendererFormat(); format.scale = 1
+            var complete = false
+            let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+                complete = window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
+            }
+            if complete, let pixel = image.cgImage?.cropping(to: CGRect(x: point.x, y: point.y, width: 1, height: 1)) {
+                var bytes = [UInt8](repeating: 0, count: 4)
+                bytes.withUnsafeMutableBytes { buffer in
+                    if let context = CGContext(data: buffer.baseAddress, width: 1, height: 1, bitsPerComponent: 8,
+                        bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) {
+                        context.draw(pixel, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+                    }
+                }
+                // The source artwork is indigo; surrounding fixture content is
+                // system background. A clipped enlargement cannot pass this.
+                visibleOutside = bytes[2] > 175 && bytes[0] < 155 && bytes[1] < 155
+            }
+        }
+        expanded = grew && moved && visibleOutside
     }
     func finish() { link?.invalidate(); link = nil }
 }
@@ -191,7 +225,7 @@ private final class FixtureVideo: UIView {
     }
     func preview(_ source: UIView) -> ContextPreviewSession? {
         guard let movie, player == nil else { return nil }
-        holdProbe.finish(); holdResult = holdProbe.expanded ? "Thumbnail lifted before preview" : "No hold lift observed"
+        holdProbe.finish(); holdResult = holdProbe.expanded ? "Visible outward pull before preview" : "No visible outward pull"
         valid = true
         let player = AVQueuePlayer(); player.isMuted = true
         let surface = FixtureVideo(); surface.videoLayer.player = player; surface.videoLayer.videoGravity = .resizeAspect
@@ -258,7 +292,9 @@ struct ContextPreviewFixtureView: View {
                 VStack(spacing: 24) {
                     ThumbnailActions(image: fixture.image, label: "Stream thumbnail", open: fixture.directWatch,
                                      preview: fixture.preview, observeTarget: fixture.target, observeHold: fixture.holding)
-                        .frame(width: 160, height: 90).accessibilityIdentifier("preview-thumbnail")
+                        .frame(width: 160, height: 90)
+                        .clipped().clipShape(RoundedRectangle(cornerRadius: 7))
+                        .accessibilityIdentifier("preview-thumbnail")
                         .padding(.top, 40)
                     ForEach(0..<30) { Text("Scroll row \($0)").frame(height: 50) }
                 }.frame(maxWidth: .infinity)

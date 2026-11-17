@@ -426,3 +426,24 @@ hold briefly and begin scrolling before it opens: the lifted thumbnail should
 shrink back into the moving row rather than vanish. Check short tap, early release,
 Reduce Motion, outside dismissal, Watch/video-tap handoff and audio preservation.
 Export Native diagnostics afterward. Device acceptance for this package is pending.
+
+
+### Centered hold: device acceptance
+
+The [device acceptance record](SWIFTUI_PREVIEW_CENTERED_HOLD_DEVICE_REVIEW.json)
+matches source `d14c369a5e2def1ea0e5bd53d2165156ce20a858`, proof, donor and the
+previously delivered IPA identity. The centered expansion and animated scroll
+return were accepted visually. This closes the interaction refinement for this
+candidate; no further animation change or replacement build was made.
+
+The export records zero failures, native root ownership with the guard armed,
+100 followed channels and six balanced playback loads/playing/decoded/releases/
+stops. No current or retained playback error or mute mismatch is recorded. All
+25 probe counts are zero, with all four images armed. Baseline calibration is
+false in this export, so it records no observed RN/Hermes/worklet activity rather
+than independently proving calibrated runtime absence. No background transition
+is recorded; this acceptance does not imply another lifecycle/accessibility test
+pass. The prior external-audio confirmation remains attached to its original
+source/report. Raw device evidence is preserved privately with its SHA-256; only
+the bounded summary is committed. Earlier pending-at-packaging statements retain
+their historical scope and are followed by this acceptance result.

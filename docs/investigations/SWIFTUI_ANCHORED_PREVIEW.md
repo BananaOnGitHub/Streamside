@@ -383,3 +383,46 @@ validation passed. Apple compilation and the adjusted simulator gates are pendin
 no replacement IPA or device acceptance is claimed. Physical review should check
 that hold feedback is restrained and centered, that scrolling shrinks it smoothly
 back into the moving row, and that playback/audio behavior stays intact.
+
+
+### Centered hold: successful Apple validation and package
+
+Source `d14c369a5e2def1ea0e5bd53d2165156ce20a858` passed
+[Codemagic build 6afc0b4b01609fea8f694ff9](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afc0b4b01609fea8f694ff9).
+The [centered-hold validation record](SWIFTUI_PREVIEW_CENTERED_HOLD_VALIDATION.json)
+preserves exact source, donor, toolchain, component archive and IPA identities.
+The previous outward-hold implementation and device findings remain historical.
+
+All five Apple stages and all four mandatory UI tests passed with zero failures:
+glass controls (183.824 seconds), plain controls (148.090), preview panel/actions
+(72.858), and thumbnail hold/tap (48.214). The centered expansion remained below
+5.2 percent and produced visible artwork outside the clipped source. Held-scroll
+cancellation did not admit playback. UIKit transaction checks passed repeated
+cancellation, intermediate shrink, following a changing scroll offset and final
+snapshot cleanup/source restoration. Existing source return, real decoded-video
+clipping, details, shared-player handoff, audio policy, account/root, launch and
+networking gates also passed. Ubuntu component/source verification and all 55
+post-download tests passed. These simulator results do not establish device feel
+or actual Twitch IVS behavior.
+
+Native-only assembly checked the exact local donor hash again and validated all
+54 ABI/25 probe entries, retained image identities and unchanged original HBC.
+The IPA is 196,890,327 bytes, SHA-256
+`3879d296d5940476c459b111b6ec52816672e6fa10693dfa7f5cd07405a7f428`.
+No independent baseline IPA or signing-material upload was made.
+
+Reproduce from the source after verified component retrieval:
+
+```sh
+python3 tools/native_frontend/build.py --frontend swiftui --mode native \
+  --components ../artifacts/ci/d14c369a5e2def1ea0e5bd53d2165156ce20a858/download/components \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --output ../artifacts/native-frontend/quick-look-centered-hold-d14c369
+```
+
+Install with Feather using the existing application identity. Hold a live
+thumbnail: it should enlarge slightly in place before opening the preview. Also
+hold briefly and begin scrolling before it opens: the lifted thumbnail should
+shrink back into the moving row rather than vanish. Check short tap, early release,
+Reduce Motion, outside dismissal, Watch/video-tap handoff and audio preservation.
+Export Native diagnostics afterward. Device acceptance for this package is pending.

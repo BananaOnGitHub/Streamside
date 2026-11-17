@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "c03d67de6aed0d81b89d601b2db3671261c92333",
+  "packaging_revision": "c03d67de6aed0d81b89d601b2db3671261c92333",
+  "proof_id": "3776a2b98c2677aa053a383b0fddd20bf919e15147550a9f6cce6d41b73ab54c",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "abi_entries": 55,
+    "probe_entries": 25
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afccb7fd133a39c4a126579",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afccb7fd133a39c4a126579",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "tests": {
+    "linux_native_frontend": 80,
+    "provider_routing": 12,
+    "ubuntu_download_verification": 58,
+    "apple": {
+      "schema": 1,
+      "source_revision": "c03d67de6aed0d81b89d601b2db3671261c92333",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.674
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 927.466
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 8.629
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.072
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.115
+        }
+      ],
+      "archive_sha256": "dacf1e1b08d044a0c36b2753c9689e378ccf3a4dabba6ab604b925f2bf0046bd",
+      "archive_bytes": 1116108
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "passed": true,
+        "hold_cancellation": true,
+        "single_handoff": true,
+        "lifecycle_cancellation": true,
+        "failures": [],
+        "dismiss_before_handoff": true,
+        "all_tags_wrap": true,
+        "teardown": true,
+        "source_target": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 4,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true,
+        "source_anchored_preview": true,
+        "source_animation": true,
+        "hold_feedback": true,
+        "swipe_dismissal": true,
+        "verification_settings": true,
+        "real_video_clipping": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "local_pause_resume": 1,
+        "stream_only_mute": true,
+        "source_encoding": true,
+        "cancellation": true,
+        "theatre_audio_promotion": true,
+        "passed": true,
+        "account_stop": true,
+        "playing_observed": true,
+        "background_resume": 1,
+        "control_intent_retained": true,
+        "teardown": true,
+        "preview_mixes_audio": 1,
+        "preview_muted_before_load": true
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    }
+  },
+  "artifacts": {
+    "ipa": {
+      "path": "artifacts/native-frontend/preview-swipes-verification-c03d67d/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196921256,
+      "sha256": "60f24c3f22dfdac3fb9f977e12abdb508ac02b184461f72ea99efde44e26a134"
+    },
+    "framework_sha256": "3a53cf2a0b5e5bede9df3cff698c44c41a2e2cb4da640a4495047d3fc9bf7f04",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "492058d33ec46029555c78f52ce4697cb06709c8f0c41614c93d6fe77f3bfa28",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "ae2cad3bed186700f8b17a73f02a238fe3519da7355afbc8df52634933685587",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "6e88b42a3ca2e222c7cc0692e8e4ffa12e5e2b308f2fcd627549c206cbd9cd0a",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "29af1a803e51d8e4f15635d8aa6851b684daad5d8ac344e40557b046e11e0099"
+    },
+    "component_manifest_sha256": "a32e56db14d5e54587316621f05cd626942f80fae69175b2347dc15885306a7c",
+    "public_artwork": {
+      "twitch-verified.png": {
+        "source": "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/3",
+        "owner": "Twitch",
+        "pixels": 72,
+        "sha256": "26411df94adf72b95e2a27defbd37029499e797958e460ce7bf8095397f674d0"
+      },
+      "verifiedbtw.png": {
+        "source": "https://cdn.7tv.app/emote/01GCR0DKM00006PE9P72Y03BED/2x.png",
+        "page": "https://7tv.app/emotes/01GCR0DKM00006PE9P72Y03BED",
+        "owner": "CrxstalStar via 7TV",
+        "upstream_name": "Verified",
+        "display_option": "VERIFIEDBTW",
+        "pixels": 64,
+        "sha256": "1e2540c0af12b9634a04771f8789db985a4966413663c254f6ea7839a48df917"
+      }
+    }
+  },
+  "package_checks": {
+    "abi_entries": 55,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+  "device_validation": "Pending: directional swipe feel, short drag cancellation, all tags/details scrolling, Watch handoff, stream avatar, verified eligibility and all artwork options across feed/preview/theatre, audio/session/lifecycle and RN/Hermes diagnostics."
+}

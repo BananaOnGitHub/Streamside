@@ -142,3 +142,39 @@ All 80 native frontend host tests passed again after this correction (9.431s).
 Documentation validation checked 119 Markdown files and 1,158 references with zero
 errors; whitespace validation passed. A replacement Apple run is required;
 physical-device acceptance remains pending.
+
+## Successful replacement and local test package
+
+[Codemagic build 6afccb7fd133a39c4a126579](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afccb7fd133a39c4a126579)
+passed using exact source `c03d67de6aed0d81b89d601b2db3671261c92333`.
+Xcode 26.6 (17F113), Swift 6.3.3 and iPhoneOS SDK 26.5 compiled and linked both
+instrumented component modes for arm64 iOS 16.4. No donor was uploaded.
+All mandatory Apple stages passed, including the four UI cases, left/right/up/down
+swipe cancellation, General artwork/Off selection, ordinary-channel suppression,
+long-details scrolling, source hold/return animation, real changing decoded-video
+clipping and the shared-player Watch transition. Existing playback/audio,
+account/background cancellation, launch-selection, ownership, networking and
+control-motion gates also passed. These are donor-free simulator observations.
+
+Ubuntu downloaded and admitted the exact source/toolchain-matched components;
+58 ABI/component/core/launch/probe/comparison checks passed. Local packaging then
+validated the original donor and all 55 ABI entries and 25 probes. Every retained
+donor entry was checked, including the unchanged original HBC. Only the native IPA
+was assembled; the last device-accepted centered-hold build remains a rollback.
+
+The test IPA is 196,921,256 bytes, SHA-256
+`60f24c3f22dfdac3fb9f977e12abdb508ac02b184461f72ea99efde44e26a134`.
+The framework SHA-256 is
+`3a53cf2a0b5e5bede9df3cff698c44c41a2e2cb4da640a4495047d3fc9bf7f04`.
+The [compact validation record](SWIFTUI_PREVIEW_SWIPES_VERIFICATION_VALIDATION.json)
+contains exact build, proof, donor, artwork, component and package identities and
+all Apple stage/receipt results. IPA/components remain outside the repository.
+Physical-device acceptance is still pending; simulator results do not establish
+real Twitch playback, session behavior or RN/Hermes runtime absence on device.
+
+Install with Feather using the existing application/keychain identity. Hold a live
+thumbnail and swipe the preview in each direction; also try a small drag that
+returns, scrolling long details, outside dismissal and Watch. In Settings →
+General, try Twitch, VERIFIEDBTW and Off, checking a verified and an ordinary
+channel in the feed, preview and stream page. Confirm the stream-page avatar and
+existing audio/lifecycle behavior, then export Native diagnostics after review.

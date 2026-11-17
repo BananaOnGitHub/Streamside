@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+  "packaging_revision": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+  "proof_id": "6a29f9763e26021e05b91a34faae16b942294785c470e4b3be7a78d3b0ea566d",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "new_abi_entries": false
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afbfea401609fea8f694bb5",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afbfea401609fea8f694bb5",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "tests": {
+    "linux_native_frontend": 76,
+    "ubuntu_download_verification": 55,
+    "apple": {
+      "schema": 1,
+      "source_revision": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.811
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 990.898
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 9.175
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.049
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.148
+        }
+      ],
+      "archive_sha256": "7c2b4744a0ae856e802bbb164b8fff7232cc9ca1bf91adfaa1b173743c4872ff",
+      "archive_bytes": 1053752
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "all_tags_wrap": true,
+        "single_handoff": true,
+        "source_target": true,
+        "hold_cancellation": true,
+        "teardown": true,
+        "failures": [],
+        "lifecycle_cancellation": true,
+        "passed": true,
+        "dismiss_before_handoff": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 4,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true,
+        "source_anchored_preview": true,
+        "source_animation": true,
+        "hold_feedback": true,
+        "real_video_clipping": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "local_pause_resume": 1,
+        "stream_only_mute": true,
+        "source_encoding": true,
+        "cancellation": true,
+        "theatre_audio_promotion": true,
+        "passed": true,
+        "account_stop": true,
+        "playing_observed": true,
+        "background_resume": 1,
+        "control_intent_retained": true,
+        "teardown": true,
+        "preview_mixes_audio": 1,
+        "preview_muted_before_load": true
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "hold_scope": "Production-style double clipping; progressive presentation-layer growth/translation and rendered indigo artwork beyond the original clipped edge before player creation. Same snapshot object transferred to preview; early release, inactivity and Reduce Motion cleanup checked.",
+    "decoded_video_scope": "Owned H.264 AVPlayerLayer fixture through production preview surface/card/controller. Native AVAudioSession with synthetic IVS/GraphQL doubles. No Twitch donor execution in simulator."
+  },
+  "artifact": {
+    "bytes": 196890116,
+    "sha256": "da234fe9ec5f3ee009ec0790e45ba5182d8c22f431173fde48cc780e9d8f3cd3",
+    "framework_sha256": "52ec2dee5cfcb07eb991a829f4ff19e420945c122a7acbe2df246642e0854c1d",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "a2f7127c644c3665acbdb4a1edfb729d6b0ca6d290fc8f03784256e7d3a05993",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "216492c2b5d4907ccbfa8fb1a952d2a08974ef4049b804866eae35a758bb2997",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "4b3b56acec9ec857cc924a535d5082cd9a439b27d6c93d57c087363b8a9c5347",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "5fff220e98af5e10acd6b62762a1bff0b5cf742cfb52ab9e3e5a7c3329f0e65d"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "relative_path": "native-frontend/quick-look-outward-hold-5ea0a88/StreamsideNativeProof-Twitch32-native.ipa"
+  },
+  "inspection": {
+    "abi_entries": 54,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "component_manifest_sha256": "9ac6fdcec3e4fe68feebcc75ed110e91fb73f8bb43931440e3554ae7a3b2ee7f",
+  "device_validation": "Pending for this candidate: gradual outward hold feel and continuous transition into live IVS preview, dismissal, tap/scroll and cancellation, audio preservation, single-player handoff and calibrated runtime diagnostics. External-audio behavior was confirmed for prior e50bcc2 and is unchanged here."
+}

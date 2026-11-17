@@ -299,3 +299,46 @@ is claimed. Physical review should hold without releasing: the thumbnail should
 pull outward toward the preview until it opens, then stay open on release. Also
 check short tap/scroll, early cancellation, Reduce Motion and the already-confirmed
 external-audio behavior.
+
+
+### Outward hold: successful Apple validation and package
+
+Source `5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99` passed
+[Codemagic build 6afbfea401609fea8f694bb5](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afbfea401609fea8f694bb5).
+The [outward-hold validation record](SWIFTUI_PREVIEW_OUTWARD_HOLD_VALIDATION.json)
+retains this candidate's exact source, toolchain, donor and artifact identities.
+The previous device findings and package hashes remain unchanged.
+
+All five Apple stages and all four UI tests passed with zero failures: glass
+controls (186.509 seconds), plain controls (158.192), preview panel/actions
+(79.277), and thumbnail hold/tap (45.138). The strengthened clipped-source test
+observed progressive outward growth/translation and rendered artwork beyond the
+original thumbnail edge before player creation. Same-object transfer, cancellation,
+Reduce Motion, actual decoded-video clipping, full-details scrolling and both
+single-player Watch paths passed. Audio mixing/promotion and all existing
+root/launch/playback/networking gates also passed. Ubuntu verified the component
+archive/source receipts and all 55 post-download tests. These owned-fixture
+results establish simulator behavior, not the physical feel or Twitch IVS behavior.
+
+The local donor hash was checked again. Native-only assembly validated 54 ABI
+and 25 probe entries, all retained donor images and unchanged original HBC.
+The IPA is 196,890,116 bytes, SHA-256
+`da234fe9ec5f3ee009ec0790e45ba5182d8c22f431173fde48cc780e9d8f3cd3`.
+No independent baseline IPA, donor upload or signing-material transfer occurred.
+
+Reproduce from this source after verified component retrieval:
+
+```sh
+python3 tools/native_frontend/build.py --frontend swiftui --mode native \
+  --components ../artifacts/ci/5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99/download/components \
+  --donor ../donors/tv.twitch-32.0.ipa \
+  --output ../artifacts/native-frontend/quick-look-outward-hold-5ea0a88
+```
+
+Install with Feather using the existing application identity. Hold a live
+thumbnail without moving: it should gradually pull outward before resolving into
+the live preview, then remain open after release. Check short tap, early release,
+scroll cancellation, outside return, Watch/video-tap handoff, Reduce Motion and
+background/reopen. Keep music or a podcast playing to check that the established
+preview audio behavior remains intact. Export Native diagnostics after testing.
+Physical-device acceptance for this package is pending.

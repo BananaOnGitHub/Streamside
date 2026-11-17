@@ -19,6 +19,13 @@ struct ThumbnailActions: UIViewRepresentable {
         var observeHold: ((UIView) -> Void)?
         private var pressAnimator: UIViewPropertyAnimator?
         private var pressLift: UIView?
+        private var returnLink: CADisplayLink?
+        private struct ReturnMotion {
+            let started: CFTimeInterval
+            let scale: CGSize
+            let offset: CGPoint
+        }
+        private var returnMotion: ReturnMotion?
         private var sourceOpacity: Float = 1
         private var pressing = false
         override init(frame: CGRect) {
@@ -40,9 +47,9 @@ struct ThumbnailActions: UIViewRepresentable {
             window.addSubview(lift); pressLift = lift
             sourceOpacity = layer.opacity; layer.opacity = 0
             observeHold?(lift)
-            // A slow outward pull throughout the possible phase, without a
-            // spring bounce or an inward press. Recognition continues this view.
-            let target = PreviewPlacement.holdTarget(viewport: PreviewPlacement.viewport(in: window), source: frame)
+            // Slight expansion in place. Recognition continues this snapshot;
+            // it only travels toward the larger card after preview admission.
+            let target = PreviewPlacement.holdTarget(source: frame)
             let animator = UIViewPropertyAnimator(duration: 0.4, curve: .easeIn) { lift.frame = target }
             pressAnimator = animator; animator.startAnimation(afterDelay: 0.05)
         }
@@ -54,27 +61,43 @@ struct ThumbnailActions: UIViewRepresentable {
             layer.opacity = sourceOpacity; lift.removeFromSuperview(); return lift
         }
         func endPress() {
-            guard pressing, let lift = pressLift, let window, lift.window === window,
+            // UIKit may deliver failure, cancellation and reset for one scroll.
+            // Once returning, repeated callbacks must not remove the animation.
+            guard pressing else { return }
+            guard let lift = pressLift, let window, lift.window === window,
                   !UIAccessibility.isReduceMotionEnabled else { resetPress(); return }
             pressing = false; freezeLift(lift)
             let target = convert(bounds, to: window)
-            let animator = UIViewPropertyAnimator(duration: 0.22, dampingRatio: 1) { lift.frame = target }
-            animator.addCompletion { [weak self, weak lift] _ in
-                guard let self, let lift, self.pressLift === lift else { return }
-                self.resetPress()
-            }
-            pressAnimator = animator; animator.startAnimation()
+            returnMotion = ReturnMotion(started: CACurrentMediaTime(),
+                scale: CGSize(width: lift.frame.width / max(1, target.width), height: lift.frame.height / max(1, target.height)),
+                offset: CGPoint(x: lift.frame.midX - target.midX, y: lift.frame.midY - target.midY))
+            let link = CADisplayLink(target: self, selector: #selector(stepReturn(_:)))
+            returnLink = link; link.add(to: .main, forMode: .common)
         }
+        @objc private func stepReturn(_ link: CADisplayLink) {
+            guard let motion = returnMotion, let lift = pressLift, let window, lift.window === window else { resetPress(); return }
+            let progress = min(1, max(0, CGFloat((link.timestamp - motion.started) / 0.24)))
+            let remaining = (1 - progress) * (1 - progress) * (1 - progress)
+            // Track the actual row as the scroll view moves, while shrinking
+            // smoothly to it. A fixed window endpoint would trail the feed.
+            let target = convert(bounds, to: window)
+            let width = target.width * (1 + (motion.scale.width - 1) * remaining)
+            let height = target.height * (1 + (motion.scale.height - 1) * remaining)
+            lift.frame = CGRect(x: target.midX + motion.offset.x * remaining - width / 2,
+                y: target.midY + motion.offset.y * remaining - height / 2, width: width, height: height)
+            if progress >= 1 { resetPress() }
+        }
+        private func stopReturn() { returnLink?.invalidate(); returnLink = nil; returnMotion = nil }
         private func freezeLift(_ lift: UIView) {
             let frame = lift.layer.presentation().map { $0.convert($0.bounds, to: lift.superview?.layer) } ?? lift.frame
-            stopPressAnimation(); lift.frame = frame
+            stopReturn(); stopPressAnimation(); lift.frame = frame
         }
         private func stopPressAnimation() {
             if let animator = pressAnimator, animator.state == .active { animator.stopAnimation(true) }
             pressAnimator = nil
         }
         @objc func resetPress() {
-            pressing = false; stopPressAnimation()
+            pressing = false; stopReturn(); stopPressAnimation()
             if let lift = pressLift { lift.removeFromSuperview(); pressLift = nil; layer.opacity = sourceOpacity }
         }
         @objc func accessibilityPreview(_ action: UIAccessibilityCustomAction) -> Bool { previewActivate?(); return true }
@@ -98,13 +121,13 @@ struct ThumbnailActions: UIViewRepresentable {
         }
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
             super.touchesMoved(touches, with: event)
-            if state == .failed || state == .cancelled { (view as? SourceView)?.resetPress() }
+            if state == .failed || state == .cancelled { (view as? SourceView)?.endPress() }
         }
         override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
             super.touchesEnded(touches, with: event); (view as? SourceView)?.endPress()
         }
         override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
-            super.touchesCancelled(touches, with: event); (view as? SourceView)?.resetPress()
+            super.touchesCancelled(touches, with: event); (view as? SourceView)?.endPress()
         }
         override func reset() {
             (view as? SourceView)?.endPress(); super.reset()

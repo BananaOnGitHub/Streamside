@@ -98,7 +98,8 @@ import UIKit
             source.beginPress(reduceMotion: false)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
                 let lifted = source.takePressLift()
-                self.check((lifted?.frame.width ?? 0) > 162 && (lifted?.frame.width ?? 999) < 183, "Intermediate hold enlarges gradually and survives capture")
+                self.check((lifted?.frame.width ?? 0) > 161 && (lifted?.frame.width ?? 999) <= 168.1, "Intermediate hold enlarges slightly and survives capture")
+                self.check(abs((lifted?.frame.midX ?? 0) - original.midX) < 0.5 && abs((lifted?.frame.midY ?? 0) - original.midY) < 0.5, "Hold remains centered in place")
                 self.check(!clip.bounds.contains(source.convert(lifted?.frame ?? .zero, from: window)), "Lift extends beyond clipping ancestor")
                 self.check(source.transform == .identity && source.layer.opacity == 1, "Capture restores unchanged layout source")
                 let content = QuickLookController(content: UIViewController(), size: CGSize(width: 370, height: 360))
@@ -118,8 +119,36 @@ import UIKit
                             self.check(source.layer.opacity == 0, "Inactive test must first install a lift")
                             NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
                             self.check(source.takePressLift() == nil && source.layer.opacity == 1, "Inactive app removes pending hold snapshot")
-                            clip.removeFromSuperview(); self.sourceTarget()
+                            clip.removeFromSuperview(); self.scrollReturn()
                         }
+                    }
+                }
+            }
+        }
+    }
+    func scrollReturn() {
+        guard let window, let root = window.rootViewController else { fatalError("Missing fixture root") }
+        let scroll = UIScrollView(frame: root.view.bounds); scroll.contentInsetAdjustmentBehavior = .never
+        scroll.contentSize = CGSize(width: window.bounds.width, height: 1800); root.view.addSubview(scroll)
+        let source = ThumbnailActions.SourceView(frame: CGRect(x: 40, y: 400, width: 160, height: 90))
+        source.backgroundColor = .systemIndigo; scroll.addSubview(source)
+        var snapshot: UIView?
+        source.observeHold = { snapshot = $0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            source.beginPress(reduceMotion: false)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                let before = snapshot?.layer.presentation().map { $0.convert($0.bounds, to: window.layer).width } ?? 0
+                source.endPress(); source.endPress() // Gesture failure plus reset must keep the return alive.
+                self.check(snapshot?.window === window && source.layer.opacity == 0, "Scroll cancellation retains the visible snapshot")
+                scroll.contentOffset = CGPoint(x: 0, y: 40)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    let shown = snapshot?.frame ?? .zero, target = source.convert(source.bounds, to: window)
+                    self.check(shown.width > 160 && shown.width < before, "Scroll cancellation visibly shrinks over intermediate frames")
+                    self.check(abs(shown.midY - target.midY) < 1, "Return follows the moving row")
+                    scroll.contentOffset = CGPoint(x: 0, y: 100)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.check(snapshot?.window == nil && source.layer.opacity == 1, "Moving-source return cleans up and restores thumbnail")
+                        source.observeHold = nil; snapshot = nil; scroll.removeFromSuperview(); self.sourceTarget()
                     }
                 }
             }

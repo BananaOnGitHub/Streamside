@@ -11,19 +11,9 @@ struct PreviewPlacement {
         return view.bounds.inset(by: UIEdgeInsets(top: safe.top + 12, left: safe.left + 16,
             bottom: safe.bottom + 16, right: safe.right + 16))
     }
-    // Before media admission, gently approach the expected video region. Exact
-    // content sizing happens on admission; the visible lift is then handed over.
-    static func holdTarget(viewport: CGRect, source: CGRect) -> CGRect {
-        let width = min(380, viewport.width)
-        let card = CGSize(width: width, height: width * 9 / 16 + 150)
-        guard let placement = make(viewport: viewport, source: source, card: card,
-            menu: CGSize(width: min(280, width * 0.75), height: 112)) else { return source }
-        let size = CGSize(width: min(source.width * 1.14, width), height: min(source.width * 1.14, width) * 9 / 16)
-        let dx = max(-24, min(24, (placement.card.midX - source.midX) * 0.18))
-        let dy = max(-24, min(24, (placement.card.minY + width * 9 / 32 - source.midY) * 0.18))
-        return CGRect(x: min(max(source.midX + dx - size.width / 2, viewport.minX), viewport.maxX - size.width),
-            y: min(max(source.midY + dy - size.height / 2, viewport.minY), viewport.maxY - size.height),
-            width: size.width, height: size.height)
+    static func holdTarget(source: CGRect) -> CGRect {
+        // Subtle, centered enlargement; only the admitted preview travels.
+        source.insetBy(dx: -source.width * 0.025, dy: -source.height * 0.025)
     }
     static func collapsedCenter(source: CGRect, card: CGSize) -> CGPoint {
         let scale = source.width / max(1, card.width)

@@ -45,7 +45,7 @@ final class PlayerInputTests: XCTestCase {
         openContext(app)
         dismissPopover(app.buttons["Watch stream"], in: app)
         wait(app.staticTexts["thumbnail-previews"], label: "Previews: 1")
-        wait(app.staticTexts["hold-motion"], label: "Visible outward pull before preview")
+        wait(app.staticTexts["hold-motion"], label: "Visible centered expansion before preview")
         wait(app.staticTexts["preview-stops"], label: "Stops: 1")
         wait(app.staticTexts["source-target"], label: "Returned to source")
         wait(app.staticTexts["source-motion"], label: "Animated source")
@@ -54,7 +54,8 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 0", "A hold must not also watch on release")
         thumbnail.tap()
         wait(app.staticTexts["thumbnail-watches"], label: "Watches: 1")
-        thumbnail.swipeUp(velocity: .fast)
+        let drag = thumbnail.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        drag.press(forDuration: 0.26, thenDragTo: drag.withOffset(CGVector(dx: 0, dy: -90)))
         XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1", "Scrolling must not preview")
         XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 1", "Scrolling must not watch")
         app.terminate()
@@ -70,7 +71,7 @@ final class PlayerInputTests: XCTestCase {
         wait(account.staticTexts["preview-stops"], label: "Stops: 1", timeout: 10)
         XCTAssertFalse(account.buttons["Watch stream"].exists)
         XCTAssertEqual(account.staticTexts["thumbnail-watches"].label, "Watches: 0")
-        print("THUMBNAIL_LIFT PASS: progressive outward pull; rendered artwork outside clipped source before player creation; tap/scroll retained")
+        print("THUMBNAIL_LIFT PASS: slight centered expansion; rendered artwork outside clip; held scroll cancels without playback")
         print("THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
     }
     // Classify an actual screen pixel from AVPlayerLayer's decoded movie. A

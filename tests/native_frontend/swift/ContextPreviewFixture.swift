@@ -126,13 +126,13 @@ private final class FixtureVideo: UIView {
     private var original = CGRect.zero
     private var firstWidth: CGFloat?
     private var grew = false
-    private var moved = false
+    private var centered = true
     private var visibleOutside = false
     private var captures = 0
     private(set) var expanded = false
     func begin(_ source: UIView) {
         finish(); self.source = source; original = source.frame; samples = 0
-        firstWidth = nil; grew = false; moved = false; visibleOutside = false; captures = 0; expanded = false
+        firstWidth = nil; grew = false; centered = true; visibleOutside = false; captures = 0; expanded = false
         link = CADisplayLink(target: self, selector: #selector(sample))
         link?.add(to: .main, forMode: .common)
     }
@@ -142,11 +142,11 @@ private final class FixtureVideo: UIView {
         guard let shown = source.layer.presentation() else { return }
         let rect = shown.convert(shown.bounds, to: window.layer)
         if firstWidth == nil { firstWidth = rect.width }
-        grew = grew || rect.width > (firstWidth ?? rect.width) + 2
-        moved = moved || hypot(rect.midX - original.midX, rect.midY - original.midY) > 1
+        grew = grew || rect.width > (firstWidth ?? rect.width) + 1
+        centered = centered && hypot(rect.midX - original.midX, rect.midY - original.midY) < 0.5 && rect.width <= original.width * 1.052
         // Sample no more than three owned-fixture images, and only once the
         // animated image has crossed the clipped source's original right edge.
-        if !visibleOutside, captures < 3, rect.maxX > original.maxX + 5, rect.width > original.width * 1.025 {
+        if !visibleOutside, captures < 3, rect.maxX > original.maxX + 1.5, rect.width > original.width * 1.02 {
             captures += 1
             let point = CGPoint(x: (original.maxX + rect.maxX) / 2, y: rect.midY)
             let format = UIGraphicsImageRendererFormat(); format.scale = 1
@@ -168,7 +168,7 @@ private final class FixtureVideo: UIView {
                 visibleOutside = bytes[2] > 175 && bytes[0] < 155 && bytes[1] < 155
             }
         }
-        expanded = grew && moved && visibleOutside
+        expanded = grew && centered && visibleOutside
     }
     func finish() { link?.invalidate(); link = nil }
 }
@@ -225,7 +225,7 @@ private final class FixtureVideo: UIView {
     }
     func preview(_ source: UIView) -> ContextPreviewSession? {
         guard let movie, player == nil else { return nil }
-        holdProbe.finish(); holdResult = holdProbe.expanded ? "Visible outward pull before preview" : "No visible outward pull"
+        holdProbe.finish(); holdResult = holdProbe.expanded ? "Visible centered expansion before preview" : "No visible centered expansion"
         valid = true
         let player = AVQueuePlayer(); player.isMuted = true
         let surface = FixtureVideo(); surface.videoLayer.player = player; surface.videoLayer.videoGravity = .resizeAspect

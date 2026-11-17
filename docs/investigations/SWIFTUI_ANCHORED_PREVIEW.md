@@ -342,3 +342,44 @@ scroll cancellation, outside return, Watch/video-tap handoff, Reduce Motion and
 background/reopen. Keep music or a podcast playing to check that the established
 preview audio behavior remains intact. Export Native diagnostics after testing.
 Physical-device acceptance for this package is pending.
+
+
+## Subtle centered hold and animated scroll cancellation
+
+2026-11-17. Device review of source
+`5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99` found the 14-percent directional pull
+too aggressive. The requested replacement is a small expansion in place. Scrolling
+also removed the lifted thumbnail immediately rather than animating its return.
+These observations supersede the previous hold design preference; its successful
+Apple fixtures and original package identity remain recorded above.
+
+Hold feedback now enlarges the snapshot by 5 percent around its original center.
+The 50-millisecond delay and gradual 0.4-second expansion remain; there is no
+preliminary horizontal or vertical translation. The same snapshot still passes
+to the full preview after recognition, outside the feed's clipping layers.
+Only the admitted preview moves toward the full card position.
+
+The immediate scroll disappearance came from routing gesture failure/cancellation
+to resetPress. Those paths now enter the animated return. Repeated cancellation
+and recognizer-reset callbacks are idempotent so they cannot remove an already
+returning snapshot. A bounded 0.24-second CADisplayLink return uses a cubic ease-out
+and re-reads source geometry on each frame: the snapshot follows the moving row
+while its scale/offset settle to the actual thumbnail. This avoids returning to a
+stale window coordinate while the scroll view moves. Completion invalidates the
+link, removes the snapshot and restores the source. App inactivity, source removal
+or Reduce Motion still clean up immediately. A normal tap removes feedback before
+opening theatre. No audio, playback, authentication or runtime hooks changed.
+
+The clipped-source UI fixture now requires visible centered expansion no greater
+than 5.2 percent, progressive growth and artwork outside the original clip. Its
+scroll gesture holds briefly before dragging, checking that no preview or Watch
+is accidentally admitted. The owned UIKit transaction fixture exercises actual
+intermediate return frames, two cancellation callbacks, a source scroll offset
+changing twice during return, final cleanup and source restoration. The prior
+preview video, audio-policy, ownership and cancellation gates remain mandatory.
+
+All 76 Linux-compatible frontend tests passed. Documentation and whitespace
+validation passed. Apple compilation and the adjusted simulator gates are pending;
+no replacement IPA or device acceptance is claimed. Physical review should check
+that hold feedback is restrained and centered, that scrolling shrinks it smoothly
+back into the moving row, and that playback/audio behavior stays intact.

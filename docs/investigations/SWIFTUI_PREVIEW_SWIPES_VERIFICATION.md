@@ -107,3 +107,38 @@ theatre, an ordinary channel, audio preservation, background/account transitions
 and Native diagnostic export. No replacement IPA or expanded device-runtime claim
 is made at implementation time. Submit once through quota-aware Apple routing;
 monitoring stays off.
+
+## First Apple run and simulator-input correction
+
+[Codemagic build 6afcc54ad133a39c4a126307](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afcc54ad133a39c4a126307)
+used source `4fb27e83589b6903155ad83ec4fc14d469da6588` and failed its mandatory
+UI gate. Compilation/linking succeeded. Both player-control cases and the
+thumbnail/General-settings case passed. The preview case passed its three
+short/long-details, changing decoded-video, clipped-corners and shared-player
+Watch scenarios, then failed opening the first fresh swipe scenario. No swipe
+was executed. The failure hierarchy showed Watches: 1, Previews: 0, Stops: 0:
+the synthetic 0.7-second hold had become a tap. This is not evidence of successful
+swipe handling or a completed simulator validation.
+
+The fixture's hold observer performs up to three synchronous pixel captures on
+the main thread, competing with the native 0.45-second long-press timer. The
+correction confines those captures to the dedicated hold-animation case and
+increases synthetic holds to 1.2 seconds for simulator scheduling headroom.
+The production hold duration/animation and all input handlers remain unchanged.
+The log does not establish exactly why that particular timer missed; the next
+Apple run must still pass the actual holds, all four swipes and every previous
+gate. There are no retries or accessibility activation substitutes. Direction
+markers now identify each fresh swipe scenario before opening its preview.
+
+Failure artifacts are preserved outside the repository under
+`artifacts/ci/4fb27e83589b6903155ad83ec4fc14d469da6588/failure/`:
+
+- `player-input-failure.zip`: 97,048 bytes, SHA-256
+  `6e356052ef26163c0ffc6407b6efa69f57e26b20e5d34ebcd75d399825b72b71`.
+- `Streamside_14_artifacts.zip`: 45,052 bytes, SHA-256
+  `833f66bbec1918a6a4eef01039fadf89df1a1798e55af35349212554416eedbf`.
+
+All 80 native frontend host tests passed again after this correction (9.431s).
+Documentation validation checked 119 Markdown files and 1,158 references with zero
+errors; whitespace validation passed. A replacement Apple run is required;
+physical-device acceptance remains pending.

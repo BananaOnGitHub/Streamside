@@ -28,7 +28,9 @@ final class PlayerInputTests: XCTestCase {
     private func openContext(_ app: XCUIApplication) {
         let source = app.descendants(matching: .any)["preview-thumbnail"].firstMatch
         XCTAssertTrue(source.waitForExistence(timeout: 5))
-        source.press(forDuration: 0.7)
+        // Leave scheduling headroom above the production 0.45s threshold on
+        // loaded simulators. One hold, no retry or accessibility activation.
+        source.press(forDuration: 1.2)
         XCTAssertTrue(app.buttons["Watch stream"].waitForExistence(timeout: 5))
         // press() has released the finger. The native preview must persist.
         Thread.sleep(forTimeInterval: 0.5)
@@ -39,7 +41,7 @@ final class PlayerInputTests: XCTestCase {
     }
     func testThumbnailHoldAndTap() {
         continueAfterFailure = false
-        let app = contextApp()
+        let app = contextApp(["--check-hold-motion"])
         verifyBadgeSettings(in: app)
         let thumbnail = app.descendants(matching: .any)["preview-thumbnail"].firstMatch
         let source = thumbnail.frame
@@ -171,6 +173,7 @@ final class PlayerInputTests: XCTestCase {
             app.terminate()
         }
         for direction in [CGVector(dx: -115, dy: 0), CGVector(dx: 115, dy: 0), CGVector(dx: 0, dy: -115), CGVector(dx: 0, dy: 115)] {
+            print("PREVIEW_SWIPE BEGIN: dx=\(direction.dx) dy=\(direction.dy)")
             let app = contextApp(); openContext(app)
             let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
             let start = video.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))

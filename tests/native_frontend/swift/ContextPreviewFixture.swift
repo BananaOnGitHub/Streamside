@@ -183,7 +183,13 @@ private final class FixtureVideo: UIView {
     @Published var motionResult = "Not checked"
     @Published var holdResult = "Not checked"
     private let holdProbe = HoldMotionProbe()
-    func holding(_ source: UIView) { holdProbe.begin(source) }
+    func holding(_ source: UIView) {
+        // Pixel captures run on the main thread. Reserve this intentionally
+        // expensive observation for the dedicated hold-animation case, rather
+        // than perturbing every input/decoded-video/swipe test's hold timer.
+        guard ProcessInfo.processInfo.arguments.contains("--check-hold-motion") else { return }
+        holdProbe.begin(source)
+    }
     private var movie: URL?
     private var valid = true
     private var sourceCenter: CGPoint?

@@ -61,6 +61,16 @@ private enum FixtureMovie {
 private final class FixtureVideo: UIView {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
     var videoLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    // Read actual decoder/layer state on accessibility inspection without a
+    // polling timer or SwiftUI state mutation that could perturb reparenting.
+    override var accessibilityValue: String? {
+        get {
+            let player = videoLayer.player
+            let item = player?.currentItem
+            return "ready=\(videoLayer.isReadyForDisplay); status=\(player?.status.rawValue ?? -1); control=\(player?.timeControlStatus.rawValue ?? -1); rate=\(player?.rate ?? -1); time=\(player?.currentTime().seconds ?? -1); item=\(item?.status.rawValue ?? -1); error=\((item?.error as NSError?)?.code ?? 0); attached=\(window != nil); bounds=\(bounds)"
+        }
+        set { super.accessibilityValue = newValue }
+    }
 }
 
 // Observe the actual UIKit presentation tree, not a synthetic animation model.
@@ -239,6 +249,8 @@ private final class FixtureVideo: UIView {
         valid = true
         let player = AVQueuePlayer(); player.isMuted = true
         let surface = FixtureVideo(); surface.videoLayer.player = player; surface.videoLayer.videoGravity = .resizeAspect
+        surface.isAccessibilityElement = true; surface.accessibilityIdentifier = "fixture.decoder-state"
+        surface.accessibilityLabel = "Owned video decoder state"
         self.player = player; self.surface = surface
         looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: movie)); creations += 1
         let width = min(380, (source.window?.bounds.width ?? 390) - 32)
@@ -246,7 +258,7 @@ private final class FixtureVideo: UIView {
         let detailsHeight: CGFloat = long ? 220 : 150
         let content = UIHostingController(rootView: QuickLookPanel(width: width, detailsHeight: detailsHeight) {
             PassivePlayerSurface(surface: surface, topCornerRadius: 24)
-                .accessibilityElement().accessibilityLabel("Decoded fixture video")
+                .accessibilityElement(children: .contain).accessibilityLabel("Decoded fixture video")
                 .accessibilityIdentifier("fixture.preview-video")
         } details: {
             VStack(alignment: .leading, spacing: 10) {
@@ -273,7 +285,7 @@ private final class FixtureVideo: UIView {
             probe.finish(); self.motionResult = probe.intermediate ? "Animated source" : "No observed animation"
             let theatre = UIHostingController(rootView: VStack {
                 PassivePlayerSurface(surface: surface).frame(height: width * 9 / 16)
-                    .accessibilityElement().accessibilityLabel("Transferred fixture video").accessibilityIdentifier("fixture.theatre-video")
+                    .accessibilityElement(children: .contain).accessibilityLabel("Transferred fixture video").accessibilityIdentifier("fixture.theatre-video")
                 Text("Same player: \(self.creations)").accessibilityIdentifier("preview-watched")
                 Button("Close fixture theatre") { root.dismiss(animated: true) { self.stop() } }
             })

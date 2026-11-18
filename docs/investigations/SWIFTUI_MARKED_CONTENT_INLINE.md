@@ -115,3 +115,33 @@ video Watch target during consent, and restoration of that same target after
 preview admission. Preview acceptance before Watch and pending Watch before
 acceptance are separate cases, both requiring exactly one media start. Apple
 execution of this correction and physical-device validation remain pending.
+
+## Second inline build: consent passes, render checks fail
+
+Source `875f77e8ca65c72f9bdb3845ac547d5a32aef2d3` compiled and passed the
+complete inline consent coordinate sequence, including checkbox touches and both
+Watch orders. The [second failure record](SWIFTUI_MARKED_CONTENT_INLINE_BUILD_FAILURE_2.json)
+preserves that result separately from two existing visual-test failures. Plain
+controls sampled only through progress 0.792 on the forced-fade entry. The
+long-details preview then failed to observe decoded colors after theatre
+transfer; both preceding short-details handoffs passed. Its decoder state is
+unknown, so this is not classified as a runner-only issue or a resolved playback
+defect. No component/IPA success is claimed.
+
+The combined coordinate command hit its 900-second limit during the final test,
+preventing result-bundle finalization and screenshot export. The corrected runner
+executes the same five mandatory tests in separate bounded commands and unique
+result bundles, stopping on failure to export that test's evidence. It still
+requires all five successes and all visual markers before producing a receipt.
+There are no automatic test retries or skipped checks.
+
+Motion sampling now waits for an observed intermediate modifier frame and its
+endpoint instead of assuming a fixed sleep after a state assignment is a render
+barrier. Existing coverage, synchronization, movement and decoded/pixel thresholds
+remain unchanged. Terminal negative results fail promptly. Video sampling uses
+one coherent bounds query rather than four accessibility requests per pixel.
+The donor-free decoder surface exposes current player/item/layer status, time
+and window attachment for a failed handoff, without a timer or SwiftUI mutation.
+These changes require Apple execution; the long-details handoff remains an open
+validation item until changing decoded frames are observed in theatre. Production
+playback and navigation code are unchanged by this test-runner correction.

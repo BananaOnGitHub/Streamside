@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "failed_source_revision": "875f77e8ca65c72f9bdb3845ac547d5a32aef2d3",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afdfe97d133a39c4a12d5de",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afdfe97d133a39c4a12d5de",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "Streamside_25_artifacts.zip",
+        "local": "artifact-0.zip",
+        "bytes": 45352,
+        "sha256": "91724497b485c50821974dd55bb1a462f08bb363cf5dcd18750fc810e9814bd5"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "875f77e8ca65c72f9bdb3845ac547d5a32aef2d3",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.711
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.497
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 1242.053
+        }
+      ]
+    },
+    "stage_2_log_sha256": "783ed980d8d355b442db5b89b298bbed6a23e0a6129732534e0e068f26eafd3c"
+  },
+  "evidence_location": "artifacts/archive/marked-content-failures/inline-failure-2 (outside repository)",
+  "confirmed": [
+    "Production compilation and linking succeeded",
+    "Inline warning coordinate test passed all five cases (82.499 seconds), including hidden Watch overlay, checkbox selection, both preview admission/handoff orders and exactly one media start",
+    "Glass controls coordinate test passed",
+    "Both short preview cases transferred changing decoded frames into theatre"
+  ],
+  "failures": [
+    {
+      "test": "testPlainControls",
+      "line": 322,
+      "observation": "Reduced-Motion-forced fade entry sampling stopped at maximum progress 0.792, below required 0.8; the preceding six animation stages met their checks. Fixed wall-clock sampling ended without a render endpoint barrier.",
+      "correction": "Wait for a real intermediate frame followed by its rendered endpoint with a bounded deadline. Keep the existing minimum/maximum progress, movement, synchronization, all-region and pixel requirements. Treat Failed as a terminal result rather than waiting out the success predicate."
+    },
+    {
+      "test": "testPreviewPanelLayoutAndActions",
+      "line": 237,
+      "observation": "After scrolling long details, the third theatre handoff produced zero classified red/blue video pixels across 24 snapshots. Both short-detail handoffs passed. Actual decoder status and a completed screenshot artifact were unavailable.",
+      "cause": "Undetermined: no proof that this was only a slow runner or a production playback defect.",
+      "changes": "Use one coherent bounds query per screen sample instead of four remote accessibility queries. Add actual AVPlayerLayer/player/item/time/attachment state to the synthetic video surface accessibility value and failure log. Retain the mandatory changing decoded pixel and real corner clipping assertions; no still-image fallback or retry."
+    }
+  ],
+  "evidence_loss": "The combined coordinate command was killed at its 900-second suite deadline during the final thumbnail test. xcresulttool could not find a finalized Info.plist, so no failure screenshot archive was exported. The combined log and accessibility hierarchy are preserved.",
+  "orchestration_fix": "Run the same five mandatory coordinate tests separately with unique result bundles, bounded per-test deadlines and fail-fast evidence export. No test retry, skip, weakened success marker, second provider or duplicate build. Component verification still requires all five tests and existing receipt fields.",
+  "local_validation": {
+    "native_host_tests": 94,
+    "passed": true,
+    "seconds": 11.572,
+    "log_sha256": "37575e4f5af4d305949a4c3fc3cccd846fe3666e0192191df867ef5a35023579",
+    "new_orchestration_cases": [
+      "Every gate executes once with a unique result bundle",
+      "Failed gate exports its own evidence without retry or subsequent tests",
+      "Success marker without actual execution count is rejected"
+    ],
+    "docs_check": {
+      "passed": true,
+      "markdown_files": 123,
+      "references": 1210,
+      "errors": 0
+    },
+    "scope": "Host/donor and synthetic orchestration only; no corrected UIKit/render/decoder execution on Ubuntu."
+  },
+  "replacement_apple_result": "Pending; no replacement Apple success or video-handoff fix claimed.",
+  "device_result": "Revised inline presentation not physically device validated; no new IPA packaged."
+}

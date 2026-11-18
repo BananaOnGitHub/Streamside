@@ -218,9 +218,8 @@ private struct InputTestContent: View {
             pixelDetails = "Invalid canvas bounds"; pixelResult = "Failed"; return false
         }
         storedAnimation = PlayerControlAnimation.fade.rawValue; motionReduceMotion = false
-        let duration = PlayerControlMotion.fadeDuration * motionDurationScale
         motionVisible = false
-        try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
+        try await waitForRenderedEndpoint(0)
         guard let hidden = OpacityPixelCheck.snapshot(window) else {
             pixelDetails = "Incomplete hidden snapshot"; pixelResult = "Failed"; return false
         }
@@ -230,7 +229,7 @@ private struct InputTestContent: View {
         guard let entering = entryFrame.0 else {
             pixelDetails = "Incomplete entry snapshot: " + entryFrame.1; pixelResult = "Failed"; return false
         }
-        try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
+        try await waitForRenderedEndpoint(1)
         guard let shown = OpacityPixelCheck.snapshot(window) else {
             pixelDetails = "Incomplete shown snapshot"; pixelResult = "Failed"; return false
         }
@@ -245,8 +244,26 @@ private struct InputTestContent: View {
         pixelDetails = "in (" + entryFrame.1 + "): " + entry.1 + "; out (" + exitFrame.1 + "): " + exit.1
         pixelResult = entry.0 && exit.0 ? "Passed" : "Failed"
         // Settle the preceding exit before returning to normal-speed reversal.
-        try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
+        try await waitForRenderedEndpoint(0)
         return entry.0 && exit.0
+    }
+    @MainActor private func waitForRenderedEndpoint(_ target: Double, after sequence: UInt64? = nil) async throws {
+        // A sleep from a state assignment is not a render barrier on a busy
+        // runner. Keep sampling until the real modifier reaches its endpoint.
+        // Coverage thresholds in MotionFrameSamples.finish remain unchanged.
+        let deadline = CACurrentMediaTime() + 5
+        var intermediate = sequence == nil
+        while CACurrentMediaTime() < deadline {
+            if let frame = motionSamples.renderedCenter(), sequence.map({ frame.sequence > $0 }) ?? true {
+                if frame.progress > 0.001 && frame.progress < 0.999 { intermediate = true }
+                // SwiftUI can evaluate the model endpoint before rendering its
+                // intermediate frames. Require an observed transition first.
+                if intermediate && abs(frame.progress - target) < 0.001 { return }
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        throw NSError(domain: "MotionEndpoint", code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Rendered endpoint \(target) not reached: " + motionSamples.lastFrame()])
     }
     @MainActor private func checkMotion() async {
         guard !checkingMotion else { return }
@@ -261,19 +278,18 @@ private struct InputTestContent: View {
             // Final cycle verifies that a saved fly mode becomes a nonmoving
             // fade when the fixture supplies the Reduce Motion preference input.
             for (style, reduced) in [(PlayerControlAnimation.vertical, false), (.horizontal, false), (.fade, false), (.vertical, true)] {
-                motionVisible = false
-                let settleWindow = PlayerControlMotion.flyDuration * motionDurationScale + 0.4
-                try await Task.sleep(nanoseconds: UInt64(settleWindow * 1_000_000_000))
+                if motionVisible != false {
+                    let sequence = motionSamples.renderedCenter()?.sequence ?? 0
+                    motionVisible = false
+                    try await waitForRenderedEndpoint(0, after: sequence)
+                } else { try await waitForRenderedEndpoint(0) }
                 storedAnimation = style.rawValue; motionReduceMotion = reduced
                 try await Task.sleep(nanoseconds: 100_000_000)
                 for entering in [true, false] {
                     motionSamples.begin(style: reduced ? .fade : style, entering: entering)
+                    let sequence = motionSamples.renderedCenter()?.sequence ?? 0
                     motionVisible = entering
-                    // Retain the same near-endpoint coverage requirements while
-                    // giving the shared runner more time to render each phase.
-                    let effective = reduced ? PlayerControlAnimation.fade : style
-                    let samplingWindow = PlayerControlMotion.duration(style: effective) * motionDurationScale + 0.4
-                    try await Task.sleep(nanoseconds: UInt64(samplingWindow * 1_000_000_000))
+                    try await waitForRenderedEndpoint(entering ? 1 : 0, after: sequence)
                     let (passed, detail) = motionSamples.finish()
                     details.append(detail)
                     guard passed else { motionResult = "Failed"; motionDetails = details.joined(separator: "; "); return }
@@ -295,7 +311,7 @@ private struct InputTestContent: View {
             motionVisible = true
             try await Task.sleep(nanoseconds: 800_000_000)
             motionDetails = details.joined(separator: "; "); motionResult = "Passed"
-        } catch { motionResult = "Failed"; motionDetails = "Sampling cancelled" }
+        } catch { motionResult = "Failed"; motionDetails = "Sampling failed: " + error.localizedDescription }
     }
     var body: some View {
         VStack {

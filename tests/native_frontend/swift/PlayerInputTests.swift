@@ -167,9 +167,13 @@ final class PlayerInputTests: XCTestCase {
     // Classify an actual screen pixel from AVPlayerLayer's decoded movie. A
     // static image or readyForDisplay alone cannot satisfy the changing frames.
     private func videoColor(_ point: CGPoint, in app: XCUIApplication) -> Int? {
-        guard let image = app.screenshot().image.cgImage else { return nil }
-        let x = (point.x - app.frame.minX) / app.frame.width * CGFloat(image.width)
-        let y = (point.y - app.frame.minY) / app.frame.height * CGFloat(image.height)
+        // One coherent bounds snapshot, not four separate accessibility-tree
+        // queries per pixel. Repeated remote queries can dominate frame sampling.
+        let bounds = app.frame
+        guard bounds.width > 0, bounds.height > 0,
+              let image = app.screenshot().image.cgImage else { return nil }
+        let x = (point.x - bounds.minX) / bounds.width * CGFloat(image.width)
+        let y = (point.y - bounds.minY) / bounds.height * CGFloat(image.height)
         guard let pixel = image.cropping(to: CGRect(x: x, y: y, width: 1, height: 1)) else { return nil }
         var bytes = [UInt8](repeating: 0, count: 4)
         let valid = bytes.withUnsafeMutableBytes { buffer -> Bool in
@@ -234,7 +238,11 @@ final class PlayerInputTests: XCTestCase {
                 if transferredColors.count == 2 { break }
                 Thread.sleep(forTimeInterval: 0.15)
             }
-            XCTAssertEqual(transferredColors.count, 2, "The same video surface must keep decoding in theatre after reparenting")
+            let decoder = app.descendants(matching: .any)["fixture.decoder-state"].firstMatch
+            let decoderState = decoder.exists ? String(describing: decoder.value) : "Decoder surface is absent from the theatre hierarchy"
+            print("CONTEXT_VIDEO_HANDOFF: long=\(long); videoTap=\(commit); colors=\(transferredColors.count); " + decoderState)
+            XCTAssertEqual(transferredColors.count, 2,
+                "The same video surface must keep decoding in theatre after reparenting: " + decoderState)
             app.buttons["Close fixture theatre"].tap()
             wait(app.staticTexts["preview-stops"], label: "Stops: 1")
             wait(app.staticTexts["thumbnail-previews"], label: "Previews: 1")
@@ -314,12 +322,13 @@ final class PlayerInputTests: XCTestCase {
         dismissPopover(glassSetting, in: app)
         tap(app.buttons["motion-checks"])
         let renderedMotion = app.staticTexts["motion-check-result"]
-        let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Passed'"), object: renderedMotion)
-        let samplingResult = XCTWaiter.wait(for: [sampled], timeout: 35)
+        let sampled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label IN {'Passed', 'Failed'}"), object: renderedMotion)
+        let samplingResult = XCTWaiter.wait(for: [sampled], timeout: 65)
         let frameDetail = renderedMotion.value as? String ?? "No frame detail"
         print("PLAYER_MOTION_CHECKS sampling_scale=3; action/reversal scale=1")
         print("PLAYER_MOTION_CHECKS RESULT: " + renderedMotion.label + ": " + frameDetail)
-        XCTAssertEqual(samplingResult, .completed, "Rendered motion checks failed: " + frameDetail)
+        XCTAssertEqual(samplingResult, .completed, "Rendered motion checks never completed: " + frameDetail)
+        XCTAssertEqual(renderedMotion.label, "Passed", "Rendered motion checks failed: " + frameDetail)
         print("PLAYER_MOTION_CHECKS PASS: " + frameDetail)
         let pixels = app.staticTexts["opacity-pixel-result"]
         let pixelDetail = pixels.value as? String ?? "No pixel detail"

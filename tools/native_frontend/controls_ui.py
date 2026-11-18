@@ -98,26 +98,34 @@ def run_controls_ui(root, stage, device, run):
           '-destination','id='+device,'-derivedDataPath',str(folder.parent/'DerivedData'),
           '-parallel-testing-enabled','NO','CODE_SIGNING_ALLOWED=NO']
     run(base+['build-for-testing'], label='Build player controls coordinate-test app')
-    result_bundle=folder.parent/'PlayerInput.xcresult'
-    try:
-        observed=run(base+['test-without-building', '-resultBundlePath', str(result_bundle)], timeout=900,
-                     label='Test player controls, source-anchored preview, decoded video, gestures and lifecycle')
-    except Exception:
-        # Result bundles and recordings stay temporary. Preserve up to eight
-        # owned-fixture stills alongside the existing failure logs before cleanup.
-        exported=folder.parent/'failure-attachments'
+    names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
+             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap']
+    outputs = []
+    # Separate result bundles let xcodebuild finalize the failing test's evidence.
+    # A single 900s deadline could kill the entire suite after an assertion,
+    # discard its screenshots and obscure the actual failure. No retries/skips.
+    for name in names:
+        result_bundle=folder.parent/(name+'.xcresult')
         try:
-            run(['xcrun','xcresulttool','export','attachments','--path',str(result_bundle),'--output-path',str(exported)],
-                timeout=45, label='Export owned simulator failure screenshots')
-            preserve_failure_images(exported, root/'output/player-input-failure.zip')
-        except Exception as evidence_error:
-            print('Failure screenshot export unavailable: '+str(evidence_error), flush=True)
-        raise
-    for name in ['testGlassControls','testPlainControls','testThumbnailHoldAndTap','testPreviewPanelLayoutAndActions','testMarkedContentConsent']:
-        if not re.search(r"Test Case .*"+name+r".* passed",observed):
-            raise ValueError('Player coordinate test did not pass: '+name)
-    if not re.search(r'Executed 5 tests?, with 0 failures',observed):
-        raise ValueError('Five actual player/thumbnail/preview/content coordinate tests were not observed')
+            observed=run(base+['test-without-building', '-only-testing:PlayerInputTests/PlayerInputTests/'+name,
+                              '-resultBundlePath', str(result_bundle)],
+                         timeout=600 if name=='testPreviewPanelLayoutAndActions' else 300,
+                         label='Coordinate gate: '+name)
+            if not re.search(r"Test Case .*"+name+r".* passed", observed):
+                raise ValueError('Player coordinate test did not pass: '+name)
+            if not re.search(r'Executed 1 test, with 0 failures', observed):
+                raise ValueError('Exactly one successful coordinate test must execute: '+name)
+            outputs.append(observed)
+        except Exception:
+            exported=folder.parent/('failure-attachments-'+name)
+            try:
+                run(['xcrun','xcresulttool','export','attachments','--path',str(result_bundle),'--output-path',str(exported)],
+                    timeout=45, label='Export owned simulator failure screenshots: '+name)
+                preserve_failure_images(exported, root/'output/player-input-failure.zip')
+            except Exception as evidence_error:
+                print('Failure screenshot export unavailable: '+str(evidence_error), flush=True)
+            raise
+    observed='\n'.join(outputs)
     if observed.count('PLAYER_MOTION_CHECKS PASS:') != 2:
         raise ValueError('Both rendered-motion fixture checks must pass')
     if observed.count('PLAYER_OPACITY_PIXELS PASS:') != 2:

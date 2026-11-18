@@ -173,3 +173,26 @@ directional progress within 0.4–0.6, and actual center/action/audio pixel cont
 requirements are unchanged. There is no still-image substitution, test retry,
 new production playback change or weakened acceptance threshold. The corrected
 helper and pixel capture still require replacement Apple execution.
+
+## Successful replacement: 6ef88b0
+
+[Codemagic build 6afe11c7d133a39c4a12ddec](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afe11c7d133a39c4a12ddec)
+passed all six CI stages for source
+`6ef88b01dd1025a1e2c41c8234d9da1e5550913c`. The
+[validation record](SWIFTUI_MARKED_CONTENT_INLINE_VALIDATION.json) contains exact
+source/proof/toolchain identities, receipts, observed markers and artifact hashes.
+All five separate coordinate tests passed. Both glass/plain entry and exit pixel
+captures passed unchanged contrast thresholds. All three video handoffs observed
+two decoded colors, including after scrolling long details; attached decoder
+state reported ready/playing and no item error. The earlier failure retains its
+original uncertainty rather than being reclassified retrospectively.
+
+The duplicate-render regression, inline admission, pending promotion without
+audio/player creation, consent Close/preferences and same-player Watch checks
+passed. Downloaded components passed 66 host admission checks. Local packaging
+validated the exact donor and all retained entries, including the unchanged HBC.
+Only the native IPA was produced; donor data and signing stay local. No additional
+baseline IPA or VM build was generated. Sign with Feather using the existing app
+identity. The device checklist above remains required: successful synthetic Apple
+tests and packaging do not establish actual Twitch/device results for this inline
+presentation or fresh zero RN/Hermes observations.

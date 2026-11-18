@@ -124,3 +124,26 @@ audio and silence in the preview; dismiss by outside tap and swipe, looking for 
 immediate return. Repeat several previews, then Watch to confirm intentional audio
 takeover and same-player playback. Review rapid close/reopen, scrolling during
 return and background/account cancellation, and export Native diagnostics afterward.
+
+## Successful Apple build and local package
+
+Source `54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee` passed the
+[Codemagic build](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd0e43d133a39c4a1279f5).
+The [validation record](SWIFTUI_PREVIEW_LIFETIME_AUDIO_VALIDATION.json) retains
+the toolchain, receipts, stage times and component/package hashes. All four new
+playback receipts passed, including cold audio admission, responsive retirement,
+preparation cancellation and ordered restoration across overlapping previews.
+The four coordinate UI tests passed, including actual decoded video clipping,
+source return, scrolling/hold cancellation, directional dismissal and both styles
+of player animations. All 60 post-download ABI, component, core, launch, probe
+and comparison checks passed.
+
+Ubuntu assembled and verified the IPA locally against the exact donor, including
+all retained donor entries and unchanged original HBC. The package is retained
+outside the repository at
+`artifacts/native-frontend/preview-lifetime-audio-54ff64b/`. It requires local
+Feather signing with the existing application/keychain identity. No donor or
+signing material was uploaded to CI; no VM was used. This establishes compilation,
+simulator behavior and successful packaging, not physical-device acceptance.
+The device checks above remain pending. The earlier pending statement describes
+the implementation-time evidence; this is its successful build follow-up.

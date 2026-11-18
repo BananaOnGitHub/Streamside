@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+  "packaging_revision": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+  "proof_id": "034998374d268032eeda7c62c2b455d96eba5c884b7390c5b7f65e5de74f6d00",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "abi_entries": 55,
+    "probe_entries": 25
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afd0e43d133a39c4a1279f5",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd0e43d133a39c4a1279f5",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "tests": {
+    "linux_native_frontend": 82,
+    "provider_routing": 12,
+    "ubuntu_download_verification": 60,
+    "apple": {
+      "schema": 1,
+      "source_revision": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.731
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 1016.589
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 10.847
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.09
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.205
+        }
+      ],
+      "archive_sha256": "27046e1ef894c7f50622788bedf1ba5b656e20a935987200fd39b5d65f05c96f",
+      "archive_bytes": 1125774
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "teardown": true,
+        "all_tags_wrap": true,
+        "passed": true,
+        "dismiss_before_handoff": true,
+        "hold_cancellation": true,
+        "unblocked_return": true,
+        "failures": [],
+        "single_handoff": true,
+        "lifecycle_cancellation": true,
+        "source_target": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 4,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true,
+        "source_anchored_preview": true,
+        "source_animation": true,
+        "hold_feedback": true,
+        "swipe_dismissal": true,
+        "verification_settings": true,
+        "real_video_clipping": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "preview_cold_audio": true,
+        "stream_only_mute": true,
+        "source_encoding": true,
+        "local_pause_resume": true,
+        "theatre_audio_promotion": true,
+        "audio_preparation_cancellation": true,
+        "account_stop": true,
+        "cancellation": true,
+        "passed": true,
+        "async_retirement": true,
+        "playing_observed": true,
+        "background_resume": true,
+        "control_intent_retained": true,
+        "teardown": true,
+        "preview_mixes_audio": true,
+        "preview_muted_before_load": true,
+        "audio_retirement_ordering": true
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "observed_markers": [
+      "QUICKLOOK_CHECKS: PASS",
+      "PLAYER_OPACITY_PIXELS PASS: in (observed 0.406; captured 0.427): center ratio=0.378 pixels=1532, actions ratio=0.380 pixels=7577, audio ratio=0.377 pixels=3059; out (observed 0.594; captured 0.551): center ratio=0.588 pixels=1532, actions ratio=0.587 pixels=7577, audio ratio=0.587 pixels=3059",
+      "PLAYER_OPACITY_PIXELS PASS: in (observed 0.406; captured 0.427): center ratio=0.363 pixels=201, actions ratio=0.368 pixels=416, audio ratio=0.363 pixels=222; out (observed 0.585; captured 0.521): center ratio=0.534 pixels=201, actions ratio=0.542 pixels=416, audio ratio=0.535 pixels=222",
+      "PREVIEW_SWIPES PASS: left/right/up/down dismiss once; video button never watches; details scroll retained",
+      "CONTEXT_VIDEO PASS: changing decoded frames; 16:9; real upper-corner clipping; one player into theatre",
+      "THUMBNAIL_LIFT PASS: slight centered expansion; rendered artwork outside clip; held scroll cancels without playback",
+      "THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation"
+    ]
+  },
+  "artifacts": {
+    "ipa": {
+      "path": "artifacts/native-frontend/preview-lifetime-audio-54ff64b/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196925870,
+      "sha256": "7afe36c4c2558b757fb80f4c4f999ff67a77558b5c37163da0d6017cdebbfd0b"
+    },
+    "framework_sha256": "cd283020459cb2c710d12baf5e50433e88baf7ead0997f7483ae704f33c00146",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "715f91282d4a577d76297fdf8d5d87f3291c0a3378f06b5977837e959e027a53",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "6919bec9bfa2dd1bc255ed6f3ab91b3568c8756a24f7ac2686dafeeb76a62827",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "4216cf987ddc22700db4fa141625100d18feff41168893bbbf43c7921976a144",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "ff3d0ab0095e5826752d502d872347da2c7c388ed274e3fcc15751adfb213bbe"
+    },
+    "component_manifest_sha256": "4a61d147212b1339fb24ed41189e34799d0979fbe4ec5f8d19a9f53998293051"
+  },
+  "package_checks": {
+    "abi_entries": 55,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+  "device_validation": {
+    "status": "pending",
+    "checks": [
+      "After fully closing and reopening Streamside with music or a podcast playing, first preview stays muted and external audio continues.",
+      "Outside-tap and swipe dismissal begin immediately without a frozen pause; moving-source return keeps its existing deadline.",
+      "Repeated previews and rapid close/reopen preserve audio policy and teardown.",
+      "Watch intentionally takes audio and retains the same player; background and account loss still cancel safely.",
+      "Export Native diagnostics including playback_work_us and runtime counters. Unobserved timing stages and uncalibrated runtime evidence are not measured zero."
+    ],
+    "limits": "Simulator uses synthetic IVS/GraphQL with real UIKit/AVAudioSession; decoded video/clipping uses a donor-free fixture. Physical donor SDK timing, other-app interruption and actual device runtime isolation remain unverified for this package."
+  }
+}

@@ -56,7 +56,27 @@ import Foundation
         failure.proceed(); precondition(admitted == false, "Missing labels must not admit playback")
         print("PASS: marked consent, discard-on-close, independent thumbnail choice before playback, failure and cancellation")
     }
+    static func repeatedRenderValues() {
+        // Reproduce both fade directions with multiple body evaluations at the
+        // same rendered value. Duplicates must not erase the last real movement.
+        for (start, middle) in [(0.3, 0.5), (0.7, 0.5)] {
+            var frames = RenderedFrameDirection()
+            frames.record(style: .fade, progress: start)
+            frames.record(style: .fade, progress: middle)
+            let sequence = frames.latest!.sequence
+            for _ in 0..<20 { frames.record(style: .fade, progress: middle) }
+            precondition(frames.latest!.progress == middle && frames.latest!.previous == start)
+            precondition(frames.latest!.sequence == sequence)
+            precondition((frames.latest!.progress > frames.latest!.previous) == (start < middle))
+            frames.record(style: .fade, progress: start)
+            precondition(frames.latest!.sequence > sequence && frames.latest!.previous == middle)
+            frames.record(style: .horizontal, progress: 0.5)
+            precondition(frames.latest!.progress == frames.latest!.previous, "A style change is not directional motion")
+        }
+        print("PASS: duplicate render direction preserved through entry, exit and reversal")
+    }
     @MainActor static func main() async {
+        repeatedRenderValues()
         await contentWarnings()
         precondition(VerificationStyle.resolve("unknown") == .twitch)
         for style in VerificationStyle.allCases { precondition(VerificationStyle.resolve(style.rawValue) == style) }

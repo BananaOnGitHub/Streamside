@@ -7,7 +7,7 @@ import plistlib
 import re
 import zipfile
 
-SOURCES = ['native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['tests/native_frontend/swift/RenderedFrameDirection.swift','native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']

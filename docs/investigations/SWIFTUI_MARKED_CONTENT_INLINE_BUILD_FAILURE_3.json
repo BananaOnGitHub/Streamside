@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "failed_source_revision": "315ebbe702d219aec055b66578954e4fe8cf2b7f",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afe08f9d133a39c4a12da23",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afe08f9d133a39c4a12da23",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "player-input-failure.zip",
+        "local": "artifact-0.zip",
+        "bytes": 264664,
+        "sha256": "87641c31312f70d70fee243b43635d6d238ce1b7564baa14092133000bf7e3a7"
+      },
+      {
+        "name": "Streamside_26_artifacts.zip",
+        "local": "artifact-1.zip",
+        "bytes": 38396,
+        "sha256": "8ca5cd83e78e0e7ec3286327ccbd800acbeff5e016cb59fbf479e5f09ffce5ee"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "315ebbe702d219aec055b66578954e4fe8cf2b7f",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.822
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 2.97
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 886.037
+        }
+      ]
+    },
+    "stage_2_log_sha256": "136b186d542c034c2db91a1ae7ea992230d048abc05cb6b1507ea486502625b6",
+    "owned_screenshot": {
+      "sha256": "03748ffbdaa886e2f77c32fd16cda4c4f4d0c3bc12cc28d5c5a6b015bbc1c835",
+      "scope": "Owned synthetic glass controls fixture after failure/deferred state restoration; not an intermediate fade capture."
+    }
+  },
+  "evidence_location": "artifacts/archive/marked-content-failures/inline-failure-3 (outside repository)",
+  "failed_test": {
+    "name": "testGlassControls",
+    "line": 331,
+    "observation": "All eight rendered motion stages met coverage/synchronization requirements, but the exit pixel snapshot found no directional intermediate fade frame within 3 seconds.",
+    "artifact_export": "Finalized per-test result bundle exported a bounded screenshot archive successfully; no global suite timeout."
+  },
+  "cause": {
+    "code_defect": "Each center callback replaced previous progress with the immediately preceding callback, even if that callback represented the identical progress. Repeated SwiftUI modifier evaluations can therefore overwrite a directional observation with equality before the screenshot poll reads it.",
+    "runtime_limit": "The failed log records the missing directional snapshot, not a complete per-callback trace; duplicate evaluations are a code-level reproduction of this sampling defect, not independently proven as the only possible cause on that runner."
+  },
+  "fix": "Track distinct rendered values in a fixture-only helper. Identical style/progress callbacks leave sequence and previous distinct progress unchanged. A new progress records the old distinct value; style changes reset direction. Use this exact helper in the UI sampler and mandatory Apple model regression.",
+  "regression": "Exercise repeated callbacks during entry and exit, sequence stability, reversal, and style-change reset. Worker requires the regression success marker before continuing. Keep directional 0.4...0.6 snapshot selection and every rendered-pixel/motion threshold unchanged.",
+  "not_validated": [
+    "Corrected Swift helper compilation and regression execution on Apple",
+    "New exit opacity pixel capture and complete glass/plain coordinate gates",
+    "Previous long-details decoded-video handoff failure: test not reached in this fail-fast run",
+    "Full component delivery, IPA packaging or physical-device validation"
+  ],
+  "local_validation": {
+    "native_host_tests": 94,
+    "passed": true,
+    "seconds": 11.615,
+    "log_sha256": "3b0acba58c1f1d2ed21bea12c11885bd462b94a566b823d4d1a658f4acc7008c",
+    "scope": "Linux host/donor/orchestration tests; the Swift regression requires Apple compilation.",
+    "docs_check": {
+      "passed": true,
+      "markdown_files": 123,
+      "references": 1211,
+      "errors": 0
+    },
+    "diff_check": true
+  },
+  "replacement_apple_result": "Pending; no replacement success claimed."
+}

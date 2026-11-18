@@ -33,8 +33,7 @@ private final class MotionFrameSamples {
     private var earlyRegions = Set<PlayerControlRegion>()
     private var sharedTravel: CGSize?
     private var latest = "No modifier frames"
-    private var centerSequence: UInt64 = 0
-    private var centerObservation: (sequence: UInt64, style: PlayerControlAnimation, progress: Double, previous: Double)?
+    private var centerFrames = RenderedFrameDirection()
     func begin(style: PlayerControlAnimation, entering: Bool) {
         lock.lock(); defer { lock.unlock() }
         expected = style; self.entering = entering
@@ -45,8 +44,7 @@ private final class MotionFrameSamples {
         lock.lock(); defer { lock.unlock() }
         if region == .center {
             latest = "progress=\(progress), alpha=\(frame.opacity)"
-            centerSequence &+= 1
-            centerObservation = (centerSequence, style, progress, centerObservation?.progress ?? progress)
+            centerFrames.record(style: style, progress: progress)
         }
         guard let expected, progress > 0.001, progress < 0.999,
               region != .shade, samples < 2048 else { return }
@@ -87,7 +85,7 @@ private final class MotionFrameSamples {
     }
     func renderedCenter() -> (sequence: UInt64, style: PlayerControlAnimation, progress: Double, previous: Double)? {
         lock.lock(); defer { lock.unlock() }
-        return centerObservation
+        return centerFrames.latest
     }
     func lastFrame() -> String {
         lock.lock(); defer { lock.unlock() }

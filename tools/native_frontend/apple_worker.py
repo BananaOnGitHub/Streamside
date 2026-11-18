@@ -58,8 +58,10 @@ def main():
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
-    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
-    info['model_tests']=run([str(output/'models-tests')], label='Test account, feed and presentation models')
+    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
+    info['model_tests']=run([str(output/'models-tests')], label='Test account, feed, repeated render direction and presentation models')
+    if 'PASS: duplicate render direction' not in info['model_tests']:
+        raise ValueError('Repeated render direction regression evidence missing')
     run(['xcrun','clang','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-Inative','-Isrc','-Igenerated',
          'native/SSNAdBlock.m','tests/native_frontend/adblock_test.m','-framework','Foundation','-o','output/adblock-tests'], label='Build shared VAFT and native transport fixture')
     for selection in ['baseline','native']:

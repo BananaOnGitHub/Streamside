@@ -145,3 +145,31 @@ and window attachment for a failed handoff, without a timer or SwiftUI mutation.
 These changes require Apple execution; the long-details handoff remains an open
 validation item until changing decoded frames are observed in theatre. Production
 playback and navigation code are unchanged by this test-runner correction.
+
+## Third inline build: directional pixel sampler correction
+
+Source `315ebbe702d219aec055b66578954e4fe8cf2b7f` again passed inline consent.
+All eight glass-control motion stages met their coverage and synchronization
+requirements. The exit pixel sampler then failed to find a directional
+intermediate frame. The [third failure record](SWIFTUI_MARKED_CONTENT_INLINE_BUILD_FAILURE_3.json)
+retains the source, build, log and screenshot hashes. Separate result bundles
+successfully preserved the failure screenshot this time. The later plain and
+preview-handoff tests were not reached; the earlier long-details video failure
+remains unresolved.
+
+The center-frame observer compared progress with the immediately preceding body
+evaluation. Repeating the same value therefore erased its prior direction before
+the polling snapshot could see it. A fixture-only `RenderedFrameDirection` helper
+now keeps the last distinct style/progress observation. Duplicate evaluations do
+not advance its sequence or replace its previous value. Real progression and
+reversal do; changing style resets direction. This is a deterministic code-level
+reproduction, while the failed runner did not preserve a per-callback trace to
+prove duplicates were its only cause.
+
+The Apple model tests exercise duplicate entry/exit callbacks, sequence stability,
+reversal and style reset using the same helper as the UI sampler. Its success
+marker is mandatory before simulator validation. Snapshot selection still requires
+directional progress within 0.4–0.6, and actual center/action/audio pixel contrast
+requirements are unchanged. There is no still-image substitution, test retry,
+new production playback change or weakened acceptance threshold. The corrected
+helper and pixel capture still require replacement Apple execution.

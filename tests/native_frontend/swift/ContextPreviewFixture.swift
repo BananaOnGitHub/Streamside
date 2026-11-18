@@ -227,6 +227,10 @@ private final class FixtureVideo: UIView {
         stops += 1; player?.pause(); player?.removeAllItems()
         surface?.videoLayer.player = nil
         looper = nil; player = nil; surface = nil
+    }
+    func returned() {
+        // Media teardown is intentionally immediate. Visual sampling continues
+        // until the presenter's real completion, independently of player life.
         motion?.finish(); motionResult = entryAnimated && motion?.intermediate == true ? "Animated source" : "No observed animation"
     }
     func preview(_ source: UIView) -> ContextPreviewSession? {
@@ -308,7 +312,8 @@ struct ContextPreviewFixtureView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     ThumbnailActions(image: fixture.image, label: "Stream thumbnail", open: fixture.directWatch,
-                                     preview: fixture.preview, observeTarget: fixture.target, observeHold: fixture.holding)
+                                     preview: fixture.preview, observeTarget: fixture.target, observeHold: fixture.holding,
+                                     observeReturnCompletion: fixture.returned)
                         .frame(width: 160, height: 90)
                         .clipped().clipShape(RoundedRectangle(cornerRadius: 7))
                         .accessibilityIdentifier("preview-thumbnail")

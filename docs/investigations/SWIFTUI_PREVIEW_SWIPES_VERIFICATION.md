@@ -227,3 +227,50 @@ provider-routing tests passed. Updated Python tooling compiled successfully.
 Host logs remain outside the repository in the validation artifact folder.
 Apple-specific assertions and composed-video snapshot appearance still require
 the submitted Apple run and device review; host results do not establish them.
+
+## Unblocked-return Apple failure and observation correction
+
+[Codemagic build 6afceb3ed133a39c4a126fb9](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afceb3ed133a39c4a126fb9)
+failed from source `c4ec52c4df9a85a25fdf92be7caef49587b77a75`.
+Compilation/linking and the owned Quick Look receipt passed, including immediate
+feed hit testing, moving-source tracking, fixed return duration, early media
+release and overlapping-preview isolation. The full preview UI case also passed
+all four swipes, long details, decoded-video clipping and Watch handoff. The
+plain player case passed. Two other mandatory observations failed, so no IPA was
+packaged and the Apple result remains failed.
+
+First, the thumbnail fixture computed its return-animation result in stop(),
+which now runs before visual dismissal starts. That also stopped the presentation
+layer probe before any return frames. It showed Stops: 1 and Returned to source,
+but No observed animation. The correction adds an optional fixture-only callback
+at actual cancellation-return completion, and leaves the layer probe running
+until then. Immediate playback teardown stays independent of visual sampling.
+Production callers leave the callback nil. The requirement to observe actual
+intermediate source geometry during both entry and return remains unchanged.
+
+Second, the glass-control case passed all eight modifier-motion stages but failed
+the existing actual Fade-pixel gate. Entry region ratios were 0.086–0.090 and exit
+ratios 0.999–1.000, outside the required 0.15–0.85 interval. The prior snapshot
+schedule slept half a duration from a SwiftUI state assignment without observing
+when the renderer began that transition. No rendered-phase evidence was available
+for these two captures, so the log alone does not establish a production Fade
+regression or its precise scheduling cause.
+
+The corrected pixel observer waits for a fresh actual production modifier sample,
+Fade style, correct direction and progress between 0.4 and 0.6, then yields one
+compositor interval before a single snapshot. The wait is bounded to three seconds;
+a missing intermediate frame fails. It records observed/captured progress for
+future triage. The existing pixel contrast/count and 0.15–0.85 requirements for
+center, actions and audio in both material modes are retained. There are no
+snapshot retries or changes to theatre animations, durations, or buttons.
+
+Failure evidence remains outside the repository in the source's CI failure folder:
+
+- `player-input-failure.zip`: 365,189 bytes, SHA-256
+  `e48ad882d54c58c8c729de25e6836292636f5d1cab3a7de7a9589b0236bc7b9c`.
+- `Streamside_16_artifacts.zip`: 49,455 bytes, SHA-256
+  `4fab6d5530f92c61f8c09acbfaec447dfdb938fe69ea4257d0e44c19910f38f3`.
+
+All 81 native frontend host tests passed after this correction (9.155s).
+A replacement Apple run is required to establish the corrected observations;
+physical-device validation of unblocked closing remains pending.

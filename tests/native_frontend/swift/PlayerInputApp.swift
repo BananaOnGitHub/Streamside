@@ -32,6 +32,8 @@ private final class MotionFrameSamples {
     private var earlyRegions = Set<PlayerControlRegion>()
     private var sharedTravel: CGSize?
     private var latest = "No modifier frames"
+    private var centerSequence: UInt64 = 0
+    private var centerObservation: (sequence: UInt64, style: PlayerControlAnimation, progress: Double, previous: Double)?
     func begin(style: PlayerControlAnimation, entering: Bool) {
         lock.lock(); defer { lock.unlock() }
         expected = style; self.entering = entering
@@ -40,7 +42,11 @@ private final class MotionFrameSamples {
     }
     func record(style: PlayerControlAnimation, region: PlayerControlRegion, progress: Double, travel: CGSize, frame: PlayerControlFrame) {
         lock.lock(); defer { lock.unlock() }
-        if region == .center { latest = "progress=\(progress), alpha=\(frame.opacity)" }
+        if region == .center {
+            latest = "progress=\(progress), alpha=\(frame.opacity)"
+            centerSequence &+= 1
+            centerObservation = (centerSequence, style, progress, centerObservation?.progress ?? progress)
+        }
         guard let expected, progress > 0.001, progress < 0.999,
               region != .shade, samples < 2048 else { return }
         samples += 1; invalid = invalid || style != expected
@@ -77,6 +83,10 @@ private final class MotionFrameSamples {
                 midCenterFading = true
             }
         }
+    }
+    func renderedCenter() -> (sequence: UInt64, style: PlayerControlAnimation, progress: Double, previous: Double)? {
+        lock.lock(); defer { lock.unlock() }
+        return centerObservation
     }
     func lastFrame() -> String {
         lock.lock(); defer { lock.unlock() }
@@ -177,6 +187,26 @@ private struct InputTestContent: View {
         return c
     }
     private func interact() { visibility.reveal(now: ProcessInfo.processInfo.systemUptime) }
+    @MainActor private func partialOpacitySnapshot(_ window: UIWindow, after sequence: UInt64, entering: Bool) async throws -> (CGImage?, String) {
+        // Observe the actual production modifier's rendered phase, rather than
+        // sleeping half a duration from a SwiftUI state assignment. A busy
+        // runner can defer that assignment's render/animation transaction.
+        let deadline = CACurrentMediaTime() + 3
+        while CACurrentMediaTime() < deadline {
+            if let frame = motionSamples.renderedCenter(), frame.sequence > sequence,
+               frame.style == .fade, frame.progress >= 0.4, frame.progress <= 0.6,
+               (entering ? frame.progress > frame.previous : frame.progress < frame.previous) {
+                // Let the compositor present this render. Capture exactly once;
+                // pixel evidence still has to satisfy the existing thresholds.
+                try await Task.sleep(nanoseconds: 20_000_000)
+                let image = OpacityPixelCheck.snapshot(window)
+                let end = motionSamples.renderedCenter()?.progress ?? -1
+                return (image, String(format: "observed %.3f; captured %.3f", frame.progress, end))
+            }
+            try await Task.sleep(nanoseconds: 8_000_000)
+        }
+        return (nil, "No directional intermediate rendered fade frame within 3s")
+    }
     @MainActor private func checkOpacityPixels() async throws -> Bool {
         pixelResult = "Checking"
         guard let window = (UIApplication.shared.delegate as? InputTestDelegate)?.window else {
@@ -193,23 +223,25 @@ private struct InputTestContent: View {
         guard let hidden = OpacityPixelCheck.snapshot(window) else {
             pixelDetails = "Incomplete hidden snapshot"; pixelResult = "Failed"; return false
         }
+        let entrySequence = motionSamples.renderedCenter()?.sequence ?? 0
         motionVisible = true
-        try await Task.sleep(nanoseconds: UInt64((duration * 0.5 + 0.02) * 1_000_000_000))
-        guard let entering = OpacityPixelCheck.snapshot(window) else {
-            pixelDetails = "Incomplete entry snapshot"; pixelResult = "Failed"; return false
+        let entryFrame = try await partialOpacitySnapshot(window, after: entrySequence, entering: true)
+        guard let entering = entryFrame.0 else {
+            pixelDetails = "Incomplete entry snapshot: " + entryFrame.1; pixelResult = "Failed"; return false
         }
         try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))
         guard let shown = OpacityPixelCheck.snapshot(window) else {
             pixelDetails = "Incomplete shown snapshot"; pixelResult = "Failed"; return false
         }
+        let exitSequence = motionSamples.renderedCenter()?.sequence ?? 0
         motionVisible = false
-        try await Task.sleep(nanoseconds: UInt64(duration * 0.5 * 1_000_000_000))
-        guard let leaving = OpacityPixelCheck.snapshot(window) else {
-            pixelDetails = "Incomplete exit snapshot"; pixelResult = "Failed"; return false
+        let exitFrame = try await partialOpacitySnapshot(window, after: exitSequence, entering: false)
+        guard let leaving = exitFrame.0 else {
+            pixelDetails = "Incomplete exit snapshot: " + exitFrame.1; pixelResult = "Failed"; return false
         }
         let entry = OpacityPixelCheck.evaluate(hidden: hidden, shown: shown, partial: entering, canvas: canvas)
         let exit = OpacityPixelCheck.evaluate(hidden: hidden, shown: shown, partial: leaving, canvas: canvas)
-        pixelDetails = "in: " + entry.1 + "; out: " + exit.1
+        pixelDetails = "in (" + entryFrame.1 + "): " + entry.1 + "; out (" + exitFrame.1 + "): " + exit.1
         pixelResult = entry.0 && exit.0 ? "Passed" : "Failed"
         // Settle the preceding exit before returning to normal-speed reversal.
         try await Task.sleep(nanoseconds: UInt64((duration + 0.4) * 1_000_000_000))

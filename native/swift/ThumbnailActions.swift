@@ -11,6 +11,7 @@ struct ThumbnailActions: UIViewRepresentable {
     // Fixture-only observations of source geometry; production leaves nil.
     var observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
     var observeHold: ((UIView) -> Void)?
+    var observeReturnCompletion: (() -> Void)?
 
     final class SourceView: UIImageView {
         var activate: (() -> Void)?
@@ -157,12 +158,13 @@ struct ThumbnailActions: UIViewRepresentable {
                 dismiss: { [weak self] in self?.finish(watch: false) }, observeTarget: owner.observeTarget,
                 initialLift: lift)
             self.presenter = presenter
+            let returned = owner.observeReturnCompletion
             created.dismissPreview = { [weak self, weak presenter, weak created] in
                 guard let presenter else { self?.clear(created); return }
                 // Release input/media ownership before the passive return.
                 // Old completion must not clear a newer preview on this row.
                 self?.clear(created)
-                presenter.dismiss(watching: false) {}
+                presenter.dismiss(watching: false) { returned?() }
             }
             guard created.display(), presenter.install(in: root) else { created.cancel(); clear(created); return }
             UIImpactFeedbackGenerator(style: .light).impactOccurred()

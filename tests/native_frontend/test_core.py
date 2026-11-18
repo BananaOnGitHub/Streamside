@@ -60,6 +60,13 @@ class CoreEvidence(unittest.TestCase):
             self.assertNotIn('username',report);self.assertNotIn('tokens',report);self.assertNotIn('channels',report)
             self.assertFalse(report['memory_available']);self.assertFalse(report['baseline_calibrated'])
 
+    def test_playback_work_timings_are_bounded_and_separate_from_runtime_probes(self):
+        with tempfile.TemporaryDirectory() as d:
+            _,report=self.run_core(1,'work',Path(d))
+            self.assertEqual(report['playback_work_us'],[[2,30,200],[0,0,0],[0,0,0],[0,0,0],[1,60000000,60000000]])
+            self.assertEqual(report['failures'],0)
+            self.assertTrue(all(value==0 for value in report['probes'].values()))
+
     def test_replaced_root_is_reported_separately_from_runtime_activity(self):
         with tempfile.TemporaryDirectory() as d:
             _,report=self.run_core(1,'replaced',Path(d))

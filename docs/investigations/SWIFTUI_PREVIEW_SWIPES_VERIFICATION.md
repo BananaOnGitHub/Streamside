@@ -313,3 +313,11 @@ should follow its thumbnail and finish in the original half-second even while
 scrolling. Also repeat close/reopen and verify Watch still transfers normally.
 Review the return's static preview appearance and export Native diagnostics.
 Physical-device acceptance and new runtime observations remain pending.
+
+## Device follow-up
+
+The [unblocked-return device review](SWIFTUI_PREVIEW_UNBLOCKED_RETURN_DEVICE_REVIEW.json)
+reports functional input release but a frozen delay during dismissal and an
+external-audio interruption on the first preview only. The
+[lifetime/audio investigation](SWIFTUI_PREVIEW_LIFETIME_AUDIO.md) preserves the
+findings and successor implementation; these defects limit acceptance of 5ada9ea.

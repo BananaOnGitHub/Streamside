@@ -35,6 +35,7 @@ int main(int argc,char **argv) {
         ssn_playback_event(99);
         ssn_playback_status(7,6);ssn_playback_status(0,0);
     }
+    if(!strcmp(argv[2],"work")) { ssn_playback_work(0,200);ssn_playback_work(0,30);ssn_playback_work(4,UINT64_MAX);ssn_playback_work(99,1); }
     ssn_service(SSN_READY,2);ssn_scaffold_ready();ssn_transition(true);ssn_transition(false);ssn_transition(true);ssn_report();
     return 0;
 }

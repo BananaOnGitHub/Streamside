@@ -3,7 +3,8 @@ NS_ASSUME_NONNULL_BEGIN
 /* Owned facade; no donor SDK header, token or playback URL reaches SwiftUI. */
 @interface SSNPlayback : NSObject
 - (instancetype)initWithChannel:(NSString *)channel NS_SWIFT_NAME(init(channel:));
-/* Preview is always muted and mixes without ducking other apps. Promotion is
+/* Preview is always muted, uses Ambient mixing without explicit activation,
+ * and retires SDK/audio resources asynchronously. Promotion is
  * explicit and happens only after theatre presentation; it retains the player. */
 - (instancetype)initWithChannel:(NSString *)channel preview:(BOOL)preview NS_SWIFT_NAME(init(channel:preview:));
 - (BOOL)enterTheatre;

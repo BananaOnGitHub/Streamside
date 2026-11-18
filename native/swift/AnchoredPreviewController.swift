@@ -186,13 +186,6 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
         }
         animator = animation; animation.startAnimation(); return true
     }
-    func freezeForReturn() {
-        // Media can stop now while the return still shows the last composed
-        // preview. This passive snapshot owns no player and receives no input.
-        guard !closing, installed, let still = content.view.snapshotView(afterScreenUpdates: false) else { return }
-        still.frame = card.bounds; still.isUserInteractionEnabled = false
-        still.accessibilityElementsHidden = true; card.addSubview(still)
-    }
     func dismiss(watching: Bool, completion: @escaping () -> Void) {
         guard !closing else { return }
         closing = true; dragging = false
@@ -223,9 +216,9 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
             observeTarget?(true, rect, CGPoint(x: rect.midX, y: rect.midY))
         }
         let moving = !UIAccessibility.isReduceMotionEnabled && UIApplication.shared.applicationState == .active
-        if moving && !watching, let lifted, lifted.superview == nil {
+        if !watching && UIApplication.shared.applicationState == .active, let lifted, lifted.superview == nil {
             lifted.frame = content.view.convert(CGRect(x: 0, y: 0, width: card.bounds.width, height: card.bounds.width * 9 / 16), to: view)
-            lifted.alpha = 0; view.addSubview(lifted)
+            lifted.alpha = 1; view.addSubview(lifted)
         }
         // A critically damped spring sheds velocity as it reaches the source,
         // without an overshoot or a constant-speed final segment. Watch remains

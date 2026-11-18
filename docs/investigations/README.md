@@ -23,6 +23,8 @@ not here.
 
 - [Native portrait player controls](SWIFTUI_NATIVE_PLAYER_CONTROLS.md): auto-hide overlay, local IVS pause/mute, live information, compact sharing, Settings pages, and the casting handoff blocker.
 
+- [Preview dismissal work and cold audio setup](SWIFTUI_PREVIEW_LIFETIME_AUDIO.md): device defects, asynchronous SDK/audio retirement, first-preview audio policy, timing evidence and required validation.
+
 ## Native frontend trial
 
 - [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.

@@ -22,6 +22,7 @@ static _Atomic uint64_t navigation_events[5],account_events[5],account_updates_r
 static _Atomic unsigned playback_phase,playback_error,playback_last_error;
 static _Atomic uint64_t playback_events[9],player_control_events[7],mute_mismatches;
 static _Atomic unsigned mute_flags;
+static _Atomic uint64_t playback_work[5][3];
 static _Atomic uint64_t frontend_events[4];
 static uint64_t peak_footprint;
 static bool baseline_verified;
@@ -80,6 +81,13 @@ void ssn_playback_mute(bool known,bool requested,bool reported) {
 }
 void ssn_player_control_event(unsigned event) { if(event<7) atomic_fetch_add(&player_control_events[event],1); }
 void ssn_playback_event(unsigned event) { if(event<9) atomic_fetch_add(&playback_events[event],1); }
+void ssn_playback_work(unsigned stage,uint64_t microseconds) {
+    if(stage>=5) return;
+    if(microseconds>60000000) microseconds=60000000;
+    atomic_fetch_add(&playback_work[stage][0],1);atomic_store(&playback_work[stage][1],microseconds);
+    uint64_t maximum=atomic_load(&playback_work[stage][2]);
+    while(microseconds>maximum&&!atomic_compare_exchange_weak(&playback_work[stage][2],&maximum,microseconds)) {}
+}
 void ssn_frontend_event(unsigned event) { if(event<4) atomic_fetch_add(&frontend_events[event],1); }
 void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }
 void ssn_scaffold_ready(void) { if(!visible_ms) visible_ms=(clock_ns()-started_ns)/1000000; }
@@ -162,6 +170,8 @@ void ssn_report(void) {
     ADD("],\"account_updates_retained\":%llu,\"account_data_clears\":%llu,",(unsigned long long)atomic_load(&account_updates_retained),(unsigned long long)atomic_load(&account_data_clears));
     ADD("\"playback_phase\":%u,\"playback_error\":%u,\"playback_last_error\":%u,\"playback_events\":[",atomic_load(&playback_phase),atomic_load(&playback_error),atomic_load(&playback_last_error));
     for(unsigned i=0;i<9;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&playback_events[i]));
+    ADD("],\"playback_work_us\":[");
+    for(unsigned i=0;i<5;i++) ADD("%s[%llu,%llu,%llu]",i?",":"",(unsigned long long)atomic_load(&playback_work[i][0]),(unsigned long long)atomic_load(&playback_work[i][1]),(unsigned long long)atomic_load(&playback_work[i][2]));
     ADD("],");
     ADD("\"account_list_state\":%u,\"returned_channel_count\":%u,\"memory_available\":%s,\"phys_footprint_bytes\":%llu,\"resident_bytes\":%llu,\"hardware\":\"%s\",\"os_kernel\":\"%s\",\"probes\":{",ssn_state(),atomic_load(&rows),memory_available?"true":"false",(unsigned long long)footprint,(unsigned long long)resident,hardware,os);
     for(unsigned i=0;i<SSN_PROBE_COUNT;i++) ADD("%s\"%s\":%llu",i?",":"",ssn_specs[i].name,(unsigned long long)ssn_count(i));

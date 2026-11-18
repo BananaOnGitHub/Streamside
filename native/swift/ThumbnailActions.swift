@@ -171,7 +171,7 @@ struct ThumbnailActions: UIViewRepresentable {
         }
         private func finish(watch: Bool) {
             guard let session, session.phase == .visible, let presenter else { return }
-            if !watch { presenter.freezeForReturn(); session.cancel(); return }
+            if !watch { session.cancel(); return }
             session.requestWatch()
             session.end(after: { complete in
                 presenter.dismiss(watching: watch) { [weak self, weak session] in self?.clear(session); complete() }

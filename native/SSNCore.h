@@ -45,3 +45,7 @@ void ssn_player_control_event(unsigned event);
 
 /* SDK-reported mute state is unknown without a current player. No audio data. */
 void ssn_playback_mute(bool known,bool requested,bool reported);
+
+/* Fixed numeric work stages: pause, view detach, SDK disposal, audio setup,
+ * audio restoration. Values are microseconds, clamped to one minute. */
+void ssn_playback_work(unsigned stage,uint64_t microseconds);

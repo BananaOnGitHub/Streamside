@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "source_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+  "proof_id": "17571820a5e5027c92c5087f1e3b57f2b0377f63877f7c1af5f5c7d60b182f34",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "ipa_sha256": "0985e2b7ecde74b1201ce214f70b81bd4ad21b6fce58e5560887054dc78c6cf0",
+  "raw_sha256": "665f2ecd5ab63c0eb2374a635978e737510d70573c12cde26e85f39889e40516",
+  "raw_bytes": 2046,
+  "device_observation": "VAFT test successful.",
+  "acceptance_scope": "Device-reported VAFT success with observed real HLS interception, ad-marked manifests and clean alternate selections while enabled.",
+  "diagnostics": {
+    "armed_mask": 15,
+    "failures": 0,
+    "baseline_positive_control": false,
+    "baseline_calibrated": false,
+    "ui_root_owner": 1,
+    "navigation_guard_armed": 1,
+    "navigation_events": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "foregrounds": 1,
+    "backgrounds": 0,
+    "playback_phase": 0,
+    "playback_error": 0,
+    "playback_last_error": 0,
+    "playback_events": [
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      0,
+      0,
+      4
+    ],
+    "playback_work_us": [
+      [
+        4,
+        20,
+        39
+      ],
+      [
+        4,
+        186,
+        283
+      ],
+      [
+        4,
+        81,
+        163
+      ],
+      [
+        4,
+        869547,
+        910816
+      ],
+      [
+        4,
+        617500,
+        619912
+      ]
+    ],
+    "adblock_enabled": true,
+    "adblock_installed": true,
+    "adblock_metrics": [
+      52,
+      3,
+      49,
+      42,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "returned_channel_count": 100,
+    "player_mute_mismatched_samples": 0,
+    "probes": {
+      "twitch_holder": 0,
+      "warmup": 0,
+      "twitch_factory": 0,
+      "bundle_url": 0,
+      "rn_factory": 0,
+      "rn_runtime_factory": 0,
+      "rn_host": 0,
+      "rn_host_start": 0,
+      "rn_surface": 0,
+      "rn_root_surface": 0,
+      "rn_instance": 0,
+      "rn_bundle_load": 0,
+      "rn_script_load": 0,
+      "rn_hermes_instance": 0,
+      "hermes_factory": 0,
+      "hermes_factory_nothrow": 0,
+      "hermes_runtime": 0,
+      "hermes_eval": 0,
+      "hermes_eval_prepared": 0,
+      "hermes_eval_source_map": 0,
+      "worklet_factory": 0,
+      "worklet_ui_factory": 0,
+      "worklet_runtime": 0,
+      "hermes_implementation": 0,
+      "hermes_engine": 0
+    }
+  },
+  "vaft_observations": {
+    "hls_intercepted": 52,
+    "master_manifests": 3,
+    "media_manifests": 49,
+    "ad_marked_manifests": 42,
+    "clean_alternates": 2,
+    "segments_remembered": 0,
+    "token_failures": 0,
+    "unmapped_variants": 0,
+    "synthetic_segments": 0,
+    "legacy_graphql_rewrites": 0,
+    "hls_failures": 0
+  },
+  "interpretation": "Exact delivered source/proof/donor match. VAFT enabled and installed. 52 HLS requests comprised 3 master and 49 media playlists; 42 ad-marked manifest observations and 2 clean alternate selections. No alternate token failures, unmapped variants, synthetic segments or HLS failures. Repeated manifest observations are not distinct ad counts; clean alternate selections are not a count of ads blocked. Four playback cycles reached playing/decoded video and completed retirement/close, with no global failures, playback errors or mute mismatches. Native root and navigation guard retained. All 25 runtime probes record zero hits, but baseline calibration is false, so this export alone does not independently establish calibrated runtime absence.",
+  "not_newly_validated": [
+    "Off state or preference restoration on device; supplied snapshot is enabled.",
+    "Synthetic segment fallback on device; no segment suppression/blank responses were exercised.",
+    "Background/foreground or account-loss behavior; no background event is recorded.",
+    "Explicit first-preview external-audio continuity or dismissal smoothness; latest feedback says successful without separate regression detail. Prior device acceptance is preserved separately.",
+    "Independent runtime positive control for this source/proof."
+  ]
+}

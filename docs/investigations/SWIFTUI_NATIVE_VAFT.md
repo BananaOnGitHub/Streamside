@@ -168,3 +168,24 @@ close/reopen the app (also checking the saved preference), watch again and expor
 a separate report. Use a real ad opportunity where available; unobserved ads or
 unintercepted requests cannot establish suppression. Include a first-preview
 external-audio check and Watch/close regression check.
+
+## Device confirmation — 2026-11-18
+
+The [a3d98aa device review](SWIFTUI_NATIVE_VAFT_DEVICE_REVIEW.json) matches the
+delivered source, proof and donor. Device testing reports success. VAFT is enabled
+and installed, with 52 intercepted HLS requests (3 masters and 49 media playlists),
+42 ad-marked manifest observations and 2 clean alternate selections. There are no
+alternate-token failures, unmapped variants or HLS failures. These are playlist
+observations and selections, not counts of distinct ads blocked. Four playback
+cycles reached playing and decoded video, retired and closed without global
+failures, playback errors or mute mismatches. Native root ownership is retained.
+
+This supplies device evidence for the enabled clean-alternate path, beyond the
+synthetic fixtures and packaging. The raw export is private beside the IPA; its
+hash and scoped review are committed. The snapshot contains no Off-state test,
+background event or segment fallback, and the brief success report does not
+separately establish each prior preview/audio regression. All 25 runtime probes
+record zero hits, with baseline calibration false. Original pending statements
+and failed-build evidence retain their historical scope; this is the subsequent
+device result, without extending it to untested paths or independent calibration.
+No implementation change or new Apple build is needed for this evidence update.

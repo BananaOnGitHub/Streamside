@@ -21,6 +21,8 @@ not here.
 
 - [One-shot device review and export isolation correction](SWIFTUI_NATIVE_EXPORT_ISOLATION_REVIEW.md): independent/original runtime comparison, automatic Native return, duplicate report mapping and mode-specific sharing.
 
+- [Native frontend VAFT integration](SWIFTUI_NATIVE_VAFT.md): shared playlist engine, native authenticated alternate tokens, default-on player toggle, cancellation and scoped validation.
+
 - [Native portrait player controls](SWIFTUI_NATIVE_PLAYER_CONTROLS.md): auto-hide overlay, local IVS pause/mute, live information, compact sharing, Settings pages, and the casting handoff blocker.
 
 - [Preview dismissal work and cold audio setup](SWIFTUI_PREVIEW_LIFETIME_AUDIO.md): device defects, asynchronous SDK/audio retirement, first-preview audio policy, timing evidence and required validation.

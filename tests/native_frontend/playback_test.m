@@ -8,6 +8,13 @@
 #include <stdatomic.h>
 #include <objc/runtime.h>
 static BOOL authorized=YES,pending;
+static unsigned leaseStarts,leaseEnds;static bool endedLeases[64],validLeases=true;
+uint64_t ssn_adblock_begin(void) { return ++leaseStarts; }
+void ssn_adblock_end(uint64_t lease) {
+    if(!lease) return;
+    if(lease>=64||endedLeases[lease]) { validLeases=false;return; }
+    endedLeases[lease]=true;leaseEnds++;
+}
 bool ssn_native_mode(void) { return true; }
 static unsigned requests,cancels,pauses,decodedEvents;
 static atomic_uint created,released,activationCalls,reportMainCalls,audioRetirements;
@@ -245,6 +252,7 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
     });
 }
 - (void)finish {
+    [self record:@"vaft_lifetime" passed:validLeases&&leaseStarts>=requests&&leaseStarts==leaseEnds];
     BOOL passed=YES;for(NSNumber *result in _results.allValues) passed=passed&&result.boolValue;
     _results[@"passed"]=@(passed);
     NSURL *documents=[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;

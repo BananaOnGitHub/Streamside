@@ -12,4 +12,6 @@ def source_identity(frontend="swiftui"):
         for path in sorted((ROOT / directory).rglob("*")):
             if path.is_file() and path.suffix in {".c", ".h", ".m", ".swift", ".json", ".py", ".tbd", ".png"}:
                 digest.update(str(path.relative_to(ROOT)).encode() + b"\0" + path.read_bytes())
+    for name in ("src/TASVAFT.h", "src/TASVAFTBlank.h", "src/TASDiagnostics.h", "src/TASDiagnosticPolicy.h"):
+        digest.update(name.encode()+b"\0"+(ROOT/name).read_bytes())
     return digest.hexdigest()

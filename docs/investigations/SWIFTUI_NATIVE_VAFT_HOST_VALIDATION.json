@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "implementation_parent": "b62e975cb881426b110890fd1322e1cc51da7b44",
+  "source_proof_id": "76882b6897de8a343902e0f4354d5fb06344769b81aa9d064c794502bef5281d",
+  "donor_expected": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "abi_entries": 55,
+    "probe_entries": 25
+  },
+  "upstream": {
+    "commit": "c51ef2fe8f667f9dc9216eb550924cf0d732ce27",
+    "solution": 24,
+    "sha256": "8ba15a99627c3d2a8fab3c3011b43d68ecb89eb40af549b0052d98449f02f591"
+  },
+  "host_tests": {
+    "native_frontend": {
+      "passed": 85,
+      "seconds": 9.278
+    },
+    "provider_routing": {
+      "passed": 12
+    },
+    "legacy_protocol": {
+      "passed": 2
+    },
+    "shared_engine": "Executed production core with synthetic Foundation/network values; markers, clean alternate/reuse, ownership, stale references, all-candidate fallback, suppressed segments and rendition matching passed.",
+    "arm64_ios_legacy_compile": "passed",
+    "full_legacy_build": "passed; compiled-runtime freshness, native WebP definitions, segment/signature/package identity guards retained"
+  },
+  "legacy_products": {
+    "Streamside.dylib": {
+      "bytes": 726048,
+      "sha256": "75ab7e01640d488ab9cefd81b1e359e269e61d61d216ce6f93644f2730c3cf4d"
+    },
+    "Streamside.framework/Streamside": {
+      "bytes": 662304,
+      "sha256": "cccdfbcbc6d624abaf5f0e32c6e382500e134bbac2bd4f0e83d3d9fc7bdc6777"
+    }
+  },
+  "legacy_source_hashes": {
+    "src/Streamside.c": "255ed7c27683443751659104094e42878e026a4526d5034cf953b61fe04ac51d",
+    "src/TASVAFT.h": "04df574051fea7f2099752d4f544cda57a5d5a7233e3a3dc30598008fca38ef3",
+    "src/TASVAFTBlank.h": "1f093f2c679d31db7a0a46da4cf620cc395ccfbb4af6c3fa9c7eb7ec222c46ef"
+  },
+  "logs": {
+    "native_host": {
+      "path": "artifacts/validation/native-vaft-port-2026-11-17/streamside-vaft-native-host.log",
+      "bytes": 12071,
+      "sha256": "ba59daefc4643879c0229d5f44919bcfe685bfc3232d3cc12e64aa6d6ea7ae8f"
+    },
+    "provider_routing": {
+      "path": "artifacts/validation/native-vaft-port-2026-11-17/streamside-vaft-providers.log",
+      "bytes": 1709,
+      "sha256": "f9f22bfabad2e869a3c721aed21b878985b1023d2f04fc292875ba35c44edac9"
+    },
+    "legacy_protocol": {
+      "path": "artifacts/validation/native-vaft-port-2026-11-17/streamside-vaft-legacy-protocol.log",
+      "bytes": 424,
+      "sha256": "d7713e9f3d535db469fc71cc49e106a97c153fe53b11b641ee6d54464032b310"
+    },
+    "legacy_build": {
+      "path": "artifacts/validation/native-vaft-port-2026-11-17/streamside-vaft-legacy-build.log",
+      "bytes": 620,
+      "sha256": "c07bb6d23f5ae89de0bdc3fa74a7bf137ec60927e3c8d97e024ff9e88783c72b"
+    },
+    "legacy_compile": {
+      "path": "artifacts/validation/native-vaft-port-2026-11-17/streamside-vaft-legacy-compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "apple_validation": "Pending: required compilation, real-Foundation transport fixture, fresh-process preference restoration and all retained simulator/UI/pixel/playback gates. No Apple success or IPA claimed here.",
+  "device_validation": "Pending: actual IVS interception/ad-bearing playback, On/Off, authentication/integrity, preview audio/cancellation/Watch, lifecycle, RN/Hermes counters with calibrated coverage. Synthetic fixtures are not evidence of real Twitch ad suppression.",
+  "storage": "Generated outputs remain outside the repository. Only new, disposable validation caches were removed; verified legacy binaries/metadata/logs retained. Donor and signing inputs stay local."
+}

@@ -52,6 +52,15 @@ class CoreEvidence(unittest.TestCase):
             self.assertEqual(result.returncode,86);self.assertEqual(report['failures']&2,2)
             self.assertEqual(report['probes']['hermes_engine'],1)
 
+    def test_adblock_metrics_are_bounded_and_original_mode_is_untouched(self):
+        for mode in [0,1]:
+            with tempfile.TemporaryDirectory() as d:
+                _,report=self.run_core(mode,'adblock',Path(d))
+                self.assertEqual(report['adblock_enabled'],bool(mode))
+                self.assertEqual(report['adblock_installed'],bool(mode))
+                self.assertEqual(report['adblock_metrics'],[3,0,0,0,2,0,0,0,0,0,1000000] if mode else [0]*11)
+                self.assertTrue(all(n==0 for n in report['probes'].values()))
+
     def test_export_is_bounded_private_and_contains_only_whitelisted_fields(self):
         with tempfile.TemporaryDirectory() as d:
             _,report=self.run_core(1,'armed',Path(d));path=Path(d)/'native-latest.json'

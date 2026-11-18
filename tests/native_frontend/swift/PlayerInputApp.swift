@@ -4,6 +4,7 @@ import UIKit
 // Only the control's bounded diagnostic callback is stubbed. Production views,
 // hit regions, video wrapper, popovers, URL copy/share and visibility are reused.
 func SSNPlayerControlEvent(_ event: UInt32) {}
+func ssn_adblock_set_enabled(_ enabled: Bool) {}
 
 private final class InputHungryVideo: UIView {
     var changedRenderer = false { didSet { invalidateIntrinsicContentSize(); setNeedsLayout() } }

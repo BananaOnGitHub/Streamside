@@ -278,9 +278,20 @@ struct PlayerAnimationOptions: View {
     }
 }
 
+struct PlayerAdBlockOptions: View {
+    @AppStorage("dev.streamside.player.adblock") private var enabled = true
+    var body: some View {
+        Toggle("Ad blocking", isOn: $enabled)
+            .onChange(of: enabled) { value in ssn_adblock_set_enabled(value) }
+        Text("VAFT · Applies when opening a stream or preview.")
+            .font(.footnote).foregroundStyle(.secondary)
+    }
+}
+
 struct PlayerSettings: View {
     var body: some View {
         Form {
+            Section("Playback") { PlayerAdBlockOptions() }
             Section { PlayerSettingsOptions() }
             Section("Controls") { PlayerAnimationOptions() }
         }

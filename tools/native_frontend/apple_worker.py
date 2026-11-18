@@ -37,16 +37,16 @@ def main():
                             repository=os.environ.get('GITHUB_REPOSITORY'))
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
     common=['-target','arm64-apple-ios16.4','-isysroot',sdk,'-Os','-fblocks','-Wall','-Wextra','-Werror',
-            '-fvisibility=hidden','-DSSN_SWIFTUI=1','-DSSN_DEV_LAUNCH_SELECTOR='+str(int(config['mode']=='native')),'-Inative','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
+            '-fvisibility=hidden','-DSSN_SWIFTUI=1','-DSSN_DEV_LAUNCH_SELECTOR='+str(int(config['mode']=='native')),'-Inative','-Isrc','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
     swift=['native/swift/'+p.name for p in sorted((root/'native/swift').glob('*.swift'))]
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-O','-swift-version','5','-warnings-as-errors',
          '-module-name','StreamsideNativeProof','-import-objc-header','native/SSNNativeBridge.h',
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+swift, label='Compile SwiftUI frontend for iPhone')
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
+    for name in ['SSNAdBlock.m','SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
-        run(['xcrun','clang']+common+(['-fobjc-arc'] if name=='SSNWindowOwnership.m' else [])+['-c','native/'+name,'-o',obj])
+        run(['xcrun','clang']+common+(['-fobjc-arc'] if name in ['SSNWindowOwnership.m','SSNAdBlock.m'] else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
     # Compile the existing ABI caller fixture with the Apple compiler as well;
     # Ubuntu emulates its argument registers against the existing ABI tests.
@@ -60,6 +60,11 @@ def main():
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
     run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
     info['model_tests']=run([str(output/'models-tests')], label='Test account, feed and presentation models')
+    run(['xcrun','clang','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-Inative','-Isrc','-Igenerated',
+         'native/SSNAdBlock.m','tests/native_frontend/adblock_test.m','-framework','Foundation','-o','output/adblock-tests'], label='Build shared VAFT and native transport fixture')
+    for selection in ['baseline','native']:
+        run([str(output/'adblock-tests'),selection],label='Test VAFT '+selection+' token routing, manifests, cancellation and preference')
+    info['adblock_tests']={k:True for k in ['passed','default_enabled','disabled_passthrough','baseline_untouched','native_tokens','clean_alternate','fallback_segments','stream_isolation','cancellation','account_change','preference_restoration']}
     info['uikit_ownership_tests']=test_window_ownership(root, output, config, run)
     info['codesign']='ad-hoc; IPA still requires device-authorized re-signing'
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
@@ -163,7 +168,7 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test cold preview audio, responsive retirement, ordered restoration, playback lifecycle and mute')
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
-        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering']}
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
         for index in range(3):

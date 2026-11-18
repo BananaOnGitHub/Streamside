@@ -314,7 +314,7 @@ def fetch(client, record, out):
     from components import verify
     verify(download / 'components', record['source_revision'])
     environment = dict(os.environ, SSN_ABI_OBJECT=str(download / 'components/native/apple-abi.o'))
-    for pattern in ['test_abi.py', 'test_components.py', 'test_core.py', 'test_launch.py', 'test_probes.py', 'test_launch_comparison.py']:
+    for pattern in ['test_abi.py', 'test_components.py', 'test_core.py', 'test_launch.py', 'test_probes.py', 'test_launch_comparison.py', 'test_vaft_core.py']:
         subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests/native_frontend', '-p', pattern, '-v'],
                        cwd=ROOT, env=environment, check=True)
     record.update(download_verified=True, archive_sha256=receipt['archive_sha256'],

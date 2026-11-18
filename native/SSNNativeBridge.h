@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import "SSNWindowOwnership.h"
 #import "SSNPlayback.h"
+#import "SSNAdBlock.h"
 
 NS_ASSUME_NONNULL_BEGIN
 FOUNDATION_EXPORT NSNotificationName const SSNNativeServiceDidChange;

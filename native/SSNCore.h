@@ -49,3 +49,8 @@ void ssn_playback_mute(bool known,bool requested,bool reported);
 /* Fixed numeric work stages: pause, view detach, SDK disposal, audio setup,
  * audio restoration. Values are microseconds, clamped to one minute. */
 void ssn_playback_work(unsigned stage,uint64_t microseconds);
+
+/* VAFT: numeric observations only. Same fixed eleven metric indices as the
+ * shared engine; counters do not establish suppression without an ad case. */
+void ssn_adblock_state(bool enabled,bool installed);
+void ssn_adblock_metric(unsigned metric,uint64_t amount);

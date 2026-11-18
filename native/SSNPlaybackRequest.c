@@ -3,6 +3,7 @@
  * read: TKGraphQL's existing HTTP authorization and integrity chain owns it. */
 #include "SSNPlaybackRequest.h"
 #include "SSNIntegration.h"
+#include "SSNAdBlock.h"
 #include <dlfcn.h>
 #include <stdlib.h>
 
@@ -82,12 +83,18 @@ static bool initialize(void) {
     query_witness=conforms(query_type,protocol);objc_type=objc_meta(objc_getClass("NSObject"));
     available=query_witness&&objc_type;return available;
 }
-id ssn_playback_request(id channel) {
+id ssn_playback_request_variant(id channel,id player_name,id platform_name) {
+    const char *player_utf=kind(player_name,"NSString")?((const char*(*)(id,SEL))objc_msgSend)(player_name,ss("UTF8String")):NULL;
+    const char *platform_utf=kind(platform_name,"NSString")?((const char*(*)(id,SEL))objc_msgSend)(platform_name,ss("UTF8String")):NULL;
+    if(!player_utf||!platform_utf||!(((!strcmp(player_utf,"site")||!strcmp(player_utf,"popout"))&&!strcmp(platform_utf,"ios"))||
+       ((!strcmp(player_utf,"embed")||!strcmp(player_utf,"popout"))&&!strcmp(platform_utf,"web"))||
+       (!strcmp(player_utf,"autoplay")&&!strcmp(platform_utf,"android")))) return nil;
     if(!ssn_playback_authorized()||!initialize()||!kind(channel,"NSString")||!num(channel,"length")||num(channel,"length")>128) return nil;
     id graph=m0(c("_TtC9TwitchKit9TKGraphQL"),"sharedInstance"); if(!graph) return nil;
-    Words2 platform=from_string(ns("ios")),player=from_string(ns("site")),name=from_string(channel);
+    Words2 platform=from_string(platform_name),player=from_string(player_name),name=from_string(channel);
     /* Same native null representations/lowering as live requester 1025e0810–48.
-     * This frontend explicitly uses interactive/site playback, not feed autoplay.
+     * VAFT changes only the two validated Swift String inputs; authorization,
+     * integrity, renewal and account changes remain in the native request chain.
      * Constructors consume the supplied native Swift strings and InputDict. */
     uintptr_t params=params_init(0,2,2,0,0,0,0,platform.a,platform.b,0,0,player.a,player.b,0,1);
     uintptr_t query=query_init(name.a,name.b,params,query_type);
@@ -99,4 +106,9 @@ id ssn_playback_request(id channel) {
     destroy(&result,promise_type);
     if(!kind(mapped,"TWLPromise")) { objc_release(mapped);return nil; }
     return mapped;
+}
+
+id ssn_playback_request(id channel) {
+    return ssn_adblock_active()?ssn_playback_request_variant(channel,ns("popout"),ns("ios")):
+                                 ssn_playback_request_variant(channel,ns("site"),ns("ios"));
 }

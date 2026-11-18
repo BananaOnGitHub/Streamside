@@ -1,4 +1,5 @@
 #import "SSNPlayback.h"
+#import "SSNAdBlock.h"
 #import <AVFAudio/AVFAudio.h>
 #include "SSNPlaybackRequest.h"
 #include "SSNIntegration.h"
@@ -107,6 +108,7 @@ static void reportPlayback(void) {
     NSString *_channel;
     SSNPlaybackAudio *_audio;
     NSUInteger _generation;
+    uint64_t _adblockLease;
     id _player,_promise,_requestAuth;
     NSTimer *_timer;
     NSInteger _phase,_errorCode;
@@ -149,6 +151,7 @@ static void reportPlayback(void) {
 }
 - (void)releaseMedia {
     _generation++;_preparingAudio=NO;
+    ssn_adblock_end(_adblockLease);_adblockLease=0;
     if(_promise) { v0(_promise,"requestCancel");[_promise release];_promise=nil; }
     // Transfer the existing +1 to the serial queue as an unretained C pointer;
     // block copying must not add a final main-thread Objective-C release.
@@ -192,6 +195,7 @@ static void reportPlayback(void) {
     NSCharacterSet *allowed=[NSCharacterSet characterSetWithCharactersInString:@"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"];
     if(!_channel.length||_channel.length>128||[_channel rangeOfCharacterFromSet:allowed.invertedSet].location!=NSNotFound) { [self fail:3];return; }
     _requestAuth=[auth() retain];
+    _adblockLease=ssn_adblock_begin();
     [self setPhase:1 error:0];_preparingAudio=YES;
     _deadline=NSProcessInfo.processInfo.systemUptime+30;
     if(!_timer) _timer=[[NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(tick:) userInfo:nil repeats:YES] retain];

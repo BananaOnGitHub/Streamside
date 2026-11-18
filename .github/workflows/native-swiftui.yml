@@ -92,3 +92,5 @@ jobs:
         run: python3 -m unittest discover -s tests/native_frontend -p test_probes.py -v
       - name: Test original-startup reports and mode admission
         run: python3 -m unittest discover -s tests/native_frontend -p test_launch_comparison.py -v
+      - name: Test shared VAFT playlist engine
+        run: python3 -m unittest discover -s tests/native_frontend -p test_vaft_core.py -v

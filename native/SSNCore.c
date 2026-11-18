@@ -24,6 +24,8 @@ static _Atomic uint64_t playback_events[9],player_control_events[7],mute_mismatc
 static _Atomic unsigned mute_flags;
 static _Atomic uint64_t playback_work[5][3];
 static _Atomic uint64_t frontend_events[4];
+static _Atomic unsigned adblock_flags;
+static _Atomic uint64_t adblock_metrics[11];
 static uint64_t peak_footprint;
 static bool baseline_verified;
 static char report_path[1024], calibration_path[1024];
@@ -81,6 +83,12 @@ void ssn_playback_mute(bool known,bool requested,bool reported) {
 }
 void ssn_player_control_event(unsigned event) { if(event<7) atomic_fetch_add(&player_control_events[event],1); }
 void ssn_playback_event(unsigned event) { if(event<9) atomic_fetch_add(&playback_events[event],1); }
+void ssn_adblock_state(bool enabled,bool installed) {
+    atomic_store(&adblock_flags,ssn_native_mode()?((enabled?1u:0u)|(installed?2u:0u)):0);
+}
+void ssn_adblock_metric(unsigned metric,uint64_t amount) {
+    if(ssn_native_mode()&&metric<11) atomic_fetch_add(&adblock_metrics[metric],amount>1000000?1000000:amount);
+}
 void ssn_playback_work(unsigned stage,uint64_t microseconds) {
     if(stage>=5) return;
     if(microseconds>60000000) microseconds=60000000;
@@ -173,6 +181,9 @@ void ssn_report(void) {
     ADD("],\"playback_work_us\":[");
     for(unsigned i=0;i<5;i++) ADD("%s[%llu,%llu,%llu]",i?",":"",(unsigned long long)atomic_load(&playback_work[i][0]),(unsigned long long)atomic_load(&playback_work[i][1]),(unsigned long long)atomic_load(&playback_work[i][2]));
     ADD("],");
+    ADD("\"adblock_enabled\":%s,\"adblock_installed\":%s,\"adblock_metrics\":[",(atomic_load(&adblock_flags)&1)?"true":"false",(atomic_load(&adblock_flags)&2)?"true":"false");
+    for(unsigned i=0;i<11;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&adblock_metrics[i]));
+    ADD("],");
     ADD("\"account_list_state\":%u,\"returned_channel_count\":%u,\"memory_available\":%s,\"phys_footprint_bytes\":%llu,\"resident_bytes\":%llu,\"hardware\":\"%s\",\"os_kernel\":\"%s\",\"probes\":{",ssn_state(),atomic_load(&rows),memory_available?"true":"false",(unsigned long long)footprint,(unsigned long long)resident,hardware,os);
     for(unsigned i=0;i<SSN_PROBE_COUNT;i++) ADD("%s\"%s\":%llu",i?",":"",ssn_specs[i].name,(unsigned long long)ssn_count(i));
     ADD("}}\n");
@@ -209,4 +220,9 @@ void ssn_summary(char *buffer,size_t size) {
         (unsigned long long)atomic_load(&navigation_events[2]),(unsigned long long)atomic_load(&navigation_events[3]),
         (unsigned long long)atomic_load(&navigation_events[4]),(unsigned long long)atomic_load(&account_updates_retained),(unsigned long long)atomic_load(&account_data_clears),
         atomic_load(&playback_phase),atomic_load(&playback_error),atomic_load(&playback_last_error),(unsigned long long)atomic_load(&playback_events[2]),(unsigned long long)atomic_load(&playback_events[5]));
+    size_t used=size?strlen(buffer):0;
+    if(ssn_native_mode()&&used<size) snprintf(buffer+used,size-used,"\nVAFT %s · transport %s\nPlaylists %llu · ad-marked %llu · clean alternates %llu · blank segments %llu\nNo intercepted playlists means coverage is unobserved.",
+        (atomic_load(&adblock_flags)&1)?"on":"off",(atomic_load(&adblock_flags)&2)?"installed":"unavailable",
+        (unsigned long long)atomic_load(&adblock_metrics[0]),(unsigned long long)atomic_load(&adblock_metrics[3]),
+        (unsigned long long)atomic_load(&adblock_metrics[4]),(unsigned long long)atomic_load(&adblock_metrics[8]));
 }

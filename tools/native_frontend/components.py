@@ -120,8 +120,10 @@ def verify(directory, revision=None):
         expected_ui=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True) if mode=='native' else None
         if uikit.get("controls_ui_receipt") != expected_ui:
             raise ValueError("Player coordinate interaction validation missing or failed")
-        if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering']}:
+        if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime']}:
             raise ValueError("Synthetic UIKit playback lifecycle validation missing or failed")
+        if compiler.get("adblock_tests") != {k:True for k in ['passed','default_enabled','disabled_passthrough','baseline_untouched','native_tokens','clean_alternate','fallback_segments','stream_isolation','cancellation','account_change','preference_restoration']}:
+            raise ValueError("Native VAFT transport validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
         for asset in ["twitch-verified.png", "verifiedbtw.png"]:
             if (framework / asset).read_bytes() != (ROOT / "native/assets" / asset).read_bytes():

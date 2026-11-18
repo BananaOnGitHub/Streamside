@@ -122,3 +122,21 @@ ad suppression; preserve failures. Review RN/Hermes counts with the existing
 coverage/calibration limits. The exact Twitch 32.0 donor remains local and must
 pass normal identity/ABI/package checks before modification. No donor or signing
 material is part of Apple inputs or artifacts.
+
+## First Apple build failure and correction
+
+Source `39316301b2b71929520379bbf7d871b669189e94` failed in
+[Codemagic](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd2915d133a39c4a12816b).
+The [failure record](SWIFTUI_NATIVE_VAFT_BUILD_FAILURE_1.json) preserves the
+archive hash, successful stages and validation limits. SwiftUI and the ARC native
+VAFT adapter compiled, but the C token-request translation unit rejected an
+unconditional Objective-C retained-result annotation. Warnings remain errors.
+Linking, the real-Foundation transport fixture and simulator gates were not reached.
+
+The annotation is now limited to Objective-C consumers, keeping ARC's retained
+result contract and the existing manual C ownership. A new host regression compiles
+the actual header and caller as both C and ARC Objective-C for arm64 iOS. All 86
+native host tests pass (9.622s). Filtering, auth, service ABI and mandatory Apple
+gates are unchanged. Only trailing whitespace was removed from the extracted
+engine header. The first host record and failed source retain their original
+identities; replacement Apple success and physical ad suppression remain pending.

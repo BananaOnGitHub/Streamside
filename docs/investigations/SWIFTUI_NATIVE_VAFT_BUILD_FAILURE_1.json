@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "failed_source_revision": "39316301b2b71929520379bbf7d871b669189e94",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afd2915d133a39c4a12816b",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd2915d133a39c4a12816b",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "Streamside_19_artifacts.zip",
+        "bytes": 3298,
+        "sha256": "cac0340a54ff6af922b006aaddf975b9d8b6049f4a11101a2290ec7b724d233f"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "39316301b2b71929520379bbf7d871b669189e94",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.721
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.332
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 19.702
+        }
+      ]
+    }
+  },
+  "cause": "SSNPlaybackRequest.h unconditionally applied ns_returns_retained. Clang rejects this Objective-C ownership attribute when the header is included by a plain C translation unit with runtime-typedef id. Warnings-as-errors correctly stopped SSNPlaybackRequest.c compilation.",
+  "completed_before_failure": [
+    "Pinned toolchain validation",
+    "SwiftUI iPhone compilation",
+    "SSNAdBlock.m ARC compilation",
+    "Shared production VAFT engine host test"
+  ],
+  "not_reached": [
+    "Framework linking",
+    "Real-Foundation VAFT transport fixture",
+    "UIKit/simulator gates",
+    "Packaging or device testing"
+  ],
+  "fix": "Restrict the ownership attribute to __OBJC__ consumers, preserving the +1 promise contract for ARC callers and existing manual C ownership; no runtime/service ABI or filtering logic changed. Remove the extracted header trailing blank line.",
+  "corrected_source_proof_id": "17571820a5e5027c92c5087f1e3b57f2b0377f63877f7c1af5f5c7d60b182f34",
+  "regression": {
+    "test": "test_playback_header.py",
+    "scope": "Compile the real header and a retained-result caller as C and ARC Objective-C for arm64 iOS with the pinned Zig compiler, using -Wall -Wextra -Werror.",
+    "native_host_tests": 86,
+    "seconds": 9.622,
+    "passed": true,
+    "log_sha256": "4fb62cd4002b6c0d75678ebc5654400ffd289869f720b63baa9f19f73f4f6bb6"
+  },
+  "replacement_apple_result": "Pending; a successful host compile does not establish a completed Apple build."
+}

@@ -1042,4 +1042,3 @@ static char *process_manifest(const char *url, const char *playlist, bool custom
     free(stream.master_manifest);
     return rewritten;
 }
-

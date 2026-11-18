@@ -129,3 +129,25 @@ to exist and be hittable, and taps it. All consent, preference and playback-orde
 assertions remain. [Failure evidence](SWIFTUI_MARKED_CONTENT_BUILD_FAILURE_2.json)
 records both archive identities, the screenshot hash and actual validation scope.
 A replacement Apple run and real device testing remain necessary.
+
+## Successful Apple build and local package
+
+[Build 6afd583bd133a39c4a128f4d](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd583bd133a39c4a128f4d)
+for `f6d279ca48790d3960c40dced53360242fd591c0` passed all six CI stages. All
+five coordinate tests passed, including actual checkbox hit testing, Close
+discarding the selection, and Continue waiting for the thumbnail choice. Native
+request-owner, consent-model, pending-preview admission and retained lifecycle/
+audio/VAFT fixtures passed. These are synthetic fixtures, not real Twitch requests.
+
+Ubuntu verified the downloaded artifact hash, exact source and all required
+component receipts, then passed 65 post-download tests using the Apple ABI object.
+Local assembly verified the exact donor, 67 native ABI entries, 25 runtime probes
+and every retained donor entry. The original HBC is unchanged. The native-only
+IPA is ready for local Feather signing; no independent baseline, VM build, donor
+upload or signing credential transfer was needed.
+
+[Validation record](SWIFTUI_MARKED_CONTENT_VALIDATION.json) contains exact source,
+toolchain, archive, framework and IPA identities, receipts and scope. The package
+is `artifacts/native-frontend/marked-content-f6d279c/StreamsideNativeProof-Twitch32-native.ipa`.
+Real Twitch labels, marked playback/thumbnails, app preferences across restart and
+physical-device runtime observations remain pending. Use the device checklist above.

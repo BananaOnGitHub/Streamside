@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "failed_source_revision": "0d2c8ae7d313bd6a9e2276f4235834aa3306bedb",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afd4cc0d133a39c4a128b55",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd4cc0d133a39c4a128b55",
+    "status": "failed",
+    "validation": {
+      "schema": 1,
+      "source_revision": "0d2c8ae7d313bd6a9e2276f4235834aa3306bedb",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.734
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.105
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 395.64
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "name": "artifact.zip",
+        "bytes": 21058,
+        "sha256": "4fa732ece8f86b7653b773505121a15dc1cfa33e48f5fb3075c8c4e3f5dfcb39"
+      },
+      {
+        "name": "stage-0.log",
+        "bytes": 896,
+        "sha256": "344b29f9fdfd054059b42cb79d0f01379fc1ce9545eede072bfcd588165a87da"
+      },
+      {
+        "name": "stage-1.log",
+        "bytes": 435,
+        "sha256": "c86a0d4f9be15371568031205e63e9f6fb02f4a61a70e27060e9a1247d1ac8b6"
+      },
+      {
+        "name": "stage-2.log",
+        "bytes": 237869,
+        "sha256": "dce760c379883a49e742858b467e04d76bd5adc5863595478f08692ca76d84c3"
+      },
+      {
+        "name": "validation.json",
+        "bytes": 441,
+        "sha256": "d5f7d52b1365b9fec9715f498556d7470bfe64e5e16e701107a2961e9f8ed483"
+      }
+    ]
+  },
+  "cause": "PlayerInputApp.swift:356 interpolated two Bool values through Text(LocalizedStringKey). The pinned SDK deprecates that debug-description interpolation, and SWIFT_TREAT_WARNINGS_AS_ERRORS correctly stopped the coordinate-test app build.",
+  "completed_before_failure": [
+    "Pinned toolchain validation",
+    "Production SwiftUI iPhone compilation",
+    "Native interoperability compilation, framework linking and signature verification",
+    "Production consent and presentation-model tests",
+    "Native content-label request-owner fixture",
+    "Shared VAFT and native transport fixtures",
+    "UIKit ownership, clock and preview lifecycle including consent-before-preview",
+    "Playback lifecycle and three-process launch fixtures"
+  ],
+  "not_reached": [
+    "Five coordinate UI tests, including marked-content consent",
+    "Successful component delivery or local IPA packaging",
+    "Physical-device content-label retrieval or marked playback"
+  ],
+  "fix": "Use Text(verbatim:) for the synthetic preference status. This preserves the expected UI-test label and strict warnings-as-errors; no production behavior or test assertion was changed.",
+  "replacement_apple_result": "Pending; no successful Apple build or device result claimed.",
+  "corrected_local_validation": {
+    "native_host_tests": 90,
+    "passed": true,
+    "log_sha256": "e3faa6a6bad0529ce697f5fe282e2d7cd4b01b2a786a616540dd3b8cfdcc7ac9",
+    "docs_check": {
+      "passed": true,
+      "markdown_files": 122,
+      "references": 1195,
+      "errors": 0
+    },
+    "diff_check": true,
+    "scope": "Host/donor checks only; corrected SwiftUI fixture compilation requires replacement Apple run"
+  }
+}

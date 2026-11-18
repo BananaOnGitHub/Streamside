@@ -353,7 +353,7 @@ private struct MarkedWarningFixture: View {
     var body: some View {
         VStack {
             Text(state.result).accessibilityIdentifier("marked.result")
-            Text("warnings=\(state.warnings) thumbnails=\(state.thumbnails)").accessibilityIdentifier("marked.preferences")
+            Text(verbatim: "warnings=\(state.warnings) thumbnails=\(state.thumbnails)").accessibilityIdentifier("marked.preferences")
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay { if state.result == "Pending" { MarkedContentWarning(gate: state.gate) } }
     }

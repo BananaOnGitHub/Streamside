@@ -98,3 +98,16 @@ actual CCL availability, thumbnails, IVS behavior, or device runtime counts.
 
 Apple build identity, packaging hashes, actual-label and device outcomes belong in
 successor validation records once available. Donors and signing material stay local.
+
+## First Apple build failure
+
+[Build 6afd4cc0d133a39c4a128b55](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd4cc0d133a39c4a128b55)
+for `0d2c8ae7d313bd6a9e2276f4235834aa3306bedb` compiled and linked the
+production frontend and passed the model, native-request and preceding lifecycle
+fixtures. The coordinate-test app then failed to compile: Boolean values in its
+synthetic preference status selected deprecated localized interpolation, which
+strict warnings rejected. `Text(verbatim:)` preserves that exact status string
+without localization. No production behavior, assertions or warning policy changed.
+[Failure evidence](SWIFTUI_MARKED_CONTENT_BUILD_FAILURE_1.json) retains artifact
+hashes and the completed/pending validation scope. The five coordinate tests and
+real authenticated device behavior remain unvalidated by this failed run.

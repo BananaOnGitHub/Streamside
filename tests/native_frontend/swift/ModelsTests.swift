@@ -34,6 +34,24 @@ import Foundation
                 precondition(completions == [true]); gate.close(); gate.proceed(); precondition(completions == [true])
             }
         }
+        for close in [false, true] {
+            var thumbnails = false, warnings = true, completions: [Bool] = []
+            let gate = MarkedContentGate(load: { ["Label"] }, valid: { true },
+                saveWarnings: { warnings = $0 }, saveThumbnails: { _ in fatalError("Existing enabled choice must not be overwritten") },
+                thumbnailsEnabled: { thumbnails }, completion: { completions.append($0) })
+            gate.start()
+            for _ in 0..<100 where gate.stage == .loading { await Task.yield() }
+            precondition(gate.stage == .warning && completions.isEmpty)
+            // Read the saved setting at Continue, not only when the gate opens.
+            thumbnails = true; gate.dontShowAgain = true
+            if close { gate.close(); precondition(warnings && completions == [false]) }
+            else {
+                gate.proceed()
+                precondition(!warnings && gate.stage == .finished && completions == [true], "Already-enabled thumbnails must skip the redundant prompt")
+            }
+            precondition(thumbnails)
+        }
+        print("PASS: marked thumbnail preference skips redundant prompt and survives Close")
         var valid = true, loaded = false, completed: [Bool] = []
         let cancel = MarkedContentGate(load: {
             try? await Task.sleep(nanoseconds: 20_000_000); loaded = true; return ["Late label"]

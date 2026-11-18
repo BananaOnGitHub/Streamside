@@ -11,15 +11,16 @@ final class MarkedContentGate: ObservableObject {
     private let load: () async -> [String]?
     private let valid: () -> Bool
     private let saveWarnings: (Bool) -> Void
+    private let thumbnailsEnabled: () -> Bool
     private let saveThumbnails: (Bool) -> Void
     private var completion: ((Bool) -> Void)?
     private var task: Task<Void, Never>?
 
     init(load: @escaping () async -> [String]?, valid: @escaping () -> Bool,
          saveWarnings: @escaping (Bool) -> Void, saveThumbnails: @escaping (Bool) -> Void,
-         completion: @escaping (Bool) -> Void) {
+         thumbnailsEnabled: @escaping () -> Bool = { false }, completion: @escaping (Bool) -> Void) {
         self.load = load; self.valid = valid; self.saveWarnings = saveWarnings
-        self.saveThumbnails = saveThumbnails; self.completion = completion
+        self.saveThumbnails = saveThumbnails; self.thumbnailsEnabled = thumbnailsEnabled; self.completion = completion
     }
     func start() {
         guard completion != nil, stage == .loading || stage == .failed else { return }
@@ -37,7 +38,10 @@ final class MarkedContentGate: ObservableObject {
     func proceed() {
         guard stage == .warning, valid() else { close(); return }
         switch MarkedContentPreferences.decision(continuing: true, dontShowAgain: dontShowAgain) {
-        case .askThumbnails: saveWarnings(false); stage = .thumbnails
+        case .askThumbnails:
+            saveWarnings(false)
+            if thumbnailsEnabled() { finish(true) }
+            else { stage = .thumbnails }
         case .play: finish(true)
         case .cancel: close()
         }

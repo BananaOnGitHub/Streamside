@@ -5,7 +5,6 @@ import UIKit
 private struct QuickLookDetails: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
-    @ObservedObject var playback: TheatrePlayback
     private var current: FollowedChannel { services.state.channels.first { $0.id == channel.id } ?? channel }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -20,12 +19,6 @@ private struct QuickLookDetails: View {
             Text(current.category.isEmpty ? "Category unavailable" : current.category)
                 .font(.subheadline).foregroundStyle(.secondary)
             if !current.tags.isEmpty { AllStreamTags(tags: current.tags) }
-            if playback.contentGate == nil && playback.phase != 3 {
-                HStack {
-                    if [1, 2, 4].contains(playback.phase) { ProgressView() }
-                    Text(playback.message).font(.caption).foregroundStyle(.secondary)
-                }
-            }
         }
     }
 }
@@ -52,7 +45,9 @@ private struct QuickLookContent: View {
                     }
                     .accessibilityIdentifier("quicklook.video")
             }
-        } details: { details }
+        } details: { details } status: {
+            if playback.contentGate == nil { PreviewPlaybackStatus(phase: playback.phase, message: playback.message) }
+        }
         .onChange(of: services.state.account) { if $0 != account { cancel() } }
         .onChange(of: services.state.session) { if $0 != .authenticated { cancel() } }
         .task {
@@ -82,8 +77,13 @@ enum NativeQuickLook {
         let windowSize = source.window?.bounds.size ?? CGSize(width: 390, height: 700)
         let width = max(1, min(380, windowSize.width - 32))
         let maximumHeight = max(width * 9 / 16 + 80, min(560, windowSize.height - 220))
-        let details = QuickLookDetails(channel: channel, services: services, playback: playback)
-        let measure = UIHostingController(rootView: details.padding(16))
+        let details = QuickLookDetails(channel: channel, services: services)
+        // Reserve a normal status row even if the warning currently hides it.
+        // The measured card height stays stable when loading starts after consent.
+        let measure = UIHostingController(rootView: VStack(spacing: 0) {
+            details.padding(16)
+            PreviewPlaybackStatus(phase: 4, message: "Buffering…")
+        })
         let natural = measure.sizeThatFits(in: CGSize(width: width, height: 10000)).height
         let height = min(ceil(natural), maximumHeight - width * 9 / 16)
         let content = UIHostingController(rootView: QuickLookContent(width: width, detailsHeight: height,

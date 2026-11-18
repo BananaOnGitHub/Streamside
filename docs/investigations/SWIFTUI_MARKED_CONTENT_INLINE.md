@@ -196,3 +196,11 @@ baseline IPA or VM build was generated. Sign with Feather using the existing app
 identity. The device checklist above remains required: successful synthetic Apple
 tests and packaging do not establish actual Twitch/device results for this inline
 presentation or fresh zero RN/Hermes observations.
+
+## Device review and next polish
+
+The [device review](SWIFTUI_MARKED_CONTENT_INLINE_DEVICE_REVIEW_1.json) confirms
+the delivered inline behavior and retains scoped diagnostics. The
+[polish successor](SWIFTUI_MARKED_CONTENT_INLINE_POLISH.md) records the enabled
+thumbnail preference, pinned buffering footer and centered larger warning changes.
+The original build/test findings above remain attached to source `6ef88b0`.

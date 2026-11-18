@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "source_revision": "6ef88b01dd1025a1e2c41c8234d9da1e5550913c",
+  "proof_id": "6a9a5a86ef6845389cb1ab004e8a8d607539767ecfdd98c6a7d0b18afbf25b5e",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "report_sha256": "e58866ea6aa197fd0bb4101445b72c9b20940044bf587e67fc7aadc73a4157de",
+  "screenshot_sha256": "1dd435452f147bf1390123beefa23fa406d6ff0e6c7fadddd720a0a47ce7c8b4",
+  "user_observation": "Inline design and functions confirmed; requested skipping the thumbnail question when thumbnails are already enabled, an unclipped buffering row on long previews, and a compact centered warning with larger text/buttons.",
+  "observations": {
+    "mode": "native",
+    "failures": 0,
+    "baseline_calibrated": false,
+    "ui_root_owner": 1,
+    "navigation_guard_armed": 1,
+    "playback_phase": 0,
+    "playback_error": 0,
+    "playback_last_error": 0,
+    "playback_events": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      0,
+      0,
+      8
+    ],
+    "player_mute_mismatched_samples": 0,
+    "returned_channel_count": 100,
+    "foregrounds": 2,
+    "backgrounds": 0,
+    "adblock_enabled": true,
+    "adblock_installed": true,
+    "adblock_metrics": [
+      100,
+      8,
+      92,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "runtime_probes": {
+    "entries": 25,
+    "all_zero": true
+  },
+  "limits": [
+    "Report matches exact delivered source/proof/donor and has zero failures and zero reported probe counts.",
+    "baseline_calibrated is false; there is no paired positive control here, so this is not independently calibrated proof of absent runtime creation.",
+    "The export has no per-warning choice/label trace; functional confirmation comes from the device review, not reconstructed diagnostic events.",
+    "The exported session reports zero backgrounds; it does not establish background-transition coverage.",
+    "VAFT metrics contain no ad-marked observation; no new ad-suppression claim.",
+    "The requested polish is a successor implementation and is not device validated by this report."
+  ]
+}

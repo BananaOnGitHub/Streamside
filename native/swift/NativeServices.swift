@@ -91,7 +91,7 @@ final class NativeServices: ObservableObject, AccountService {
                 valid: { playback?.contentIsValid == true },
                 saveWarnings: { defaults.set($0, forKey: MarkedContentPreferences.showWarningsKey) },
                 saveThumbnails: { defaults.set($0, forKey: MarkedContentPreferences.thumbnailsKey) },
-                completion: completed)
+                thumbnailsEnabled: { defaults.bool(forKey: MarkedContentPreferences.thumbnailsKey) }, completion: completed)
         }
     }
     func contentLabels(_ channel: FollowedChannel) async -> [String]? {

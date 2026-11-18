@@ -268,7 +268,7 @@ private final class FixtureVideo: UIView {
                 AllStreamTags(tags: self.long ? (0..<20).map { "Tag\($0)" } : ["English", "Music"])
                 Text("Final preview detail").accessibilityIdentifier("preview-last-detail")
             }
-        })
+        } status: { PreviewPlaybackStatus(phase: 4, message: "Buffering…") })
         let controller = QuickLookController(content: content, size: CGSize(width: width, height: width * 9 / 16 + detailsHeight))
         let probe = PreviewMotionProbe(); motion = probe; probe.begin(source: source, finalWidth: width)
         let session = ContextPreviewSession(controller: controller, claim: { _ in true }, release: { _ in }, valid: { self.valid }, start: {

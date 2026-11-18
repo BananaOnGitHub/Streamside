@@ -23,11 +23,13 @@ final class PlayerInputTests: XCTestCase {
         continueAfterFailure = false
         // Preview acceptance is checked both before and after Watch handoff.
         // The first path must restore the real video tap target on admission.
-        let cases = [(false, false, false), (false, true, false),
-                     (true, false, false), (true, true, false), (true, true, true)]
-        for (preview, accept, pendingWatch) in cases {
+        let cases = [(false, false, false, false), (false, true, false, false),
+                     (true, false, false, false), (true, true, false, false), (true, true, true, false),
+                     (false, true, false, true), (true, true, false, true)]
+        for (preview, accept, pendingWatch, thumbnailsEnabled) in cases {
             let app = XCUIApplication(); testedApp = app
             app.launchArguments = ["--marked-content"] + (preview ? ["--marked-preview"] : [])
+                + (thumbnailsEnabled ? ["--marked-thumbnails-enabled"] : [])
             app.launch()
             if preview {
                 let source = app.descendants(matching: .any)["Marked stream thumbnail"].firstMatch
@@ -45,6 +47,13 @@ final class PlayerInputTests: XCTestCase {
             let remember = app.descendants(matching: .any)["marked.dontShowAgain"].firstMatch
             XCTAssertTrue(remember.waitForExistence(timeout: 5)); XCTAssertTrue(remember.isHittable)
             XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(remember.frame))
+            let proceed = app.buttons["Continue"]
+            XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(proceed.frame))
+            XCTAssertGreaterThanOrEqual(proceed.frame.height, 28)
+            let question = app.staticTexts["Do you want to continue?"]
+            XCTAssertLessThan(remember.frame.minY - question.frame.maxY, 24, "Warning should have a compact message/action gap")
+            let group = warning.frame.union(proceed.frame)
+            XCTAssertLessThan(abs(group.midY - slot.frame.midY), 30, "The warning group should be centered in the video")
             if preview {
                 XCTAssertFalse(app.buttons["quicklook.play-preview"].exists,
                     "Video Watch must not cover consent controls or appear to VoiceOver")
@@ -62,10 +71,14 @@ final class PlayerInputTests: XCTestCase {
                     XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
                 }
                 app.buttons["Continue"].tap()
-                XCTAssertTrue(app.staticTexts["Show thumbnails for marked streams?"].waitForExistence(timeout: 5))
-                XCTAssertFalse(app.staticTexts["Admitted"].exists)
-                XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
-                app.buttons["Show thumbnails"].tap()
+                if thumbnailsEnabled {
+                    XCTAssertFalse(app.staticTexts["Show thumbnails for marked streams?"].exists)
+                } else {
+                    XCTAssertTrue(app.staticTexts["Show thumbnails for marked streams?"].waitForExistence(timeout: 5))
+                    XCTAssertFalse(app.staticTexts["Admitted"].exists)
+                    XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
+                    app.buttons["Show thumbnails"].tap()
+                }
                 XCTAssertTrue(app.staticTexts["Admitted"].waitForExistence(timeout: 5))
                 XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=1")
                 XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=false thumbnails=true")
@@ -197,6 +210,12 @@ final class PlayerInputTests: XCTestCase {
             let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 5))
             XCTAssertTrue(video.waitForExistence(timeout: 5))
+            let status = app.staticTexts["Buffering…"]
+            let spinner = app.descendants(matching: .any)["quicklook.buffering-spinner"].firstMatch
+            XCTAssertTrue(status.waitForExistence(timeout: 5)); XCTAssertTrue(status.isHittable)
+            XCTAssertTrue(spinner.waitForExistence(timeout: 5))
+            XCTAssertTrue(card.frame.contains(status.frame)); XCTAssertTrue(card.frame.contains(spinner.frame))
+            let statusFrame = status.frame
             let frame = video.frame
             XCTAssertEqual(frame.height, frame.width * 9 / 16, accuracy: 1, "Preview video must remain landscape")
             XCTAssertGreaterThan(watch.frame.minY, card.frame.maxY, "Separate glass action menu must be below the preview")
@@ -221,6 +240,9 @@ final class PlayerInputTests: XCTestCase {
                 XCTAssertTrue(app.staticTexts["preview-last-detail"].isHittable, "Full details and all tags must remain reachable")
                 XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Tag19")).firstMatch.exists, "The last tag must be present after scrolling")
                 XCTAssertEqual(video.frame.minY, frame.minY, accuracy: 1, "Scrolling details must not move the video")
+                XCTAssertTrue(status.isHittable)
+                XCTAssertEqual(status.frame.minY, statusFrame.minY, accuracy: 1, "Buffering status stays outside the scrolling details")
+                XCTAssertTrue(card.frame.contains(status.frame)); XCTAssertTrue(card.frame.contains(spinner.frame))
             }
             if commit {
                 let point = CGVector(dx: (frame.midX - app.frame.minX) / app.frame.width, dy: (frame.midY - app.frame.minY) / app.frame.height)

@@ -60,6 +60,8 @@ def main():
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
     run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
     info['model_tests']=run([str(output/'models-tests')], label='Test account, feed, repeated render direction and presentation models')
+    if 'PASS: marked thumbnail preference' not in info['model_tests']:
+        raise ValueError('Existing thumbnail preference regression evidence missing')
     if 'PASS: duplicate render direction' not in info['model_tests']:
         raise ValueError('Repeated render direction regression evidence missing')
     run(['xcrun','clang','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-Inative','-Isrc','-Igenerated',

@@ -27,13 +27,14 @@ import UIKit
         let theatre = !ProcessInfo.processInfo.arguments.contains("--marked-preview")
         showingTheatre = theatre
         playback = TheatrePlayback(channel: "fixture", preview: !theatre)
+        thumbnails = ProcessInfo.processInfo.arguments.contains("--marked-thumbnails-enabled")
     }
     func configure(close: @escaping () -> Void) {
         playback.bindContentOwner(valid: { true }, close: close)
         guard !configured else { return }; configured = true
         playback.configureContentGate { [weak self] completion in
             MarkedContentGate(load: { ["Fixture content label", "Second fixture label"] }, valid: { true },
-                saveWarnings: { self?.warnings = $0 }, saveThumbnails: { self?.thumbnails = $0 }, completion: completion)
+                saveWarnings: { self?.warnings = $0 }, saveThumbnails: { self?.thumbnails = $0 }, thumbnailsEnabled: { self?.thumbnails == true }, completion: completion)
         }
     }
     func beginTheatre() {

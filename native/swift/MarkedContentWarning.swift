@@ -1,30 +1,45 @@
 import SwiftUI
 
-// Replaces only the video slot. Channel information and contextual actions stay
-// in their existing preview/theatre hierarchy; no window-covering consent modal.
+// Replaces only the video slot; keep a compact centered group when it fits.
+// Long labels and accessibility text scroll above fixed, reachable actions.
 struct MarkedContentWarning: View {
     @ObservedObject var gate: MarkedContentGate
     var body: some View {
+        ViewThatFits(in: .vertical) {
+            VStack(spacing: 10) {
+                message
+                actions
+            }.fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 8) {
+                ScrollView { message }.scrollBounceBehavior(.basedOnSize)
+                actions.fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .font(.subheadline).controlSize(.regular).multilineTextAlignment(.center)
+        .padding(10).frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black).environment(\.colorScheme, .dark)
+    }
+    private var message: some View {
         VStack(spacing: 5) {
-            ScrollView {
-                VStack(spacing: 4) {
-                    Image(systemName: "eye.slash").font(.body).accessibilityHidden(true)
-                    switch gate.stage {
-                    case .loading: ProgressView("Loading stream content labels…")
-                    case .warning:
-                        Text("This stream has been marked as containing:").fontWeight(.semibold)
-                        Text(gate.labels.joined(separator: ", ")).foregroundStyle(.secondary)
-                        Text("Do you want to continue?")
-                    case .thumbnails:
-                        Text("Show thumbnails for marked streams?").fontWeight(.semibold)
-                        Text("You can change this in Followed streams settings.").foregroundStyle(.secondary)
-                    case .failed:
-                        Text("Couldn’t load Twitch’s content labels.").fontWeight(.semibold)
-                        Text("Check your connection and try again.").foregroundStyle(.secondary)
-                    case .finished: EmptyView()
-                    }
-                }.frame(maxWidth: .infinity)
-            }.scrollBounceBehavior(.basedOnSize)
+            Image(systemName: "eye.slash").font(.title3).accessibilityHidden(true)
+            switch gate.stage {
+            case .loading: ProgressView("Loading stream content labels…")
+            case .warning:
+                Text("This stream has been marked as containing:").fontWeight(.semibold)
+                Text(gate.labels.joined(separator: ", ")).foregroundStyle(.secondary)
+                Text("Do you want to continue?")
+            case .thumbnails:
+                Text("Show thumbnails for marked streams?").fontWeight(.semibold)
+                Text("You can change this in Followed streams settings.").foregroundStyle(.secondary)
+            case .failed:
+                Text("Couldn’t load Twitch’s content labels.").fontWeight(.semibold)
+                Text("Check your connection and try again.").foregroundStyle(.secondary)
+            case .finished: EmptyView()
+            }
+        }.frame(maxWidth: .infinity).fixedSize(horizontal: false, vertical: true)
+    }
+    private var actions: some View {
+        VStack(spacing: 8) {
             switch gate.stage {
             case .warning:
                 Button { gate.dontShowAgain.toggle() } label: {
@@ -33,7 +48,7 @@ struct MarkedContentWarning: View {
                 .accessibilityIdentifier("marked.dontShowAgain")
                 .accessibilityValue(gate.dontShowAgain ? "Selected" : "Not selected")
                 .accessibilityAddTraits(gate.dontShowAgain ? .isSelected : [])
-                .modifier(ContentWarningButton(prominent: false)).controlSize(.mini)
+                .modifier(ContentWarningButton(prominent: false)).controlSize(.small)
                 HStack(spacing: 10) {
                     closeButton
                     Button("Continue") { gate.proceed() }.modifier(ContentWarningButton(prominent: true))
@@ -53,9 +68,6 @@ struct MarkedContentWarning: View {
             case .finished: EmptyView()
             }
         }
-        .controlSize(.small).font(.caption).multilineTextAlignment(.center)
-        .padding(8).frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.black).environment(\.colorScheme, .dark)
     }
     private var closeButton: some View {
         Button("Close", role: .cancel) { gate.close() }.modifier(ContentWarningButton(prominent: false))

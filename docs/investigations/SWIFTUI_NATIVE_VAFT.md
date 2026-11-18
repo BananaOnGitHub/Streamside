@@ -140,3 +140,31 @@ native host tests pass (9.622s). Filtering, auth, service ABI and mandatory Appl
 gates are unchanged. Only trailing whitespace was removed from the extracted
 engine header. The first host record and failed source retain their original
 identities; replacement Apple success and physical ad suppression remain pending.
+
+## Successful replacement Apple build and package
+
+Source `a3d98aaab409c137de6e5dd651bae6c638da1fb8` passed
+[Codemagic](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd38d2d133a39c4a12855b).
+The [successful validation record](SWIFTUI_NATIVE_VAFT_VALIDATION.json) retains
+source/proof/toolchain identities, test receipts, stage timings and package hashes.
+All real-Foundation VAFT fixture assertions passed, including fresh-process Off
+restoration and untouched original mode. UIKit confirms the playback filter lease
+lifetime, all prior cold-audio/retirement checks, source preview/gesture behavior,
+actual decoded-video clipping and both player-control styles. The 63 required
+post-download ABI, component, diagnostics, launch, probe, comparison and shared
+engine tests passed. Earlier pending statements describe their original scope;
+this is their successful Apple follow-up. The first failed build remains preserved.
+
+Ubuntu verified the exact donor before assembling the test IPA, including all
+retained donor entries and unchanged original HBC. The IPA is local under
+`artifacts/native-frontend/native-vaft-a3d98aa/` and requires Feather signing
+with the existing application/keychain identity. No new independent baseline IPA,
+VM dependency, signing upload or proprietary CI input/artifact was introduced.
+Real Twitch ad-bearing playback and device regression checks remain pending.
+
+For device review: install, open a stream with Ad blocking left On, and export
+Native diagnostics after watching. Then switch Off in Settings → Player, fully
+close/reopen the app (also checking the saved preference), watch again and export
+a separate report. Use a real ad opportunity where available; unobserved ads or
+unintercepted requests cannot establish suppression. Include a first-preview
+external-audio check and Watch/close regression check.

@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+  "packaging_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+  "proof_id": "17571820a5e5027c92c5087f1e3b57f2b0377f63877f7c1af5f5c7d60b182f34",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "abi_entries": 55,
+    "probe_entries": 25
+  },
+  "build": {
+    "provider": "codemagic",
+    "id": "6afd38d2d133a39c4a12855b",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd38d2d133a39c4a12855b",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "tests": {
+    "linux_native_frontend": 86,
+    "provider_routing": 12,
+    "legacy_protocol": 2,
+    "legacy_build": "Passed; retained separately in host validation record.",
+    "ubuntu_download_verification": 63,
+    "apple": {
+      "schema": 1,
+      "source_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.662
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.139
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 1039.62
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 8.158
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.047
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.11
+        }
+      ],
+      "archive_sha256": "5f0459270649472d3b1883a2f38e6df1c2f800a6b31736620537fede2396e001",
+      "archive_bytes": 1166213
+    },
+    "real_foundation_vaft": {
+      "passed": true,
+      "default_enabled": true,
+      "disabled_passthrough": true,
+      "baseline_untouched": true,
+      "native_tokens": true,
+      "clean_alternate": true,
+      "fallback_segments": true,
+      "stream_isolation": true,
+      "cancellation": true,
+      "account_change": true,
+      "preference_restoration": true
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "single_handoff": true,
+        "passed": true,
+        "failures": [],
+        "hold_cancellation": true,
+        "lifecycle_cancellation": true,
+        "source_target": true,
+        "unblocked_return": true,
+        "teardown": true,
+        "all_tags_wrap": true,
+        "dismiss_before_handoff": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 4,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true,
+        "source_anchored_preview": true,
+        "source_animation": true,
+        "hold_feedback": true,
+        "swipe_dismissal": true,
+        "verification_settings": true,
+        "real_video_clipping": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "preview_cold_audio": true,
+        "stream_only_mute": true,
+        "source_encoding": true,
+        "local_pause_resume": true,
+        "theatre_audio_promotion": true,
+        "audio_preparation_cancellation": true,
+        "account_stop": true,
+        "cancellation": true,
+        "vaft_lifetime": true,
+        "passed": true,
+        "async_retirement": true,
+        "playing_observed": true,
+        "background_resume": true,
+        "control_intent_retained": true,
+        "teardown": true,
+        "preview_mixes_audio": true,
+        "preview_muted_before_load": true,
+        "audio_retirement_ordering": true
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "observed_markers": [
+      "VAFT_BASELINE PASS: no registration, session changes, lease or filtering",
+      "VAFT_PREFERENCE PASS: restored Off in fresh process",
+      "VAFT_NATIVE PASS: default/on/off; authenticated native token boundary; clean alternate/cache; exact stream ownership; all-candidate fallback; real blank payload; cancellation/account loss",
+      "QUICKLOOK_CHECKS: PASS",
+      "PLAYER_OPACITY_PIXELS PASS: in (observed 0.406; captured 0.427): center ratio=0.386 pixels=1532, actions ratio=0.391 pixels=7577, audio ratio=0.387 pixels=3059; out (observed 0.594; captured 0.573): center ratio=0.627 pixels=1532, actions ratio=0.628 pixels=7577, audio ratio=0.627 pixels=3059",
+      "PLAYER_OPACITY_PIXELS PASS: in (observed 0.406; captured 0.449): center ratio=0.403 pixels=201, actions ratio=0.408 pixels=416, audio ratio=0.403 pixels=222; out (observed 0.594; captured 0.572): center ratio=0.637 pixels=201, actions ratio=0.646 pixels=416, audio ratio=0.638 pixels=222",
+      "CONTEXT_VIDEO PASS: changing decoded frames; 16:9; real upper-corner clipping; one player into theatre",
+      "THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation"
+    ]
+  },
+  "artifacts": {
+    "ipa": {
+      "path": "artifacts/native-frontend/native-vaft-a3d98aa/StreamsideNativeProof-Twitch32-native.ipa",
+      "bytes": 196945932,
+      "sha256": "0985e2b7ecde74b1201ce214f70b81bd4ad21b6fce58e5560887054dc78c6cf0"
+    },
+    "framework_sha256": "85625053a73fc8984a06df5922ab70cd19dff485a251b316be397e5c6d1c1c91",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "472bdad37e4503e968a454308b2097aab2f9edc7c02c95496192d5374d0d4959",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "ec002e59fac8aea19eeb42c3013a5ab691688dcbb24ae9d1d2f1d7936d64c7fc",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "0eff9900315e1d6eca613938f17ac76bb22ae9540eaa70b174b5090fee550849",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "dd8e8c305e22bece15795ce013b9d514f99c8be724a5ab081684e7dce5ddc65e"
+    },
+    "component_manifest_sha256": "f5d26f71561cac1c40f5d882ad5f46014045fb28ab9dd469de81ab0b21b3c95a"
+  },
+  "package_checks": {
+    "abi_entries": 55,
+    "probe_entries": 25,
+    "all_retained_donor_entries_verified": true,
+    "original_hbc_unchanged": true
+  },
+  "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+  "device_validation": {
+    "status": "pending",
+    "checks": [
+      "Default On, saved Off across restart; leave and reopen streams after toggling.",
+      "Real IVS HLS interception: require nonzero adblock_metrics[0] before concluding request coverage.",
+      "Actual preroll or midroll opportunity with On versus Off; distinguish ad-marked manifests, clean alternates and synthetic segments from merely clean playback.",
+      "Authenticated native token/integrity chain works with the real Twitch backend; no credentials are exported.",
+      "First/repeated preview remains silent and preserves external media; dismissal stays responsive; Watch keeps one player.",
+      "Close/reopen, background/foreground, account loss and native root ownership remain correct; review RN/Hermes counters with coverage/calibration limits.",
+      "Export separate Native diagnostic reports after the On and Off cases."
+    ],
+    "limits": "Foundation VAFT fixture uses fake native promises and network responses. UIKit playback/decoded-video fixtures are donor-free. Successful fixtures, compilation and packaging do not establish real Twitch ad suppression or calibrated device runtime absence."
+  }
+}

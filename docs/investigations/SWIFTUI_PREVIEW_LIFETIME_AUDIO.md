@@ -147,3 +147,25 @@ signing material was uploaded to CI; no VM was used. This establishes compilatio
 simulator behavior and successful packaging, not physical-device acceptance.
 The device checks above remain pending. The earlier pending statement describes
 the implementation-time evidence; this is its successful build follow-up.
+
+## Device confirmation
+
+The [54ff64b device review](SWIFTUI_PREVIEW_LIFETIME_AUDIO_DEVICE_REVIEW.json)
+matches the delivered source, proof and donor. Device testing confirms that the
+dismissal freeze is gone and previews, including the first preview, preserve
+other playing audio. Six playback cycles reached playing and decoded video,
+with six completed retirements and no playback errors, failures or mute mismatches.
+Native root ownership is retained. Main pause and detach maxima were 36 and
+309 microseconds; background audio preparation/promotion and restoration maxima
+were approximately 872 and 626 milliseconds. The queue change keeps those audio
+operations outside the dismissal handler. These are stage timings, not frame
+latency benchmarks.
+
+This closes the two reported defects for the tested device/build. The raw export
+is retained privately alongside the IPA; its hash and privacy-safe review are
+committed. All runtime probe observations are zero, with baseline calibration
+false; no new independent calibration claim is made. No background event is in
+this report, so it does not extend background/account-loss acceptance. Earlier
+pending statements and the prior failed device outcome retain their original
+scope; this is the subsequent device result. No source change or Apple rebuild
+is required for this evidence update.

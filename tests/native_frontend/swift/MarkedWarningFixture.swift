@@ -78,7 +78,9 @@ private struct MarkedWarningFixtureSlot: View {
     }
     var body: some View {
         VStack(spacing: 0) {
-            video.aspectRatio(16.0 / 9.0, contentMode: .fit)
+            // Match the production theatre's externally sized video canvas.
+            Color.black.aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .overlay { video }
                 .background { MarkedVideoBounds() }
             Text("Fixture channel identity and stream details remain visible").padding(12)
             Text(verbatim: "warnings=\(state.warnings) thumbnails=\(state.thumbnails)")

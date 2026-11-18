@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "failed_source_revision": "cc38c6c42ea333c0a67ba612b183f13dff690057",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afe37bcd133a39c4a12ebec",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afe37bcd133a39c4a12ebec",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "player-input-failure.zip",
+        "local": "artifact-0.zip",
+        "bytes": 661136,
+        "sha256": "cc1cc2699212b105346137e2a783e44b9d8e398d14317c7e62ae4121bcdeb55b"
+      },
+      {
+        "name": "Streamside_28_artifacts.zip",
+        "local": "artifact-1.zip",
+        "bytes": 31055,
+        "sha256": "dbceea5030238377ef46a51a4f83b735cb21487e4702b5ecfa1c7d5afda0872d"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "cc38c6c42ea333c0a67ba612b183f13dff690057",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.659
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.068
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 300.585
+        }
+      ]
+    },
+    "stage_2_log_sha256": "0e7a495befc8d42b8066d67c6d1b24d2e53c1235898c59d4b596a1600094f676",
+    "owned_screenshot": {
+      "sha256": "c7a76b74f699d155f53b1777d7c9a872cbf228c56dcfa20c6d5f94f272706a46",
+      "scope": "Donor-free marked preview fixture. Narrow warning, wrapped buttons and collapsed message area are visible."
+    }
+  },
+  "evidence_location": "artifacts/archive/marked-content-failures/polish-failure-1 (outside repository)",
+  "failed_test": {
+    "name": "testMarkedContentConsent",
+    "line": 44,
+    "observation": "First preview case reports video area 161.3 x 136 points within a 360-point card: aspect 1.18627 rather than 16:9. Message ScrollView height is zero; screenshot visibly confirms the layout collapse."
+  },
+  "completed": [
+    "Production SwiftUI/interoperability compilation and linking",
+    "New existing-thumbnail preference model regression",
+    "Existing native model, request, playback/audio and ownership fixtures preceding the coordinate gate",
+    "Two direct-theatre consent cases completed before the first preview geometry assertion"
+  ],
+  "cause": "ViewThatFits and the warning content negotiated their ideal width with an aspectRatio modifier in a height-constrained stack. The warning was allowed to influence the video canvas dimensions; an expanding outer frame did not constrain its candidate measurements.",
+  "fix": "Give the warning the actual video proposal through GeometryReader, constrain both fitting candidates to the available width, and center them in the inset canvas. Use a 16:9 Color canvas with the warning as an overlay in the production theatre and matching fixture; preview already has explicit video width/height.",
+  "regression": "Keep 16:9, contained message/actions, compact gap, centered group, larger controls and hittability assertions. Add full expected canvas width (360-point preview, full-width portrait theatre) so even a smaller 16:9 box cannot pass. Existing preferences, media-start, real-video clipping and buffering-footer checks remain required.",
+  "not_validated": [
+    "Corrected Apple layout execution and full coordinate suite",
+    "Enabled-thumbnail coordinate cases and buffering-footer scrolling checks: not reached in the failed run",
+    "New IPA assembly or revised physical-device appearance"
+  ],
+  "local_validation": {
+    "passed": true,
+    "native_host_tests": 94,
+    "seconds": 11.534,
+    "log_sha256": "980c9e3ab5b327be2cc996b6d400493394682cf9c9b1c55ebf44bf0a42746715",
+    "scope": "Linux host/donor/orchestration only; no SwiftUI layout execution."
+  },
+  "replacement_apple_result": "Pending; no successful replacement claimed."
+}

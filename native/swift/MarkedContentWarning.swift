@@ -5,18 +5,22 @@ import SwiftUI
 struct MarkedContentWarning: View {
     @ObservedObject var gate: MarkedContentGate
     var body: some View {
-        ViewThatFits(in: .vertical) {
-            VStack(spacing: 10) {
-                message
-                actions
-            }.fixedSize(horizontal: false, vertical: true)
-            VStack(spacing: 8) {
-                ScrollView { message }.scrollBounceBehavior(.basedOnSize)
-                actions.fixedSize(horizontal: false, vertical: true)
+        GeometryReader { geometry in
+            let width = max(0, geometry.size.width - 20)
+            let height = max(0, geometry.size.height - 20)
+            ViewThatFits(in: .vertical) {
+                VStack(spacing: 10) {
+                    message
+                    actions
+                }.frame(width: width).fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 8) {
+                    ScrollView { message }.scrollBounceBehavior(.basedOnSize)
+                    actions.fixedSize(horizontal: false, vertical: true)
+                }.frame(width: width)
             }
+            .frame(width: width, height: height).padding(10)
         }
         .font(.subheadline).controlSize(.regular).multilineTextAlignment(.center)
-        .padding(10).frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black).environment(\.colorScheme, .dark)
     }
     private var message: some View {

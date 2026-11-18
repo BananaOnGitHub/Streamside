@@ -21,8 +21,9 @@ private struct TheatreContent: View {
     var body: some View {
         VStack(spacing: 0) {
             if let gate = playback.contentGate {
-                MarkedContentWarning(gate: gate)
-                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                // The canvas owns video geometry, not the warning's ideal size.
+                Color.black.aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .overlay { MarkedContentWarning(gate: gate) }
             } else {
                 PlayerCanvas(surface: playback.native.view, toggleControls: {
                     SSNPlayerControlEvent(0)

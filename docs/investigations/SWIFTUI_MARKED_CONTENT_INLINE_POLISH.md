@@ -59,3 +59,24 @@ orchestration checks passed in 11.346 seconds. The final log SHA-256 is
 Documentation validation checked 124 Markdown files and 1217 references with zero
 errors; staged whitespace validation also passed. These results do not execute
 the new Swift model or coordinate assertions, which remain Apple-only.
+
+## First polish build: constrained canvas correction
+
+Source `cc38c6c42ea333c0a67ba612b183f13dff690057` compiled and passed the new
+existing-thumbnail preference model regression. The coordinate test then found
+the first preview's warning had negotiated a 161.3 × 136 point box within the
+360-point card, with zero height left for its message scroll area. The
+[failed-build record](SWIFTUI_MARKED_CONTENT_INLINE_POLISH_BUILD_FAILURE_1.json)
+retains the exact run, screenshot/archive/log hashes and scope. The later enabled
+thumbnail and buffering-footer coordinate checks were not reached.
+
+The correction makes video geometry independent of the warning's ideal content
+size. The warning reads the actual canvas proposal with GeometryReader and gives
+both ViewThatFits candidates that fixed inset width and available height. The
+theatre uses a 16:9 background canvas with the warning overlaid, matching the
+preview's externally fixed video dimensions; the coordinate fixture uses the
+same canvas construction. The test retains all aspect/containment/hittability
+requirements and also requires the full expected video width, so a smaller box
+with the correct ratio cannot pass. Larger centered controls and the long-label
+scroll fallback remain. All 94 host checks passed; corrected Apple layout and
+physical-device appearance remain pending.

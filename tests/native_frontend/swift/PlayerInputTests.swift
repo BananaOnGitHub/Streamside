@@ -41,6 +41,8 @@ final class PlayerInputTests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Fixture content label, Second fixture label"].exists)
             let slot = app.descendants(matching: .any)["marked.video-slot"].firstMatch
             XCTAssertTrue(slot.waitForExistence(timeout: 5))
+            XCTAssertEqual(slot.frame.width, preview ? 360 : app.frame.width, accuracy: 1,
+                "Warning must fill the actual video canvas, not shrink to its ideal size")
             XCTAssertEqual(slot.frame.width / slot.frame.height, 16.0 / 9.0, accuracy: 0.03)
             XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(warning.frame))
             XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")

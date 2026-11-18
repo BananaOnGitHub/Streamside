@@ -187,11 +187,74 @@ import UIKit
         check(preview.parent === root && root.presentedViewController == nil && source.isHidden, "Child ownership preserves root and lifts source")
         preview.dismiss(watching: false) {
             self.check(preview.parent == nil && !source.isHidden && targets == [false, true], "Interrupted lift restores source and detaches once")
-            self.finishReceipt()
+            self.interactiveReturn()
+        }
+    }
+    func interactiveReturn() {
+        guard let window, let root = window.rootViewController else { fatalError("Missing fixture root") }
+        let scroll = UIScrollView(frame: root.view.bounds)
+        scroll.contentInsetAdjustmentBehavior = .never
+        scroll.contentSize = CGSize(width: window.bounds.width, height: 2000); root.view.addSubview(scroll)
+        let source = ThumbnailActions.SourceView(frame: CGRect(x: 45, y: 300, width: 160, height: 90))
+        source.backgroundColor = .systemIndigo; scroll.addSubview(source)
+        let button = UIButton(frame: CGRect(x: 230, y: 700, width: 100, height: 50)); scroll.addSubview(button)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            let snapshot = source.snapshotView(afterScreenUpdates: false)
+            self.check(snapshot != nil, "Return test requires actual source artwork")
+            let content = QuickLookController(content: UIViewController(), size: CGSize(width: 370, height: 360))
+            let preview = AnchoredPreviewController(content: content, source: source, watch: {}, dismiss: {}, observeTarget: nil, initialLift: snapshot)
+            self.check(preview.install(in: root), "Install interactive-return fixture")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+                let started = CACurrentMediaTime()
+                preview.dismiss(watching: false) {
+                    let elapsed = CACurrentMediaTime() - started
+                    self.check(elapsed >= 0.45 && elapsed < 0.85, "Scrolling never extends the existing 0.52s return deadline")
+                    self.check(preview.parent == nil, "Returning overlay detaches at its deadline")
+                    self.check(source.isHidden, "Old completion cannot unhide a source claimed by a newer preview")
+                    source.isHidden = false; scroll.removeFromSuperview(); self.coordinatorRelease()
+                }
+                self.check(!preview.view.isUserInteractionEnabled && !preview.view.accessibilityViewIsModal && !source.isHidden,
+                    "Dismissal immediately releases feed input and accessibility ownership")
+                let hit = root.view.hitTest(button.convert(CGPoint(x: 50, y: 25), to: root.view), with: nil)
+                self.check(hit === button, "Underlying feed control is hittable while return is visible")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scroll.contentOffset.y = 100 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    let shift = snapshot?.superview?.transform.ty ?? 0
+                    self.check(shift < -60 && shift >= -101, "Visible return tracks the newly scrolled source")
+                    // Simulate a subsequent preview owning this same source.
+                    source.isHidden = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) { scroll.contentOffset.y = 170 }
+            }
+        }
+    }
+    func coordinatorRelease() {
+        guard let root = window?.rootViewController else { fatalError("Missing fixture root") }
+        let source = ThumbnailActions.SourceView(frame: CGRect(x: 45, y: 300, width: 160, height: 90))
+        source.backgroundColor = .systemIndigo; root.view.addSubview(source)
+        var latest: ContextPreviewSession?
+        var opens = 0, starts = 0, stops = 0, releases = 0
+        let owner = ThumbnailActions(image: nil, open: { opens += 1 }, preview: { _ in
+            let content = QuickLookController(content: UIViewController(), size: CGSize(width: 370, height: 360))
+            let session = ContextPreviewSession(controller: content, claim: { _ in true }, release: { _ in releases += 1 }, valid: { true },
+                start: { starts += 1 }, stop: { stops += 1 }, handoff: { false })
+            latest = session; return session
+        })
+        let coordinator = owner.makeCoordinator()
+        coordinator.preview(from: source); latest?.cancel(); coordinator.activate()
+        check(opens == 1 && stops == 1 && releases == 1, "Closing releases the row and media immediately")
+        coordinator.preview(from: source)
+        check(starts == 2 && latest?.phase == .visible, "New preview opens before old visual return finishes")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+            coordinator.activate()
+            self.check(opens == 1 && latest?.phase == .visible, "Old completion cannot clear a newer session")
+            latest?.cancel()
+            self.check(stops == 2 && releases == 2, "Each cancelled session releases media exactly once")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { source.removeFromSuperview(); self.finishReceipt() }
         }
     }
     func finishReceipt() {
-        let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true, "hold_cancellation": true,
+        let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true, "hold_cancellation": true, "unblocked_return": true,
             "dismiss_before_handoff": true, "single_handoff": true, "teardown": true, "all_tags_wrap": true, "lifecycle_cancellation": true]
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("quicklook-test.json")
         try! JSONSerialization.data(withJSONObject: receipt).write(to: path)

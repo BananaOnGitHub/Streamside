@@ -157,7 +157,7 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,preview_id], label='Test source targeting, all-tag wrapping, ordered handoff and lifecycle cancellation')
         preview_container=Path(run(['xcrun','simctl','get_app_container',device,preview_id,'data']))
         quicklook=json.loads((preview_container/'Documents/quicklook-test.json').read_text())
-        expected_quicklook=dict(passed=True,failures=[],source_target=True,hold_cancellation=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True)
+        expected_quicklook=dict(passed=True,failures=[],source_target=True,hold_cancellation=True,unblocked_return=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True)
         if quicklook!=expected_quicklook:raise ValueError('Native Quick Look lifecycle failed: '+str(quicklook))
         run(['xcrun','simctl','install',device,str(playback_bundle)])
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test synthetic native playback lifecycle and mute')

@@ -73,6 +73,11 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private var lifted: UIView?
     private var sourceFrame = CGRect.zero
     private var sourceWasHidden = false
+    private var sourceRestored = false
+    private var returnStage: UIView?
+    private var returnLink: CADisplayLink?
+    private var returnStarted: CFTimeInterval = 0
+    private var returnDuration: TimeInterval = 0
     private var animator: UIViewPropertyAnimator?
     private var closing = false
     private var installed = false
@@ -181,9 +186,23 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
         }
         animator = animation; animation.startAnimation(); return true
     }
+    func freezeForReturn() {
+        // Media can stop now while the return still shows the last composed
+        // preview. This passive snapshot owns no player and receives no input.
+        guard !closing, installed, let still = content.view.snapshotView(afterScreenUpdates: false) else { return }
+        still.frame = card.bounds; still.isUserInteractionEnabled = false
+        still.accessibilityElementsHidden = true; card.addSubview(still)
+    }
     func dismiss(watching: Bool, completion: @escaping () -> Void) {
         guard !closing else { return }
         closing = true; dragging = false
+        if !watching {
+            // Closing becomes a passive visual immediately. A new feed touch
+            // must not wait for the return animation or its media transaction.
+            view.isUserInteractionEnabled = false
+            view.accessibilityViewIsModal = false; view.accessibilityElementsHidden = true
+            restoreSource()
+        }
         guard installed || parent != nil else { completion(); return }
         // Preserve interpolated geometry when a lifecycle event interrupts entry.
         if let animator {
@@ -225,16 +244,48 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
                 self.card.transform = CGAffineTransform(scaleX: scale, y: scale)
             }
         }
-        animation.addCompletion { [self] _ in detach(restoreFocus: !watching); completion() }
+        animation.addCompletion { [self] _ in
+            detach(restoreFocus: !watching); completion()
+        }
+        if returning { beginReturnTracking(duration: duration) }
         animator = animation; animation.startAnimation()
     }
+    private func restoreSource() {
+        guard installed, !sourceRestored else { return }
+        source?.isHidden = sourceWasHidden; sourceRestored = true
+    }
+    private func beginReturnTracking(duration: TimeInterval) {
+        // Keep the accepted spring and its fixed deadline. Only translate its
+        // coordinate space as the row moves; never retarget/restart the spring.
+        let stage = UIView(frame: view.bounds); stage.isUserInteractionEnabled = false
+        view.addSubview(stage); stage.addSubview(card)
+        if let lifted, lifted.superview === view { stage.addSubview(lifted) }
+        returnStage = stage; returnDuration = duration; returnStarted = CACurrentMediaTime()
+        let link = CADisplayLink(target: self, selector: #selector(trackReturningSource(_:)))
+        returnLink = link; link.add(to: .main, forMode: .common)
+    }
+    @objc private func trackReturningSource(_ link: CADisplayLink) {
+        guard let stage = returnStage, let source, source.window === view.window else { return }
+        let current = source.convert(source.bounds, to: view)
+        let elapsed = max(0, CACurrentMediaTime() - returnStarted)
+        let progress = min(1, CGFloat(elapsed / max(0.001, returnDuration)))
+        let weight = 1 - pow(1 - progress, 3)
+        stage.transform = CGAffineTransform(translationX: (current.midX - sourceFrame.midX) * weight,
+            y: (current.midY - sourceFrame.midY) * weight)
+        // UIViewPropertyAnimator owns completion at the original deadline. A
+        // source disappearing or continuous scrolling cannot prolong cleanup.
+    }
+    private func stopReturnTracking() {
+        returnLink?.invalidate(); returnLink = nil; returnStage = nil
+    }
     private func detach(restoreFocus: Bool = false) {
+        stopReturnTracking()
         if appeared { beginAppearanceTransition(false, animated: false) }
-        if installed { source?.isHidden = sourceWasHidden; installed = false }
+        restoreSource(); installed = false
         animator = nil
         willMove(toParent: nil); view.removeFromSuperview(); removeFromParent()
         if appeared { endAppearanceTransition(); appeared = false }
-        if restoreFocus && UIAccessibility.isVoiceOverRunning { UIAccessibility.post(notification: .screenChanged, argument: source) }
+        if restoreFocus && source?.isHidden == false && UIAccessibility.isVoiceOverRunning { UIAccessibility.post(notification: .screenChanged, argument: source) }
     }
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         guard !closing else { return false }

@@ -158,14 +158,19 @@ struct ThumbnailActions: UIViewRepresentable {
                 initialLift: lift)
             self.presenter = presenter
             created.dismissPreview = { [weak self, weak presenter, weak created] in
-                presenter?.dismiss(watching: false) { [weak self, weak created] in self?.clear(created) }
+                guard let presenter else { self?.clear(created); return }
+                // Release input/media ownership before the passive return.
+                // Old completion must not clear a newer preview on this row.
+                self?.clear(created)
+                presenter.dismiss(watching: false) {}
             }
             guard created.display(), presenter.install(in: root) else { created.cancel(); clear(created); return }
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
         private func finish(watch: Bool) {
             guard let session, session.phase == .visible, let presenter else { return }
-            if watch { session.requestWatch() }
+            if !watch { presenter.freezeForReturn(); session.cancel(); return }
+            session.requestWatch()
             session.end(after: { complete in
                 presenter.dismiss(watching: watch) { [weak self, weak session] in self?.clear(session); complete() }
             })

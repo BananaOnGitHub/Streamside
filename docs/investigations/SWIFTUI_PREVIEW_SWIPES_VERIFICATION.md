@@ -178,3 +178,52 @@ returns, scrolling long details, outside dismissal and Watch. In Settings →
 General, try Twitch, VERIFIEDBTW and Off, checking a verified and an ordinary
 channel in the feed, preview and stream page. Confirm the stream-page avatar and
 existing audio/lifecycle behavior, then export Native diagnostics after review.
+
+## Device review and unblocked preview return
+
+The c03d67d package was device-reviewed: badge changes, preview swipes in all
+directions and channel avatars were reported functional. The
+[bounded review record](SWIFTUI_PREVIEW_SWIPES_VERIFICATION_DEVICE_REVIEW.json)
+checks the supplied export against source/proof/donor/package identities and
+preserves its raw hash. The raw export remains private in the local artifact
+folder. It reports zero failures, playback errors, mute mismatches or hits across
+all 25 runtime probes, with ten balanced playback loads/playing/decoded/releases/
+stops and 100 channels. Baseline calibration is false and background count zero;
+no independent calibrated runtime or new background acceptance is inferred.
+
+The next correction removes the input block during cancellation's visual return.
+The presenter immediately restores the source, releases touch/accessibility
+ownership and becomes a passive overlay. Cancellation stops/releases preview
+media and clears that row's coordinator immediately, allowing a new feed action
+without waiting for the old visual cleanup. A passive composed-view snapshot
+preserves the preview during user dismissal after its player stops. It receives
+no touches, owns no media and is removed with the closing card. Watch retains its existing ordered
+single-player handoff and audio promotion.
+
+The accepted critically damped 0.52-second return is retained. A display link in
+the common run-loop mode translates the return's coordinate space toward the
+thumbnail's current position as the feed scrolls. It adjusts only the target
+position's contribution to the existing trajectory; it never restarts the spring
+or changes its completion deadline. Disappearing/recycled sources keep the last
+available target. Closing snapshots cannot intercept input, and an old completion
+cannot unhide a thumbnail or clear a session now owned by a newer preview.
+Reduce Motion and Watch retain their existing 0.18-second fade, and inactive
+cancellation retains immediate cleanup. No donor hooks or playback requests were
+added. UIKit's [interaction control](https://developer.apple.com/documentation/uikit/uiview/isuserinteractionenabled)
+and [display link](https://developer.apple.com/documentation/quartzcore/cadisplaylink)
+provide the input release and bounded visual tracking.
+
+The mandatory owned UIKit fixture now checks actual root hit testing during
+return, a scrolled target's translated snapshot, completion within the existing
+animation budget under additional scrolling, immediate media/row release,
+overlapping previews and stale completion isolation. Component admission requires
+its new unblocked_return receipt; a missing receipt is rejected. All existing
+coordinate/decoded-video/clipping and lifecycle gates remain required. Apple and
+physical-device validation of this correction are pending at implementation time.
+
+Host validation after the correction: 81 native frontend tests passed (8.971s),
+including rejection of a component missing unblocked-return evidence; all 12
+provider-routing tests passed. Updated Python tooling compiled successfully.
+Host logs remain outside the repository in the validation artifact folder.
+Apple-specific assertions and composed-video snapshot appearance still require
+the submitted Apple run and device review; host results do not establish them.

@@ -115,7 +115,7 @@ def verify(directory, revision=None):
             raise ValueError("UIKit title measurement/haptic pattern validation missing or failed")
         if uikit.get("launch_receipt") != [dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)]:
             raise ValueError("Three-process launch selection validation missing or failed")
-        if uikit.get("quicklook_receipt") != dict(passed=True,failures=[],source_target=True,hold_cancellation=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True):
+        if uikit.get("quicklook_receipt") != dict(passed=True,failures=[],source_target=True,hold_cancellation=True,unblocked_return=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True):
             raise ValueError("Native Quick Look simulator validation missing or failed")
         expected_ui=dict(passed=True,tests=4,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True) if mode=='native' else None
         if uikit.get("controls_ui_receipt") != expected_ui:

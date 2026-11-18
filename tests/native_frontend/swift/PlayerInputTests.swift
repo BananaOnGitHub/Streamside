@@ -29,7 +29,12 @@ final class PlayerInputTests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Fixture content label"].exists)
             XCTAssertTrue(app.staticTexts["Second fixture label"].exists)
             XCTAssertLessThan(abs(warning.frame.midX - app.frame.midX), 24, "Warning must be centered")
-            app.buttons["marked.dontShowAgain"].tap()
+            // ToggleStyle.button can expose a Switch to accessibility. Query
+            // the control's own identifier without assuming a UIKit role.
+            let remember = app.descendants(matching: .any)["marked.dontShowAgain"].firstMatch
+            XCTAssertTrue(remember.waitForExistence(timeout: 5))
+            XCTAssertTrue(remember.isHittable)
+            remember.tap()
             XCTAssertFalse(app.staticTexts["Admitted"].exists)
             if accept {
                 app.buttons["Continue"].tap()

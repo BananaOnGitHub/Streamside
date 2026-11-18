@@ -111,3 +111,21 @@ without localization. No production behavior, assertions or warning policy chang
 [Failure evidence](SWIFTUI_MARKED_CONTENT_BUILD_FAILURE_1.json) retains artifact
 hashes and the completed/pending validation scope. The five coordinate tests and
 real authenticated device behavior remain unvalidated by this failed run.
+
+## Second Apple build failure
+
+[Build 6afd52cfd133a39c4a128d72](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd52cfd133a39c4a128d72)
+for `56a0d6269eb3ae46da1eda5a4e2ba74391214bbc` compiled all components and
+executed five coordinate tests. Glass controls, plain controls, preview layout
+and thumbnail gestures passed. The marked-content test failed before tapping
+the checkbox: the card's group identifier propagated to its controls, and the
+test also restricted its lookup to Buttons although a button-styled Toggle can
+be exposed as a Switch. The owned screenshot confirms that the warning and
+checkbox were visibly present.
+
+The unused card identifier is removed; the checkbox retains its own identifier.
+The UI test finds that leaf without imposing an accessibility role, requires it
+to exist and be hittable, and taps it. All consent, preference and playback-order
+assertions remain. [Failure evidence](SWIFTUI_MARKED_CONTENT_BUILD_FAILURE_2.json)
+records both archive identities, the screenshot hash and actual validation scope.
+A replacement Apple run and real device testing remain necessary.

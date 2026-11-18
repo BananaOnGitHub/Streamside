@@ -51,7 +51,7 @@ struct MarkedContentWarning: View {
                 if reduceTransparency { RoundedRectangle(cornerRadius: 24).fill(Color(uiColor: .systemBackground)) }
                 else { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.regularMaterial) }
             }
-            .padding(20).accessibilityIdentifier("marked.warning")
+            .padding(20)
         }
         .task { gate.start() }
     }

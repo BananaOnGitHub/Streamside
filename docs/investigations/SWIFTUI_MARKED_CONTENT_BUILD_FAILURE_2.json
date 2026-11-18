@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "failed_source_revision": "56a0d6269eb3ae46da1eda5a4e2ba74391214bbc",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afd52cfd133a39c4a128d72",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afd52cfd133a39c4a128d72",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "player-input-failure.zip",
+        "local": "artifact-0.zip",
+        "bytes": 481726,
+        "sha256": "16214526e271e1b8299e77f811f1ab6a397f9e80c60d74abd2f1e3a658cf0aa4"
+      },
+      {
+        "name": "Streamside_22_artifacts.zip",
+        "local": "artifact-1.zip",
+        "bytes": 46834,
+        "sha256": "42fb010d1f027f433ce02613b44bd9214acfe5adf437a2c27a4a3f28937a61ac"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "56a0d6269eb3ae46da1eda5a4e2ba74391214bbc",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.694
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.42
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 855.674
+        }
+      ]
+    },
+    "owned_screenshot": {
+      "sha256": "59f2eda027fb38dc6b18c24e62f356cdef10f3204183a8653cb2a5c8b7fdfa72",
+      "scope": "Synthetic warning fixture only; visibly centered card, native-label fixtures, checkbox, Close and Continue."
+    },
+    "stage_2_log_sha256": "633285c115d4a7f59605dc0ee8651e366bda7acb9b031e79997b9e60a994eda8"
+  },
+  "cause": "testMarkedContentConsent queried a Button with identifier marked.dontShowAgain. The warning container applied marked.warning to the group, which propagated that identifier to child controls; the reported Close and Continue buttons both had marked.warning. A button-styled SwiftUI Toggle can also expose a Switch rather than Button accessibility role.",
+  "completed_before_failure": [
+    "Production SwiftUI and interoperability compilation/linking",
+    "Consent model and native request-owner fixtures",
+    "UIKit ownership, clock, preview consent/lifecycle, playback/audio and one-shot launch fixtures",
+    "testGlassControls",
+    "testPlainControls",
+    "testPreviewPanelLayoutAndActions",
+    "testThumbnailHoldAndTap"
+  ],
+  "failed_test": {
+    "name": "testMarkedContentConsent",
+    "failure": "No Button matched marked.dontShowAgain; checkbox was never tapped.",
+    "executed_ui_tests": 5,
+    "failed_ui_tests": 1
+  },
+  "fix": "Remove the unused group identifier so leaf controls keep distinct identifiers. Find the real checkbox by its own identifier independent of accessibility role; require existence and hit testing, then tap. Close/Continue, preference and no-early-playback assertions remain mandatory.",
+  "not_validated": [
+    "Completed warning consent UI sequence",
+    "Real authenticated content labels, marked playback/thumbnails or runtime counters on device",
+    "Successful component delivery and local IPA packaging"
+  ],
+  "replacement_apple_result": "Pending; no replacement build success claimed.",
+  "corrected_local_validation": {
+    "native_host_tests": 90,
+    "passed": true,
+    "log_sha256": "1d47830c6eb4989b4bbcea3b4801e81388468625b59c69827d43818b774f935f",
+    "docs_check": {
+      "passed": true,
+      "markdown_files": 122,
+      "references": 1197,
+      "errors": 0
+    },
+    "diff_check": true,
+    "scope": "Host/donor checks only; corrected accessibility hierarchy and checkbox tap require replacement simulator execution"
+  }
+}

@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 
@@ -92,7 +93,7 @@ enum NativeQuickLook {
             UIApplication.shared.applicationState == .active && services.state.session == .authenticated &&
                 services.state.account == account && playback.native.errorCode != 1
         }, start: playback.start, stop: playback.stop, handoff: { handoff(playback) })
-        session.videoTapEnabled = { [weak playback] in playback?.contentGate == nil }
+        session.videoTapAvailability = playback.$contentGate.map { $0 == nil }.eraseToAnyPublisher()
         transaction = session
         return session
     }

@@ -21,55 +21,69 @@ final class PlayerInputTests: XCTestCase {
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false
-        for preview in [false, true] {
-            for accept in [false, true] {
-                let app = XCUIApplication(); testedApp = app
-                app.launchArguments = ["--marked-content"] + (preview ? ["--marked-preview"] : [])
-                app.launch()
-                if preview {
-                    let source = app.descendants(matching: .any)["Marked stream thumbnail"].firstMatch
-                    XCTAssertTrue(source.waitForExistence(timeout: 5)); source.press(forDuration: 1.2)
-                    XCTAssertTrue(app.buttons["Watch stream"].waitForExistence(timeout: 5))
-                }
-                let warning = app.staticTexts["This stream has been marked as containing:"]
-                XCTAssertTrue(warning.waitForExistence(timeout: 5))
-                XCTAssertTrue(app.staticTexts["Fixture content label, Second fixture label"].exists)
-                let slot = app.descendants(matching: .any)["marked.video-slot"].firstMatch
-                XCTAssertTrue(slot.waitForExistence(timeout: 5))
-                XCTAssertEqual(slot.frame.width / slot.frame.height, 16.0 / 9.0, accuracy: 0.03)
-                XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(warning.frame))
-                XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
-                let remember = app.descendants(matching: .any)["marked.dontShowAgain"].firstMatch
-                XCTAssertTrue(remember.waitForExistence(timeout: 5)); XCTAssertTrue(remember.isHittable)
-                XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(remember.frame))
-                remember.tap()
-                XCTAssertFalse(app.staticTexts["Admitted"].exists)
-                if accept {
-                    // Pending Watch must move the same gate into the theatre,
-                    // not bypass consent or create a second media request.
-                    if preview {
-                        app.buttons["Watch stream"].tap()
-                        XCTAssertTrue(app.staticTexts["Theatre"].waitForExistence(timeout: 5))
-                        XCTAssertTrue(warning.exists)
-                        XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
-                    }
-                    app.buttons["Continue"].tap()
-                    XCTAssertTrue(app.staticTexts["Show thumbnails for marked streams?"].waitForExistence(timeout: 5))
-                    XCTAssertFalse(app.staticTexts["Admitted"].exists)
-                    XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
-                    app.buttons["Show thumbnails"].tap()
-                    XCTAssertTrue(app.staticTexts["Admitted"].waitForExistence(timeout: 5))
-                    XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=1")
-                    XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=false thumbnails=true")
-                } else {
-                    app.buttons["Close"].tap()
-                    XCTAssertTrue(app.staticTexts["Closed"].waitForExistence(timeout: 5))
-                    XCTAssertFalse(app.buttons["Watch stream"].exists, "Close must dismiss the preview itself")
-                    XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
-                    XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=true thumbnails=false")
-                }
-                app.terminate()
+        // Preview acceptance is checked both before and after Watch handoff.
+        // The first path must restore the real video tap target on admission.
+        let cases = [(false, false, false), (false, true, false),
+                     (true, false, false), (true, true, false), (true, true, true)]
+        for (preview, accept, pendingWatch) in cases {
+            let app = XCUIApplication(); testedApp = app
+            app.launchArguments = ["--marked-content"] + (preview ? ["--marked-preview"] : [])
+            app.launch()
+            if preview {
+                let source = app.descendants(matching: .any)["Marked stream thumbnail"].firstMatch
+                XCTAssertTrue(source.waitForExistence(timeout: 5)); source.press(forDuration: 1.2)
+                XCTAssertTrue(app.buttons["Watch stream"].waitForExistence(timeout: 5))
             }
+            let warning = app.staticTexts["This stream has been marked as containing:"]
+            XCTAssertTrue(warning.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Fixture content label, Second fixture label"].exists)
+            let slot = app.descendants(matching: .any)["marked.video-slot"].firstMatch
+            XCTAssertTrue(slot.waitForExistence(timeout: 5))
+            XCTAssertEqual(slot.frame.width / slot.frame.height, 16.0 / 9.0, accuracy: 0.03)
+            XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(warning.frame))
+            XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
+            let remember = app.descendants(matching: .any)["marked.dontShowAgain"].firstMatch
+            XCTAssertTrue(remember.waitForExistence(timeout: 5)); XCTAssertTrue(remember.isHittable)
+            XCTAssertTrue(slot.frame.insetBy(dx: -2, dy: -2).contains(remember.frame))
+            if preview {
+                XCTAssertFalse(app.buttons["quicklook.play-preview"].exists,
+                    "Video Watch must not cover consent controls or appear to VoiceOver")
+            }
+            remember.tap()
+            XCTAssertEqual(remember.value as? String, "Selected")
+            XCTAssertFalse(app.staticTexts["Admitted"].exists)
+            if accept {
+                // Pending Watch must move the same gate into the theatre,
+                // not bypass consent or create a second media request.
+                if pendingWatch {
+                    app.buttons["Watch stream"].tap()
+                    XCTAssertTrue(app.staticTexts["Theatre"].waitForExistence(timeout: 5))
+                    XCTAssertTrue(warning.exists)
+                    XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
+                }
+                app.buttons["Continue"].tap()
+                XCTAssertTrue(app.staticTexts["Show thumbnails for marked streams?"].waitForExistence(timeout: 5))
+                XCTAssertFalse(app.staticTexts["Admitted"].exists)
+                XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
+                app.buttons["Show thumbnails"].tap()
+                XCTAssertTrue(app.staticTexts["Admitted"].waitForExistence(timeout: 5))
+                XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=1")
+                XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=false thumbnails=true")
+                if preview && !pendingWatch {
+                    let videoWatch = app.buttons["quicklook.play-preview"]
+                    XCTAssertTrue(videoWatch.waitForExistence(timeout: 5)); XCTAssertTrue(videoWatch.isHittable)
+                    videoWatch.tap()
+                    XCTAssertTrue(app.staticTexts["Theatre"].waitForExistence(timeout: 5))
+                    XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=1")
+                }
+            } else {
+                app.buttons["Close"].tap()
+                XCTAssertTrue(app.staticTexts["Closed"].waitForExistence(timeout: 5))
+                XCTAssertFalse(app.buttons["Watch stream"].exists, "Close must dismiss the preview itself")
+                XCTAssertEqual(app.staticTexts["marked.media-starts"].label, "starts=0")
+                XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=true thumbnails=false")
+            }
+            app.terminate()
         }
         print("MARKED_CONTENT_UI PASS: inline 16:9 warning; interactive preview controls; Close dismisses owner; choices before one media start")
         print("MARKED_PENDING_WATCH PASS: same pending consent into theatre; zero starts until thumbnail choice")

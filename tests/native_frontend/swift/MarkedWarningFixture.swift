@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 
@@ -51,7 +52,7 @@ import UIKit
                 self.playback.bindContentOwner(valid: { true }, close: { [weak self] in self?.closed = true })
                 self.playback.enterTheatre(); self.showingTheatre = true; return true
             })
-        session.videoTapEnabled = { [weak playback] in playback?.contentGate == nil }
+        session.videoTapAvailability = playback.$contentGate.map { $0 == nil }.eraseToAnyPublisher()
         transaction = session; return session
     }
 }
@@ -84,7 +85,7 @@ private struct MarkedWarningFixtureSlot: View {
             Text(verbatim: "starts=\(playback.native.startCount)")
                 .accessibilityIdentifier("marked.media-starts")
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color(uiColor: .secondarySystemBackground))
     }
 }

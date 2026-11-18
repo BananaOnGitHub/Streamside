@@ -91,3 +91,27 @@ success is claimed at implementation time.
 5. Check outside/swipe dismissal, background/account cancellation, first preview
    with external audio, post-consent Watch, both glass settings and Reduce
    Transparency. Export Native diagnostics after exercising these paths.
+
+## First inline build failure and correction
+
+Source `82bdcb11b1986f8b679c8033de7e42499a1f0737` compiled on Apple CI,
+but the coordinate test found the preview checkbox was not hittable. Both
+direct-theatre sequences and the four other coordinate tests passed. The
+[failed-build record](SWIFTUI_MARKED_CONTENT_INLINE_BUILD_FAILURE_1.json) retains
+the build, archive/screenshot hashes, hierarchy findings and validation limits.
+Raw evidence is retained outside the active artifact directory.
+
+The Watch overlay was still exposed above the warning in the accessibility
+hierarchy. Its point-testing/accessibility overrides were insufficient. The
+correction observes the main-actor playback gate and hides the actual UIKit
+button, disables interaction and removes accessibility participation until final
+admission. The initial gate value is delivered synchronously; subsequent changes
+restore Watch without polling. Detachment cancels the observation. The synthetic
+warning fixture is also aligned to the card top, matching the production panel.
+
+The mandatory coordinate test retains its hittability and video containment
+assertions. It additionally checks actual checkbox selection, absence of the
+video Watch target during consent, and restoration of that same target after
+preview admission. Preview acceptance before Watch and pending Watch before
+acceptance are separate cases, both requiring exactly one media start. Apple
+execution of this correction and physical-device validation remain pending.

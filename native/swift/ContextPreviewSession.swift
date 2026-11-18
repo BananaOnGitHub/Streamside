@@ -1,3 +1,4 @@
+import Combine
 import UIKit
 
 // The source-anchored presenter owns motion; this transaction owns media lifetime.
@@ -11,7 +12,7 @@ final class ContextPreviewSession {
     private(set) var phase = Phase.prepared
     private(set) var watchRequested = false
     var dismissPreview: (() -> Void)?
-    var videoTapEnabled: () -> Bool = { true }
+    var videoTapAvailability: AnyPublisher<Bool, Never>?
     private let claim: (UUID) -> Bool
     private let release: (UUID) -> Void
     private let valid: () -> Bool

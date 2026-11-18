@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 
@@ -59,19 +60,6 @@ private struct PreviewActions: View {
     }
 }
 
-// The video Watch target yields to interactive consent in the same 16:9 slot.
-// A closure keeps hit testing/accessibility current without a polling timer.
-private final class PreviewWatchButton: UIButton {
-    var enabledForVideo: () -> Bool = { true }
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        enabledForVideo() && super.point(inside: point, with: event)
-    }
-    override var isAccessibilityElement: Bool {
-        get { enabledForVideo() }
-        set { super.isAccessibilityElement = newValue }
-    }
-}
-
 @MainActor
 final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDelegate {
     private let content: UIViewController
@@ -79,7 +67,8 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private let initialLift: UIView?
     private let onWatch: () -> Void
     private let onDismiss: () -> Void
-    private let videoTapEnabled: () -> Bool
+    private let videoTapAvailability: AnyPublisher<Bool, Never>?
+    private var videoTapObservation: AnyCancellable?
     private let observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
     private var actions: UIViewController?
     private let backdrop = UIControl()
@@ -103,8 +92,8 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private var menuStart = CGPoint.zero
 
     init(content: UIViewController, source: UIView, watch: @escaping () -> Void, dismiss: @escaping () -> Void,
-         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil, videoTapEnabled: @escaping () -> Bool = { true }) {
-        self.videoTapEnabled = videoTapEnabled
+         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil, videoTapAvailability: AnyPublisher<Bool, Never>? = nil) {
+        self.videoTapAvailability = videoTapAvailability
         self.initialLift = initialLift
         self.content = content; self.source = source; onWatch = watch; onDismiss = dismiss; self.observeTarget = observeTarget
         super.init(nibName: nil, bundle: nil)
@@ -150,11 +139,21 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
         card.frame = placement.card; content.view.frame = card.bounds
         content.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         card.layer.shadowPath = UIBezierPath(roundedRect: card.bounds, cornerRadius: 24).cgPath
-        let watch = PreviewWatchButton(type: .custom)
-        watch.enabledForVideo = videoTapEnabled
+        let watch = UIButton(type: .custom)
         watch.frame = CGRect(x: 0, y: 0, width: card.bounds.width, height: card.bounds.width * 9 / 16)
         watch.accessibilityLabel = "Watch stream preview"; watch.accessibilityIdentifier = "quicklook.play-preview"
         watch.addTarget(self, action: #selector(watchPreview), for: .touchUpInside)
+        // Remove the Watch overlay from both UIKit hit testing and accessibility
+        // while consent owns the slot. Overriding point(inside:) alone leaves
+        // an overlapping accessibility button above SwiftUI's warning controls.
+        // The main-actor @Published gate delivers its current value immediately,
+        // then restores Watch only after final consent, without a polling timer.
+        videoTapObservation = videoTapAvailability?.removeDuplicates().sink { [weak watch] enabled in
+            watch?.isHidden = !enabled
+            watch?.isUserInteractionEnabled = enabled
+            watch?.isAccessibilityElement = enabled
+            watch?.accessibilityElementsHidden = !enabled
+        }
         content.view.addSubview(watch)
         actions.view.frame = placement.menu
         actions.view.layer.shadowColor = UIColor.black.cgColor; actions.view.layer.shadowOpacity = 0.15
@@ -288,6 +287,7 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
         returnLink?.invalidate(); returnLink = nil; returnStage = nil
     }
     private func detach(restoreFocus: Bool = false) {
+        videoTapObservation?.cancel(); videoTapObservation = nil
         stopReturnTracking()
         if appeared { beginAppearanceTransition(false, animated: false) }
         restoreSource(); installed = false

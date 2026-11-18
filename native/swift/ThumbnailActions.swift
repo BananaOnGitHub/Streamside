@@ -172,7 +172,7 @@ struct ThumbnailActions: UIViewRepresentable {
             let presenter = AnchoredPreviewController(content: created.controller, source: source,
                 watch: { [weak self] in self?.finish(watch: true) },
                 dismiss: { [weak self] in self?.finish(watch: false) }, observeTarget: owner.observeTarget,
-                initialLift: lift, videoTapEnabled: created.videoTapEnabled)
+                initialLift: lift, videoTapAvailability: created.videoTapAvailability)
             self.presenter = presenter
             let returned = owner.observeReturnCompletion
             created.dismissPreview = { [weak self, weak presenter, weak created] in

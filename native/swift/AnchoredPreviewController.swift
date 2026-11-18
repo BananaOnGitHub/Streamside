@@ -59,6 +59,19 @@ private struct PreviewActions: View {
     }
 }
 
+// The video Watch target yields to interactive consent in the same 16:9 slot.
+// A closure keeps hit testing/accessibility current without a polling timer.
+private final class PreviewWatchButton: UIButton {
+    var enabledForVideo: () -> Bool = { true }
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        enabledForVideo() && super.point(inside: point, with: event)
+    }
+    override var isAccessibilityElement: Bool {
+        get { enabledForVideo() }
+        set { super.isAccessibilityElement = newValue }
+    }
+}
+
 @MainActor
 final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDelegate {
     private let content: UIViewController
@@ -66,6 +79,7 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private let initialLift: UIView?
     private let onWatch: () -> Void
     private let onDismiss: () -> Void
+    private let videoTapEnabled: () -> Bool
     private let observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
     private var actions: UIViewController?
     private let backdrop = UIControl()
@@ -89,7 +103,8 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private var menuStart = CGPoint.zero
 
     init(content: UIViewController, source: UIView, watch: @escaping () -> Void, dismiss: @escaping () -> Void,
-         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil) {
+         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil, videoTapEnabled: @escaping () -> Bool = { true }) {
+        self.videoTapEnabled = videoTapEnabled
         self.initialLift = initialLift
         self.content = content; self.source = source; onWatch = watch; onDismiss = dismiss; self.observeTarget = observeTarget
         super.init(nibName: nil, bundle: nil)
@@ -135,7 +150,8 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
         card.frame = placement.card; content.view.frame = card.bounds
         content.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         card.layer.shadowPath = UIBezierPath(roundedRect: card.bounds, cornerRadius: 24).cgPath
-        let watch = UIButton(type: .custom)
+        let watch = PreviewWatchButton(type: .custom)
+        watch.enabledForVideo = videoTapEnabled
         watch.frame = CGRect(x: 0, y: 0, width: card.bounds.width, height: card.bounds.width * 9 / 16)
         watch.accessibilityLabel = "Watch stream preview"; watch.accessibilityIdentifier = "quicklook.play-preview"
         watch.addTarget(self, action: #selector(watchPreview), for: .touchUpInside)

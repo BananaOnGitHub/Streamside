@@ -37,14 +37,11 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var launchError = 0
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
-    private var background: AnyCancellable?
 
     init() {
         changes = NotificationCenter.default.publisher(for: .SSNNativeServiceDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.reloadSnapshot() }
-        background = NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
-            .sink { _ in SSNSwiftUIHost.cancelContentGate() }
         reloadSnapshot()
     }
 
@@ -67,7 +64,6 @@ final class NativeServices: ObservableObject, AccountService {
             FollowedChannel(snapshot: $0)
         }
         next.enforceSessionBoundary()
-        if next.account != state.account || next.session != .authenticated { SSNSwiftUIHost.cancelContentGate() }
         state = next
         rootOwner = (snapshot["rootOwner"] as? NSNumber)?.intValue ?? 0
         diagnosticSummary = snapshot["summary"] as? String ?? "Diagnostics unavailable"
@@ -86,10 +82,17 @@ final class NativeServices: ObservableObject, AccountService {
     func preview(_ channel: FollowedChannel, source: UIView) -> ContextPreviewSession? {
         SSNSwiftUIHost.preparePreview(channel, source: source)
     }
-    func authorizePreview(_ channel: FollowedChannel, source: UIView, complete: @escaping (Bool) -> Void) {
-        actionError = nil
-        guard channel.playbackAllowed else { playbackRestricted(); complete(false); return }
-        SSNSwiftUIHost.authorizeContent(channel, source: source, completion: complete)
+    func prepareContentGate(_ channel: FollowedChannel, playback: TheatrePlayback) {
+        let defaults = UserDefaults.standard
+        let showWarnings = defaults.object(forKey: MarkedContentPreferences.showWarningsKey) as? Bool ?? true
+        guard MarkedContentPreferences.needsWarning(marked: channel.thumbnailRestricted, showWarnings: showWarnings) else { return }
+        playback.configureContentGate { [weak playback] completed in
+            MarkedContentGate(load: { await self.contentLabels(channel) },
+                valid: { playback?.contentIsValid == true },
+                saveWarnings: { defaults.set($0, forKey: MarkedContentPreferences.showWarningsKey) },
+                saveThumbnails: { defaults.set($0, forKey: MarkedContentPreferences.thumbnailsKey) },
+                completion: completed)
+        }
     }
     func contentLabels(_ channel: FollowedChannel) async -> [String]? {
         guard !channel.channelID.isEmpty else { return nil }
@@ -109,11 +112,8 @@ final class NativeServices: ObservableObject, AccountService {
     func open(_ channel: FollowedChannel) {
         actionError = nil
         guard channel.playbackAllowed else { playbackRestricted(); return }
-        SSNSwiftUIHost.authorizeContent(channel) { [weak self] accepted in
-            guard accepted else { return }
-            if !SSNSwiftUIHost.beginPlayback(channel) {
-                self?.actionError = "The stream could not open. Check your account and diagnostics."
-            }
+        if !SSNSwiftUIHost.beginPlayback(channel) {
+            actionError = "The stream could not open. Check your account and diagnostics."
         }
     }
     func actionUnavailable() { actionError = "Native navigation ownership is unavailable. Export diagnostics." }

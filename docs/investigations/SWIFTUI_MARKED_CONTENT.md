@@ -151,3 +151,11 @@ toolchain, archive, framework and IPA identities, receipts and scope. The packag
 is `artifacts/native-frontend/marked-content-f6d279c/StreamsideNativeProof-Twitch32-native.ipa`.
 Real Twitch labels, marked playback/thumbnails, app preferences across restart and
 physical-device runtime observations remain pending. Use the device checklist above.
+
+## Device confirmation and presentation successor
+
+[Device review](SWIFTUI_MARKED_CONTENT_DEVICE_REVIEW_1.json) records functional
+confirmation for the `f6d279c` candidate and the attached diagnostic evidence.
+The requested design correction is tracked in the
+[inline video-area consent trial](SWIFTUI_MARKED_CONTENT_INLINE.md); it supersedes
+the covering-modal presentation without rewriting the earlier results.

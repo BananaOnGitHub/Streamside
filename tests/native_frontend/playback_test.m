@@ -162,6 +162,10 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
         self->_originalCategory=[audio.category copy];self->_originalMode=[audio.mode copy];self->_originalOptions=audio.categoryOptions;
         Method method=class_getInstanceMethod(AVAudioSession.class,@selector(setActive:error:));
         originalActivation=method_getImplementation(method);method_setImplementation(method,(IMP)observeActivation);
+        SSNPlayback *waiting=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel" preview:YES];
+        BOOL pendingPromotion=[waiting enterTheatre];waiting.muted=NO;
+        [self record:@"pending_consent_promotion" passed:pendingPromotion&&!waiting.isMuted&&waiting.phase==0&&created==0&&requests==0&&activationCalls==0&&[audio.category isEqual:self->_originalCategory]];
+        [waiting stop];[waiting release];
         self->_playback=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel" preview:YES];
         self->_playback.muted=NO;[self->_playback start];
         waitPlaying(self->_playback,1,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed){[self initial:observed];});

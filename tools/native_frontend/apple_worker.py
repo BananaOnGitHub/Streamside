@@ -69,7 +69,13 @@ def main():
     observed=run([str(output/'content-labels-tests')], label='Test content-label metadata result, cancellation and native account boundaries')
     if not observed.startswith('CONTENT_LABELS PASS:') or 'PASS: marked consent' not in info['model_tests']:
         raise ValueError('Marked-content validation evidence missing')
-    info['marked_content_tests']=dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True)
+    run(['xcrun','swiftc','-O','-swift-version','5','-warnings-as-errors',
+         'native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','native/swift/TheatrePlayback.swift',
+         'tests/native_frontend/swift/PlaybackAdmissionTests.swift','-o','output/admission-tests'], label='Build shared inline preview/player consent ownership tests')
+    admission=run([str(output/'admission-tests')], label='Test deferred media, pending Watch, thumbnail choice and cancellation')
+    if not admission.startswith('INLINE_ADMISSION PASS:'):
+        raise ValueError('Inline playback admission evidence missing')
+    info['marked_content_tests']=dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True,inline_admission=True)
     info['adblock_tests']={k:True for k in ['passed','default_enabled','disabled_passthrough','baseline_untouched','native_tokens','clean_alternate','fallback_segments','stream_isolation','cancellation','account_change','preference_restoration']}
     info['uikit_ownership_tests']=test_window_ownership(root, output, config, run)
     info['codesign']='ad-hoc; IPA still requires device-authorized re-signing'
@@ -174,7 +180,7 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test cold preview audio, responsive retirement, ordered restoration, playback lifecycle and mute')
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
-        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime']}
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
         for index in range(3):

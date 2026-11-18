@@ -11,6 +11,7 @@ final class ContextPreviewSession {
     private(set) var phase = Phase.prepared
     private(set) var watchRequested = false
     var dismissPreview: (() -> Void)?
+    var videoTapEnabled: () -> Bool = { true }
     private let claim: (UUID) -> Bool
     private let release: (UUID) -> Void
     private let valid: () -> Bool

@@ -7,11 +7,11 @@ import plistlib
 import re
 import zipfile
 
-SOURCES = ['native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=5, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True)
+EXPECTED = dict(passed=True, tests=5, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True,inline_consent=True,pending_watch=True)
 
 
 def project(root, stage):
@@ -132,6 +132,8 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Swipe dismissal and verification-settings UI checks must pass')
     if 'CONTEXT_VIDEO PASS:' not in observed:
         raise ValueError('Actual changing decoded video and clipping checks must pass')
+    if 'MARKED_PENDING_WATCH PASS:' not in observed:
+        raise ValueError('Pending preview Watch must retain consent without starting media')
     if 'MARKED_CONTENT_UI PASS:' not in observed:
         raise ValueError('Actual marked-content consent UI must pass')
     return dict(EXPECTED)

@@ -5,7 +5,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithChannel:(NSString *)channel NS_SWIFT_NAME(init(channel:));
 /* Preview is always muted, uses Ambient mixing without explicit activation,
  * and retires SDK/audio resources asynchronously. Promotion is
- * explicit and happens only after theatre presentation; it retains the player. */
+ * explicit and happens only after theatre presentation; it retains the player.
+ * Before start, promotion changes intent only; no SDK/audio work is performed. */
 - (instancetype)initWithChannel:(NSString *)channel preview:(BOOL)preview NS_SWIFT_NAME(init(channel:preview:));
 - (BOOL)enterTheatre;
 @property(nonatomic,readonly) UIView *view;

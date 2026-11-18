@@ -340,24 +340,6 @@ private struct InputTestContent: View {
         }
     }
 }
-@MainActor private final class MarkedWarningFixtureState: ObservableObject {
-    @Published var result = "Pending"
-    @Published var warnings = true
-    @Published var thumbnails = false
-    lazy var gate = MarkedContentGate(load: { ["Fixture content label", "Second fixture label"] }, valid: { true },
-        saveWarnings: { [weak self] in self?.warnings = $0 }, saveThumbnails: { [weak self] in self?.thumbnails = $0 },
-        completion: { [weak self] in self?.result = $0 ? "Admitted" : "Closed" })
-}
-private struct MarkedWarningFixture: View {
-    @StateObject private var state = MarkedWarningFixtureState()
-    var body: some View {
-        VStack {
-            Text(state.result).accessibilityIdentifier("marked.result")
-            Text(verbatim: "warnings=\(state.warnings) thumbnails=\(state.thumbnails)").accessibilityIdentifier("marked.preferences")
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay { if state.result == "Pending" { MarkedContentWarning(gate: state.gate) } }
-    }
-}
 @main @MainActor final class InputTestDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {

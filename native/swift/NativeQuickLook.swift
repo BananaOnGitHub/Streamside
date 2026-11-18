@@ -19,7 +19,7 @@ private struct QuickLookDetails: View {
             Text(current.category.isEmpty ? "Category unavailable" : current.category)
                 .font(.subheadline).foregroundStyle(.secondary)
             if !current.tags.isEmpty { AllStreamTags(tags: current.tags) }
-            if playback.phase != 3 {
+            if playback.contentGate == nil && playback.phase != 3 {
                 HStack {
                     if [1, 2, 4].contains(playback.phase) { ProgressView() }
                     Text(playback.message).font(.caption).foregroundStyle(.secondary)
@@ -39,14 +39,18 @@ private struct QuickLookContent: View {
     let cancel: () -> Void
     var body: some View {
         QuickLookPanel(width: width, detailsHeight: detailsHeight) {
-            PassivePlayerSurface(surface: playback.native.view, topCornerRadius: 24)
-                .overlay(alignment: .bottomTrailing) {
-                    Image(systemName: "speaker.slash.fill").font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white).padding(5)
-                        .background(.black.opacity(0.4), in: Capsule()).padding(7)
-                        .accessibilityLabel("Muted live preview").allowsHitTesting(false)
-                }
-                .accessibilityIdentifier("quicklook.video")
+            if let gate = playback.contentGate {
+                MarkedContentWarning(gate: gate)
+            } else {
+                PassivePlayerSurface(surface: playback.native.view, topCornerRadius: 24)
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "speaker.slash.fill").font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.white).padding(5)
+                            .background(.black.opacity(0.4), in: Capsule()).padding(7)
+                            .accessibilityLabel("Muted live preview").allowsHitTesting(false)
+                    }
+                    .accessibilityIdentifier("quicklook.video")
+            }
         } details: { details }
         .onChange(of: services.state.account) { if $0 != account { cancel() } }
         .onChange(of: services.state.session) { if $0 != .authenticated { cancel() } }
@@ -68,6 +72,12 @@ enum NativeQuickLook {
         let playback = TheatrePlayback(channel: channel.username, preview: true)
         playback.setMuted(true) // Intent precedes authorization and IVS load/play.
         let account = services.state.account
+        weak var transaction: ContextPreviewSession?
+        playback.bindContentOwner(valid: {
+            UIApplication.shared.applicationState == .active && SSNNavigationPermitted() &&
+            services.state.session == .authenticated && services.state.account == account
+        }, close: { transaction?.cancel() })
+        services.prepareContentGate(channel, playback: playback)
         let windowSize = source.window?.bounds.size ?? CGSize(width: 390, height: 700)
         let width = max(1, min(380, windowSize.width - 32))
         let maximumHeight = max(width * 9 / 16 + 80, min(560, windowSize.height - 220))
@@ -75,7 +85,6 @@ enum NativeQuickLook {
         let measure = UIHostingController(rootView: details.padding(16))
         let natural = measure.sizeThatFits(in: CGSize(width: width, height: 10000)).height
         let height = min(ceil(natural), maximumHeight - width * 9 / 16)
-        weak var transaction: ContextPreviewSession?
         let content = UIHostingController(rootView: QuickLookContent(width: width, detailsHeight: height,
             details: details, playback: playback, services: services, account: account, cancel: { transaction?.cancel() }))
         let preview = QuickLookController(content: content, size: CGSize(width: width, height: width * 9 / 16 + height))
@@ -83,6 +92,7 @@ enum NativeQuickLook {
             UIApplication.shared.applicationState == .active && services.state.session == .authenticated &&
                 services.state.account == account && playback.native.errorCode != 1
         }, start: playback.start, stop: playback.stop, handoff: { handoff(playback) })
+        session.videoTapEnabled = { [weak playback] in playback?.contentGate == nil }
         transaction = session
         return session
     }

@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "source_revision": "f6d279ca48790d3960c40dced53360242fd591c0",
+  "proof_id": "e0aedebf474b21411d8479cbd5c980d0745468a497baac6d78bbd95a4e37cb1b",
+  "report_sha256": "77dbe1fa586e213f3dbb82556ebd26e62622d89a22b6c107f41ca36a9e233854",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "user_observation": "All functions work; requested Liquid Glass actions and warning/thumbnail question in the actual preview/player video area instead of a covering modal.",
+  "observations": {
+    "mode": "native",
+    "failures": 0,
+    "baseline_calibrated": true,
+    "ui_root_owner": 1,
+    "navigation_guard_armed": 1,
+    "playback_phase": 0,
+    "playback_error": 0,
+    "playback_last_error": 0,
+    "playback_events": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      0,
+      0,
+      10
+    ],
+    "player_mute_mismatched_samples": 0,
+    "returned_channel_count": 100,
+    "foregrounds": 1,
+    "backgrounds": 0,
+    "adblock_enabled": true,
+    "adblock_installed": true,
+    "adblock_metrics": [
+      85,
+      10,
+      75,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "runtime_probes": {
+    "entries": 25,
+    "all_zero": true
+  },
+  "limits": [
+    "User confirmation establishes function behavior for the supplied device test, not revised inline presentation.",
+    "The report has no per-warning-label/checkbox trace and cannot independently reconstruct individual consent choices.",
+    "The report advertises baseline calibration; a fresh paired baseline is not attached here.",
+    "Ad-block metrics have no ad-marked observation in this export; this is not a new ad-suppression proof."
+  ]
+}

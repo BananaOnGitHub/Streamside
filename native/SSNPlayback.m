@@ -226,7 +226,12 @@ static void reportPlayback(void) {
 }
 - (BOOL)enterTheatre {
     NSAssert(NSThread.isMainThread,@"Playback promotion belongs to the main thread");
-    if(!_opened||!_foreground||!ssn_playback_authorized()||!ssn_navigation_guarded()||(_requestAuth&&auth()!=_requestAuth)) return NO;
+    if(!ssn_playback_authorized()||!ssn_navigation_guarded()||(_requestAuth&&auth()!=_requestAuth)) return NO;
+    if(!_opened) {
+        if(UIApplication.sharedApplication.applicationState!=UIApplicationStateActive||_player||_audio||_promise) return NO;
+        _preview=NO;return YES; // Consent still owns admission; no media/audio work.
+    }
+    if(!_foreground) return NO;
     if(!_preview) return YES;
     _preview=NO;
     // Upgrade the same queued audio lease in place, even while authorization

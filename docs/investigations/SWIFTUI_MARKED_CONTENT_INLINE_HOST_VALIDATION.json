@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "base_revision": "527af9964757fd4a998ad12ac7cddd4ab65809a4",
+  "branch": "feat/native-frontend",
+  "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+  "abi_entries": 67,
+  "linux_native_frontend": {
+    "passed": true,
+    "tests": 91,
+    "log_sha256": "3a340d04bf48682eaa483905fc856c16ce4d73eb1f5426129afc5d74ca5eaee3"
+  },
+  "provider_routing": {
+    "passed": true,
+    "tests": 12,
+    "log_sha256": "ef67f0d14b838a4162cb8de2263a0eeaec432adb5b4a515864fc2763fed83ab6"
+  },
+  "docs_check": {
+    "passed": true,
+    "markdown_files": 123,
+    "references": 1208,
+    "errors": 0
+  },
+  "validation_added": [
+    "Production playback admission with synthetic media boundary: deferred start, one label request, pending Watch, preference ordering, cancellation, current-owner Close",
+    "Real Objective-C facade: pending theatre promotion without SDK, request or audio activation",
+    "Coordinate UI: video-slot containment, interactive warning in real source presenter, Close ownership, pending Watch and single media start",
+    "Required component receipts for inline admission, pending Watch and native promotion"
+  ],
+  "apple_result": "pending; submit exact committed source, do not monitor",
+  "device_result": "Previous covering-modal build reviewed separately; revised inline presentation not yet device tested",
+  "final_component_checks": {
+    "passed": true,
+    "tests": 23,
+    "log_sha256": "c6bea35e00d6ed1c9903bed3dd3136baa67d5a7cb6ccbfab9c6af65f0eb0e154"
+  }
+}

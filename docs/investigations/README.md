@@ -21,7 +21,7 @@ not here.
 
 - [One-shot device review and export isolation correction](SWIFTUI_NATIVE_EXPORT_ISOLATION_REVIEW.md): independent/original runtime comparison, automatic Native return, duplicate report mapping and mode-specific sharing.
 
-- [Native marked-stream consent](SWIFTUI_MARKED_CONTENT.md): native content-label query, shared theatre/preview warning, independent thumbnail preferences and validation boundaries.
+- [Native marked-stream consent](SWIFTUI_MARKED_CONTENT.md): native content-label query, shared theatre/preview warning, independent thumbnail preferences and validation boundaries. [Inline video-area successor](SWIFTUI_MARKED_CONTENT_INLINE.md).
 
 - [Native frontend VAFT integration](SWIFTUI_NATIVE_VAFT.md): shared playlist engine, native authenticated alternate tokens, default-on player toggle, cancellation and scoped validation.
 

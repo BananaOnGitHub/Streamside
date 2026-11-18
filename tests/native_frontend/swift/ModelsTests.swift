@@ -2,7 +2,62 @@ import Foundation
 
 // Synthetic presentation fixtures. No donor, network or live account is used.
 @main struct ModelsTests {
-    static func main() {
+    @MainActor static func contentWarnings() async {
+        for marked in [false, true] {
+            for show in [false, true] {
+                precondition(MarkedContentPreferences.needsWarning(marked: marked, showWarnings: show) == (marked && show))
+            }
+        }
+        for remember in [false, true] {
+            var warnings = true, thumbnails = false, completions: [Bool] = []
+            let gate = MarkedContentGate(load: { ["Actual native fixture label"] }, valid: { true },
+                saveWarnings: { warnings = $0 }, saveThumbnails: { thumbnails = $0 }, completion: { completions.append($0) })
+            gate.start()
+            for _ in 0..<100 where gate.stage == .loading { await Task.yield() }
+            precondition(gate.stage == .warning && gate.labels == ["Actual native fixture label"])
+            gate.dontShowAgain = remember; gate.close(); gate.close(); gate.proceed()
+            precondition(warnings && !thumbnails && completions == [false], "Close must ignore the checkbox and complete once")
+        }
+        for remember in [false, true] {
+            for showThumbnails in [false, true] {
+                var warnings = true, thumbnails = false, completions: [Bool] = []
+                let gate = MarkedContentGate(load: { ["Label"] }, valid: { true },
+                    saveWarnings: { warnings = $0 }, saveThumbnails: { thumbnails = $0 }, completion: { completions.append($0) })
+                gate.start()
+                for _ in 0..<100 where gate.stage == .loading { await Task.yield() }
+                gate.dontShowAgain = remember; gate.proceed()
+                if remember {
+                    precondition(!warnings && completions.isEmpty && gate.stage == .thumbnails, "Must choose thumbnails before media admission")
+                    gate.chooseThumbnails(showThumbnails)
+                    precondition(thumbnails == showThumbnails)
+                } else { precondition(warnings && !thumbnails) }
+                precondition(completions == [true]); gate.close(); gate.proceed(); precondition(completions == [true])
+            }
+        }
+        var valid = true, loaded = false, completed: [Bool] = []
+        let cancel = MarkedContentGate(load: {
+            try? await Task.sleep(nanoseconds: 20_000_000); loaded = true; return ["Late label"]
+        }, valid: { valid }, saveWarnings: { _ in fatalError("Cancellation persisted warnings") },
+            saveThumbnails: { _ in fatalError("Cancellation persisted thumbnails") }, completion: { completed.append($0) })
+        cancel.start(); await Task.yield(); valid = false; cancel.close()
+        try? await Task.sleep(nanoseconds: 30_000_000)
+        precondition(cancel.stage == .finished && completed == [false]); _ = loaded
+        var attempts = 0
+        let retry = MarkedContentGate(load: { attempts += 1; return attempts == 1 ? nil : ["Recovered label"] }, valid: { true },
+            saveWarnings: { _ in }, saveThumbnails: { _ in }, completion: { _ in })
+        retry.start(); for _ in 0..<100 where retry.stage == .loading { await Task.yield() }
+        precondition(retry.stage == .failed)
+        retry.start(); for _ in 0..<100 where retry.stage == .loading { await Task.yield() }
+        precondition(retry.stage == .warning && attempts == 2); retry.close()
+        var admitted: Bool?
+        let failure = MarkedContentGate(load: { nil }, valid: { true },
+            saveWarnings: { _ in }, saveThumbnails: { _ in }, completion: { admitted = $0 })
+        failure.start(); for _ in 0..<100 where failure.stage == .loading { await Task.yield() }
+        failure.proceed(); precondition(admitted == false, "Missing labels must not admit playback")
+        print("PASS: marked consent, discard-on-close, independent thumbnail choice before playback, failure and cancellation")
+    }
+    @MainActor static func main() async {
+        await contentWarnings()
         precondition(VerificationStyle.resolve("unknown") == .twitch)
         for style in VerificationStyle.allCases { precondition(VerificationStyle.resolve(style.rawValue) == style) }
         for raw in ["0", "", "true", "partner"] {
@@ -171,7 +226,7 @@ import Foundation
         precondition(feed.live.map { $0.username } == ["big", "live"])
         precondition(feed.offline.map { $0.username } == ["offline"])
         let mapped = FollowedChannel(snapshot: ["username":"fixture", "isLive":"1", "title":"Title", "category":"Category", "viewerCount":"1234", "startedAt":"100", "thumbnailRestricted":"1", "thumbnailURL":"https://static-cdn.jtvnw.net/image.jpg"])
-        precondition(mapped?.viewerCount == 1234 && mapped?.thumbnailURL == nil)
+        precondition(mapped?.viewerCount == 1234 && mapped?.thumbnailURL != nil && mapped?.thumbnailRestricted == true && mapped?.playbackAllowed == false)
         precondition(mapped?.startedAt == Date(timeIntervalSince1970: 100))
         precondition(FollowedChannel(snapshot:["username":"fixture"]) == nil, "Unknown status became offline")
         precondition(FollowedChannel(snapshot:["username":"fixture","isLive":"1","viewerCount":"-1"])?.viewerCount == nil)

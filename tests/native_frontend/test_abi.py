@@ -99,6 +99,9 @@ class SwiftCalls(unittest.TestCase):
         self.call('call_playback_params',[],[0,2,2,0,0,0,0,11],stack_arguments=[22,0,0,33,44,0,1])
     def test_playback_query_consuming_arguments_and_metatype(self):
         self.call('call_playback_query',[0x5678],[11,22,33],context=0x5678)
+    def test_labels_query_consuming_string_and_swift_metatype(self):
+        self.call('call_labels_query',[0x5678],[11,22],context=0x5678)
+
     def test_playback_fetch_expanded_client_generics_and_result(self):
         self.call('call_playback_fetch',[0x1234,0x5678,0x9abc],[11,1,22,33,0x5678,0x9abc],out=0x1234)
     def test_playback_generated_fields_are_direct_values(self):

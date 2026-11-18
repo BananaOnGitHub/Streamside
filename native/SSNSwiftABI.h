@@ -42,3 +42,6 @@ typedef SW uintptr_t (*PlaybackQueryInit)(uintptr_t,uintptr_t,uintptr_t,const vo
 typedef SW void (*PlaybackFetch)(void * OUT,uintptr_t,uint8_t,uintptr_t,uintptr_t,const void*,const void*);
 typedef SW uintptr_t (*PlaybackField)(uintptr_t);
 typedef SW Words2 (*PlaybackString)(uintptr_t);
+
+/* CCL query consumes String X0/X1, metatype swiftself X20. */
+typedef SW uintptr_t (*LabelsQueryInit)(uintptr_t,uintptr_t,const void * CTX);

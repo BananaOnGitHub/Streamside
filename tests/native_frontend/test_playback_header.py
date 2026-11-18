@@ -15,7 +15,7 @@ class PlaybackHeader(unittest.TestCase):
         executable=Path(zig).resolve()
         with tempfile.TemporaryDirectory() as folder:
             source=Path(folder)/'caller.c'
-            source.write_text('#include "SSNPlaybackRequest.h"\nvoid use(void) { id result=ssn_playback_request_variant((id)0,(id)0,(id)0); (void)result; }\n')
+            source.write_text('#include "SSNPlaybackRequest.h"\n#include "SSNContentLabelsRequest.h"\nvoid use(void) { id result=ssn_playback_request_variant((id)0,(id)0,(id)0); (void)result; id labels=ssn_content_labels_request((id)0); (void)labels; }\n')
             for language in ['c','objective-c']:
                 with self.subTest(language=language):
                     result=subprocess.run([str(executable),'cc','-target','aarch64-ios-none',

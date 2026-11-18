@@ -18,6 +18,8 @@ struct FollowedChannel: Identifiable, Equatable {
     var avatarURL: URL?
     var thumbnailURL: URL?
     var thumbnailRestricted = false
+    var playbackAllowed = true
+    var channelID = ""
     var id: String { username }
 
     init(username: String, displayName: String) {
@@ -39,7 +41,8 @@ struct FollowedChannel: Identifiable, Equatable {
         avatarURL = (snapshot["avatarURL"] as? String).flatMap(URL.init(string:))
         thumbnailURL = (snapshot["thumbnailURL"] as? String).flatMap(URL.init(string:))
         thumbnailRestricted = snapshot["thumbnailRestricted"] as? String == "1"
-        if thumbnailRestricted { thumbnailURL = nil }
+        playbackAllowed = snapshot["playbackAllowed"] as? String == "1"
+        channelID = snapshot["channelID"] as? String ?? ""
     }
 }
 
@@ -321,4 +324,15 @@ enum VerificationStyle: String, CaseIterable, Identifiable, Hashable {
         switch self { case .twitch: return "twitch-verified"; case .verifiedbtw: return "verifiedbtw"; case .off: return nil }
     }
     static func resolve(_ stored: String) -> Self { Self(rawValue: stored) ?? .twitch }
+}
+
+// App-local acknowledgement only. Twitch still enforces account entitlement.
+enum MarkedContentPreferences {
+    static let showWarningsKey = "dev.streamside.player.showMarkedWarnings"
+    static let thumbnailsKey = "dev.streamside.feed.markedThumbnails"
+    static func needsWarning(marked: Bool, showWarnings: Bool) -> Bool { marked && showWarnings }
+    enum Decision: Equatable { case cancel, play, askThumbnails }
+    static func decision(continuing: Bool, dontShowAgain: Bool) -> Decision {
+        continuing ? (dontShowAgain ? .askThumbnails : .play) : .cancel
+    }
 }

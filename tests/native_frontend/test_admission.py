@@ -25,7 +25,7 @@ class AccountAdapterAdmission(unittest.TestCase):
 
     def test_all_native_adapter_literal_dependencies_are_admitted(self):
         names=set()
-        for filename in ['SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:
+        for filename in ['SSNContentLabels.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:
             source=(ROOT/'native'/filename).read_text()
             names.update(re.findall(r'ssn_resolve\("([^"\n]+)"\)',source))
             names.update(re.findall(r'metadata\("([^"\n]+)"\)',source))

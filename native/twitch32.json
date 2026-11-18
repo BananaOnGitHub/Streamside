@@ -518,6 +518,66 @@
       "image": "TwitchCore",
       "address": 426924,
       "bytes": "fd7bbfa9fd030091000080d2d8fdff97"
+    },
+    "_$s10TwitchCore4UserV10identifierSSvg": {
+      "image": "TwitchCore",
+      "address": 427276,
+      "bytes": "4001009000f443f941010090210444f9"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserV0G0V07contentE6LabelsSayAI0deF0VGSgvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4533220,
+      "bytes": "ff4301d1f44f03a9fd7b04a9fd030191"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserV0G0V0deF0V13localizedNameSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 767008,
+      "bytes": "e20300aa80ed8dd2602cacf2802dcdf2"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserV0G0V0deF0V9isEnabledSbvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 767048,
+      "bytes": "e20300aa206d8ed2a0c8adf2204cccf2"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserV0G0V0deF0VMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4540784,
+      "bytes": "e03700d000a02e91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserV0G0VMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4540768,
+      "bytes": "e03700d000002e91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserV6streamAG0G0VSgvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4532412,
+      "bytes": "e3defff063b00491618e8ed241aeacf2"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4UserVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4540752,
+      "bytes": "e03700d000602d91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataV4userAE4UserVSgvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4531680,
+      "bytes": "e3defff063800491a16e8e52a14cae72"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC4DataVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4540736,
+      "bytes": "e03700d000c02c91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryC9channelIdACSS_tcfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 2296576,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "_$s16TwitchGraphQLAPI45ContentClassificationLabelStreamMetadataQueryCMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 4539060,
+      "bytes": "fd7bbfa9fd030091e03e00d000002591"
     }
   },
   "gate": {

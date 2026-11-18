@@ -37,11 +37,14 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var launchError = 0
     private let bridge = SSNNativeBridge.shared()
     private var changes: AnyCancellable?
+    private var background: AnyCancellable?
 
     init() {
         changes = NotificationCenter.default.publisher(for: .SSNNativeServiceDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.reloadSnapshot() }
+        background = NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
+            .sink { _ in SSNSwiftUIHost.cancelContentGate() }
         reloadSnapshot()
     }
 
@@ -64,6 +67,7 @@ final class NativeServices: ObservableObject, AccountService {
             FollowedChannel(snapshot: $0)
         }
         next.enforceSessionBoundary()
+        if next.account != state.account || next.session != .authenticated { SSNSwiftUIHost.cancelContentGate() }
         state = next
         rootOwner = (snapshot["rootOwner"] as? NSNumber)?.intValue ?? 0
         diagnosticSummary = snapshot["summary"] as? String ?? "Diagnostics unavailable"
@@ -82,12 +86,34 @@ final class NativeServices: ObservableObject, AccountService {
     func preview(_ channel: FollowedChannel, source: UIView) -> ContextPreviewSession? {
         SSNSwiftUIHost.preparePreview(channel, source: source)
     }
+    func authorizePreview(_ channel: FollowedChannel, source: UIView, complete: @escaping (Bool) -> Void) {
+        actionError = nil
+        guard channel.playbackAllowed else { playbackRestricted(); complete(false); return }
+        SSNSwiftUIHost.authorizeContent(channel, source: source, completion: complete)
+    }
+    func contentLabels(_ channel: FollowedChannel) async -> [String]? {
+        guard !channel.channelID.isEmpty else { return nil }
+        let request = SSNContentLabels(channelID: channel.channelID)
+        defer { request.cancel() }
+        while !Task.isCancelled {
+            request.poll()
+            if request.phase == 1 { return request.labels }
+            if request.phase != 0 { return nil }
+            do { try await Task.sleep(nanoseconds: 100_000_000) } catch { return nil }
+        }
+        return nil
+    }
+    private func playbackRestricted() {
+        actionError = "Twitch does not currently allow this account to watch this stream."
+    }
     func open(_ channel: FollowedChannel) {
         actionError = nil
-        if channel.thumbnailRestricted {
-            actionError = "This channel requires Twitch’s content gate. It isn’t supported by this playback build yet."
-        } else if !SSNSwiftUIHost.beginPlayback(channel) {
-            actionError = "The stream could not open. Check your account and diagnostics."
+        guard channel.playbackAllowed else { playbackRestricted(); return }
+        SSNSwiftUIHost.authorizeContent(channel) { [weak self] accepted in
+            guard accepted else { return }
+            if !SSNSwiftUIHost.beginPlayback(channel) {
+                self?.actionError = "The stream could not open. Check your account and diagnostics."
+            }
         }
     }
     func actionUnavailable() { actionError = "Native navigation ownership is unavailable. Export diagnostics." }

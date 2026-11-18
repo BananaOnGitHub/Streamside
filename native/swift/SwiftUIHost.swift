@@ -15,6 +15,8 @@ public final class SSNSwiftUIHost: NSObject {
     private static var baseline = false
     private static var theatreController: UIViewController?
     private static var previewID: UUID?
+    private static var contentGate: MarkedContentGate?
+    private static var contentGateController: UIViewController?
 
     @objc public static func rootOwner() -> Int {
         guard let window else { return 0 }
@@ -74,11 +76,51 @@ public final class SSNSwiftUIHost: NSObject {
         }
     }
 
+    // Consent finishes and the overlay is dismissed before either media path
+    // can allocate a session. A single pending gate prevents duplicate requests.
+    static func authorizeContent(_ channel: FollowedChannel, source: UIView? = nil, completion: @escaping (Bool) -> Void) {
+        guard SSNNavigationPermitted(), rootOwner() == 1, channel.playbackAllowed,
+              channel.isLive, let services, services.state.session == .authenticated,
+              let account = services.state.account, let root = nativeController,
+              contentGate == nil, theatreController == nil, previewID == nil,
+              root.presentedViewController == nil else { completion(false); return }
+        let defaults = UserDefaults.standard
+        let showWarnings = defaults.object(forKey: MarkedContentPreferences.showWarningsKey) as? Bool ?? true
+        guard MarkedContentPreferences.needsWarning(marked: channel.thumbnailRestricted, showWarnings: showWarnings) else {
+            completion(true); return
+        }
+        let requiresSource = source != nil
+        let valid = { [weak source] in
+            SSNNavigationPermitted() && rootOwner() == 1 &&
+            UIApplication.shared.applicationState == .active &&
+            services.state.session == .authenticated && services.state.account == account &&
+            (!requiresSource || source?.window != nil)
+        }
+        let gate = MarkedContentGate(load: { await services.contentLabels(channel) }, valid: valid,
+            saveWarnings: { defaults.set($0, forKey: MarkedContentPreferences.showWarningsKey) },
+            saveThumbnails: { defaults.set($0, forKey: MarkedContentPreferences.thumbnailsKey) },
+            completion: { accepted in
+                guard let controller = contentGateController else { contentGate = nil; completion(false); return }
+                controller.dismiss(animated: true) {
+                    contentGateController = nil; contentGate = nil
+                    completion(accepted && valid())
+                }
+            })
+        let controller = UIHostingController(rootView: MarkedContentWarning(gate: gate))
+        controller.view.backgroundColor = .clear
+        controller.modalPresentationStyle = .overFullScreen
+        controller.modalTransitionStyle = .crossDissolve
+        contentGate = gate; contentGateController = controller
+        root.present(controller, animated: true)
+    }
+    static func cancelContentGate() { contentGate?.close() }
+
     static func preparePreview(_ channel: FollowedChannel, source: UIView) -> ContextPreviewSession? {
-        guard SSNNavigationPermitted(), rootOwner() == 1, channel.isLive, !channel.thumbnailRestricted,
+        guard SSNNavigationPermitted(), rootOwner() == 1, channel.isLive, channel.playbackAllowed,
               let services, services.state.session == .authenticated,
               theatreController == nil, previewID == nil,
               nativeController?.presentedViewController == nil else { return nil }
+        guard contentGate == nil else { return nil }
         return NativeQuickLook.session(channel: channel, services: services, source: source, claim: { id in
             guard SSNNavigationPermitted(), rootOwner() == 1, previewID == nil,
                   theatreController == nil, services.state.session == .authenticated else { return false }
@@ -90,7 +132,7 @@ public final class SSNSwiftUIHost: NSObject {
 
     static func beginPlayback(_ channel: FollowedChannel, sharedPlayback: TheatrePlayback? = nil) -> Bool {
         guard SSNNavigationPermitted(), rootOwner() == 1,
-              channel.isLive, !channel.thumbnailRestricted,
+              channel.isLive, channel.playbackAllowed,
               let services, services.state.session == .authenticated,
               let root = nativeController, root.presentedViewController == nil,
               theatreController == nil, previewID == nil else { return false }

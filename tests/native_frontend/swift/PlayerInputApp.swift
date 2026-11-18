@@ -340,13 +340,33 @@ private struct InputTestContent: View {
         }
     }
 }
+@MainActor private final class MarkedWarningFixtureState: ObservableObject {
+    @Published var result = "Pending"
+    @Published var warnings = true
+    @Published var thumbnails = false
+    lazy var gate = MarkedContentGate(load: { ["Fixture content label", "Second fixture label"] }, valid: { true },
+        saveWarnings: { [weak self] in self?.warnings = $0 }, saveThumbnails: { [weak self] in self?.thumbnails = $0 },
+        completion: { [weak self] in self?.result = $0 ? "Admitted" : "Closed" })
+}
+private struct MarkedWarningFixture: View {
+    @StateObject private var state = MarkedWarningFixtureState()
+    var body: some View {
+        VStack {
+            Text(state.result).accessibilityIdentifier("marked.result")
+            Text("warnings=\(state.warnings) thumbnails=\(state.thumbnails)").accessibilityIdentifier("marked.preferences")
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay { if state.result == "Pending" { MarkedContentWarning(gate: state.gate) } }
+    }
+}
 @main @MainActor final class InputTestDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("--plain"), forKey: PlayerPreferences.glassButtonsKey)
         UserDefaults.standard.set(PlayerControlAnimation.vertical.rawValue, forKey: PlayerPreferences.animationKey)
         let window = UIWindow(frame: UIScreen.main.bounds)
-        if ProcessInfo.processInfo.arguments.contains("--preview-panel") {
+        if ProcessInfo.processInfo.arguments.contains("--marked-content") {
+            window.rootViewController = UIHostingController(rootView: MarkedWarningFixture())
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-panel") {
             window.rootViewController = UIHostingController(rootView: ContextPreviewFixtureView())
         } else if ProcessInfo.processInfo.arguments.contains("--thumbnail") {
             window.rootViewController = UIHostingController(rootView: ContextPreviewFixtureView())

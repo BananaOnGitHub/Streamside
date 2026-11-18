@@ -9,7 +9,7 @@ struct RemoteChannelImage: View {
     var restricted = false
     var thumbnailActions: ThumbnailActions?
     @State private var image: UIImage?
-    private var requestID: String { "\(generation)|\(url?.absoluteString ?? "")" }
+    private var requestID: String { "\(generation)|\(restricted)|\(url?.absoluteString ?? "")" }
     private var configuredActions: ThumbnailActions? {
         var actions = thumbnailActions
         actions?.image = restricted ? nil : image
@@ -28,7 +28,7 @@ struct RemoteChannelImage: View {
         }
         .clipped()
         .task(id: requestID) {
-            guard let url else { image = nil; return }
+            guard !restricted, let url else { image = nil; return }
             let fetched = await images.load(url: url, generation: generation, avatar: avatar)
             guard !Task.isCancelled else { return }
             image = fetched
@@ -46,6 +46,8 @@ struct LiveChannelRow: View {
     let haptics: TitleHaptics
     let open: () -> Void
     let preview: (UIView) -> ContextPreviewSession?
+    var authorizePreview: ((UIView, @escaping (Bool) -> Void) -> Void)?
+    @AppStorage(MarkedContentPreferences.thumbnailsKey) private var markedThumbnails = false
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     @State private var showFullTitle = false
     @State private var titleMeasurement: TitleMeasurement?
@@ -93,8 +95,8 @@ struct LiveChannelRow: View {
         }
     }
     private var thumbnail: some View {
-        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, restricted: channel.thumbnailRestricted,
-                           thumbnailActions: ThumbnailActions(label: channel.displayName + " stream thumbnail", open: open, preview: preview))
+        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, restricted: !channel.playbackAllowed || (channel.thumbnailRestricted && !markedThumbnails),
+                           thumbnailActions: ThumbnailActions(label: channel.displayName + " stream thumbnail", open: open, preview: preview, authorizePreview: authorizePreview))
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .overlay(alignment: .bottomTrailing) {
                 if let started = channel.startedAt {

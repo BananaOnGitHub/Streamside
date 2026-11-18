@@ -19,6 +19,34 @@ final class PlayerInputTests: XCTestCase {
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
     }
+    func testMarkedContentConsent() {
+        continueAfterFailure = false
+        for accept in [false, true] {
+            let app = XCUIApplication(); testedApp = app
+            app.launchArguments = ["--marked-content"]; app.launch()
+            let warning = app.staticTexts["This stream has been marked as containing:"]
+            XCTAssertTrue(warning.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Fixture content label"].exists)
+            XCTAssertTrue(app.staticTexts["Second fixture label"].exists)
+            XCTAssertLessThan(abs(warning.frame.midX - app.frame.midX), 24, "Warning must be centered")
+            app.buttons["marked.dontShowAgain"].tap()
+            XCTAssertFalse(app.staticTexts["Admitted"].exists)
+            if accept {
+                app.buttons["Continue"].tap()
+                XCTAssertTrue(app.staticTexts["Show thumbnails for marked streams?"].waitForExistence(timeout: 5))
+                XCTAssertFalse(app.staticTexts["Admitted"].exists, "No playback before thumbnail choice")
+                app.buttons["Show thumbnails"].tap()
+                XCTAssertTrue(app.staticTexts["Admitted"].waitForExistence(timeout: 5))
+                XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=false thumbnails=true")
+            } else {
+                app.buttons["Close"].tap()
+                XCTAssertTrue(app.staticTexts["Closed"].waitForExistence(timeout: 5))
+                XCTAssertEqual(app.staticTexts["marked.preferences"].label, "warnings=true thumbnails=false")
+            }
+            app.terminate()
+        }
+        print("MARKED_CONTENT_UI PASS: centered native labels; Close discards checkbox; Continue waits for thumbnail choice")
+    }
     private func contextApp(_ arguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication(); testedApp = app
         app.launchArguments = ["--thumbnail"] + arguments; app.launch()

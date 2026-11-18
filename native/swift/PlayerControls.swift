@@ -138,6 +138,7 @@ struct PlayerControls: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Player").font(.headline)
                         PlayerSettingsOptions()
+                        PlayerContentWarningOptions()
                     }.padding(16).frame(idealWidth: 270, maxWidth: 290)
                         .presentationCompactAdaptation(.popover)
                         .presentationBackground(.regularMaterial)
@@ -288,10 +289,18 @@ struct PlayerAdBlockOptions: View {
     }
 }
 
+struct PlayerContentWarningOptions: View {
+    @AppStorage(MarkedContentPreferences.showWarningsKey) private var showMarkedWarnings = true
+    var body: some View { Toggle("Show marked stream warnings", isOn: $showMarkedWarnings) }
+}
+
 struct PlayerSettings: View {
     var body: some View {
         Form {
-            Section("Playback") { PlayerAdBlockOptions() }
+            Section("Playback") {
+                PlayerAdBlockOptions()
+                PlayerContentWarningOptions()
+            }
             Section { PlayerSettingsOptions() }
             Section("Controls") { PlayerAnimationOptions() }
         }

@@ -250,12 +250,37 @@ import UIKit
             self.check(opens == 1 && latest?.phase == .visible, "Old completion cannot clear a newer session")
             latest?.cancel()
             self.check(stops == 2 && releases == 2, "Each cancelled session releases media exactly once")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { source.removeFromSuperview(); self.finishReceipt() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { source.removeFromSuperview(); self.authorizationFixture() }
         }
+    }
+    func authorizationFixture() {
+        guard let root = window?.rootViewController else { fatalError("Missing fixture root") }
+        let source = ThumbnailActions.SourceView(frame: CGRect(x: 45, y: 300, width: 160, height: 90))
+        root.view.addSubview(source)
+        var pending: ((Bool) -> Void)?
+        var admissions = 0, allocations = 0, starts = 0
+        var latest: ContextPreviewSession?
+        let owner = ThumbnailActions(open: { self.check(false, "Tap cannot race pending consent") }, preview: { _ in
+            allocations += 1
+            let controller = QuickLookController(content: UIViewController(), size: CGSize(width: 370, height: 360))
+            let session = ContextPreviewSession(controller: controller, claim: { _ in true }, release: { _ in }, valid: { true },
+                start: { starts += 1 }, stop: {}, handoff: { false })
+            latest = session; return session
+        }, authorizePreview: { _, completion in admissions += 1; pending = completion })
+        let coordinator = owner.makeCoordinator()
+        coordinator.preview(from: source); coordinator.preview(from: source); coordinator.activate()
+        check(admissions == 1 && allocations == 0 && starts == 0, "No player allocation or duplicate consent while waiting")
+        pending?(false); check(allocations == 0, "Close never creates playback")
+        coordinator.preview(from: source); pending?(true)
+        check(admissions == 2 && allocations == 1 && starts == 1, "Approval creates and starts exactly one preview")
+        latest?.cancel()
+        coordinator.preview(from: source); coordinator.removed(); pending?(true)
+        check(allocations == 1 && starts == 1, "Late approval after source cancellation cannot start media")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) { source.removeFromSuperview(); self.finishReceipt() }
     }
     func finishReceipt() {
         let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true, "hold_cancellation": true, "unblocked_return": true,
-            "dismiss_before_handoff": true, "single_handoff": true, "teardown": true, "all_tags_wrap": true, "lifecycle_cancellation": true]
+            "dismiss_before_handoff": true, "single_handoff": true, "teardown": true, "all_tags_wrap": true, "lifecycle_cancellation": true, "consent_before_preview": true]
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("quicklook-test.json")
         try! JSONSerialization.data(withJSONObject: receipt).write(to: path)
         print("QUICKLOOK_CHECKS: \(failures.isEmpty ? "PASS" : failures.joined(separator: "; "))")

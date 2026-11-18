@@ -22,7 +22,7 @@ static ItemGetter item_getter;
 static Getter broadcaster_getter,game_getter,date_getter;
 static ThumbnailsGetter stream_thumbnails,profile_thumbnails;
 static ThumbnailGetter thumbnail_url;
-static StringGetter title_getter,game_name,tag_name;
+static StringGetter title_getter,game_name,tag_name,user_identifier;
 static ArrayGetter tags_getter;
 static IntegerGetter viewers_getter;
 static BoolGetter is_partner;
@@ -103,6 +103,7 @@ static bool initialize(PairMeta promise,const void *error) {
     title_getter=(StringGetter)ssn_resolve("$s10TwitchCore10LiveStreamV5titleSSvg");
     game_name=(StringGetter)ssn_resolve("$s10TwitchCore4GameV11displayNameSSvg");
     viewers_getter=(IntegerGetter)ssn_resolve("$s10TwitchCore10LiveStreamV12viewersCountSivg");
+    user_identifier=(StringGetter)ssn_resolve("$s10TwitchCore4UserV10identifierSSvg");
     is_partner=(BoolGetter)ssn_resolve("$s10TwitchCore4UserV9isPartnerSbvg");
     watchable=(void*)ssn_resolve("$s10TwitchCore10LiveStreamV19currentUserCanWatchSbvg");
     blur_reason=(void*)ssn_resolve("$s10TwitchCore10LiveStreamV19thumbnailBlurReasonAA09ThumbnailfG0Ovg");
@@ -110,7 +111,7 @@ static bool initialize(PairMeta promise,const void *error) {
        !tag_type||!tags_getter||!tag_name||!stream_type||!user_type||!game_type||!date_type||!url_type||size_of(string_type)!=16||
        size_of(response_type)!=16||size_of(thumb_type)!=24||!personal||!live_getter||!offline_getter||
        !item_getter||!broadcaster_getter||!game_getter||!date_getter||!stream_thumbnails||!profile_thumbnails||
-       !thumbnail_url||!title_getter||!game_name||!viewers_getter||!is_partner||!watchable||!blur_reason) return false;
+       !thumbnail_url||!title_getter||!game_name||!viewers_getter||!user_identifier||!is_partner||!watchable||!blur_reason) return false;
     const void *eq=dlsym(RTLD_DEFAULT,"$sSQMp"),*hash=dlsym(RTLD_DEFAULT,"$sSHMp"),*uint=dlsym(RTLD_DEFAULT,"$ss6UInt32VN");
     const void *live_eq=eq?conformance(stream_type,eq):NULL,*user_eq=eq?conformance(user_type,eq):NULL;
     const void *uint_hash=uint&&hash?conformance(uint,hash):NULL;
@@ -163,6 +164,8 @@ static id channel_dictionary(const void *value,bool live) {
     if(!kind(result,"NSDictionary")) { dispose(user,user_type); return result; }
     uint8_t partner=is_partner(user_value);
     if(partner>1) { objc_release(result);dispose(user,user_type);return failure(); }
+    id identifier=string_value(user_identifier,user_value,128);
+    if(identifier) { put(result,"channelID",identifier);objc_release(identifier); }
     put(result,"isVerified",ns(partner?"1":"0"));
     id avatar=image_url(user_value,profile_thumbnails,1);
     if(avatar) { put(result,"avatarURL",avatar); objc_release(avatar); }
@@ -194,12 +197,16 @@ static id channel_dictionary(const void *value,bool live) {
             put(result,"category",category);objc_release(category);
         }
         objc_release(game_box);
-        /* Preserve the donor's watch and thumbnail-blur decisions. Enum case 2
-         * is blurNotRequired, admitted from this exact image's field descriptor. */
-        if(watchable(value) && blur_reason(value)==2) {
+        /* Content acknowledgement never overrides Twitch's entitlement check.
+         * Obtaining a supplied URL does not fetch it; SwiftUI gates image loads. */
+        uint8_t allowed=watchable(value),reason=blur_reason(value);
+        if(allowed>1||reason>3) { objc_release(result);dispose(user,user_type);return failure(); }
+        put(result,"playbackAllowed",ns(allowed?"1":"0"));
+        put(result,"thumbnailRestricted",ns(reason==2?"0":"1"));
+        if(allowed) {
             id preview=image_url(value,stream_thumbnails,2);
             if(preview) { put(result,"thumbnailURL",preview);objc_release(preview); }
-        } else put(result,"thumbnailRestricted",ns("1"));
+        }
     }
     dispose(user,user_type);return result;
 }

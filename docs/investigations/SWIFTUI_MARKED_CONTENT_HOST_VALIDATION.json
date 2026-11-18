@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "scope": "Linux host and exact-donor inspection; Apple/device validation pending",
+  "base_revision": "7bb449296ebe930f08e3c9d539b01dd5f9e5df2d",
+  "branch": "feat/native-frontend",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129"
+  },
+  "abi_entries": 67,
+  "native_frontend_suite": {
+    "passed": true,
+    "tests": 90,
+    "command": "ZIG=../toolchains/zig-0.14.0/zig PYTHONPATH=../toolchains/python PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/native_frontend -v",
+    "log_sha256": "f2976b6938f7a5d425c64927b58d5b8fba66579ceef768c587ace049f1d95e1f"
+  },
+  "provider_suite": {
+    "passed": true,
+    "tests": 12,
+    "command": "python3 -m unittest discover -s tests -p test_apple_builds.py -v",
+    "log_sha256": "f9f22bfabad2e869a3c721aed21b878985b1023d2f04fc292875ba35c44edac9"
+  },
+  "plain_c_adapter_compile": {
+    "passed": true,
+    "target": "aarch64-ios-none",
+    "toolchain": "Zig 0.14.0; -Wall -Wextra -Werror"
+  },
+  "docs_check": {
+    "passed": true,
+    "markdown_files": 122,
+    "references": 1192,
+    "errors": 0
+  },
+  "initial_fixture_failure": "GraphQL image mapped over scratch pages in emulator; corrected to map admitted code only and rerun successfully. No device/native-request result claimed.",
+  "apple_tests_added": [
+    "Production consent model states and independent preferences",
+    "Native request-owner polling/cancellation/account identity fixture",
+    "Pending thumbnail consent cannot allocate media",
+    "Centered warning coordinate UI"
+  ],
+  "not_yet_validated": [
+    "Apple compilation/linking and new fixture execution",
+    "Authenticated CCL query on device",
+    "Actual marked stream video and native thumbnail availability",
+    "Settings persistence after process restart",
+    "Device RN/Hermes observations"
+  ]
+}

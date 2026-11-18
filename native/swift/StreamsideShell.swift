@@ -22,7 +22,8 @@ struct StreamsideShell: View {
                             ForEach(feed.live) { channel in
                                 LiveChannelRow(channel: channel, images: services.images,
                                                generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics,
-                                               open: { services.open(channel) }, preview: { services.preview(channel, source: $0) })
+                                               open: { services.open(channel) }, preview: { services.preview(channel, source: $0) },
+                                               authorizePreview: { source, complete in services.authorizePreview(channel, source: source, complete: complete) })
                             }
                         }
                     } header: { Text("Live · \(feed.live.count)") }
@@ -146,12 +147,14 @@ private struct AccountSettings: View {
 }
 
 private struct FollowedStreamSettings: View {
+    @AppStorage(MarkedContentPreferences.thumbnailsKey) private var markedThumbnails = false
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
     @AppStorage(FeedPreferences.livePingIndexKey) private var pingIndex = 2
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Form {
             Section {
+                Toggle("Load marked stream thumbnails", isOn: $markedThumbnails)
                 if UIDevice.current.userInterfaceIdiom == .phone {
                     Toggle("Two-line stream titles", isOn: $twoLineTitles)
                 }

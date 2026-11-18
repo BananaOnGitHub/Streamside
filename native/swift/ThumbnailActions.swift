@@ -8,6 +8,7 @@ struct ThumbnailActions: UIViewRepresentable {
     var label = "Stream thumbnail"
     let open: () -> Void
     let preview: (UIView) -> ContextPreviewSession?
+    var authorizePreview: ((UIView, @escaping (Bool) -> Void) -> Void)?
     // Fixture-only observations of source geometry; production leaves nil.
     var observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
     var observeHold: ((UIView) -> Void)?
@@ -138,17 +139,32 @@ struct ThumbnailActions: UIViewRepresentable {
         var owner: ThumbnailActions
         private var session: ContextPreviewSession?
         private var presenter: AnchoredPreviewController?
+        private var authorizationID: UUID?
         init(_ owner: ThumbnailActions) { self.owner = owner }
         @objc func tap(_ gesture: UITapGestureRecognizer) {
-            guard gesture.state == .ended, session == nil else { return }
+            guard gesture.state == .ended, session == nil, authorizationID == nil else { return }
             (gesture.view as? SourceView)?.resetPress(); owner.open()
         }
-        func activate() { if session == nil { owner.open() } }
+        func activate() { if session == nil && authorizationID == nil { owner.open() } }
         @objc func hold(_ gesture: UILongPressGestureRecognizer) {
             guard gesture.state == .began, let source = gesture.view else { return }
             preview(from: source)
         }
         func preview(from source: UIView) {
+            guard session == nil, authorizationID == nil else { return }
+            guard let authorize = owner.authorizePreview else { showPreview(from: source); return }
+            let ticket = UUID(); authorizationID = ticket
+            authorize(source) { [weak self, weak source] accepted in
+                guard let self, self.authorizationID == ticket else { return }
+                self.authorizationID = nil
+                guard accepted, let source, source.window != nil else { return }
+                self.showPreview(from: source)
+            }
+            // A delayed content warning owns the interaction; don't leave the
+            // passive press snapshot floating above it. Normal holds stay intact.
+            if authorizationID != nil { (source as? SourceView)?.resetPress() }
+        }
+        private func showPreview(from source: UIView) {
             let lift = (source as? SourceView)?.takePressLift()
             guard session == nil, let root = source.window?.rootViewController,
                   let created = owner.preview(source) else { return }
@@ -180,7 +196,7 @@ struct ThumbnailActions: UIViewRepresentable {
         private func clear(_ ended: ContextPreviewSession?) {
             if session === ended { presenter = nil; session = nil }
         }
-        func removed() { session?.cancel() }
+        func removed() { authorizationID = nil; session?.cancel() }
     }
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeUIView(context: Context) -> SourceView {

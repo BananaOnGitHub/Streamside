@@ -7,11 +7,11 @@ import plistlib
 import re
 import zipfile
 
-SOURCES = ['native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=4, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True)
+EXPECTED = dict(passed=True, tests=5, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True)
 
 
 def project(root, stage):
@@ -113,11 +113,11 @@ def run_controls_ui(root, stage, device, run):
         except Exception as evidence_error:
             print('Failure screenshot export unavailable: '+str(evidence_error), flush=True)
         raise
-    for name in ['testGlassControls','testPlainControls','testThumbnailHoldAndTap','testPreviewPanelLayoutAndActions']:
+    for name in ['testGlassControls','testPlainControls','testThumbnailHoldAndTap','testPreviewPanelLayoutAndActions','testMarkedContentConsent']:
         if not re.search(r"Test Case .*"+name+r".* passed",observed):
             raise ValueError('Player coordinate test did not pass: '+name)
-    if not re.search(r'Executed 4 tests?, with 0 failures',observed):
-        raise ValueError('Four actual player/thumbnail/preview coordinate tests were not observed')
+    if not re.search(r'Executed 5 tests?, with 0 failures',observed):
+        raise ValueError('Five actual player/thumbnail/preview/content coordinate tests were not observed')
     if observed.count('PLAYER_MOTION_CHECKS PASS:') != 2:
         raise ValueError('Both rendered-motion fixture checks must pass')
     if observed.count('PLAYER_OPACITY_PIXELS PASS:') != 2:
@@ -132,4 +132,6 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Swipe dismissal and verification-settings UI checks must pass')
     if 'CONTEXT_VIDEO PASS:' not in observed:
         raise ValueError('Actual changing decoded video and clipping checks must pass')
+    if 'MARKED_CONTENT_UI PASS:' not in observed:
+        raise ValueError('Actual marked-content consent UI must pass')
     return dict(EXPECTED)

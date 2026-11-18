@@ -44,7 +44,7 @@ def main():
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+swift, label='Compile SwiftUI frontend for iPhone')
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNAdBlock.m','SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
+    for name in ['SSNContentLabels.c','SSNContentLabels.m','SSNAdBlock.m','SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
         run(['xcrun','clang']+common+(['-fobjc-arc'] if name in ['SSNWindowOwnership.m','SSNAdBlock.m'] else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
@@ -58,12 +58,18 @@ def main():
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
-    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
+    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
     info['model_tests']=run([str(output/'models-tests')], label='Test account, feed and presentation models')
     run(['xcrun','clang','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-Inative','-Isrc','-Igenerated',
          'native/SSNAdBlock.m','tests/native_frontend/adblock_test.m','-framework','Foundation','-o','output/adblock-tests'], label='Build shared VAFT and native transport fixture')
     for selection in ['baseline','native']:
         run([str(output/'adblock-tests'),selection],label='Test VAFT '+selection+' token routing, manifests, cancellation and preference')
+    run(['xcrun','clang','-fblocks','-Wall','-Wextra','-Werror','-Inative',
+         'native/SSNContentLabels.m','tests/native_frontend/content_labels_test.m','-framework','Foundation','-o','output/content-labels-tests'], label='Build native content-label request lifetime fixture')
+    observed=run([str(output/'content-labels-tests')], label='Test content-label metadata result, cancellation and native account boundaries')
+    if not observed.startswith('CONTENT_LABELS PASS:') or 'PASS: marked consent' not in info['model_tests']:
+        raise ValueError('Marked-content validation evidence missing')
+    info['marked_content_tests']=dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True)
     info['adblock_tests']={k:True for k in ['passed','default_enabled','disabled_passthrough','baseline_untouched','native_tokens','clean_alternate','fallback_segments','stream_isolation','cancellation','account_change','preference_restoration']}
     info['uikit_ownership_tests']=test_window_ownership(root, output, config, run)
     info['codesign']='ad-hoc; IPA still requires device-authorized re-signing'
@@ -162,7 +168,7 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,preview_id], label='Test source targeting, all-tag wrapping, ordered handoff and lifecycle cancellation')
         preview_container=Path(run(['xcrun','simctl','get_app_container',device,preview_id,'data']))
         quicklook=json.loads((preview_container/'Documents/quicklook-test.json').read_text())
-        expected_quicklook=dict(passed=True,failures=[],source_target=True,hold_cancellation=True,unblocked_return=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True)
+        expected_quicklook=dict(passed=True,failures=[],source_target=True,hold_cancellation=True,unblocked_return=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True,consent_before_preview=True)
         if quicklook!=expected_quicklook:raise ValueError('Native Quick Look lifecycle failed: '+str(quicklook))
         run(['xcrun','simctl','install',device,str(playback_bundle)])
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test cold preview audio, responsive retirement, ordered restoration, playback lifecycle and mute')

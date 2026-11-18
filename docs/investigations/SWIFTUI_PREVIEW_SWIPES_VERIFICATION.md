@@ -274,3 +274,42 @@ Failure evidence remains outside the repository in the source's CI failure folde
 All 81 native frontend host tests passed after this correction (9.155s).
 A replacement Apple run is required to establish the corrected observations;
 physical-device validation of unblocked closing remains pending.
+
+## Successful unblocked-return build and local package
+
+[Codemagic build 6afcf115d133a39c4a12716d](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afcf115d133a39c4a12716d)
+passed using exact source `5ada9ea64f1e3a777f71bab68a83018ce9b4ca40`.
+Xcode 26.6 (17F113), Swift 6.3.3 and iPhoneOS SDK 26.5 compiled/linked the
+arm64 iOS 16.4 components. All mandatory stages passed, including the new
+unblocked-return receipt, all four UI cases and the unchanged native ownership,
+playback/audio, lifecycle, launch-selection and networking gates. The thumbnail
+case now observed both entry and actual completed return motion after immediate
+media teardown. All directional swipes, clipping and shared-player handoff passed.
+
+Both actual Fade-pixel checks passed with rendered-phase evidence. Glass entry
+was observed at progress 0.406 and captured at 0.427; exit was observed at 0.594
+and captured at 0.551. Corresponding region pixel ratios were 0.418–0.429 and
+0.587–0.588. Plain entry/exit ratios were 0.363–0.368 and 0.622–0.631. Every region
+satisfied the retained contrast/count and 0.15–0.85 thresholds. These are owned
+simulator observations; the fixed-duration moving-source and overlap tests also
+passed there, without establishing phone visual acceptance.
+
+Ubuntu component/ABI admission and all 59 post-download regression checks passed.
+Local packaging revalidated the exact donor, 55 ABI entries and 25 runtime probes,
+and every retained donor archive entry including unchanged HBC. The single native
+IPA is 196,923,072 bytes, SHA-256
+`3ef6f357f07c79c9742345498e572c9924677f0affd3b6b34be23c2eb50c98c8`.
+Framework SHA-256 is
+`03d23684e86db37e51aa4d473ccac85d8c748e4492bb20ecd3a3036a68022c6c`.
+The [validation record](SWIFTUI_PREVIEW_UNBLOCKED_RETURN_VALIDATION.json) preserves
+exact source/proof/donor/toolchain/build identities, receipts, pixel observations
+and artifact hashes. Outputs remain outside the source tree. No donor/signing
+material was uploaded; no VM or extra baseline IPA was used. The c03d67d
+badge/avatar/swipe build remains the device-reviewed rollback.
+
+Install with Feather using the existing identity. Close a preview with an outside
+tap or swipe, then immediately scroll or tap another stream. The returning image
+should follow its thumbnail and finish in the original half-second even while
+scrolling. Also repeat close/reopen and verify Watch still transfers normally.
+Review the return's static preview appearance and export Native diagnostics.
+Physical-device acceptance and new runtime observations remain pending.

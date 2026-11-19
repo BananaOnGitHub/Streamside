@@ -379,9 +379,15 @@ final class PlayerInputTests: XCTestCase {
         let glassSetting = app.switches["Liquid Glass"]
         XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))
         let resolution = app.buttons["player.resolution"]
-        XCTAssertTrue(resolution.waitForExistence(timeout: 5)); resolution.tap()
+        guard resolution.waitForExistence(timeout: 5), resolution.isHittable else {
+            XCTFail("Resolution dropdown must be visible and hittable"); return
+        }
+        resolution.tap()
         let choice = app.buttons["480p"].firstMatch
-        XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+        guard choice.waitForExistence(timeout: 5), choice.isHittable else {
+            XCTFail("Resolution menu option must be visible and hittable"); return
+        }
+        choice.tap()
         wait(app.staticTexts["resolution-choice"], label: "480p")
         print("PLAYER_RESOLUTION PASS: native menu selects SDK quality")
         dismissPopover(glassSetting, in: app)

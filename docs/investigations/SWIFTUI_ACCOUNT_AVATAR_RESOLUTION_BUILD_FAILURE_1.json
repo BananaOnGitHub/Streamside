@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "failed_source_revision": "0fe2c11adc0decd4439c6973a4d55ff1447e9e07",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6aff38b78f52ca275128fc9d",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6aff38b78f52ca275128fc9d",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "Streamside_32_artifacts.zip",
+        "local": "artifact-0.zip",
+        "bytes": 36251,
+        "sha256": "19b0732a6c8f7297dabbd9783d5337a25f58e71f8b7d1a9a832fb045f55913b1"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "0fe2c11adc0decd4439c6973a4d55ff1447e9e07",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.678
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.06
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 704.958
+        }
+      ]
+    },
+    "stage_2_log_sha256": "8fe48d25c1bb8908f4eb1eca06137dd1692d4b8b204eaa1b3af4ff344d970a38"
+  },
+  "evidence_location": "artifacts/archive/settings-resolution-failures/failure-1 (outside repository)",
+  "completed": [
+    "Production SwiftUI and Objective-C compilation/linking/signature verification",
+    "Model tests, including per-channel preference isolation and account-avatar identity",
+    "Playback-admission, native content labels and VAFT fixtures",
+    "UIKit ownership, clock, source targeting, playback/audio/quality lifecycle and three-process launch fixtures",
+    "Marked-content coordinate test, including local editor"
+  ],
+  "failure": {
+    "test": "testGlassControls",
+    "observation": "Resolution picker and 480p item existed. Opening the nested menu caused 60-second idle waits. The option had frame (138,269.3,250,42) but hit point (-1,-1); XCTest retried until the unchanged 300-second worker deadline.",
+    "screenshot": "Unavailable: worker timeout left the test result bundle without Info.plist; attachment export failed. No image-based cause is claimed.",
+    "cause_scope": "Failure isolated to nested SwiftUI menu interaction; exact UIKit/SwiftUI internal cause is not established by the available logs."
+  },
+  "fix": "Use a UIViewRepresentable UIButton with showsMenuAsPrimaryAction and native UIMenu/UIActions. Keep button/menu/action identity stable during repeated player/clock updates; rebuild only when available qualities or desired selection change. Keep explicit hittable guards and real option tap/selection assertion.",
+  "preserved": [
+    "All five coordinate gates and existing timeouts",
+    "Resolution selection assertions and component receipt requirements",
+    "SDK quality mapping, persistence, fallback and playback/audio/lifecycle behavior",
+    "Avatar adapter and settings header cleanup"
+  ],
+  "local_validation": {
+    "tests": 96,
+    "passed": true,
+    "seconds": 13.157,
+    "log_sha256": "679ff6fe77dd5a2d9435e29cac83856bf8d3ea95bc68d4496a3e0020c230f15f",
+    "scope": "Ubuntu host/donor/build orchestration only; replacement UIKit menu requires Apple execution."
+  },
+  "replacement_apple_result": "pending",
+  "physical_device": "pending"
+}

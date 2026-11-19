@@ -271,18 +271,62 @@ struct PlayerResolutionPicker: View {
     let select: (String) -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Picker("Resolution", selection: Binding(get: { preferred }, set: select)) {
-                Text("Auto").tag("auto")
-                ForEach(qualities, id: \.self) { Text($0).tag($0) }
-                if preferred != "auto" && !qualities.contains(preferred) {
-                    Text(preferred + " (unavailable)").tag(preferred).disabled(true)
-                }
-            }.pickerStyle(.menu).accessibilityIdentifier("player.resolution")
-                .disabled(qualities.isEmpty)
+            HStack {
+                Text("Resolution")
+                Spacer(minLength: 8)
+                PlayerResolutionMenu(qualities: qualities, preferred: preferred, select: select)
+                    .fixedSize()
+            }
             Text(qualities.isEmpty ? "Resolutions will appear when available." : preferred != "auto" && effective == "auto"
                 ? "Saved quality unavailable; using Auto." : "Saved for this channel.")
                 .font(.caption).foregroundStyle(.secondary)
         }
+    }
+}
+
+// UIKit owns the menu lifecycle. SwiftUI's player/clock updates must not
+// replace a nested menu or its action objects while it is tracking a touch.
+private struct PlayerResolutionMenu: UIViewRepresentable {
+    let qualities: [String]
+    let preferred: String
+    let select: (String) -> Void
+    final class Coordinator {
+        var qualities: [String]?
+        var preferred: String?
+        var select: (String) -> Void = { _ in }
+    }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        button.showsMenuAsPrimaryAction = true
+        button.accessibilityIdentifier = "player.resolution"
+        button.accessibilityLabel = "Resolution"
+        return button
+    }
+    func updateUIView(_ button: UIButton, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.select = select
+        guard coordinator.qualities != qualities || coordinator.preferred != preferred else { return }
+        coordinator.qualities = qualities; coordinator.preferred = preferred
+        var configuration = UIButton.Configuration.plain()
+        configuration.title = preferred == "auto" ? "Auto" : preferred
+        configuration.image = UIImage(systemName: "chevron.down")
+        configuration.imagePlacement = .trailing; configuration.imagePadding = 6
+        configuration.buttonSize = .small
+        button.configuration = configuration
+        button.isEnabled = !qualities.isEmpty
+        button.accessibilityValue = configuration.title
+        let options = ["auto"] + qualities + (preferred != "auto" && !qualities.contains(preferred) ? [preferred] : [])
+        button.menu = UIMenu(title: "Resolution", options: .singleSelection, children: options.map { name in
+            let unavailable = name != "auto" && !qualities.contains(name)
+            return UIAction(title: name == "auto" ? "Auto" : name + (unavailable ? " (unavailable)" : ""),
+                            attributes: unavailable ? [.disabled] : [], state: name == preferred ? .on : .off) { _ in
+                coordinator.select(name)
+            }
+        })
+    }
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIButton, context: Context) -> CGSize? {
+        uiView.intrinsicContentSize
     }
 }
 

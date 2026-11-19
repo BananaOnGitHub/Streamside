@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source_revision": "714c61c0d75e7ae6cc61132d5993cfe45784d343",
+  "build_id": "6afe9b58d133a39c4a13054f",
+  "build_url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afe9b58d133a39c4a13054f",
+  "package_sha256": "49844210184c6d08aaefcfc4cef3b7d059d439428068aab412cba1876fe03b8d",
+  "evidence": "User-reported physical-device test of the supplied 714c61c IPA; no new diagnostic attachment or screenshot supplied.",
+  "observations": {
+    "local_test_stream": "works as reported",
+    "marked_content_ui": "appearance accepted",
+    "settings_changes": "work as reported",
+    "ordinary_stream_playback_with_local_entry_enabled": "works as reported"
+  },
+  "limits": [
+    "No per-step results for every checklist scenario were supplied.",
+    "No new device runtime counters or positive-control calibration were supplied.",
+    "The synthetic marked entry does not validate real marked-stream authorization or video playback."
+  ],
+  "follow_up": "No implementation change or Apple rebuild required for this feedback."
+}

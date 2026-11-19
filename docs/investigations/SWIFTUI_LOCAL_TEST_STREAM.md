@@ -37,3 +37,9 @@ Source `714c61c0d75e7ae6cc61132d5993cfe45784d343` passed [Codemagic build 6afe9b
 Verified retrieval and 67 post-download tests passed. Exact Twitch 32.0 donor admission and local IPA assembly passed with 67 ABI boundaries, 25 runtime probes, retained donor entries verified and the original HBC unchanged. Only a native IPA was assembled; donor and signing inputs stayed local. [Validation identities and receipts](SWIFTUI_LOCAL_TEST_STREAM_VALIDATION.json) preserve source, toolchain, archive, framework and package hashes.
 
 Candidate: `artifacts/native-frontend/local-test-stream-714c61c/StreamsideNativeProof-Twitch32-native.ipa` (relative to the Streamside workspace), requiring local Feather signing. The adjacent `TESTING.txt` describes creation, warning/thumbnail cases, preview/player, persistence and removal. Device validation remains pending; this build does not establish real marked-stream playback or device runtime absence.
+
+## Device review after installation
+
+The supplied `714c61c` IPA received user-reported device confirmation: the local test works, marked-content UI appearance is accepted, settings changes work, and ordinary streams still play with the test entry enabled. [Scoped device review](SWIFTUI_LOCAL_TEST_STREAM_DEVICE_REVIEW_1.json) ties these observations to the source, hosted build and package hash.
+
+No new diagnostic report or screenshot accompanied this review. It does not independently establish runtime-counter absence, every lifecycle/checklist case or actual marked-stream authorization. The earlier pending validation statements describe build-submission/package time; this follow-up records the subsequently reported checks. No code change or Apple rebuild was required.

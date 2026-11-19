@@ -24,6 +24,13 @@ static BOOL playerABI(void) {
         method_is(p,"videoSize","{CGSize=dd}16@0:8",false)&&
         method_is(v,"setPlayer:","v24@0:8@16",false)&&method_is(v,"setVideoGravity:","v24@0:8@16",false);
 }
+static BOOL qualityABI(void) {
+    Class p=NSClassFromString(@"IVSPlayer"),q=NSClassFromString(@"IVSQuality");
+    return q&&method_is(p,"qualities","@16@0:8",false)&&
+        method_is(p,"setQuality:","v24@0:8@16",false)&&
+        method_is(p,"setQuality:adaptive:","v28@0:8@16B24",false)&&
+        method_is(q,"name","@16@0:8",false);
+}
 // SDK calls and UIKit detachment stay on main. Final SDK disposal is isolated
 // from audio mutations; SDK >=1.45 explicitly permits off-main deallocation.
 static dispatch_queue_t retirementQueue(void) {
@@ -101,11 +108,14 @@ static void reportPlayback(void) {
 
 @interface SSNPlayback ()
 - (void)setPhase:(NSInteger)phase error:(NSInteger)code;
+- (void)syncQualities;
 @end
 
 @implementation SSNPlayback {
     UIView *_view,*_playerView;
-    NSString *_channel;
+    NSString *_channel,*_preferredQuality,*_appliedQuality;
+    NSArray *_qualities;
+    BOOL _qualitySupported,_qualityReady;
     SSNPlaybackAudio *_audio;
     NSUInteger _generation;
     uint64_t _adblockLease;
@@ -116,6 +126,34 @@ static void reportPlayback(void) {
     BOOL _opened,_foreground,_preparingAudio,_wasPlaying,_decoded,_paused,_muted,_preview;
 }
 @synthesize view=_view,phase=_phase,errorCode=_errorCode;
+- (NSArray<NSString *> *)qualities { return _qualities?:@[]; }
+- (NSString *)preferredQuality { return _preferredQuality?:@"auto"; }
+- (NSString *)effectiveQuality { return _appliedQuality?:@"auto"; }
+- (void)setPreferredQuality:(NSString *)name {
+    NSAssert(NSThread.isMainThread,@"Quality belongs to the main thread");
+    if(![name isKindOfClass:NSString.class]||!name.length||name.length>128) return;
+    if([name isEqual:self.preferredQuality]) return;
+    [_preferredQuality release];_preferredQuality=[name copy];
+    [self syncQualities];
+}
+- (void)syncQualities {
+    if(!_qualitySupported||!_qualityReady||!_player||!_opened||!_foreground||!ssn_playback_authorized()||auth()!=_requestAuth) return;
+    id source=m0(_player,"qualities");
+    if(![source isKindOfClass:NSArray.class]||[source count]>64) return;
+    NSMutableDictionary *objects=[NSMutableDictionary dictionary];NSMutableArray *names=[NSMutableArray array];
+    for(id quality in source) {
+        if(![quality isKindOfClass:NSClassFromString(@"IVSQuality")]) continue;
+        id name=m0(quality,"name");
+        if(![name isKindOfClass:NSString.class]||![name length]||[name length]>128||[name isEqual:@"auto"]||objects[name]) continue;
+        objects[name]=quality;[names addObject:name];
+    }
+    if(![_qualities isEqual:names]) { [_qualities release];_qualities=[names copy]; }
+    NSString *chosen=objects[self.preferredQuality]?self.preferredQuality:@"auto";
+    if([chosen isEqual:_appliedQuality]) return;
+    if([chosen isEqual:@"auto"]) v1(_player,"setQuality:",nil);
+    else ((void(*)(id,SEL,id,BOOL))objc_msgSend)(_player,ss("setQuality:adaptive:"),objects[chosen],YES);
+    [_appliedQuality release];_appliedQuality=[chosen copy];
+}
 - (BOOL)isPaused { return _paused; }
 - (BOOL)isMuted { return _muted; }
 - (void)observeMute {
@@ -150,7 +188,9 @@ static void reportPlayback(void) {
     _phase=phase;_errorCode=code;ssn_playback_status((unsigned)phase,(unsigned)code);reportPlayback();
 }
 - (void)releaseMedia {
-    _generation++;_preparingAudio=NO;
+    _generation++;_preparingAudio=NO;_qualityReady=NO;_qualitySupported=NO;
+    [_qualities release];_qualities=nil;
+    [_appliedQuality release];_appliedQuality=nil;
     ssn_adblock_end(_adblockLease);_adblockLease=0;
     if(_promise) { v0(_promise,"requestCancel");[_promise release];_promise=nil; }
     // Transfer the existing +1 to the serial queue as an unretained C pointer;
@@ -253,6 +293,7 @@ static void reportPlayback(void) {
                      [NSURLQueryItem queryItemWithName:@"allow_audio_only" value:@"true"]];
     NSURL *source=url.URL;[url release];
     if(!source) { [self fail:4];return; }
+    _qualitySupported=qualityABI();
     _player=[[NSClassFromString(@"IVSPlayer") alloc] init];
     _playerView=[[NSClassFromString(@"IVSPlayerView") alloc] initWithFrame:_view.bounds];
     if(!_player||!_playerView) { [self fail:2];return; }
@@ -288,6 +329,7 @@ static void reportPlayback(void) {
     // IVSPlayerState: idle 0, ready 1, buffering 2, playing 3, ended 4.
     if(state==4) { [self releaseMedia];[self setPhase:6 error:0];return; }
     if(state<0||state>4) { [self fail:2];return; }
+    if(state>=1&&state<=3) { _qualityReady=YES;[self syncQualities]; }
     // A user pause is not a stalled load. Authorization continues to be checked
     // above, but there is no playback deadline or automatic READY-state play.
     if(_paused) { if(_phase!=8) [self setPhase:8 error:0];return; }
@@ -323,6 +365,6 @@ static void reportPlayback(void) {
     if(_opened) { _opened=NO;ssn_playback_event(8);[self setPhase:0 error:0]; }
 }
 - (void)dealloc {
-    [NSNotificationCenter.defaultCenter removeObserver:self];[self stop];[_channel release];[_view release];[super dealloc];
+    [NSNotificationCenter.defaultCenter removeObserver:self];[self stop];[_preferredQuality release];[_channel release];[_view release];[super dealloc];
 }
 @end

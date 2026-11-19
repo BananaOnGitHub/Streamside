@@ -168,6 +168,7 @@ private struct InputTestContent: View {
     @State private var holdOpen = true
     @State private var paused = false
     @State private var muted = false
+    @State private var resolution = "auto"
     @State private var closed = false
     @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
     @State private var motionSamples = MotionFrameSamples()
@@ -319,6 +320,8 @@ private struct InputTestContent: View {
                     PlayerControls(visible: motionVisible ?? visibility.visible, channel: channel, clock: clock, paused: paused, muted: muted,
                                    close: { closed = true }, pause: { paused.toggle() }, mute: { muted.toggle() },
                                    interact: interact, presentationChanged: { presenting = $0 },
+                                   qualities: ["720p60", "480p"], preferredQuality: resolution, effectiveQuality: resolution,
+                                   selectQuality: { resolution = $0 },
                                    motionSample: { motionSamples.record(style: $0, region: $1, progress: $2, travel: $3, frame: $4) },
                                    motionReductionOverride: motionReduceMotion, motionDurationScale: motionDurationScale)
                 }
@@ -340,6 +343,7 @@ private struct InputTestContent: View {
             Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
             Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
+            Text(resolution).accessibilityIdentifier("resolution-choice")
             Text(verbatim: "hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible) \(motionSamples.lastFrame())")
                 .font(.caption).accessibilityIdentifier("fixture-state")
             Spacer()

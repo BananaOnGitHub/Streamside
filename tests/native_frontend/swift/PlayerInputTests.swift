@@ -378,6 +378,12 @@ final class PlayerInputTests: XCTestCase {
         tap(app.buttons["player.settings"])
         let glassSetting = app.switches["Liquid Glass"]
         XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))
+        let resolution = app.buttons["player.resolution"]
+        XCTAssertTrue(resolution.waitForExistence(timeout: 5)); resolution.tap()
+        let choice = app.buttons["480p"].firstMatch
+        XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+        wait(app.staticTexts["resolution-choice"], label: "480p")
+        print("PLAYER_RESOLUTION PASS: native menu selects SDK quality")
         dismissPopover(glassSetting, in: app)
         tap(app.buttons["motion-checks"])
         let renderedMotion = app.staticTexts["motion-check-result"]

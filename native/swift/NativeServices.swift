@@ -64,7 +64,7 @@ final class NativeServices: ObservableObject, AccountService {
         next.canSignOut = (snapshot["canSignOut"] as? NSNumber)?.boolValue ?? false
         if let account = snapshot["account"] as? [String: String],
            let name = account["username"], !name.isEmpty {
-            next.account = StreamsideAccount(username: name, displayName: account["displayName"] ?? name)
+            next.account = StreamsideAccount(username: name, displayName: account["displayName"] ?? name, avatarURL: account["avatarURL"].flatMap(URL.init(string:)))
         }
         next.channels = (snapshot["channels"] as? [[String: Any]] ?? []).compactMap {
             FollowedChannel(snapshot: $0)

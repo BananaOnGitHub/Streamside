@@ -58,7 +58,7 @@ struct GeneralSettings: View {
                         }.tag(style.rawValue)
                     }
                 }.pickerStyle(.menu).accessibilityIdentifier("verification.style")
-            } header: { Label("General", systemImage: "gearshape") }
+            }
         }
         .navigationTitle("General").navigationBarTitleDisplayMode(.inline)
         .onAppear { stored = VerificationStyle.resolve(stored).rawValue }

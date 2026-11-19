@@ -23,6 +23,12 @@ class AccountAdapterAdmission(unittest.TestCase):
     def test_exact_native_and_objc_boundaries_admitted(self):
         validate_abi(self.images,self.plan)
 
+    def test_quality_selectors_reject_changed_signature_and_prefix(self):
+        for name in ['playback_IVSPlayer_qualities', 'playback_IVSPlayer_setQuality:', 'playback_IVSPlayer_setQuality:adaptive:', 'playback_IVSQuality_name']:
+            for key, value in [('encoding', 'v16@0:8'), ('bytes', '00' * 16)]:
+                plan=copy.deepcopy(self.plan);plan['objc_services'][name][key]=value
+                with self.assertRaises(ValueError):validate_abi(self.images,plan)
+
     def test_all_native_adapter_literal_dependencies_are_admitted(self):
         names=set()
         for filename in ['SSNContentLabels.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:

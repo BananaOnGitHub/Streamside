@@ -44,6 +44,35 @@ static const void *metadata(const char *symbol) {
 }
 static id failed_value(void) { return m0(c("NSNull"),"new"); }
 static id mapping_failure(void) { atomic_store(&mapping_fault,true); ssn_failure(3); return failed_value(); }
+#if SSN_SWIFTUI
+static id account_avatar(const void *user) {
+    static bool checked; static const void *thumb,*optional_url;
+    static ThumbnailsGetter images; static ThumbnailGetter url;
+    if(!checked) {
+        checked=true;
+        thumb=metadata("$s10TwitchCore10ThumbnailsVMa");
+        Meta url_meta=(Meta)dlsym(RTLD_DEFAULT,"$s10Foundation3URLVMa");
+        Response url_result=url_meta?url_meta(0):(Response){0};
+        const void *url_type=!url_result.state&&value_size(url_result.value)?url_result.value:NULL;
+        GenericMeta optional=dlsym(RTLD_DEFAULT,"$sSqMa");
+        images=(ThumbnailsGetter)ssn_resolve("$s10TwitchCore4UserV13profileImagesAA10ThumbnailsVvg");
+        url=(ThumbnailGetter)ssn_resolve("$s10TwitchCore10ThumbnailsVy10Foundation3URLVSgAA9ThumbnailV4SizeOcig");
+        if(optional&&url_type) { Response result=optional(0,url_type);if(!result.state&&value_size(result.value)) optional_url=result.value; }
+    }
+    if(value_size(thumb)!=24||!optional_url||!images||!url) return nil;
+    Words3 raw=images(user);id text=nil;
+    const uint8_t sizes[]={1,0,2,3};
+    for(unsigned i=0;i<4&&!text;i++) {
+        void *storage=allocate(optional_url);if(!storage) break;
+        url(storage,sizes[i],raw.a,raw.b,raw.c);
+        id boxed=bridge(storage,optional_url);destroy(storage,optional_url);
+        id candidate=kind(boxed,"NSURL")?m0(boxed,"absoluteString"):nil;
+        if(kind(candidate,"NSString")&&num(candidate,"length")<=2048) text=objc_retain(candidate);
+        objc_release(boxed);
+    }
+    ((Destroy)vw(thumb)[1])(&raw,thumb);return text;
+}
+#endif
 id ssn_user_dictionary(const void *value) {
     void *identity=allocate(identity_type); if(!identity) return mapping_failure();
     user_identity(identity,value);
@@ -64,7 +93,11 @@ id ssn_user_dictionary(const void *value) {
 }
 static id SW map_account(const void *value,void *context CTX) {
     (void)context; void *user=allocate(user_type); if(!user) return mapping_failure();
-    current_user(user,value); id result=ssn_user_dictionary(user); destroy(user,user_type); return result;
+    current_user(user,value); id result=ssn_user_dictionary(user);
+#if SSN_SWIFTUI
+    if(kind(result,"NSDictionary")) { id avatar=account_avatar(user);if(avatar) { put(result,"avatarURL",avatar);objc_release(avatar); } }
+#endif
+    destroy(user,user_type); return result;
 }
 static id SW map_follows(const void *value,void *context CTX) {
     (void)context;

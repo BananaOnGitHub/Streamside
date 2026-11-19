@@ -53,10 +53,21 @@ __attribute__((objc_runtime_name("_TtC6PMHTTP11HTTPManager")))
 - (void)requestCancel { cancels++; }
 @end
 id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromise new]; }
+static BOOL reducedQualities=NO;
+static unsigned qualitySwitches;
+@interface IVSQuality : NSObject
+@property(nonatomic,copy) NSString *name;
+@end
+@implementation IVSQuality
+- (void)dealloc { [_name release];[super dealloc]; }
+@end
 @interface IVSPlayer : NSObject
 @property(nonatomic) NSInteger state;
 @property(nonatomic) BOOL muted;
 @property(nonatomic,readonly) id error;
+@property(nonatomic,readonly) NSArray *qualities;
+@property(nonatomic,retain) IVSQuality *quality;
+- (void)setQuality:(IVSQuality *)quality adaptive:(BOOL)adaptive;
 - (void)load:(NSURL *)url;
 - (void)play;
 - (void)pause;
@@ -71,6 +82,16 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
         if(created==0) firstPlayerAmbient=[AVAudioSession.sharedInstance.category isEqual:AVAudioSessionCategoryAmbient];
         created++;
     }return self;
+}
+- (NSArray *)qualities {
+    NSMutableArray *result=[NSMutableArray array];
+    for(NSString *name in (reducedQualities?@[@"720p60"]:@[@"720p60",@"480p"])) {
+        IVSQuality *q=[IVSQuality new];q.name=name;[result addObject:q];[q release];
+    }return result;
+}
+- (void)setQuality:(IVSQuality *)quality adaptive:(BOOL)adaptive {
+    NSAssert(NSThread.isMainThread&&adaptive,@"Manual quality must use the main-thread adaptive setter");
+    self.quality=quality;qualitySwitches++;
 }
 - (id)error { return nil; }
 - (void)setMuted:(BOOL)value { _muted=value;lastMuted=value;muteCalls++; }
@@ -91,6 +112,7 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
 - (NSInteger)videoFramesDecoded { return self.state==3?1:0; }
 - (CGSize)videoSize { return CGSizeMake(1920,1080); }
 - (void)dealloc {
+    [_quality release];
     if(NSThread.isMainThread) atomic_store(&deallocationOffMain,false);
     // Require a real main-queue turn while disposal is still in progress.
     dispatch_semaphore_t gate=dispatch_semaphore_create(0);dispatch_retain(gate);
@@ -172,6 +194,14 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
     });return YES;
 }
 - (void)initial:(BOOL)observed {
+    unsigned beforeQualityRequests=requests,beforeQualityPlayers=created;
+    BOOL listed=[_playback.qualities isEqual:@[@"720p60",@"480p"]];
+    _playback.preferredQuality=@"480p";
+    BOOL selected=[_playback.effectiveQuality isEqual:@"480p"]&&qualitySwitches==1;
+    reducedQualities=YES;[_playback performSelector:@selector(tick:) withObject:nil];
+    BOOL fallback=[_playback.effectiveQuality isEqual:@"auto"]&&[_playback.preferredQuality isEqual:@"480p"];
+    reducedQualities=NO;[_playback performSelector:@selector(tick:) withObject:nil];
+    [self record:@"quality_selection" passed:listed&&selected&&fallback&&[_playback.effectiveQuality isEqual:@"480p"]&&requests==beforeQualityRequests&&created==beforeQualityPlayers&&_playback.isMuted];
     [self record:@"playing_observed" passed:observed&&_playback.phase==3&&decodedEvents==1];
     [self record:@"source_encoding" passed:sourceEncoding];
     [self record:@"preview_muted_before_load" passed:mutedBeforeLoad&&_playback.isMuted&&observedMuteActual];
@@ -207,6 +237,7 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
     }];
 }
 - (void)resume:(BOOL)pausedAgain {
+    [self record:@"quality_restoration" passed:[_playback.preferredQuality isEqual:@"480p"]&&[_playback.effectiveQuality isEqual:@"480p"]];
     [self record:@"control_intent_retained" passed:pausedAgain&&_playback.isPaused&&_playback.isMuted&&lastMuted];
     _playback.paused=NO;
     waitPlaying(_playback,3,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed){
@@ -214,6 +245,7 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
         self->_playback.paused=YES;authorized=NO;
         [NSNotificationCenter.defaultCenter postNotificationName:@"SSNNativeServiceDidChange" object:nil];
         BOOL rejected=self->_playback.phase==7&&self->_playback.errorCode==1;
+        [self record:@"quality_teardown" passed:self->_playback.qualities.count==0&&[self->_playback.effectiveQuality isEqual:@"auto"]];
         [self waitRetired:^(BOOL retired){[self record:@"account_stop" passed:rejected&&retired];[self pendingCancellation];}];
     });
 }

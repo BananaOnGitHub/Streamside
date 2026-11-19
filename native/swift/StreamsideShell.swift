@@ -96,7 +96,11 @@ private struct AccountPanel: View {
                             Text(account.displayName).font(.headline)
                             Text("@\(account.username)").foregroundStyle(.secondary)
                         }
-                    } icon: { Image(systemName: "person.crop.circle") }
+                    } icon: {
+                        RemoteChannelImage(url: account.avatarURL, images: services.images,
+                            generation: services.imageGeneration, avatar: true)
+                            .frame(width: 40, height: 40).clipShape(Circle())
+                    }
                     Button("Refresh") { Task { await services.refresh() } }.disabled(services.state.isBusy)
                     if services.state.canSignOut {
                         Button("Sign out", role: .destructive) { confirmSignOut = true }
@@ -182,7 +186,7 @@ private struct FollowedStreamSettings: View {
                 }
                 Text("Hold a truncated stream title for one second to read it in full.")
                     .font(.footnote).foregroundStyle(.secondary)
-            } header: { Label("Followed streams", systemImage: "heart.fill") }
+            }
         }
         .navigationTitle("Followed streams")
         .navigationBarTitleDisplayMode(.inline)

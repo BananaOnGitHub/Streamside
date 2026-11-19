@@ -6,6 +6,11 @@ final class TheatrePlayback: ObservableObject {
     let native: SSNPlayback?
     let localTest: LocalTestStream?
     @Published private(set) var contentGate: MarkedContentGate?
+    @Published private(set) var qualities: [String] = []
+    @Published private(set) var preferredQuality = "auto"
+    @Published private(set) var effectiveQuality = "auto"
+    private let channelName: String
+    private let qualityPreferences: StreamQualityPreferences
     private var requested = false
     private var cancelled = false
     private var contentValid: () -> Bool = { true }
@@ -31,11 +36,22 @@ final class TheatrePlayback: ObservableObject {
     @Published private(set) var error = 0
     @Published private(set) var paused = false
     @Published private(set) var muted = false
-    init(channel: String, preview: Bool = false, localTest: LocalTestStream? = nil) {
-        self.localTest = localTest
+    init(channel: String, preview: Bool = false, localTest: LocalTestStream? = nil, qualityDefaults: UserDefaults = .standard) {
+        self.localTest = localTest; channelName = channel
+        qualityPreferences = StreamQualityPreferences(defaults: qualityDefaults)
         // Fail closed for a local origin even in builds where tools are disabled.
         native = localTest == nil ? SSNPlayback(channel: channel, preview: preview) : nil
         muted = preview
+        if localTest == nil {
+            preferredQuality = qualityPreferences.selection(for: channel)
+            native?.preferredQuality = preferredQuality
+        }
+    }
+    func selectQuality(_ name: String) {
+        guard let native, !cancelled, contentIsValid, name == "auto" || qualities.contains(name) else { return }
+        native.preferredQuality = name
+        qualityPreferences.save(name, for: channelName)
+        update()
     }
     func enterTheatre() {
         guard contentIsValid else { return }
@@ -70,6 +86,9 @@ final class TheatrePlayback: ObservableObject {
     func toggleMuted() { guard let native else { return }; native.isMuted.toggle(); update() }
     func update() {
         guard let native else { return }
+        if qualities != native.qualities { qualities = native.qualities }
+        if preferredQuality != native.preferredQuality { preferredQuality = native.preferredQuality }
+        if effectiveQuality != native.effectiveQuality { effectiveQuality = native.effectiveQuality }
         if paused != native.isPaused { paused = native.isPaused }
         if muted != native.isMuted { muted = native.isMuted }
         if phase != native.phase { phase = native.phase }

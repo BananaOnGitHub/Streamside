@@ -40,7 +40,9 @@ private struct TheatreContent: View {
                                    paused: playback.paused, muted: playback.muted,
                                    close: { playback.stop(); close() }, pause: playback.togglePaused,
                                    mute: playback.toggleMuted, interact: interact,
-                                   presentationChanged: { overlayPresented = $0 })
+                                   presentationChanged: { overlayPresented = $0 },
+                                   qualities: playback.qualities, preferredQuality: playback.preferredQuality,
+                                   effectiveQuality: playback.effectiveQuality, selectQuality: playback.selectQuality)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {

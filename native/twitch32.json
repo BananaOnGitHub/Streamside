@@ -719,6 +719,38 @@
       "encoding": "B16@0:8",
       "address": 399856,
       "bytes": "003440f9080040f901d540f920001fd6"
+    },
+    "playback_IVSPlayer_setQuality:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setQuality:",
+      "encoding": "v24@0:8@16",
+      "address": 400636,
+      "bytes": "03008052d8c30314f85fbca9f65701a9"
+    },
+    "playback_IVSPlayer_setQuality:adaptive:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setQuality:adaptive:",
+      "encoding": "v28@0:8@16B24",
+      "address": 400644,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
+    "playback_IVSPlayer_qualities": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "qualities",
+      "encoding": "@16@0:8",
+      "address": 401212,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
+    "playback_IVSQuality_name": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSQuality",
+      "selector": "name",
+      "encoding": "@16@0:8",
+      "address": 441408,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
     }
   },
   "feed_contract": {

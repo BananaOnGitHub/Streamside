@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "base_revision": "8301c9f",
+  "branch": "feat/native-frontend",
+  "scope": "Ubuntu host tests and exact-donor binary inspection; Apple Swift/UI execution remains pending",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "amazon_ivs_player": "1.58.0",
+    "amazon_ivs_player_sha256": "f6bbfbf4ab295778e431f44e3ba8d242d9f3681e27d1413280db095bad85b4c5"
+  },
+  "quality_boundaries": {
+    "playback_IVSPlayer_setQuality:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setQuality:",
+      "encoding": "v24@0:8@16",
+      "address": 400636,
+      "bytes": "03008052d8c30314f85fbca9f65701a9"
+    },
+    "playback_IVSPlayer_setQuality:adaptive:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setQuality:adaptive:",
+      "encoding": "v28@0:8@16B24",
+      "address": 400644,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
+    "playback_IVSPlayer_qualities": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "qualities",
+      "encoding": "@16@0:8",
+      "address": 401212,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
+    "playback_IVSQuality_name": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSQuality",
+      "selector": "name",
+      "encoding": "@16@0:8",
+      "address": 441408,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
+    }
+  },
+  "host": {
+    "command": "ZIG=../toolchains/zig-0.14.0/zig PYTHONPATH=../toolchains/python PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/native_frontend -v",
+    "tests": 96,
+    "seconds": 12.815,
+    "result": "PASS",
+    "log_sha256": "addda8082af67efe4ca6da8204aae55f775d6297bcea1be13f15f8cb032ffbad"
+  },
+  "apple_compilation": "pending",
+  "apple_simulator": "pending",
+  "packaging": "pending",
+  "physical_device": "pending"
+}

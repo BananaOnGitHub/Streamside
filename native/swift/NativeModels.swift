@@ -3,6 +3,11 @@ import Foundation
 struct StreamsideAccount: Equatable {
     let username: String
     let displayName: String
+    var avatarURL: URL? = nil
+    // Presentation-only avatar refresh is not an account transition.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.username == rhs.username && lhs.displayName == rhs.displayName
+    }
 }
 
 struct FollowedChannel: Identifiable, Equatable {

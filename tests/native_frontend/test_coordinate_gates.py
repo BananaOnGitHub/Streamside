@@ -15,8 +15,8 @@ class CoordinateGates(unittest.TestCase):
              'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap']
     markers = {
         'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH', 'LOCAL_TEST_EDITOR'],
-        'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS'],
-        'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS'],
+        'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION'],
+        'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION'],
         'testPreviewPanelLayoutAndActions': ['PREVIEW_PANEL', 'PREVIEW_SWIPES', 'CONTEXT_VIDEO'],
         'testThumbnailHoldAndTap': ['THUMBNAIL_COORDINATES', 'THUMBNAIL_LIFT', 'VERIFICATION_SETTINGS'],
     }

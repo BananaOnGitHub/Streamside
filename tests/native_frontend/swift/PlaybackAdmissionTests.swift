@@ -4,6 +4,9 @@ import Foundation
 // TheatrePlayback and MarkedContentGate state/ownership with no Apple video SDK.
 @MainActor final class SSNPlayback {
     static var creations = 0
+    var qualities: [String] = []
+    var preferredQuality = "auto"
+    var effectiveQuality: String { qualities.contains(preferredQuality) ? preferredQuality : "auto" }
     var phase = 0, errorCode = 0
     var isPaused = false, isMuted: Bool
     private(set) var starts = 0
@@ -51,6 +54,20 @@ import Foundation
             }
             playback.stop()
         }
+        let suite = "dev.streamside.quality-admission-fixture"
+        let defaults = UserDefaults(suiteName: suite)!; defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let choices = TheatrePlayback(channel: "quality_channel", qualityDefaults: defaults)
+        choices.native!.qualities = ["720p60", "480p"]; choices.update(); choices.selectQuality("480p")
+        precondition(choices.preferredQuality == "480p" && choices.effectiveQuality == "480p")
+        let restored = TheatrePlayback(channel: "QUALITY_CHANNEL", preview: true, qualityDefaults: defaults)
+        restored.update(); precondition(restored.preferredQuality == "480p" && restored.effectiveQuality == "auto")
+        restored.native!.qualities = ["480p"]; restored.update()
+        precondition(restored.effectiveQuality == "480p" && restored.native!.starts == 0)
+        restored.selectQuality("made up"); precondition(restored.preferredQuality == "480p")
+        restored.selectQuality("auto"); precondition(StreamQualityPreferences(defaults: defaults).selection(for: "quality_channel") == "auto")
+        restored.stop(); restored.selectQuality("480p"); precondition(restored.preferredQuality == "auto")
+        choices.stop()
         let beforeLocal = SSNPlayback.creations
         for status in LocalTestStream.Status.allCases {
             var draft = LocalTestStream(); draft.status = status

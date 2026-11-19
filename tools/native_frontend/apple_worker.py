@@ -60,8 +60,10 @@ def main():
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
-    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests']+development)
+    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/StreamQualityPreferences.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests']+development)
     info['model_tests']=run([str(output/'models-tests')], label='Test account, feed, repeated render direction and presentation models')
+    if 'PASS: per-channel quality persistence' not in info['model_tests']:
+        raise ValueError('Per-channel quality/account avatar model evidence missing')
     if 'PASS: local test data' not in info['model_tests']:
         raise ValueError('Local test data and development isolation regression missing')
     if 'PASS: marked thumbnail preference' not in info['model_tests']:
@@ -78,7 +80,7 @@ def main():
     if not observed.startswith('CONTENT_LABELS PASS:') or 'PASS: marked consent' not in info['model_tests']:
         raise ValueError('Marked-content validation evidence missing')
     run(['xcrun','swiftc','-O','-swift-version','5','-warnings-as-errors',
-         'native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/MarkedContentGate.swift','native/swift/TheatrePlayback.swift',
+         'native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/StreamQualityPreferences.swift','native/swift/MarkedContentGate.swift','native/swift/TheatrePlayback.swift',
          'tests/native_frontend/swift/PlaybackAdmissionTests.swift','-o','output/admission-tests']+development, label='Build shared inline preview/player consent ownership tests')
     admission=run([str(output/'admission-tests')], label='Test deferred media, pending Watch, thumbnail choice and cancellation')
     if not admission.startswith('INLINE_ADMISSION PASS:'):
@@ -188,7 +190,7 @@ def test_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test cold preview audio, responsive retirement, ordered restoration, playback lifecycle and mute')
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
-        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion']}
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion','quality_selection','quality_restoration','quality_teardown']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
         for index in range(3):

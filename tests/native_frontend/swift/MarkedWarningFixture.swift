@@ -6,6 +6,9 @@ import UIKit
 // warning view, source presenter, menu, and transaction execute unchanged.
 @MainActor final class SSNPlayback {
     let view = UIView()
+    var qualities: [String] = []
+    var preferredQuality = "auto"
+    var effectiveQuality: String { qualities.contains(preferredQuality) ? preferredQuality : "auto" }
     var phase = 0, errorCode = 0
     var isPaused = false, isMuted: Bool
     private(set) var startCount = 0

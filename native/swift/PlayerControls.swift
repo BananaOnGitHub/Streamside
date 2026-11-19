@@ -14,6 +14,10 @@ struct PlayerControls: View {
     let mute: () -> Void
     let interact: () -> Void
     let presentationChanged: (Bool) -> Void
+    var qualities: [String] = []
+    var preferredQuality = "auto"
+    var effectiveQuality = "auto"
+    var selectQuality: (String) -> Void = { _ in }
     var motionSample: PlayerMotionSample? = nil
     // Owned fixture input; normal app callers use the read-only system value.
     var motionReductionOverride: Bool? = nil
@@ -137,6 +141,9 @@ struct PlayerControls: View {
                 .popover(isPresented: $settings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Player").font(.headline)
+                        PlayerResolutionPicker(qualities: qualities, preferred: preferredQuality, effective: effectiveQuality,
+                            select: { interact(); selectQuality($0) })
+                        Divider()
                         PlayerSettingsOptions()
                         PlayerContentWarningOptions()
                     }.padding(16).frame(idealWidth: 270, maxWidth: 290)
@@ -254,6 +261,28 @@ private struct StreamSharePopover: View {
                 .background(.quaternary, in: Circle())
             Text(title).font(.caption).multilineTextAlignment(.center)
         }.frame(maxWidth: .infinity).contentShape(Rectangle())
+    }
+}
+
+struct PlayerResolutionPicker: View {
+    let qualities: [String]
+    let preferred: String
+    let effective: String
+    let select: (String) -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Picker("Resolution", selection: Binding(get: { preferred }, set: select)) {
+                Text("Auto").tag("auto")
+                ForEach(qualities, id: \.self) { Text($0).tag($0) }
+                if preferred != "auto" && !qualities.contains(preferred) {
+                    Text(preferred + " (unavailable)").tag(preferred).disabled(true)
+                }
+            }.pickerStyle(.menu).accessibilityIdentifier("player.resolution")
+                .disabled(qualities.isEmpty)
+            Text(qualities.isEmpty ? "Resolutions will appear when available." : preferred != "auto" && effective == "auto"
+                ? "Saved quality unavailable; using Auto." : "Saved for this channel.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 }
 

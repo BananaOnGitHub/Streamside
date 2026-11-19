@@ -20,6 +20,11 @@ NS_ASSUME_NONNULL_BEGIN
  * reset on start; a new facade defaults to unpaused/unmuted. */
 @property(nonatomic,getter=isPaused) BOOL paused;
 @property(nonatomic,getter=isMuted) BOOL muted;
+/* SDK-provided quality names only; preferred choice survives a missing rendition.
+ * No media URLs or SDK objects cross into Swift. "auto" selects ABR. */
+@property(nonatomic,readonly) NSArray<NSString *> *qualities;
+@property(nonatomic,copy) NSString *preferredQuality;
+@property(nonatomic,readonly) NSString *effectiveQuality;
 - (void)start;
 - (void)stop;
 @end

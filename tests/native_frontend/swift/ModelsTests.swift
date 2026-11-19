@@ -124,6 +124,23 @@ import Foundation
     }
     @MainActor static func main() async {
         localTestData()
+        let suite = "dev.streamside.quality-models-fixture"
+        let defaults = UserDefaults(suiteName: suite)!; defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let quality = StreamQualityPreferences(defaults: defaults)
+        precondition(quality.selection(for: "one") == "auto")
+        quality.save("720p60", for: "One"); quality.save("480p", for: "two")
+        precondition(StreamQualityPreferences(defaults: defaults).selection(for: "ONE") == "720p60")
+        precondition(quality.selection(for: "two") == "480p")
+        quality.save("auto", for: "one"); precondition(quality.selection(for: "one") == "auto" && quality.selection(for: "two") == "480p")
+        quality.save("bad", for: "https://example.com"); precondition(quality.selection(for: "https://example.com") == "auto")
+        for index in 0..<300 { quality.save("480p", for: "channel_\(index)") }
+        precondition((defaults.dictionary(forKey: StreamQualityPreferences.key)?.count ?? 0) <= 256)
+        let noAvatar = StreamsideAccount(username: "fixture", displayName: "Fixture")
+        let avatar = StreamsideAccount(username: "fixture", displayName: "Fixture", avatarURL: URL(string: "https://static-cdn.jtvnw.net/test.png"))
+        precondition(noAvatar == avatar && avatar.avatarURL != nil, "Avatar refresh must not imply account loss or close playback")
+        precondition(avatar != StreamsideAccount(username: "other", displayName: "Fixture"))
+        print("PASS: per-channel quality persistence, Auto, isolation and bound; account avatar identity")
         repeatedRenderValues()
         await contentWarnings()
         precondition(VerificationStyle.resolve("unknown") == .twitch)

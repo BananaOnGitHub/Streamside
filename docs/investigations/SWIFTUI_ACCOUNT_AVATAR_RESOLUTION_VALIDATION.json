@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+  "packaging_revision": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+  "proof_id": "87bd90f69b550be0fbd7ff3e5dc6ead4d53ecf4921ae651a7204a1d9d2cbcb23",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "amazon_ivs_player": "1.58.0"
+  },
+  "build": {
+    "provider": "github",
+    "id": "44600451526",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44600451526",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "validation": {
+    "apple": {
+      "schema": 1,
+      "source_revision": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 3.161
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 2.33
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 1806.791
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 17.067
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.159
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.405
+        }
+      ],
+      "archive_sha256": "d6504d86dc7bad0a84f153841554751689aaf776042298abd59ac4884a3a60f5",
+      "archive_bytes": 1467904
+    },
+    "models": [
+      "PASS: local test data, saved metadata, removal, typed origin and development isolation",
+      "PASS: per-channel quality persistence, Auto, isolation and bound; account avatar identity",
+      "PASS: duplicate render direction preserved through entry, exit and reversal",
+      "PASS: marked thumbnail preference skips redundant prompt and survives Close",
+      "PASS: marked consent, discard-on-close, independent thumbnail choice before playback, failure and cancellation",
+      "PASS: session boundaries, feed grouping/fields, five-second refresh gate, elapsed time and image URL policy"
+    ],
+    "marked_content": {
+      "passed": true,
+      "consent": true,
+      "preferences": true,
+      "cancellation": true,
+      "native_request": true,
+      "inline_admission": true
+    },
+    "simulator": {
+      "quicklook_receipt": {
+        "all_tags_wrap": true,
+        "failures": [],
+        "lifecycle_cancellation": true,
+        "consent_before_preview": true,
+        "unblocked_return": true,
+        "single_handoff": true,
+        "teardown": true,
+        "hold_cancellation": true,
+        "source_target": true,
+        "dismiss_before_handoff": true,
+        "passed": true
+      },
+      "controls_ui_receipt": {
+        "passed": true,
+        "tests": 5,
+        "styles": [
+          "glass",
+          "plain"
+        ],
+        "motion_frames": true,
+        "motion_sampling_scale": 3,
+        "motion_pixels": true,
+        "motion_synchronized": true,
+        "motion_all_regions": true,
+        "motion_shared_travel": true,
+        "thumbnail_coordinates": true,
+        "preview_panel": true,
+        "source_anchored_preview": true,
+        "source_animation": true,
+        "hold_feedback": true,
+        "swipe_dismissal": true,
+        "verification_settings": true,
+        "real_video_clipping": true,
+        "marked_content": true,
+        "inline_consent": true,
+        "pending_watch": true,
+        "resolution_selection": true
+      },
+      "launch_receipt": [
+        {
+          "passed": true,
+          "native": true,
+          "pending": true,
+          "origin": 1,
+          "stage": 0
+        },
+        {
+          "passed": true,
+          "native": false,
+          "pending": false,
+          "origin": 2,
+          "stage": 1
+        },
+        {
+          "passed": true,
+          "native": true,
+          "pending": false,
+          "origin": 1,
+          "stage": 2
+        }
+      ],
+      "playback_receipt": {
+        "cancellation": true,
+        "quality_selection": true,
+        "preview_mixes_audio": true,
+        "quality_restoration": true,
+        "background_resume": true,
+        "theatre_audio_promotion": true,
+        "playing_observed": true,
+        "teardown": true,
+        "source_encoding": true,
+        "async_retirement": true,
+        "preview_muted_before_load": true,
+        "pending_consent_promotion": true,
+        "control_intent_retained": true,
+        "preview_cold_audio": true,
+        "local_pause_resume": true,
+        "account_stop": true,
+        "audio_retirement_ordering": true,
+        "stream_only_mute": true,
+        "audio_preparation_cancellation": true,
+        "quality_teardown": true,
+        "passed": true,
+        "vaft_lifetime": true
+      },
+      "title_interaction_receipt": {
+        "title_measurement": true,
+        "haptic_pattern": true
+      },
+      "clock_receipt": {
+        "passed": true,
+        "ticking": true,
+        "paused": true,
+        "resumed": true
+      },
+      "result": "PASS",
+      "environment": "iOS Simulator; real UIKit, synthetic owned controllers, no donor",
+      "receipt": {
+        "passed": true,
+        "native": 1,
+        "blocked": 2,
+        "failures": 0
+      }
+    },
+    "vaft": {
+      "passed": true,
+      "default_enabled": true,
+      "disabled_passthrough": true,
+      "baseline_untouched": true,
+      "native_tokens": true,
+      "clean_alternate": true,
+      "fallback_segments": true,
+      "stream_isolation": true,
+      "cancellation": true,
+      "account_change": true,
+      "preference_restoration": true
+    },
+    "coordinate_tests": [
+      "Test Case '-[PlayerInputTests.PlayerInputTests testMarkedContentConsent]' passed (172.300 seconds).",
+      "Test Case '-[PlayerInputTests.PlayerInputTests testGlassControls]' passed (191.143 seconds).",
+      "Test Case '-[PlayerInputTests.PlayerInputTests testPlainControls]' passed (160.472 seconds).",
+      "Test Case '-[PlayerInputTests.PlayerInputTests testPreviewPanelLayoutAndActions]' passed (173.240 seconds).",
+      "Test Case '-[PlayerInputTests.PlayerInputTests testThumbnailHoldAndTap]' passed (88.374 seconds)."
+    ],
+    "resolution_selection_markers": [
+      "PLAYER_RESOLUTION PASS: native menu selects SDK quality",
+      "PLAYER_RESOLUTION PASS: native menu selects SDK quality"
+    ],
+    "pasteboard_scope": {
+      "disabled_and_verified": true,
+      "restored_original_absence": true,
+      "evidence": "Native build.log records defaults write false, read 0 before simulator use, delete after shutdown and successful completion."
+    },
+    "post_download": {
+      "passed": true,
+      "tests": 67,
+      "log_sha256": "5c1086f152917f76e281c4006ed1dba64c4f0be9d303c4f8ae99bb8bb4bd723b"
+    }
+  },
+  "package": {
+    "artifact": "artifacts/native-frontend/account-avatar-resolution-533e3f0/StreamsideNativeProof-Twitch32-native.ipa",
+    "bytes": 197089832,
+    "sha256": "132cbded32a491313f5730ac9cba928f5f94b5d430babfb68841ecf576ad61ac",
+    "framework_sha256": "905ab57c495d05e09d7686c055d1e35d5e149852b26cab6269ca748fa3734dcd",
+    "manifest_sha256": "e31807ffbf927485b7f5ab1741d476e53e4aa0beb80578c65b423c553b65c88e",
+    "component_manifest_sha256": "6d84f67a45ae4a471a030f487d05ea5980b61566951cff629f3dfc7b7c913b74",
+    "inspection": {
+      "abi_entries": 67,
+      "probe_entries": 25,
+      "all_retained_donor_entries_verified": true,
+      "original_hbc_unchanged": true
+    },
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "9ebcf456263c3e9e6bc4c3cf1a2e48ecc3e45d28c26f3b1284fc0f1ad865e3da",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "ab2807df2f881e67323b23aaf89bf8cce1ed5cdc3bfd8536ddf49ad5103260b5",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "0f19c7b1fdc68f653f86e2ba4781aa5b0fb53d46142f7d1bdd150d5f642c03e7",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "e57f091bfe906779495bb6e704c1581f4171112870638ee78a35b042ea9f5ed8"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "reproduce": "At source 533e3f0e587a5d9336a7944c3c5868fdab2d6fbb: make native-ci-fetch; PYTHONPATH=../toolchains/python python3 tools/native_frontend/build.py --donor ../donors/tv.twitch-32.0.ipa --components ../artifacts/ci/533e3f0e587a5d9336a7944c3c5868fdab2d6fbb/download/components --output ../artifacts/native-frontend/account-avatar-resolution-533e3f0 --mode native (choose a fresh empty output directory)."
+  },
+  "preserved_failures": [
+    "SWIFTUI_ACCOUNT_AVATAR_RESOLUTION_BUILD_FAILURE_1.json",
+    "SWIFTUI_ACCOUNT_AVATAR_RESOLUTION_BUILD_FAILURE_2.json"
+  ],
+  "physical_validation": {
+    "status": "pending",
+    "scope": "No device results yet for settings avatar/header changes or actual Twitch rendition switching/restoration. Synthetic Apple quality lifecycle/UI, retained decoded-video and local package integrity checks do not establish actual native account images, rendition changes, ad suppression or device zero-runtime behavior."
+  }
+}

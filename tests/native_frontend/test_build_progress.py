@@ -70,3 +70,66 @@ class BuildProgressTests(unittest.TestCase):
                            log_path=self.log, label="Missing compiler")
         self.assertIn("FAIL: Missing compiler", self.log.read_text())
         self.assertTrue(sink.getvalue().rstrip().endswith("::endgroup::"))
+
+
+class SimulatorPasteboardTests(unittest.TestCase):
+    def exercise(self, previous, *, body_fails=False, verify='0'):
+        from simulator_environment import isolated_pasteboard, DOMAIN, KEY
+        import subprocess
+        calls = []
+        result = subprocess.CompletedProcess([], 1 if previous is None else 0, '' if previous is None else previous, '')
+        def run(args, **kwargs):
+            calls.append(args)
+            return verify if args[1] == 'read' else ''
+        with patch('simulator_environment.subprocess.run', return_value=result) as probe:
+            with isolated_pasteboard(run):
+                if body_fails:
+                    raise RuntimeError('fixture failed')
+            probe.assert_called_once_with(['defaults', 'read', DOMAIN, KEY], capture_output=True, text=True, timeout=10)
+        return calls
+
+    def test_missing_preference_is_deleted_after_scope(self):
+        from simulator_environment import DOMAIN, KEY
+        calls = self.exercise(None)
+        self.assertEqual(calls, [['defaults','write',DOMAIN,KEY,'-bool','false'],
+                                ['defaults','read',DOMAIN,KEY], ['defaults','delete',DOMAIN,KEY]])
+
+    def test_explicit_previous_values_are_restored(self):
+        for previous in ['0', '1']:
+            with self.subTest(previous=previous):
+                calls = self.exercise(previous)
+                self.assertEqual(calls[-1][-2:], ['-bool', 'true' if previous == '1' else 'false'])
+
+    def test_fixture_failure_still_restores_host_preference(self):
+        from simulator_environment import isolated_pasteboard, DOMAIN, KEY
+        import subprocess
+        calls = []
+        def run(args, **kwargs):
+            calls.append(args); return '0' if args[1] == 'read' else ''
+        with patch('simulator_environment.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '1', '')):
+            with self.assertRaisesRegex(RuntimeError, 'fixture failed'):
+                with isolated_pasteboard(run):
+                    raise RuntimeError('fixture failed')
+        self.assertEqual(calls[-1], ['defaults','write',DOMAIN,KEY,'-bool','true'])
+
+    def test_unknown_preference_is_rejected_before_mutation(self):
+        from simulator_environment import isolated_pasteboard
+        import subprocess
+        calls = []
+        with patch('simulator_environment.subprocess.run', return_value=subprocess.CompletedProcess([], 0, 'unknown', '')):
+            with self.assertRaisesRegex(ValueError, 'Unrecognized'):
+                with isolated_pasteboard(lambda *args, **kwargs: calls.append(args)):
+                    self.fail('Unknown configuration must not reach simulator execution')
+        self.assertEqual(calls, [])
+
+    def test_failed_verification_restores_and_blocks_execution(self):
+        from simulator_environment import isolated_pasteboard, DOMAIN, KEY
+        import subprocess
+        calls = []
+        def run(args, **kwargs):
+            calls.append(args); return '1' if args[1] == 'read' else ''
+        with patch('simulator_environment.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '1', '')):
+            with self.assertRaisesRegex(ValueError, 'not disabled'):
+                with isolated_pasteboard(run):
+                    self.fail('Unisolated environment must not run')
+        self.assertEqual(calls[-1], ['defaults','write',DOMAIN,KEY,'-bool','true'])

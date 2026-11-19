@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "failed_source_revision": "c775729acdab35e63ccca3142bebe5235ea1d493",
+  "failed_build": {
+    "provider": "github",
+    "id": "44588164746",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44588164746",
+    "status": "failure",
+    "artifact_name": "swiftui-failure-c775729acdab35e63ccca3142bebe5235ea1d493",
+    "validation": {
+      "schema": 1,
+      "source_revision": "c775729acdab35e63ccca3142bebe5235ea1d493",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 3.065
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 2.131
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 1211.349
+        }
+      ]
+    },
+    "stage_2_log_sha256": "da56d949bbe7224edc68031a65cf70ea66e9f418098fcf4283d6374ef9c38585",
+    "github_failed_log_sha256": "f881684b3a84c0c890f1c0836106ec57905ea5024413cb181030023faaa4e62b"
+  },
+  "evidence_location": "artifacts/archive/settings-resolution-failures/failure-2 (outside repository)",
+  "completed": [
+    "Production compilation, native model/admission, native playback/quality/audio/lifecycle fixtures",
+    "testMarkedContentConsent (149.683 seconds)",
+    "testGlassControls (186.501 seconds), including actual UIKit Resolution menu selection, motion/pixel tests and clipboard checks"
+  ],
+  "failure": {
+    "test": "testPlainControls",
+    "first_blocking_action": "First Read clipboard after Copy Link, before any Resolution interaction in this test",
+    "observation": "App event loop idle notification failed after the clipboard read tap; copied-link expectation timed out, then accessibility hierarchy requests stopped responding. The worker reached its unchanged 300-second deadline.",
+    "screenshot": "Unavailable: timed-out result bundle lacked Info.plist and attachment export failed.",
+    "cause_scope": "Clipboard-read stall in the simulator is observed. Host/simulator clipboard synchronization is a candidate cause, not confirmed by a captured process stack."
+  },
+  "correction": {
+    "scope": "Apple test environment only; no frontend or playback changes",
+    "action": "Save the Simulator PasteboardAutomaticSync preference, disable and verify it before simulator creation, restore its previous value or absence in finally on success/failure. Transfer the helper through the owned Apple-input allowlist.",
+    "rationale": "These tests require real simulator-local Copy Link and system-share Copy round trips, not host clipboard synchronization. WebKit previously documented similar simulator clipboard timeouts and the same setting mitigation.",
+    "primary_reference": "https://bugs.webkit.org/show_bug.cgi?id=237372",
+    "limits": "Historical mitigation is not evidence of the exact cause on the pinned Xcode version. Replacement Apple execution remains necessary."
+  },
+  "preserved": [
+    "Five mandatory coordinate gates",
+    "Real Copy Link and system-share Copy/clipboard equality assertions",
+    "UIKit resolution selection and saved-quality/lifecycle receipt gates",
+    "All existing test deadlines; no retries or skips added"
+  ],
+  "host_validation": {
+    "passed": true,
+    "tests": 101,
+    "seconds": 12.979,
+    "log_sha256": "d8ff624243a2851ffe9c7fc6a728824359ca0f8f8985e09d5dd0684015617cb4",
+    "new_tests": 5,
+    "scope": "Host orchestration tests cover explicit/default preference restoration, failure cleanup, unknown-value rejection and disabling verification; actual defaults/simulator behavior requires Apple execution."
+  },
+  "replacement_apple_result": "pending",
+  "packaging": "not performed",
+  "physical_device": "pending"
+}

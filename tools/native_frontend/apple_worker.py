@@ -94,6 +94,12 @@ def main():
 
 
 def test_window_ownership(root, output, config, run):
+    from simulator_environment import isolated_pasteboard
+    with isolated_pasteboard(run):
+        return run_window_ownership(root, output, config, run)
+
+
+def run_window_ownership(root, output, config, run):
     """Run the production window hook with real UIKit; no donor or account."""
     simulator_sdk=run(['xcrun','--sdk','iphonesimulator','--show-sdk-path'])
     architecture='arm64' if platform.machine()=='arm64' else 'x86_64'

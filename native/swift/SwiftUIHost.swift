@@ -75,7 +75,8 @@ public final class SSNSwiftUIHost: NSObject {
     }
 
     static func preparePreview(_ channel: FollowedChannel, source: UIView) -> ContextPreviewSession? {
-        guard SSNNavigationPermitted(), rootOwner() == 1, channel.isLive, channel.playbackAllowed,
+        guard channel.localTest == nil || Self.services?.localTestsAvailable == true,
+              SSNNavigationPermitted(), rootOwner() == 1, channel.isLive, channel.playbackAllowed,
               let services, services.state.session == .authenticated,
               theatreController == nil, previewID == nil,
               nativeController?.presentedViewController == nil else { return nil }
@@ -89,7 +90,8 @@ public final class SSNSwiftUIHost: NSObject {
     }
 
     static func beginPlayback(_ channel: FollowedChannel, sharedPlayback: TheatrePlayback? = nil) -> Bool {
-        guard SSNNavigationPermitted(), rootOwner() == 1,
+        guard channel.localTest == nil || Self.services?.localTestsAvailable == true,
+              SSNNavigationPermitted(), rootOwner() == 1,
               channel.isLive, channel.playbackAllowed,
               let services, services.state.session == .authenticated,
               let root = nativeController, root.presentedViewController == nil,
@@ -100,7 +102,7 @@ public final class SSNSwiftUIHost: NSObject {
         root.present(controller, animated: true) {
             if let sharedPlayback {
                 guard controller.presentingViewController != nil, rootOwner() == 1,
-                      services.state.session == .authenticated, sharedPlayback.native.errorCode != 1 else {
+                      services.state.session == .authenticated, sharedPlayback.native?.errorCode != 1 else {
                     sharedPlayback.stop(); return
                 }
                 sharedPlayback.enterTheatre()

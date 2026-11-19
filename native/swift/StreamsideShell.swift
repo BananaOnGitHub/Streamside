@@ -11,6 +11,15 @@ struct StreamsideShell: View {
         NavigationStack {
             List {
                 if services.state.session == .authenticated {
+                    if let local = services.localTestChannel {
+                        Section("Local test stream") {
+                            if local.isLive {
+                                LiveChannelRow(channel: local, images: services.images,
+                                    generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics,
+                                    open: { services.open(local) }, preview: { services.preview(local, source: $0) })
+                            } else { OfflineChannelRow(channel: local, images: services.images, generation: services.imageGeneration) }
+                        }
+                    }
                     let feed = FollowedFeed(services.state.channels)
                     Section {
                         if services.state.phase == 3 {
@@ -225,6 +234,13 @@ struct DiagnosticsView: View {
                             Text("Launch preference error \(services.launchError). Original startup requires a confirmed one-shot preference deletion.").foregroundStyle(.red)
                         }
                         if let error = services.actionError { Text(error).foregroundStyle(.red) }
+                    }
+                }
+                if !baseline && services.localTestsAvailable {
+                    Section("Development testing") {
+                        NavigationLink { LocalTestStreamEditor(store: services.testStreams) } label: {
+                            Label("Local test stream", systemImage: "testtube.2")
+                        }
                     }
                 }
                 Section("Runtime entry counts") {

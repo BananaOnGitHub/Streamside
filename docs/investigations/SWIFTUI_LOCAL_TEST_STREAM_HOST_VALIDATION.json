@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "base_revision": "63f927b40c239dd4c1b46fd9ed701f1b40a6f5f9",
+  "scope": "Ubuntu host tests only; implementation commit accompanies this record",
+  "command": "ZIG=../toolchains/zig-0.14.0/zig PYTHONPATH=../toolchains/python PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/native_frontend -v",
+  "tests": 95,
+  "result": "PASS",
+  "seconds": 11.751,
+  "log_sha256": "7ed21e8bc2495f06005320687a7aa30843342d157839485dbcf5d379adacfcc5",
+  "apple_compilation": "pending",
+  "apple_simulator": "pending",
+  "packaging": "pending",
+  "physical_device": "pending"
+}

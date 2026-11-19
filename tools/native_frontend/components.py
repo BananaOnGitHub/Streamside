@@ -104,6 +104,8 @@ def verify(directory, revision=None):
             raise ValueError("Compiler input identity mismatch")
         if compiler.get("xcode") != "Xcode " + pin["xcode_version"] + "\nBuild version " + pin["xcode_build"] or compiler.get("sdk_version") != pin["iphoneos_sdk"]:
             raise ValueError("Component toolchain mismatch")
+        if compiler.get("development_tools") is not (mode == "native"):
+            raise ValueError("Development tool build isolation missing or incorrect")
         if not compiler.get("model_tests", "").startswith("PASS:") or compiler.get("codesign") != "ad-hoc; IPA still requires device-authorized re-signing":
             raise ValueError("Apple model/signature validation missing")
         if compiler.get("marked_content_tests") != dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True,inline_admission=True):

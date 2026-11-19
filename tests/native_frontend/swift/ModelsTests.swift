@@ -93,7 +93,37 @@ import Foundation
         }
         print("PASS: duplicate render direction preserved through entry, exit and reversal")
     }
+    @MainActor static func localTestData() {
+        let name = "dev.streamside.local-models-fixture"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = LocalTestStreamStore(defaults: defaults)
+        precondition(store.channel == nil)
+        var draft = LocalTestStream(); draft.enabled = true
+        draft.username = "an_actual_channel_name"; draft.name = "Edited name"
+        draft.title = "Full local title"; draft.category = "Local category"
+        draft.tags = "English, Test, Test"; draft.labels = "First label, Second label"
+        draft.viewers = -1; draft.status = .loading
+        store.save(draft)
+        if DevelopmentTools.enabled {
+            let channel = store.channel!
+            precondition(channel.id == "dev.streamside.local-test" && channel.displayName == "Local test · Edited name")
+            precondition(channel.title == draft.title && channel.category == draft.category && channel.viewerCount == 0)
+            precondition(channel.avatarURL == nil && channel.thumbnailURL == nil && channel.channelID.isEmpty)
+            precondition(channel.localTest?.contentLabels == ["First label", "Second label"] && channel.thumbnailRestricted)
+            precondition(LocalTestStreamStore(defaults: defaults).channel == channel, "Local data must restore independently of donor snapshots")
+            store.remove(); precondition(store.channel == nil && LocalTestStreamStore(defaults: defaults).channel == nil)
+        } else {
+            precondition(store.channel == nil && defaults.data(forKey: LocalTestStreamStore.key) == nil,
+                "Disabled components cannot persist or materialize local entries")
+        }
+        let native = FollowedChannel(snapshot: ["username":"real", "isLive":"1", "localTest":true])!
+        precondition(native.localTest == nil, "Native snapshots cannot claim local origin")
+        print("PASS: local test data, saved metadata, removal, typed origin and development isolation")
+    }
     @MainActor static func main() async {
+        localTestData()
         repeatedRenderValues()
         await contentWarnings()
         precondition(VerificationStyle.resolve("unknown") == .twitch)

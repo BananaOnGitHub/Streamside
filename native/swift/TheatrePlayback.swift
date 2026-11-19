@@ -3,7 +3,8 @@ import Foundation
 
 @MainActor
 final class TheatrePlayback: ObservableObject {
-    let native: SSNPlayback
+    let native: SSNPlayback?
+    let localTest: LocalTestStream?
     @Published private(set) var contentGate: MarkedContentGate?
     private var requested = false
     private var cancelled = false
@@ -30,10 +31,16 @@ final class TheatrePlayback: ObservableObject {
     @Published private(set) var error = 0
     @Published private(set) var paused = false
     @Published private(set) var muted = false
-    init(channel: String, preview: Bool = false) { native = SSNPlayback(channel: channel, preview: preview) }
+    init(channel: String, preview: Bool = false, localTest: LocalTestStream? = nil) {
+        self.localTest = localTest
+        // Fail closed for a local origin even in builds where tools are disabled.
+        native = localTest == nil ? SSNPlayback(channel: channel, preview: preview) : nil
+        muted = preview
+    }
     func enterTheatre() {
         guard contentIsValid else { return }
-        if native.enterTheatre() { native.isMuted = false }
+        if localTest != nil { muted = true; return }
+        if native?.enterTheatre() == true { native?.isMuted = false }
         update()
     }
     func start() {
@@ -43,18 +50,26 @@ final class TheatrePlayback: ObservableObject {
             if !requested { requested = true; contentGate.start() }
             return
         }
-        requested = true; native.start(); update()
+        requested = true
+        if let localTest {
+            phase = DevelopmentTools.enabled ? localTest.status.phase : 7
+            error = DevelopmentTools.enabled ? 0 : 2; muted = true
+            return
+        }
+        native?.start(); update()
     }
     func startIfNeeded() { if !cancelled && !requested && phase == 0 { start() } }
-    func setMuted(_ muted: Bool) { native.isMuted = muted; update() }
+    func setMuted(_ muted: Bool) { if localTest != nil { self.muted = true; return }; native?.isMuted = muted; update() }
     func stop() {
         cancelled = true; requested = false
         let gate = contentGate; contentGate = nil; gate?.close()
-        native.stop(); update()
+        if localTest != nil { phase = 0; return }
+        native?.stop(); update()
     }
-    func togglePaused() { native.isPaused.toggle(); update() }
-    func toggleMuted() { native.isMuted.toggle(); update() }
+    func togglePaused() { guard let native else { return }; native.isPaused.toggle(); update() }
+    func toggleMuted() { guard let native else { return }; native.isMuted.toggle(); update() }
     func update() {
+        guard let native else { return }
         if paused != native.isPaused { paused = native.isPaused }
         if muted != native.isMuted { muted = native.isMuted }
         if phase != native.phase { phase = native.phase }

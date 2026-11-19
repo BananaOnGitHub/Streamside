@@ -36,12 +36,18 @@ final class NativeServices: ObservableObject, AccountService {
     @Published private(set) var originalLaunchPending = false
     @Published private(set) var launchError = 0
     private let bridge = SSNNativeBridge.shared()
+    let testStreams = LocalTestStreamStore()
+    var localTestsAvailable: Bool { DevelopmentTools.enabled && launchSelector && nativeMode }
+    var localTestChannel: FollowedChannel? { localTestsAvailable ? testStreams.channel : nil }
+    var presentationChannels: [FollowedChannel] { state.channels + [localTestChannel].compactMap { $0 } }
+    private var testChanges: AnyCancellable?
     private var changes: AnyCancellable?
 
     init() {
         changes = NotificationCenter.default.publisher(for: .SSNNativeServiceDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.reloadSnapshot() }
+        testChanges = testStreams.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         reloadSnapshot()
     }
 
@@ -95,6 +101,7 @@ final class NativeServices: ObservableObject, AccountService {
         }
     }
     func contentLabels(_ channel: FollowedChannel) async -> [String]? {
+        if let local = channel.localTest { return localTestsAvailable ? local.contentLabels : nil }
         guard !channel.channelID.isEmpty else { return nil }
         let request = SSNContentLabels(channelID: channel.channelID)
         defer { request.cancel() }

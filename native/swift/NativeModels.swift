@@ -20,7 +20,8 @@ struct FollowedChannel: Identifiable, Equatable {
     var thumbnailRestricted = false
     var playbackAllowed = true
     var channelID = ""
-    var id: String { username }
+    var localTest: LocalTestStream? = nil
+    var id: String { localTest == nil ? username : "dev.streamside.local-test" }
 
     init(username: String, displayName: String) {
         self.username = username; self.displayName = displayName

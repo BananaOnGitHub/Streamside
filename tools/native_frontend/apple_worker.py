@@ -38,11 +38,13 @@ def main():
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
     common=['-target','arm64-apple-ios16.4','-isysroot',sdk,'-Os','-fblocks','-Wall','-Wextra','-Werror',
             '-fvisibility=hidden','-DSSN_SWIFTUI=1','-DSSN_DEV_LAUNCH_SELECTOR='+str(int(config['mode']=='native')),'-Inative','-Isrc','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
+    development=['-DSSN_DEVELOPMENT'] if config['mode']=='native' else []
+    info['development_tools']=bool(development)
     swift=['native/swift/'+p.name for p in sorted((root/'native/swift').glob('*.swift'))]
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-O','-swift-version','5','-warnings-as-errors',
          '-module-name','StreamsideNativeProof','-import-objc-header','native/SSNNativeBridge.h',
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
-         '-o','output/SwiftFrontend.o']+swift, label='Compile SwiftUI frontend for iPhone')
+         '-o','output/SwiftFrontend.o']+development+swift, label='Compile SwiftUI frontend for iPhone')
     objects=['output/SwiftFrontend.o']
     for name in ['SSNContentLabels.c','SSNContentLabels.m','SSNAdBlock.m','SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
@@ -58,8 +60,10 @@ def main():
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
-    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests'])
+    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests']+development)
     info['model_tests']=run([str(output/'models-tests')], label='Test account, feed, repeated render direction and presentation models')
+    if 'PASS: local test data' not in info['model_tests']:
+        raise ValueError('Local test data and development isolation regression missing')
     if 'PASS: marked thumbnail preference' not in info['model_tests']:
         raise ValueError('Existing thumbnail preference regression evidence missing')
     if 'PASS: duplicate render direction' not in info['model_tests']:
@@ -74,8 +78,8 @@ def main():
     if not observed.startswith('CONTENT_LABELS PASS:') or 'PASS: marked consent' not in info['model_tests']:
         raise ValueError('Marked-content validation evidence missing')
     run(['xcrun','swiftc','-O','-swift-version','5','-warnings-as-errors',
-         'native/swift/NativeModels.swift','native/swift/MarkedContentGate.swift','native/swift/TheatrePlayback.swift',
-         'tests/native_frontend/swift/PlaybackAdmissionTests.swift','-o','output/admission-tests'], label='Build shared inline preview/player consent ownership tests')
+         'native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/MarkedContentGate.swift','native/swift/TheatrePlayback.swift',
+         'tests/native_frontend/swift/PlaybackAdmissionTests.swift','-o','output/admission-tests']+development, label='Build shared inline preview/player consent ownership tests')
     admission=run([str(output/'admission-tests')], label='Test deferred media, pending Watch, thumbnail choice and cancellation')
     if not admission.startswith('INLINE_ADMISSION PASS:'):
         raise ValueError('Inline playback admission evidence missing')
@@ -128,7 +132,7 @@ def test_window_ownership(root, output, config, run):
     run(['xcrun','swiftc','-target',architecture+'-apple-ios16.4-simulator','-sdk',simulator_sdk,
          '-swift-version','5','-warnings-as-errors','-parse-as-library',
          'native/swift/AnchoredPreviewController.swift','native/swift/QuickLookController.swift','native/swift/ThumbnailActions.swift','native/swift/ContextPreviewSession.swift',
-         'native/swift/StreamTags.swift','native/swift/NativeModels.swift',
+         'native/swift/StreamTags.swift','native/swift/NativeModels.swift','native/swift/LocalTestStream.swift',
          'tests/native_frontend/swift/QuickLookTests.swift','-o',str(preview_bundle/'QuickLookTest')],
          label='Build anchored-preview ownership and source-target tests')
     run(['codesign','--force','--sign','-','--timestamp=none',str(preview_bundle)])

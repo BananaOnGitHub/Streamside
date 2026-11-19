@@ -5,11 +5,11 @@ import UIKit
 private struct QuickLookDetails: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
-    private var current: FollowedChannel { services.state.channels.first { $0.id == channel.id } ?? channel }
+    private var current: FollowedChannel { services.presentationChannels.first { $0.id == channel.id } ?? channel }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                RemoteChannelImage(url: current.avatarURL, images: services.images, generation: services.imageGeneration, avatar: true)
+                RemoteChannelImage(url: current.avatarURL, images: services.images, generation: services.imageGeneration, localImage: current.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                     .frame(width: 36, height: 36).clipShape(Circle())
                     .overlay { LiveRing(clock: services.clock) }
                 VerifiedChannelName(channel: current).font(.headline)
@@ -35,8 +35,10 @@ private struct QuickLookContent: View {
         QuickLookPanel(width: width, detailsHeight: detailsHeight) {
             if let gate = playback.contentGate {
                 MarkedContentWarning(gate: gate)
-            } else {
-                PassivePlayerSurface(surface: playback.native.view, topCornerRadius: 24)
+            } else if playback.localTest != nil {
+                LocalTestMedia()
+            } else if let native = playback.native {
+                PassivePlayerSurface(surface: native.view, topCornerRadius: 24)
                     .overlay(alignment: .bottomTrailing) {
                         Image(systemName: "speaker.slash.fill").font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.white).padding(5)
@@ -65,7 +67,7 @@ enum NativeQuickLook {
     static func session(channel: FollowedChannel, services: NativeServices, source: UIView,
                         claim: @escaping (UUID) -> Bool, release: @escaping (UUID) -> Void,
                         handoff: @escaping (TheatrePlayback) -> Bool) -> ContextPreviewSession {
-        let playback = TheatrePlayback(channel: channel.username, preview: true)
+        let playback = TheatrePlayback(channel: channel.username, preview: true, localTest: channel.localTest)
         playback.setMuted(true) // Intent precedes authorization and IVS load/play.
         let account = services.state.account
         weak var transaction: ContextPreviewSession?
@@ -91,7 +93,7 @@ enum NativeQuickLook {
         let preview = QuickLookController(content: content, size: CGSize(width: width, height: width * 9 / 16 + height))
         let session = ContextPreviewSession(controller: preview, claim: claim, release: release, valid: {
             UIApplication.shared.applicationState == .active && services.state.session == .authenticated &&
-                services.state.account == account && playback.native.errorCode != 1
+                services.state.account == account && playback.native?.errorCode != 1
         }, start: playback.start, stop: playback.stop, handoff: { handoff(playback) })
         session.videoTapAvailability = playback.$contentGate.map { $0 == nil }.eraseToAnyPublisher()
         transaction = session

@@ -11,7 +11,7 @@ private struct TheatreContent: View {
     @State private var overlayPresented = false
     @State private var voiceOver = UIAccessibility.isVoiceOverRunning
     private var currentChannel: FollowedChannel {
-        services.state.channels.first { $0.id == channel.id } ?? channel
+        services.presentationChannels.first { $0.id == channel.id } ?? channel
     }
     private func interact() { controls.reveal(now: ProcessInfo.processInfo.systemUptime) }
     init(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback, close: @escaping () -> Void) {
@@ -24,8 +24,15 @@ private struct TheatreContent: View {
                 // The canvas owns video geometry, not the warning's ideal size.
                 Color.black.aspectRatio(16.0 / 9.0, contentMode: .fit)
                     .overlay { MarkedContentWarning(gate: gate) }
-            } else {
-                PlayerCanvas(surface: playback.native.view, toggleControls: {
+            } else if playback.localTest != nil {
+                LocalTestMedia().aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .overlay(alignment: .topLeading) {
+                        Button { playback.stop(); close() } label: {
+                            Image(systemName: "chevron.down").padding(12).background(.regularMaterial, in: Circle())
+                        }.accessibilityLabel("Close local test stream").padding(8)
+                    }
+            } else if let native = playback.native {
+                PlayerCanvas(surface: native.view, toggleControls: {
                     SSNPlayerControlEvent(0)
                     controls.toggle(now: ProcessInfo.processInfo.systemUptime)
                 }) {
@@ -39,7 +46,7 @@ private struct TheatreContent: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     RemoteChannelImage(url: currentChannel.avatarURL, images: services.images,
-                        generation: services.imageGeneration, avatar: true)
+                        generation: services.imageGeneration, localImage: currentChannel.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                         .frame(width: 32, height: 32).clipShape(Circle())
                     VerifiedChannelName(channel: currentChannel).font(.headline)
                 }
@@ -84,7 +91,7 @@ private struct TheatreContent: View {
             // guard. Do not reload thumbnails or poll when the app is inactive.
             while !Task.isCancelled {
                 do { try await Task.sleep(nanoseconds: 30_000_000_000) } catch { return }
-                if UIApplication.shared.applicationState == .active && playback.contentGate == nil && playback.phase != 6 && playback.phase != 7 { services.refreshPlayerInfo() }
+                if playback.localTest == nil && UIApplication.shared.applicationState == .active && playback.contentGate == nil && playback.phase != 6 && playback.phase != 7 { services.refreshPlayerInfo() }
             }
         }
     }
@@ -106,7 +113,7 @@ private final class PortraitTheatreController: UIHostingController<TheatreConten
 @MainActor
 enum NativeTheatre {
     static func controller(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback? = nil, close: @escaping () -> Void) -> UIViewController {
-        let owned = playback ?? TheatrePlayback(channel: channel.username)
+        let owned = playback ?? TheatrePlayback(channel: channel.username, localTest: channel.localTest)
         let account = services.state.account
         owned.bindContentOwner(valid: {
             UIApplication.shared.applicationState == .active && SSNNavigationPermitted() &&

@@ -43,6 +43,7 @@ class ComponentAdmission(unittest.TestCase):
                             xcode="Xcode " + pin["xcode_version"] + "\nBuild version " + pin["xcode_build"], sdk_version=pin["iphoneos_sdk"],
                             model_tests="PASS: synthetic fixture",
                             uikit_ownership_tests=dict(quicklook_receipt=dict(passed=True,failures=[],source_target=True,hold_cancellation=True,unblocked_return=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True,consent_before_preview=True),controls_ui_receipt=dict(passed=True,tests=5,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True,inline_consent=True,pending_watch=True) if mode=='native' else None,launch_receipt=[dict(stage=i,passed=True,native=i!=1,pending=i==0,origin=2 if i==1 else 1) for i in range(3)],playback_receipt={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion']},title_interaction_receipt=dict(title_measurement=True,haptic_pattern=True),clock_receipt=dict(passed=True,ticking=True,paused=True,resumed=True),result="PASS",receipt=dict(passed=True,native=mode=="native",blocked=2 if mode=="native" else 0,failures=0)), codesign="ad-hoc; IPA still requires device-authorized re-signing")
+            compiler["development_tools"]=mode=="native"
             compiler["marked_content_tests"]=dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True,inline_admission=True)
             compiler["adblock_tests"]={k:True for k in ["passed","default_enabled","disabled_passthrough","baseline_untouched","native_tokens","clean_alternate","fallback_segments","stream_isolation","cancellation","account_change","preference_restoration"]}
             (directory / "compiler.json").write_text(json.dumps(compiler))
@@ -59,6 +60,17 @@ class ComponentAdmission(unittest.TestCase):
 
     def test_complete_source_matched_components(self):
         verify(self.directory, self.revision)
+
+    def test_development_tools_cannot_be_missing_or_enabled_in_control(self):
+        for mode, value in [('native', None), ('native', False), ('baseline', True)]:
+            path = self.directory / mode / 'compiler.json'
+            original = path.read_text(); compiler = json.loads(original)
+            if value is None: compiler.pop('development_tools')
+            else: compiler['development_tools'] = value
+            path.write_text(json.dumps(compiler)); self.record()
+            with self.assertRaisesRegex(ValueError, 'Development tool build isolation'):
+                verify(self.directory, self.revision)
+            path.write_text(original); self.record()
 
     def test_missing_launch_validation_is_rejected(self):
         path=self.directory/'native/compiler.json'

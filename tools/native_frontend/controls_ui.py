@@ -7,7 +7,7 @@ import plistlib
 import re
 import zipfile
 
-SOURCES = ['tests/native_frontend/swift/RenderedFrameDirection.swift','native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/LocalTestStream.swift','native/swift/LocalTestStreamViews.swift','tests/native_frontend/swift/LocalTestEditorFixture.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
@@ -34,7 +34,7 @@ def project(root, stage):
         (ui_files if name.endswith('PlayerInputTests.swift') else app_files).append(build)
     products=obj('PBXGroup',children=[app_product,ui_product],name='Products',sourceTree='<group>')
     group=obj('PBXGroup',children=refs+[products],sourceTree='<group>')
-    common=dict(SDKROOT='iphonesimulator',IPHONEOS_DEPLOYMENT_TARGET='16.4',SWIFT_VERSION='5.0',
+    common=dict(SDKROOT='iphonesimulator',IPHONEOS_DEPLOYMENT_TARGET='16.4',SWIFT_VERSION='5.0',SWIFT_ACTIVE_COMPILATION_CONDITIONS='SSN_DEVELOPMENT',
                 SWIFT_TREAT_WARNINGS_AS_ERRORS='YES',CODE_SIGNING_ALLOWED='NO',TARGETED_DEVICE_FAMILY='1',GENERATE_INFOPLIST_FILE='YES')
     def configs(extra):
         return obj('XCConfigurationList',buildConfigurations=[obj('XCBuildConfiguration',name='Debug',buildSettings={**common,**extra})],defaultConfigurationIsVisible=0,defaultConfigurationName='Debug')
@@ -140,6 +140,8 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Swipe dismissal and verification-settings UI checks must pass')
     if 'CONTEXT_VIDEO PASS:' not in observed:
         raise ValueError('Actual changing decoded video and clipping checks must pass')
+    if 'LOCAL_TEST_EDITOR PASS:' not in observed:
+        raise ValueError('Actual development test stream editor create/remove must pass')
     if 'MARKED_PENDING_WATCH PASS:' not in observed:
         raise ValueError('Pending preview Watch must retain consent without starting media')
     if 'MARKED_CONTENT_UI PASS:' not in observed:

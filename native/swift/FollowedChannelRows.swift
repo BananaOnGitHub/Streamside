@@ -5,14 +5,16 @@ struct RemoteChannelImage: View {
     let url: URL?
     let images: ChannelImageCache
     let generation: UInt64
+    var localImage: UIImage? = nil
     var avatar = false
     var restricted = false
     var thumbnailActions: ThumbnailActions?
     @State private var image: UIImage?
     private var requestID: String { "\(generation)|\(restricted)|\(url?.absoluteString ?? "")" }
+    private var displayedImage: UIImage? { localImage ?? image }
     private var configuredActions: ThumbnailActions? {
         var actions = thumbnailActions
-        actions?.image = restricted ? nil : image
+        actions?.image = restricted ? nil : displayedImage
         return actions
     }
     var body: some View {
@@ -20,10 +22,10 @@ struct RemoteChannelImage: View {
             Color(uiColor: .secondarySystemBackground)
             if let actions = configuredActions {
                 actions
-                if image == nil || restricted {
+                if displayedImage == nil || restricted {
                     Image(systemName: restricted ? "eye.slash" : "photo").foregroundStyle(.secondary).allowsHitTesting(false)
                 }
-            } else if let image, !restricted { Image(uiImage: image).resizable().scaledToFill() }
+            } else if let image = displayedImage, !restricted { Image(uiImage: image).resizable().scaledToFill() }
             else { Image(systemName: avatar ? "person.fill" : restricted ? "eye.slash" : "photo").foregroundStyle(.secondary) }
         }
         .clipped()
@@ -95,7 +97,7 @@ struct LiveChannelRow: View {
         }
     }
     private var thumbnail: some View {
-        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, restricted: !channel.playbackAllowed || (channel.thumbnailRestricted && !markedThumbnails),
+        RemoteChannelImage(url: channel.thumbnailURL, images: images, generation: generation, localImage: channel.localTest == nil ? nil : LocalTestArtwork.thumbnail, restricted: !channel.playbackAllowed || (channel.thumbnailRestricted && !markedThumbnails),
                            thumbnailActions: ThumbnailActions(label: channel.displayName + " stream thumbnail", open: open, preview: preview, authorizePreview: authorizePreview))
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .overlay(alignment: .bottomTrailing) {
@@ -108,7 +110,7 @@ struct LiveChannelRow: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, avatar: true)
+                RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, localImage: channel.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                     .frame(width: 22, height: 22)
                     .clipShape(Circle())
                     .overlay { LiveRing(clock: clock) }
@@ -140,7 +142,7 @@ struct OfflineChannelRow: View {
     let generation: UInt64
     var body: some View {
         HStack(spacing: 10) {
-            RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, avatar: true)
+            RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, localImage: channel.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                 .frame(width: 28, height: 28).clipShape(Circle())
             VerifiedChannelName(channel: channel)
             Spacer()

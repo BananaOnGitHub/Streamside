@@ -85,7 +85,7 @@ private struct MarkedWarningFixtureSlot: View {
             Text("Fixture channel identity and stream details remain visible").padding(12)
             Text(verbatim: "warnings=\(state.warnings) thumbnails=\(state.thumbnails)")
                 .accessibilityIdentifier("marked.preferences")
-            Text(verbatim: "starts=\(playback.native.startCount)")
+            Text(verbatim: "starts=\(playback.native!.startCount)")
                 .accessibilityIdentifier("marked.media-starts")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -101,7 +101,7 @@ struct MarkedWarningFixture: View {
                 Text("Closed")
                 Text(verbatim: "warnings=\(state.warnings) thumbnails=\(state.thumbnails)")
                     .accessibilityIdentifier("marked.preferences")
-                Text(verbatim: "starts=\(state.playback.native.startCount)")
+                Text(verbatim: "starts=\(state.playback.native!.startCount)")
                     .accessibilityIdentifier("marked.media-starts")
             }
             else if state.showingTheatre {

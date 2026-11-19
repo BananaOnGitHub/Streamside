@@ -21,6 +21,26 @@ final class PlayerInputTests: XCTestCase {
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false
+        let editor = XCUIApplication(); testedApp = editor
+        editor.launchArguments = ["--local-test-editor"]; editor.launch()
+        XCTAssertTrue(editor.buttons["Local test stream"].waitForExistence(timeout: 5))
+        editor.buttons["Local test stream"].tap()
+        let enabled = editor.switches["Show local test stream"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 5))
+        enabled.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        editor.buttons["Save"].tap()
+        XCTAssertTrue(editor.staticTexts["local-fixture-name"].waitForExistence(timeout: 5))
+        XCTAssertEqual(editor.staticTexts["local-fixture-name"].label, "Local test · Test channel")
+        editor.buttons["Local test stream"].tap()
+        let remove = editor.buttons["Remove local test stream"]
+        for _ in 0..<5 {
+            if remove.isHittable { break }
+            editor.swipeUp()
+        }
+        XCTAssertTrue(remove.isHittable); remove.tap()
+        XCTAssertTrue(editor.staticTexts["No local test stream"].waitForExistence(timeout: 5))
+        editor.terminate()
+        print("LOCAL_TEST_EDITOR PASS: development create, followed-entry projection and removal")
         // Preview acceptance is checked both before and after Watch handoff.
         // The first path must restore the real video tap target on admission.
         let cases = [(false, false, false, false), (false, true, false, false),

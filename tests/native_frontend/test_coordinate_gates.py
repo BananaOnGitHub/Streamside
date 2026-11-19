@@ -14,7 +14,7 @@ class CoordinateGates(unittest.TestCase):
     names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
              'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap']
     markers = {
-        'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH'],
+        'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH', 'LOCAL_TEST_EDITOR'],
         'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS'],
         'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS'],
         'testPreviewPanelLayoutAndActions': ['PREVIEW_PANEL', 'PREVIEW_SWIPES', 'CONTEXT_VIDEO'],

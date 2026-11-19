@@ -80,3 +80,28 @@ requirements and also requires the full expected video width, so a smaller box
 with the correct ratio cannot pass. Larger centered controls and the long-label
 scroll fallback remain. All 94 host checks passed; corrected Apple layout and
 physical-device appearance remain pending.
+
+## Second polish build: physical card boundary for containment
+
+Source `9d5e1ebb95daf76bc5e79e80bd8d3174aad495b5` passed all seven inline consent
+cases, including enabled-thumbnail admission, centered larger controls and the
+full-width canvas. Both glass/plain animation and rendered-pixel tests passed.
+The [second failure record](SWIFTUI_MARKED_CONTENT_INLINE_POLISH_BUILD_FAILURE_2.json)
+preserves a subsequent status-containment failure in the first short preview.
+
+The test compared the footer against SwiftUI's tight accessibility content bounds
+(345 points tall), while the actual rounded UIKit card was 358.1 points tall.
+The former excludes bottom padding and ended at the footer text. The screenshot
+shows the text and spinner inside the actual card. Archived hierarchy values are
+rounded; this finding does not assert a precise floating-point edge difference.
+
+The corrected test identifies the actual QuickLookController view that owns
+corner clipping and checks its full video-plus-details dimensions before using
+its bounds. Its identifier leaves the view a container rather than a VoiceOver
+leaf. Text/spinner containment remains required before and after long-details
+scrolling, with an additional minimum 10-point bottom clearance. Menu separation
+and compact sizing use the same physical boundary. The SwiftUI content container
+continues to own scroll queries. Actual changing decoded video, corner clipping
+and single-player Watch checks remain mandatory. No visual, playback, preference
+or navigation behavior changes in this correction. All 94 host checks passed;
+corrected Apple execution and physical-device validation remain pending.

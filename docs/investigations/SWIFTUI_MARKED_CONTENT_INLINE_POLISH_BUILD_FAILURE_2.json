@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "failed_source_revision": "9d5e1ebb95daf76bc5e79e80bd8d3174aad495b5",
+  "failed_build": {
+    "provider": "codemagic",
+    "id": "6afe3befd133a39c4a12ed22",
+    "url": "https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afe3befd133a39c4a12ed22",
+    "status": "failed",
+    "artifacts": [
+      {
+        "name": "player-input-failure.zip",
+        "local": "artifact-0.zip",
+        "bytes": 901684,
+        "sha256": "ed99a9543f9d2d007cd611d71c96cd1173856746183034b28a03d8380cc3b542"
+      },
+      {
+        "name": "Streamside_29_artifacts.zip",
+        "local": "artifact-1.zip",
+        "bytes": 47433,
+        "sha256": "237ee1f39422f9340baadeaf8acf3b32dd87f5ab7493e3a48fb2acce0de7e4fd"
+      }
+    ],
+    "validation": {
+      "schema": 1,
+      "source_revision": "9d5e1ebb95daf76bc5e79e80bd8d3174aad495b5",
+      "passed": false,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 2.718
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.103
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": false,
+          "seconds": 716.06
+        }
+      ]
+    },
+    "stage_2_log_sha256": "7e43257b00e021e50d9ffd352a58a61489ad0ee7e99d5b7947191ea1e46ca77a",
+    "owned_screenshot": {
+      "sha256": "c89f8d7fcd395984c0bed6d2f5c2463377a7f71c7460ddc4175763af8f0482e0",
+      "scope": "Owned decoded-video fixture. Footer text and spinner are visibly inside the rounded card with bottom clearance."
+    }
+  },
+  "evidence_location": "artifacts/archive/marked-content-failures/polish-failure-2 (outside repository)",
+  "completed": [
+    "Production compilation, existing thumbnail preference regression and earlier native gates",
+    "All seven inline consent cases, including enabled thumbnails and full-width centered warning geometry (115.956 seconds)",
+    "Glass controls coordinate/pixel tests (162.100 seconds)",
+    "Plain controls coordinate/pixel tests (149.327 seconds)"
+  ],
+  "failed_test": {
+    "name": "testPreviewPanelLayoutAndActions",
+    "line": 219,
+    "observation": "First short-preview case rejects card.frame.contains(status.frame) even though the text exists, is hittable and screenshot shows bottom padding. The accessibility card bounds end at the footer content rather than the actual rounded UIKit boundary."
+  },
+  "geometry": {
+    "uikit_container": {
+      "x": 16,
+      "y": 200.6,
+      "width": 370,
+      "height": 358.1
+    },
+    "swiftui_content_bounds": {
+      "x": 16,
+      "y": 200.6,
+      "width": 370,
+      "height": 345
+    },
+    "status_text": {
+      "x": 56,
+      "y": 531.3,
+      "width": 62,
+      "height": 14.3
+    },
+    "spinner": {
+      "x": 33,
+      "y": 531.6,
+      "width": 14,
+      "height": 14
+    },
+    "precision": "Values are rounded in the archived hierarchy; no full-precision floating-point edge claim is made."
+  },
+  "cause": "The new test used SwiftUI children-containment accessibility bounds, which exclude the card bottom padding, as if they were the physical clipping rectangle. Containment must refer to the actual QuickLookController UIView layer boundary.",
+  "fix": "Give that real UIKit clipping container a stable accessibility identifier without making it a VoiceOver leaf. Query its actual bounds for containment, menu separation, sizing and footer clearance. Keep text/spinner full containment before/after details scrolling and add at least 10 points bottom padding. Check expected card width and full video-plus-details height to prevent selecting an enclosing screen instead.",
+  "not_changed": [
+    "Production warning geometry, saved-thumbnail behavior, status layout, audio/player ownership and native lifecycle",
+    "Mandatory decoded colors, real corner clipping, single-player handoff and five-test success requirements"
+  ],
+  "not_validated": [
+    "Corrected Apple boundary query and remaining preview/thumbnail coordinate execution",
+    "Replacement component assembly or physical-device results"
+  ],
+  "local_validation": {
+    "passed": true,
+    "native_host_tests": 94,
+    "seconds": 11.828,
+    "log_sha256": "dac7ceff36ecb6051abc6f3b4829dbf8aa79e38932ee1f80dde66d55a7db0d70",
+    "scope": "Linux host/donor/orchestration only. UIKit boundary accessibility and pixels require Apple execution."
+  },
+  "replacement_apple_result": "Pending; no replacement success claimed."
+}

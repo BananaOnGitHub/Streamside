@@ -202,27 +202,42 @@ final class PlayerInputTests: XCTestCase {
         if bytes[2] > 140 && bytes[1] < 70 && bytes[0] < 70 { return 1 }
         return nil
     }
+    private func assertPreviewStatus(_ status: XCUIElement, spinner: XCUIElement, inside bounds: CGRect,
+                                     file: StaticString = #filePath, line: UInt = #line) {
+        // Actual clipping boundary, not the accessibility union of text glyphs.
+        // Require the real bottom inset as well as full text/spinner containment.
+        for element in [status, spinner] {
+            XCTAssertTrue(bounds.contains(element.frame), "Status must be fully inside the rounded card", file: file, line: line)
+            XCTAssertGreaterThanOrEqual(bounds.maxY - element.frame.maxY, 10,
+                "Footer must retain its bottom padding", file: file, line: line)
+        }
+    }
     func testPreviewPanelLayoutAndActions() {
         continueAfterFailure = false
         for (long, commit) in [(false, false), (false, true), (true, false)] {
             let app = contextApp(long ? ["--long-panel"] : [])
             openContext(app)
             let card = app.otherElements["quicklook.card"].firstMatch
+            let boundary = app.otherElements["quicklook.bounds"].firstMatch
             let watch = app.buttons["Watch stream"]
             let video = app.descendants(matching: .any)["fixture.preview-video"].firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 5))
+            XCTAssertTrue(boundary.waitForExistence(timeout: 5))
             XCTAssertTrue(video.waitForExistence(timeout: 5))
             let status = app.staticTexts["Buffering…"]
             let spinner = app.descendants(matching: .any)["quicklook.buffering-spinner"].firstMatch
             XCTAssertTrue(status.waitForExistence(timeout: 5)); XCTAssertTrue(status.isHittable)
             XCTAssertTrue(spinner.waitForExistence(timeout: 5))
-            XCTAssertTrue(card.frame.contains(status.frame)); XCTAssertTrue(card.frame.contains(spinner.frame))
+            assertPreviewStatus(status, spinner: spinner, inside: boundary.frame)
             let statusFrame = status.frame
             let frame = video.frame
+            XCTAssertEqual(boundary.frame.width, frame.width, accuracy: 1)
+            XCTAssertEqual(boundary.frame.height, frame.height + (long ? 220 : 150), accuracy: 1,
+                "Status containment must use the actual sized, rounded UIKit card")
             XCTAssertEqual(frame.height, frame.width * 9 / 16, accuracy: 1, "Preview video must remain landscape")
-            XCTAssertGreaterThan(watch.frame.minY, card.frame.maxY, "Separate glass action menu must be below the preview")
-            XCTAssertLessThan(watch.frame.width, card.frame.width, "Glass action menu should be compact")
-            XCTAssertGreaterThanOrEqual(card.frame.minY, app.frame.minY + 10)
+            XCTAssertGreaterThan(watch.frame.minY, boundary.frame.maxY, "Separate glass action menu must be below the preview")
+            XCTAssertLessThan(watch.frame.width, boundary.frame.width, "Glass action menu should be compact")
+            XCTAssertGreaterThanOrEqual(boundary.frame.minY, app.frame.minY + 10)
             var colors = Set<Int>()
             for _ in 0..<24 {
                 if let color = videoColor(CGPoint(x: frame.midX, y: frame.midY), in: app) { colors.insert(color) }
@@ -233,7 +248,7 @@ final class PlayerInputTests: XCTestCase {
             XCTAssertNil(videoColor(CGPoint(x: frame.minX + 1, y: frame.minY + 1), in: app), "The real upper-left video corner must be clipped")
             XCTAssertNil(videoColor(CGPoint(x: frame.maxX - 1, y: frame.minY + 1), in: app), "The real upper-right video corner must be clipped")
             if !long {
-                XCTAssertLessThan(card.frame.height, frame.height + 230, "Short details must not produce a tall empty panel")
+                XCTAssertLessThan(boundary.frame.height, frame.height + 230, "Short details must not produce a tall empty panel")
             } else {
                 for _ in 0..<8 {
                     if app.staticTexts["preview-last-detail"].isHittable { break }
@@ -244,7 +259,7 @@ final class PlayerInputTests: XCTestCase {
                 XCTAssertEqual(video.frame.minY, frame.minY, accuracy: 1, "Scrolling details must not move the video")
                 XCTAssertTrue(status.isHittable)
                 XCTAssertEqual(status.frame.minY, statusFrame.minY, accuracy: 1, "Buffering status stays outside the scrolling details")
-                XCTAssertTrue(card.frame.contains(status.frame)); XCTAssertTrue(card.frame.contains(spinner.frame))
+                assertPreviewStatus(status, spinner: spinner, inside: boundary.frame)
             }
             if commit {
                 let point = CGVector(dx: (frame.midX - app.frame.minX) / app.frame.width, dy: (frame.midY - app.frame.minY) / app.frame.height)

@@ -14,6 +14,10 @@ final class QuickLookController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear; view.isOpaque = false
+        // Identify the real clipping boundary separately from SwiftUI's tight
+        // accessibility content union, which can exclude the card's padding.
+        // Keep this a container so VoiceOver still reaches its content normally.
+        view.accessibilityIdentifier = "quicklook.bounds"
         content.view.backgroundColor = .clear; content.view.isOpaque = false
         view.layer.cornerRadius = 24; view.layer.cornerCurve = .continuous
         view.layer.masksToBounds = true

@@ -184,6 +184,8 @@ import UIKit
             targets.append(ending)
         })
         check(preview.install(in: root), "Install root child")
+        check(content.view.accessibilityIdentifier == "quicklook.bounds" && !content.view.isAccessibilityElement,
+            "Clip boundary remains an identified container without hiding preview accessibility children")
         check(preview.parent === root && root.presentedViewController == nil && source.isHidden, "Child ownership preserves root and lifts source")
         preview.dismiss(watching: false) {
             self.check(preview.parent == nil && !source.isHidden && targets == [false, true], "Interrupted lift restores source and detaches once")

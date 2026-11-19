@@ -105,3 +105,22 @@ continues to own scroll queries. Actual changing decoded video, corner clipping
 and single-player Watch checks remain mandatory. No visual, playback, preference
 or navigation behavior changes in this correction. All 94 host checks passed;
 corrected Apple execution and physical-device validation remain pending.
+
+## Successful polish build: 91630d0
+
+[Codemagic build 6afe46efd133a39c4a12f044](https://codemagic.io/app/6af941a4db82100031adf1d4/build/6afe46efd133a39c4a12f044)
+passed all six CI stages for source
+`91630d004b260f0e27775af29616da6a1da552f9`. Its
+[validation record](SWIFTUI_MARKED_CONTENT_INLINE_POLISH_VALIDATION.json) contains
+source/proof/toolchain identities, receipts, archive/IPA hashes and reproduction
+inputs. All five coordinate tests passed, including all seven consent cases,
+full-width compact warning geometry, enabled-thumbnail admission in both views,
+and status text/spinner containment with bottom clearance before/after scrolling.
+Glass/plain fade pixels and all three decoded-video handoffs also passed.
+
+The downloaded components passed 66 host checks. Local native-only IPA assembly
+verified the exact Twitch 32.0 donor, all retained entries and unchanged HBC.
+No separate baseline IPA, remote donor transfer or signing-material upload was
+needed. The earlier failed records retain their original scope. These results establish
+Apple/synthetic and package validation; the revised warning appearance, real
+preference combinations and loading status still require device review.

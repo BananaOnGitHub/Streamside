@@ -46,7 +46,7 @@ def main():
          '-emit-objc-header-path','output/SSNSwiftUI-Swift.h','-emit-object','-whole-module-optimization',
          '-o','output/SwiftFrontend.o']+development+swift, label='Compile SwiftUI frontend for iPhone')
     objects=['output/SwiftFrontend.o']
-    for name in ['SSNContentLabels.c','SSNContentLabels.m','SSNAdBlock.m','SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
+    for name in ['SSNProfileRequest.c','SSNProfile.m','SSNContentLabels.c','SSNContentLabels.m','SSNAdBlock.m','SSNLaunch.c','SSNLaunchPreferences.m','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNPlayback.m','SSNNativeBridge.m','SSNWindowOwnership.m']:
         obj='output/'+name+'.o'
         run(['xcrun','clang']+common+(['-fobjc-arc'] if name in ['SSNWindowOwnership.m','SSNAdBlock.m'] else [])+['-c','native/'+name,'-o',obj])
         objects.append(obj)
@@ -85,6 +85,17 @@ def main():
     admission=run([str(output/'admission-tests')], label='Test deferred media, pending Watch, thumbnail choice and cancellation')
     if not admission.startswith('INLINE_ADMISSION PASS:'):
         raise ValueError('Inline playback admission evidence missing')
+    run(['xcrun','clang','-fblocks','-Wall','-Wextra','-Werror','-Inative',
+         'native/SSNProfile.m','tests/native_frontend/profile_test.m','-framework','Foundation','-o','output/profile-tests'], label='Build native profile normalization and account lifetime fixture')
+    profile_native=run([str(output/'profile-tests')], label='Test profile privacy filtering, account change, cancellation and errors')
+    run(['xcrun','swiftc','-O','-swift-version','5','-warnings-as-errors',
+         'native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/ChannelProfileModel.swift',
+         'tests/native_frontend/swift/ProfileTests.swift','-o','output/profile-model-tests']+development,
+         label='Build profile data and follow/notification state tests')
+    profile_model=run([str(output/'profile-model-tests')], label='Test profile decoding, panels, mutations, verification and account loss')
+    if not profile_native.startswith('PROFILE_NATIVE PASS:') or not profile_model.startswith('PROFILE_MODEL PASS:'):
+        raise ValueError('Profile validation evidence missing')
+    info['profile_tests']=dict(native=True,model=True)
     info['marked_content_tests']=dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True,inline_admission=True)
     info['adblock_tests']={k:True for k in ['passed','default_enabled','disabled_passthrough','baseline_untouched','native_tokens','clean_alternate','fallback_segments','stream_isolation','cancellation','account_change','preference_restoration']}
     info['uikit_ownership_tests']=test_window_ownership(root, output, config, run)

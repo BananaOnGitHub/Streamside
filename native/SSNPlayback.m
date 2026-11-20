@@ -29,7 +29,7 @@ static BOOL qualityABI(void) {
     return q&&method_is(p,"qualities","@16@0:8",false)&&
         method_is(p,"setQuality:","v24@0:8@16",false)&&
         method_is(p,"setQuality:adaptive:","v28@0:8@16B24",false)&&
-        method_is(q,"name","@16@0:8",false);
+        method_is(q,"name","@16@0:8",false)&&method_is(q,"width","q16@0:8",false)&&method_is(q,"height","q16@0:8",false);
 }
 // SDK calls and UIKit detachment stay on main. Final SDK disposal is isolated
 // from audio mutations; SDK >=1.45 explicitly permits off-main deallocation.
@@ -143,6 +143,8 @@ static void reportPlayback(void) {
     NSMutableDictionary *objects=[NSMutableDictionary dictionary];NSMutableArray *names=[NSMutableArray array];
     for(id quality in source) {
         if(![quality isKindOfClass:NSClassFromString(@"IVSQuality")]) continue;
+        if(((NSInteger(*)(id,SEL))objc_msgSend)(quality,ss("width"))<=0 ||
+           ((NSInteger(*)(id,SEL))objc_msgSend)(quality,ss("height"))<=0) continue;
         id name=m0(quality,"name");
         if(![name isKindOfClass:NSString.class]||![name length]||[name length]>128||[name isEqual:@"auto"]||objects[name]) continue;
         objects[name]=quality;[names addObject:name];
@@ -290,7 +292,7 @@ static void reportPlayback(void) {
     url.queryItems=@[[NSURLQueryItem queryItemWithName:@"sig" value:signature],
                      [NSURLQueryItem queryItemWithName:@"token" value:token],
                      [NSURLQueryItem queryItemWithName:@"allow_source" value:@"true"],
-                     [NSURLQueryItem queryItemWithName:@"allow_audio_only" value:@"true"]];
+                     [NSURLQueryItem queryItemWithName:@"allow_audio_only" value:@"false"]];
     NSURL *source=url.URL;[url release];
     if(!source) { [self fail:4];return; }
     _qualitySupported=qualityABI();

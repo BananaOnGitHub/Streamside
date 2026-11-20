@@ -46,12 +46,14 @@ private struct TheatreContent: View {
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
+                Button { playback.stop(); SSNSwiftUIHost.profileFromTheatre(currentChannel) } label: {
+                    HStack(spacing: 10) {
                     RemoteChannelImage(url: currentChannel.avatarURL, images: services.images,
                         generation: services.imageGeneration, localImage: currentChannel.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                         .frame(width: 32, height: 32).clipShape(Circle())
                     VerifiedChannelName(channel: currentChannel).font(.headline)
-                }
+                    }
+                }.buttonStyle(.plain).accessibilityLabel("View " + currentChannel.displayName + " profile")
                 Text(currentChannel.title).font(.subheadline).lineLimit(2)
                 HStack {
                     if playback.phase == 1 || playback.phase == 2 || playback.phase == 4 { ProgressView() }

@@ -45,3 +45,15 @@ typedef SW Words2 (*PlaybackString)(uintptr_t);
 
 /* CCL query consumes String X0/X1, metatype swiftself X20. */
 typedef SW uintptr_t (*LabelsQueryInit)(uintptr_t,uintptr_t,const void * CTX);
+
+/* Twitch 32 generated profile and native mutation adapters. */
+typedef SW Response (*Meta3)(uintptr_t,const void*,const void*,const void*);
+typedef SW Response (*PackedMeta)(uintptr_t,const void*const*);
+typedef SW void (*NilValue)(void* OUT,const void*);
+typedef SW uintptr_t (*ProfileInit)(uintptr_t,uintptr_t,uint8_t,uintptr_t,uint8_t,uintptr_t,uint8_t,const void* CTX);
+typedef SW uintptr_t (*FollowInput)(uint8_t,uintptr_t,uintptr_t);
+typedef SW uintptr_t (*NotifyInput)(uintptr_t,uintptr_t,uintptr_t,uintptr_t,uint8_t);
+typedef SW void (*EnumInit)(void* OUT,uintptr_t,uintptr_t,const void*,const void*);
+typedef SW void (*Unwrap)(void* OUT,const void*,const void* CTX);
+typedef SW void (*MutationMap)(void* OUT,const void*,void* CTX);
+typedef SW void (*Perform)(void* OUT,uintptr_t,id,MutationMap,void*,uintptr_t,uintptr_t,const void*,const void*,const void*,const void*,const void*);

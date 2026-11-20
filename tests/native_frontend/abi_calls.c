@@ -29,3 +29,14 @@ uintptr_t call_tags(ArrayGetter fn,const void *value) { return fn(value); }
 uint8_t call_bool(BoolGetter fn,const void *value) { return fn(value); }
 
 uintptr_t call_labels_query(LabelsQueryInit fn,const void *type) { return fn(11,22,type); }
+
+uintptr_t call_profile_init(ProfileInit fn,const void *type) { return fn(11,22,33,44,55,66,77,type); }
+void call_profile_nil(NilValue fn,void *out,const void *type) { fn(out,type); }
+Response call_profile_packed(PackedMeta fn,const void *args) { return fn(0,args); }
+uintptr_t call_profile_follow(FollowInput fn) { return fn(0,11,22); }
+uintptr_t call_profile_notify(NotifyInput fn) { return fn(11,22,33,44,55); }
+void call_profile_enum(EnumInit fn,void *out,const void *type,const void *witness) { fn(out,11,22,type,witness); }
+void call_profile_unwrap(Unwrap fn,void *out,const void *type,const void *value) { fn(out,type,value); }
+void call_profile_map(MutationMap fn,void *out,const void *value,void *context) { fn(out,value,context); }
+void call_profile_perform(Perform fn,void *out,const void *data) { fn(out,11,(id)22,(MutationMap)33,(void*)44,55,66,(void*)77,data,(void*)99,(void*)111,(void*)122); }
+Response call_profile_dictionary(Meta3 fn) { return fn(0,(void*)11,(void*)22,(void*)33); }

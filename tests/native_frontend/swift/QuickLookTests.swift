@@ -278,7 +278,23 @@ import UIKit
         latest?.cancel()
         coordinator.preview(from: source); coordinator.removed(); pending?(true)
         check(allocations == 1 && starts == 1, "Late approval after source cancellation cannot start media")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) { source.removeFromSuperview(); self.finishReceipt() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) { source.removeFromSuperview(); self.profileRoute() }
+    }
+    func profileRoute() {
+        var order: [String] = []
+        let session = ContextPreviewSession(controller: UIViewController(), claim: { _ in true }, release: { _ in order.append("release") }, valid: { true },
+            start: { order.append("start") }, stop: { order.append("stop") }, handoff: { self.check(false,"Profile must not enter theatre");return false },
+            profile: { order.append("profile");return true })
+        session.display();session.requestProfile();session.requestWatch()
+        let ending = HeldPresentationCompletion();session.end(after: ending.addCompletion)
+        check(order == ["start"], "Profile waits for visual dismissal")
+        ending.finish()
+        DispatchQueue.main.async {
+            self.check(order == ["start","stop","release","profile"] && session.phase == .transferred,
+                "Profile stops preview and releases navigation before opening, without audio promotion")
+            session.cancel();self.check(order.count == 4,"Profile transition never tears down twice")
+            self.finishReceipt()
+        }
     }
     func finishReceipt() {
         let receipt: [String: Any] = ["passed": failures.isEmpty, "failures": failures, "source_target": true, "hold_cancellation": true, "unblocked_return": true,

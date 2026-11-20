@@ -16,7 +16,7 @@ struct StreamsideShell: View {
                             if local.isLive {
                                 LiveChannelRow(channel: local, images: services.images,
                                     generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics,
-                                    open: { services.open(local) }, preview: { services.preview(local, source: $0) })
+                                    open: { services.open(local) }, preview: { services.preview(local, source: $0) }, profile: { services.profile(local) })
                             } else { OfflineChannelRow(channel: local, images: services.images, generation: services.imageGeneration) }
                         }
                     }
@@ -31,7 +31,7 @@ struct StreamsideShell: View {
                             ForEach(feed.live) { channel in
                                 LiveChannelRow(channel: channel, images: services.images,
                                                generation: services.imageGeneration, clock: services.clock, haptics: services.titleHaptics,
-                                               open: { services.open(channel) }, preview: { services.preview(channel, source: $0) })
+                                               open: { services.open(channel) }, preview: { services.preview(channel, source: $0) }, profile: { services.profile(channel) })
                             }
                         }
                     } header: { Text("Live · \(feed.live.count)") }
@@ -40,7 +40,7 @@ struct StreamsideShell: View {
                             DisclosureGroup("Offline (\(feed.offline.count))") {
                                 ForEach(feed.offline) { channel in
                                     OfflineChannelRow(channel: channel, images: services.images,
-                                                      generation: services.imageGeneration)
+                                                      generation: services.imageGeneration, profile: { services.profile(channel) })
                                 }
                             }
                         }

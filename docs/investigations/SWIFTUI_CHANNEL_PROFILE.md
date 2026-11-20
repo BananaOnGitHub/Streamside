@@ -1,0 +1,51 @@
+# Native channel profile prototype
+
+Work on `feat/native-frontend` starts at `b3f43bf390192c508015023fc99b42e60e3d5dd7`, after the user accepted the resolution/avatar build `533e3f0`. This record accompanies the implementation commit. Apple compilation, simulator execution, local packaging and profile device acceptance are pending at submission.
+
+## Presentation and ownership
+
+Channel identity buttons in the live/offline feed, Quick Look details and theatre open an owned SwiftUI profile. Quick Look's View profile action is enabled. Its existing transaction first finishes dismissal, stops the preview and releases navigation, then opens the profile. The Watch transaction still transfers its original player. Opening a profile from theatre retires and dismisses theatre first; closing the profile returns to the feed rather than maintaining a hidden audible theatre.
+
+The banner extends behind the status area while the back control stays within the safe area. Identity, verified badge, live category/viewers, biography, follower count and social links precede Liquid Glass follow/notification controls and disabled Subscribe. Home contains the existing muted native live surface, full title and tags. About shows standard text/image/link panels. Interactive extension panels are identified as unavailable. Panel text is plain text in this prototype; no HTML/JavaScript, recaps, subscription or other profile pages are implemented. Reduce Transparency uses a solid control background and pre-iOS-26 devices use material. The profile uses the system cross-dissolve; it adds no custom motion or colour configuration.
+
+The inline player uses `TheatrePlayback(preview:true)`, setting mute before any load and retaining existing content-consent and ambient/mixing audio policies. Home/About and background transitions stop/recreate the inline facade. Watch dismisses the profile and passes the same facade to the existing theatre; only the theatre's successful presentation promotes audio. Account/session change closes the profile and cancels requests. Existing root ownership, launch selection and RN/Hermes instrumentation remain unchanged. This implementation adds no donor hooks.
+
+## Exact Twitch 32 services
+
+The inspected donor is Twitch 32.0 build `263110145453907615`, IPA SHA-256 `076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`. Existing image hashes and new export/selector admission live in [twitch32.json](../../native/twitch32.json).
+
+Twitch's `ProfileViewController`, `ProfileHomeViewController`, `ProfilePanelsViewController`, `ChannelNotificationSettingsManager` and notification button model expose no usable Objective-C designated constructor for the required private Swift dependencies. The original About implementation has web-view navigation. Calling inherited `NSObject.init` or reading their Swift fields would not establish a valid service boundary. The prototype therefore owns its view/menu and reuses the generated native operations and existing authenticated Apollo client. The notification menu is recreated using the donor's four backend choices; it does not claim to embed Twitch's controller.
+
+[SSNProfileRequest.c](../../native/SSNProfileRequest.c) confines the donor-specific Swift ABI. It uses:
+
+- `ProfileInfoFromChannelIDQuery` for native profile metadata and its shared profile fragment, including standard panels and social links.
+- `UserFollowingStateQuery` for the viewer/channel relationship, follow permission and current notification choice.
+- `UnfollowUserMutation`, `FollowUserMutation` and `SetLiveNotificationsEnrollmentMutation` for explicit user actions only.
+- `TKGraphQL.apolloClient`, native `fetchAsPromise` and `performAsPromise`; existing authorization, client-integrity and account handling remain in the donor. No independent endpoint, token extraction or login/renewal logic is added.
+
+Inspected boundaries include the profile constructor at `TwitchGraphQLAPI+0x54bd94`, notification input at `+0x776de4`, native mutation overload at `TwitchKit+0x24d8ec`, mutation result `unwrapped` at `TwitchApollo+0x93f0`, and nullable nil-literal initializer at `ApolloAPI+0xcb88`. The query's concrete nullable arguments use native constructors and runtime metadata. Mutation-result metadata has two generic parameters, two requirements and four packed key arguments; conformance comes from `swift_conformsToProtocol`, without protocol witness-slot indexing. The native `unwrapped` getter copies through the runtime value witness rather than decoding a Swift Result layout.
+
+Each operation uses its own generated `Data.__data` getter. Native `DataDict._data` and standard dictionary bridging copy the response; nested native values are unboxed through `swift_dynamicCast` and their actual runtime metadata. No donor object-field offsets are read. Only whitelisted, depth/count/length-bounded profile/follow fields pass into presentation models. Request/error content and account/channel metadata are not added to diagnostic exports. The existing credential-free image cache accepts Twitch image hosts and the exact `panels-images.twitch.tv` host; it retains timeouts, response bounds and redirect checks.
+
+Notification values are `PERSONALIZED`, `ALWAYS`, `LIVE_UP_ONLY` and `NEVER`; the UI labels are Personalized, Always, Go Live Only and Off. Unfollow uses a compact popover with the question and sole destructive action; outside tap dismisses without writing. A confirmed mutation is followed by a fresh relationship query before the UI reports the new state. Failure or unconfirmed state remains an explicit error; no mutation is retried automatically. Confirmed changes request a guarded feed refresh.
+
+## Video-only resolutions
+
+The source request sets `allow_audio_only=false`. Available qualities are filtered to positive video width/height through inspected `IVSQuality` Objective-C getters, with runtime encoding checks. Old saved `audio_only` preferences resolve to Auto. Other per-channel preferences and quality-selection behavior are retained. The existing synthetic native quality fixture now supplies an audio-only object and requires it to be absent from the visible list.
+
+## Validation and reproducibility
+
+[Host record](SWIFTUI_CHANNEL_PROFILE_HOST.json): all 113 native-frontend Ubuntu checks and 12 provider-routing checks pass. The new C adapter also compiles for the iOS ARM64 ABI with Zig/Clang warnings treated as errors. Host checks include exact donor identity/export/selector admission, caller-register emulation, execution of the inspected query constructor and nullable initializer against synthetic runtime callbacks, descriptor rejection and component-receipt requirements. These checks do not run a Twitch account or Apple UI.
+
+Apple CI compiles all production profile source and requires new Foundation normalization/lifetime and Swift model tests for account cancellation, field bounds, safe links, follow/notification writes and post-write verification. A sixth coordinate gate exercises the production Home/About profile, disabled Subscribe, outside-dismiss confirmation, four notification choices, confirmed unfollow and close with synthetic backend data. Existing five coordinate gates, decoded-video clipping, audio/VAFT/lifecycle/quality tests and source/toolchain-matched component verification remain mandatory. The production preview transaction gains a profile-route ordering test. No tests are skipped or deadlines relaxed.
+
+Submit through `make native-ci`; this selects one provider using account balance/history and falls back to GitHub Actions. The pinned Apple toolchain is unchanged. After a successful build, `make native-ci-fetch` verifies exact-source components and receipts before the usual local donor packaging. Donor IPA and signing inputs remain local. Submission is not a successful compilation, and no new installable IPA is claimed here.
+
+Device checks after packaging:
+
+1. Open a channel by its feed avatar/name and by Quick Look → View profile. Check banner/notch, live/offline identity, biography, links and Home/About panels.
+2. On Home, confirm muted video leaves other media playing; About, background, account loss and close stop the inline player. Watch should continue into theatre without duplicate playback or early audio.
+3. Open/dismiss Unfollow outside the popover without changing follow state. If desired, explicitly confirm a real unfollow and verify it persists; this changes the actual account. Verify notification choice restoration and errors while offline. Subscribe stays unavailable.
+4. Confirm no audio-only resolution, saved video preferences remain per channel, and diagnostics still show the expected guarded native runtime counts. Export a report after profile/preview/theatre/background/reopen checks. Visual success alone is not evidence of zero RN/Hermes creation.
+
+Real authenticated profile queries, mutations, actual IVS profile playback and physical-device runtime counts remain unvalidated until device results are supplied.

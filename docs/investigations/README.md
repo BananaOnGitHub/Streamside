@@ -102,3 +102,5 @@ and updating navigation.
 - [Interactive source-anchored preview](SWIFTUI_ANCHORED_PREVIEW.md): fallback after the system scrolling limitation, interactive full details and retained media/animation gates.
 
 - [Preview swipes and channel verification](SWIFTUI_PREVIEW_SWIPES_VERIFICATION.md): directional dismissal, stream avatar, inspected native eligibility, bundled official/custom artwork and General settings.
+
+- [Native channel profile prototype](SWIFTUI_CHANNEL_PROFILE.md): authenticated Home/About, native follow/notification operations, muted inline playback and video-only resolutions.

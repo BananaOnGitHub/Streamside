@@ -110,6 +110,8 @@ def verify(directory, revision=None):
             raise ValueError("Apple model/signature validation missing")
         if compiler.get("marked_content_tests") != dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True,inline_admission=True):
             raise ValueError("Marked-content validation missing or failed")
+        if compiler.get("profile_tests") != dict(native=True,model=True):
+            raise ValueError("Profile native/model validation missing or failed")
         uikit = compiler.get("uikit_ownership_tests", {})
         if uikit.get("result") != "PASS" or uikit.get("receipt") != dict(passed=True, native=mode=="native", blocked=2 if mode=="native" else 0, failures=0):
             raise ValueError("UIKit ownership simulator validation missing or failed")
@@ -121,7 +123,7 @@ def verify(directory, revision=None):
             raise ValueError("Three-process launch selection validation missing or failed")
         if uikit.get("quicklook_receipt") != dict(passed=True,failures=[],source_target=True,hold_cancellation=True,unblocked_return=True,dismiss_before_handoff=True,single_handoff=True,teardown=True,all_tags_wrap=True,lifecycle_cancellation=True,consent_before_preview=True):
             raise ValueError("Native Quick Look simulator validation missing or failed")
-        expected_ui=dict(passed=True,tests=5,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True,inline_consent=True,pending_watch=True,resolution_selection=True) if mode=='native' else None
+        expected_ui=dict(passed=True,tests=6,styles=['glass','plain'],motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True,inline_consent=True,pending_watch=True,resolution_selection=True,channel_profile=True) if mode=='native' else None
         if uikit.get("controls_ui_receipt") != expected_ui:
             raise ValueError("Player coordinate interaction validation missing or failed")
         if uikit.get("playback_receipt") != {k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion','quality_selection','quality_restoration','quality_teardown']}:

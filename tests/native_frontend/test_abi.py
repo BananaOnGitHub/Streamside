@@ -116,4 +116,23 @@ class SwiftCalls(unittest.TestCase):
         u=self.call('call_tags',[0x123456],[],context=0x123456)
         self.assertEqual(u.reg_read(UC_ARM64_REG_X0),0xabcdef01)
 
+    def test_profile_query_exact_concrete_lowering(self):
+        self.call('call_profile_init',[0x5678],[11,22,33,44,55,66,77],context=0x5678)
+    def test_profile_nullable_native_nil_initializer(self):
+        self.call('call_profile_nil',[0x1234,0x5678],[0x5678],out=0x1234)
+    def test_profile_dictionary_metadata_arguments(self):
+        self.call('call_profile_dictionary',[],[0,11,22,33])
+    def test_profile_packed_metadata_arguments(self):
+        self.call('call_profile_packed',[0x1234],[0,0x1234])
+    def test_profile_follow_and_notification_inputs(self):
+        self.call('call_profile_follow',[],[0,11,22])
+        self.call('call_profile_notify',[],[11,22,33,44,55])
+    def test_profile_native_enum_initializer(self):
+        self.call('call_profile_enum',[0x1234,0x5678,0x9abc],[11,22,0x5678,0x9abc],out=0x1234)
+    def test_profile_mutation_unwrap_and_closure(self):
+        self.call('call_profile_unwrap',[0x1234,0x5678,0x9abc],[0x5678],out=0x1234,context=0x9abc)
+        self.call('call_profile_map',[0x1234,0x5678,0x9abc],[0x5678],out=0x1234,context=0x9abc)
+    def test_profile_mutation_expanded_native_client_and_generics(self):
+        self.call('call_profile_perform',[0x1234,88],[11,22,33,44,55,66,77,88],out=0x1234,stack_arguments=[99,111,122])
+
 if __name__=='__main__':unittest.main()

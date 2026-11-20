@@ -364,7 +364,9 @@ private struct InputTestContent: View {
         UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("--plain"), forKey: PlayerPreferences.glassButtonsKey)
         UserDefaults.standard.set(PlayerControlAnimation.vertical.rawValue, forKey: PlayerPreferences.animationKey)
         let window = UIWindow(frame: UIScreen.main.bounds)
-        if ProcessInfo.processInfo.arguments.contains("--local-test-editor") {
+        if ProcessInfo.processInfo.arguments.contains("--profile") {
+            window.rootViewController = UIHostingController(rootView: ProfileFixture())
+        } else if ProcessInfo.processInfo.arguments.contains("--local-test-editor") {
             window.rootViewController = UIHostingController(rootView: LocalTestEditorFixture())
         } else if ProcessInfo.processInfo.arguments.contains("--marked-content") {
             window.rootViewController = UIHostingController(rootView: MarkedWarningFixture())

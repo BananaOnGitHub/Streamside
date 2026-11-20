@@ -147,7 +147,7 @@ enum ChannelImagePolicy {
     static func allowed(_ url: URL) -> Bool {
         guard url.scheme == "https", url.user == nil, url.password == nil,
               url.port == nil || url.port == 443, let host = url.host?.lowercased() else { return false }
-        return host == "jtvnw.net" || host.hasSuffix(".jtvnw.net")
+        return host == "panels-images.twitch.tv" || host == "jtvnw.net" || host.hasSuffix(".jtvnw.net")
     }
 }
 

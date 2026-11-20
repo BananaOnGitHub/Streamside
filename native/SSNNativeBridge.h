@@ -1,3 +1,4 @@
+#import "SSNProfile.h"
 #import <Foundation/Foundation.h>
 #import "SSNWindowOwnership.h"
 #import "SSNPlayback.h"

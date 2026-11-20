@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "implementation_base": "b3f43bf390192c508015023fc99b42e60e3d5dd7",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+    "amazon_ivs_player": "1.58.0"
+  },
+  "host": {
+    "suite": "tests/native_frontend",
+    "tests": 113,
+    "passed": true,
+    "seconds": 16.357,
+    "log_sha256": "5842199ef4e6751d962efe13034cafc8e9fbdb23b2711d3055cbc3544484ec45",
+    "provider_tests": {
+      "tests": 12,
+      "passed": true
+    },
+    "c_adapter": {
+      "compiler": "Zig 0.14.0 / Clang",
+      "target": "aarch64-ios-none",
+      "warnings_as_errors": true,
+      "passed": true,
+      "object_sha256": "d7ca5d30afe692a5d5f2c52bc4c8c22645df05d5be0a786ed76ff05d8048cfe1"
+    }
+  },
+  "abi": {
+    "entries": 108,
+    "objc_entries": 19,
+    "checks": [
+      "exact donor/image identities and export prefixes",
+      "IVSQuality video dimensions",
+      "profile query direct arguments",
+      "native nullable initializer and value witness delegation",
+      "generated Data getters",
+      "packed mutation metadata descriptor counts",
+      "native mutation register/stack arguments",
+      "native enum and input call lowering"
+    ]
+  },
+  "limits": [
+    "No Apple SDK, UIKit/SwiftUI execution or native authenticated request executed on Ubuntu",
+    "No profile device validation yet",
+    "Apple compilation/simulator/component validation pending submitted build",
+    "No new IPA packaged"
+  ]
+}

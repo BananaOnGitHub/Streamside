@@ -5,15 +5,18 @@ import UIKit
 private struct QuickLookDetails: View {
     let channel: FollowedChannel
     @ObservedObject var services: NativeServices
+    let profile: () -> Void
     private var current: FollowedChannel { services.presentationChannels.first { $0.id == channel.id } ?? channel }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
+            Button(action: profile) {
+                HStack(spacing: 10) {
                 RemoteChannelImage(url: current.avatarURL, images: services.images, generation: services.imageGeneration, localImage: current.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                     .frame(width: 36, height: 36).clipShape(Circle())
                     .overlay { LiveRing(clock: services.clock) }
                 VerifiedChannelName(channel: current).font(.headline)
-            }
+                }
+            }.buttonStyle(.plain).accessibilityLabel("View " + current.displayName + " profile")
             Text(current.title.isEmpty ? "Live stream" : current.title)
                 .font(.subheadline).fixedSize(horizontal: false, vertical: true)
             Text(current.category.isEmpty ? "Category unavailable" : current.category)
@@ -66,7 +69,7 @@ private struct QuickLookContent: View {
 enum NativeQuickLook {
     static func session(channel: FollowedChannel, services: NativeServices, source: UIView,
                         claim: @escaping (UUID) -> Bool, release: @escaping (UUID) -> Void,
-                        handoff: @escaping (TheatrePlayback) -> Bool) -> ContextPreviewSession {
+                        handoff: @escaping (TheatrePlayback) -> Bool, profile: @escaping () -> Bool) -> ContextPreviewSession {
         let playback = TheatrePlayback(channel: channel.username, preview: true, localTest: channel.localTest)
         playback.setMuted(true) // Intent precedes authorization and IVS load/play.
         let account = services.state.account
@@ -79,7 +82,7 @@ enum NativeQuickLook {
         let windowSize = source.window?.bounds.size ?? CGSize(width: 390, height: 700)
         let width = max(1, min(380, windowSize.width - 32))
         let maximumHeight = max(width * 9 / 16 + 80, min(560, windowSize.height - 220))
-        let details = QuickLookDetails(channel: channel, services: services)
+        let details = QuickLookDetails(channel: channel, services: services, profile: { transaction?.activateProfile?() })
         // Reserve a normal status row even if the warning currently hides it.
         // The measured card height stays stable when loading starts after consent.
         let measure = UIHostingController(rootView: VStack(spacing: 0) {
@@ -94,7 +97,7 @@ enum NativeQuickLook {
         let session = ContextPreviewSession(controller: preview, claim: claim, release: release, valid: {
             UIApplication.shared.applicationState == .active && services.state.session == .authenticated &&
                 services.state.account == account && playback.native?.errorCode != 1
-        }, start: playback.start, stop: playback.stop, handoff: { handoff(playback) })
+        }, start: playback.start, stop: playback.stop, handoff: { handoff(playback) }, profile: profile)
         session.videoTapAvailability = playback.$contentGate.map { $0 == nil }.eraseToAnyPublisher()
         transaction = session
         return session

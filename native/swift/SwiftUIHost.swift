@@ -15,6 +15,7 @@ public final class SSNSwiftUIHost: NSObject {
     private static var baseline = false
     private static var theatreController: UIViewController?
     private static var previewID: UUID?
+    private static var profileController: UIViewController?
 
     @objc public static func rootOwner() -> Int {
         guard let window else { return 0 }
@@ -78,15 +79,15 @@ public final class SSNSwiftUIHost: NSObject {
         guard channel.localTest == nil || Self.services?.localTestsAvailable == true,
               SSNNavigationPermitted(), rootOwner() == 1, channel.isLive, channel.playbackAllowed,
               let services, services.state.session == .authenticated,
-              theatreController == nil, previewID == nil,
+              theatreController == nil, profileController == nil, previewID == nil,
               nativeController?.presentedViewController == nil else { return nil }
         return NativeQuickLook.session(channel: channel, services: services, source: source, claim: { id in
             guard SSNNavigationPermitted(), rootOwner() == 1, previewID == nil,
-                  theatreController == nil, services.state.session == .authenticated else { return false }
+                  theatreController == nil, profileController == nil, services.state.session == .authenticated else { return false }
             previewID = id; return true
         }, release: { id in if previewID == id { previewID = nil } }, handoff: { playback in
             beginPlayback(channel, sharedPlayback: playback)
-        })
+        }, profile: { beginProfile(channel) })
     }
 
     static func beginPlayback(_ channel: FollowedChannel, sharedPlayback: TheatrePlayback? = nil) -> Bool {
@@ -95,7 +96,7 @@ public final class SSNSwiftUIHost: NSObject {
               channel.isLive, channel.playbackAllowed,
               let services, services.state.session == .authenticated,
               let root = nativeController, root.presentedViewController == nil,
-              theatreController == nil, previewID == nil else { return false }
+              theatreController == nil, profileController == nil, previewID == nil else { return false }
         let controller = NativeTheatre.controller(channel: channel, services: services, playback: sharedPlayback, close: { endPlayback() })
         if sharedPlayback != nil { controller.modalTransitionStyle = .crossDissolve }
         theatreController = controller
@@ -114,6 +115,41 @@ public final class SSNSwiftUIHost: NSObject {
         guard let controller = theatreController, !controller.isBeingDismissed else { return }
         controller.dismiss(animated: true) {
             if theatreController === controller { theatreController = nil }
+        }
+    }
+
+    static func beginProfile(_ channel: FollowedChannel) -> Bool {
+        guard SSNNavigationPermitted(), rootOwner() == 1, let services,
+              services.state.session == .authenticated, !channel.channelID.isEmpty,
+              let root = nativeController, root.presentedViewController == nil,
+              theatreController == nil, profileController == nil, previewID == nil else { return false }
+        let account = services.state.account
+        let controller = NativeProfile.controller(channel: channel, services: services, close: { endProfile() }, watch: { playback in
+            guard profileController != nil, SSNNavigationPermitted(), rootOwner() == 1,
+                  services.state.session == .authenticated, services.state.account == account else { return false }
+            endProfile {
+                if !beginPlayback(channel, sharedPlayback: playback) { playback.stop() }
+            }
+            return true
+        })
+        profileController = controller
+        root.present(controller, animated: true)
+        return true
+    }
+    static func endProfile(completion: @escaping () -> Void = {}) {
+        guard let controller = profileController, !controller.isBeingDismissed else { return }
+        controller.dismiss(animated: true) {
+            if profileController === controller { profileController = nil }
+            completion()
+        }
+    }
+    // Entering a profile from theatre retires that player first. There is never
+    // a hidden audible theatre underneath the profile's muted inline player.
+    static func profileFromTheatre(_ channel: FollowedChannel) {
+        guard let controller = theatreController, !controller.isBeingDismissed else { return }
+        controller.dismiss(animated: true) {
+            if theatreController === controller { theatreController = nil }
+            _ = beginProfile(channel)
         }
     }
 

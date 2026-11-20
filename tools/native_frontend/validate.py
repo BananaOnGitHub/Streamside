@@ -86,3 +86,19 @@ def validate_abi(images,plan):
         target=at+relative
         if not target&1 or image.ptr(target&~1)!='_'+spec['requirement']:
             raise ValueError('TrackableItem conformance requirement changed')
+
+    profile=plan.get('profile_contract')
+    if profile:
+        spec=profile['mutation_result'];_,data=images[spec['image']]
+        counts=struct.unpack_from('<4H',data,file_offset(data,spec['address']+36))
+        if counts!=(spec['generic_parameters'],spec['requirements'],spec['key_arguments'],0):
+            raise ValueError('Profile mutation generic metadata contract changed')
+        spec=profile['nullable'];_,data=images[spec['image']];image=Image(data)
+        at=spec['address']+16;field=at+struct.unpack_from('<i',data,file_offset(data,at))[0]
+        _,_,kind,step,count=struct.unpack_from('<iiHHI',data,file_offset(data,field))
+        if kind!=2 or step!=12 or count!=len(spec['cases']):raise ValueError('Profile nullable enum descriptor changed')
+        names=[]
+        for index in range(count):
+            at=field+16+index*step;_,_,name=struct.unpack_from('<Iii',data,file_offset(data,at))
+            names.append(image.text(at+8+name))
+        if names!=spec['cases']:raise ValueError('Profile nullable cases changed')

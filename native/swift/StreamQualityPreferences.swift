@@ -13,7 +13,7 @@ struct StreamQualityPreferences {
     }
     func selection(for channel: String) -> String {
         guard let channel = channelKey(channel), let value = defaults.dictionary(forKey: Self.key)?[channel] as? String,
-              !value.isEmpty, value.count <= 128 else { return "auto" }
+              !value.isEmpty, value.count <= 128, value.lowercased() != "audio_only" else { return "auto" }
         return value
     }
     func save(_ value: String, for channel: String) {

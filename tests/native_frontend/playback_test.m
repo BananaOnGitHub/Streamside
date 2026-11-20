@@ -56,6 +56,7 @@ id ssn_playback_request(id channel) { (void)channel;requests++;return [TestPromi
 static BOOL reducedQualities=NO;
 static unsigned qualitySwitches;
 @interface IVSQuality : NSObject
+@property(nonatomic) NSInteger width,height;
 @property(nonatomic,copy) NSString *name;
 @end
 @implementation IVSQuality
@@ -85,8 +86,8 @@ static unsigned qualitySwitches;
 }
 - (NSArray *)qualities {
     NSMutableArray *result=[NSMutableArray array];
-    for(NSString *name in (reducedQualities?@[@"720p60"]:@[@"720p60",@"480p"])) {
-        IVSQuality *q=[IVSQuality new];q.name=name;[result addObject:q];[q release];
+    for(NSString *name in (reducedQualities?@[@"720p60"]:@[@"720p60",@"480p",@"audio_only"])) {
+        IVSQuality *q=[IVSQuality new];q.name=name;q.width=[name isEqual:@"audio_only"]?0:1280;q.height=[name isEqual:@"audio_only"]?0:720;[result addObject:q];[q release];
     }return result;
 }
 - (void)setQuality:(IVSQuality *)quality adaptive:(BOOL)adaptive {
@@ -104,7 +105,7 @@ static unsigned qualitySwitches;
     for(NSURLQueryItem *item in parts.queryItems) if(item.value) items[item.name]=item.value;
     sourceEncoding=[parts.scheme isEqual:@"https"]&&[parts.host isEqual:@"usher.ttvnw.net"]&&
         [parts.path isEqual:@"/api/channel/hls/synthetic_channel.m3u8"]&&
-        [items[@"token"] isEqual:@"synthetic &?+#/ grant"]&&[items[@"sig"] isEqual:@"synthetic+signature"];
+        [items[@"allow_audio_only"] isEqual:@"false"]&&[items[@"token"] isEqual:@"synthetic &?+#/ grant"]&&[items[@"sig"] isEqual:@"synthetic+signature"];
     self.state=1;
 }
 - (void)play { NSAssert(NSThread.isMainThread,@"IVS play must remain on main");self.state=3; }

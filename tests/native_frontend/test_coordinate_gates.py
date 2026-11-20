@@ -12,8 +12,9 @@ from controls_ui import EXPECTED, run_controls_ui
 
 class CoordinateGates(unittest.TestCase):
     names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
-             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap']
+             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile']
     markers = {
+        'testChannelProfile': ['CHANNEL_PROFILE_UI'],
         'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH', 'LOCAL_TEST_EDITOR'],
         'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION'],
         'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION'],
@@ -53,14 +54,14 @@ class CoordinateGates(unittest.TestCase):
                     self.assertEqual(run_controls_ui(root, root, 'owned-device', run), EXPECTED)
             return calls
 
-    def test_five_independent_required_gates_with_unique_result_bundles(self):
+    def test_six_independent_required_gates_with_unique_result_bundles(self):
         calls = self.exercise()
         tests = [(args, opts) for args, opts in calls if 'test-without-building' in args]
-        self.assertEqual(len(tests), 5)
+        self.assertEqual(len(tests), 6)
         selections = [next(a for a in args if a.startswith('-only-testing:')).rsplit('/', 1)[-1] for args, _ in tests]
         self.assertEqual(selections, self.names)
         bundles = [args[args.index('-resultBundlePath') + 1] for args, _ in tests]
-        self.assertEqual(len(set(bundles)), 5)
+        self.assertEqual(len(set(bundles)), 6)
         self.assertTrue(all(opts['timeout'] <= 600 for _, opts in tests))
 
     def test_failed_gate_exports_its_own_evidence_without_retry_or_later_tests(self):

@@ -34,6 +34,7 @@ struct PreviewPlacement {
 
 private struct PreviewActions: View {
     let watch: () -> Void
+    let profile: (() -> Void)?
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var rows: some View {
         VStack(spacing: 0) {
@@ -43,10 +44,10 @@ private struct PreviewActions: View {
                     .contentShape(Rectangle())
             }.accessibilityIdentifier("quicklook.watch")
             Divider().padding(.horizontal, 16)
-            Button {} label: {
+            Button { profile?() } label: {
                 Label("View profile", systemImage: "person.fill")
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 15)
-            }.disabled(true).opacity(0.4).accessibilityHint("Not available yet")
+            }.disabled(profile == nil).opacity(profile == nil ? 0.4 : 1).accessibilityIdentifier("quicklook.profile")
         }.font(.body).foregroundStyle(.primary).buttonStyle(.plain)
     }
     var body: some View {
@@ -67,6 +68,7 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private let initialLift: UIView?
     private let onWatch: () -> Void
     private let onDismiss: () -> Void
+    private let onProfile: (() -> Void)?
     private let videoTapAvailability: AnyPublisher<Bool, Never>?
     private var videoTapObservation: AnyCancellable?
     private let observeTarget: ((Bool, CGRect, CGPoint) -> Void)?
@@ -92,7 +94,8 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
     private var menuStart = CGPoint.zero
 
     init(content: UIViewController, source: UIView, watch: @escaping () -> Void, dismiss: @escaping () -> Void,
-         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil, videoTapAvailability: AnyPublisher<Bool, Never>? = nil) {
+         observeTarget: ((Bool, CGRect, CGPoint) -> Void)?, initialLift: UIView? = nil, videoTapAvailability: AnyPublisher<Bool, Never>? = nil, profile: (() -> Void)? = nil) {
+        onProfile = profile
         self.videoTapAvailability = videoTapAvailability
         self.initialLift = initialLift
         self.content = content; self.source = source; onWatch = watch; onDismiss = dismiss; self.observeTarget = observeTarget
@@ -117,7 +120,7 @@ final class AnchoredPreviewController: UIViewController, UIGestureRecognizerDele
         card.layer.shadowRadius = 18; card.layer.shadowOffset = CGSize(width: 0, height: 8)
         view.addSubview(card)
         addChild(content); card.addSubview(content.view); content.didMove(toParent: self)
-        let actions = UIHostingController(rootView: PreviewActions(watch: { [weak self] in self?.onWatch() }))
+        let actions = UIHostingController(rootView: PreviewActions(watch: { [weak self] in self?.onWatch() }, profile: onProfile))
         actions.view.backgroundColor = .clear; actions.view.isOpaque = false
         addChild(actions); view.addSubview(actions.view); actions.didMove(toParent: self); self.actions = actions
     }

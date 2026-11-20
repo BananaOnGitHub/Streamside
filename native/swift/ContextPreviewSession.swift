@@ -11,7 +11,10 @@ final class ContextPreviewSession {
     let controller: UIViewController
     private(set) var phase = Phase.prepared
     private(set) var watchRequested = false
+    private(set) var profileRequested = false
+    var canViewProfile: Bool { profile != nil }
     var dismissPreview: (() -> Void)?
+    var activateProfile: (() -> Void)?
     var videoTapAvailability: AnyPublisher<Bool, Never>?
     private let claim: (UUID) -> Bool
     private let release: (UUID) -> Void
@@ -19,15 +22,16 @@ final class ContextPreviewSession {
     private let start: () -> Void
     private let stop: () -> Void
     private let handoff: () -> Bool
+    private let profile: (() -> Bool)?
     private var stopped = false
     private var released = false
     private var observers: [NSObjectProtocol] = []
 
     init(controller: UIViewController, claim: @escaping (UUID) -> Bool,
          release: @escaping (UUID) -> Void, valid: @escaping () -> Bool,
-         start: @escaping () -> Void, stop: @escaping () -> Void, handoff: @escaping () -> Bool) {
+         start: @escaping () -> Void, stop: @escaping () -> Void, handoff: @escaping () -> Bool, profile: (() -> Bool)? = nil) {
         self.controller = controller; self.claim = claim; self.release = release
-        self.valid = valid; self.start = start; self.stop = stop; self.handoff = handoff
+        self.valid = valid; self.start = start; self.stop = stop; self.handoff = handoff; self.profile = profile
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.cancel() }
@@ -48,11 +52,16 @@ final class ContextPreviewSession {
     }
     func requestWatch() {
         guard phase == .visible || phase == .ending else { return }
-        watchRequested = true
+        guard !profileRequested else { return }; watchRequested = true
+    }
+    func requestProfile() {
+        guard (phase == .visible || phase == .ending), profile != nil, !watchRequested else { return }
+        profileRequested = true
     }
     func end(after registerCompletion: (@escaping () -> Void) -> Void) {
         guard phase == .visible || phase == .prepared else { return }
         phase = .ending
+        activateProfile = nil
         dismissPreview = nil // Presentation is already ending; never dismiss twice.
         let complete = { [self] in
             // The presenter detaches before we ask the guarded root to
@@ -64,7 +73,10 @@ final class ContextPreviewSession {
     }
     private func completeEnd() {
         guard phase == .ending else { return }
-        if watchRequested && valid() {
+        if profileRequested && valid() {
+            stopOnce(); releaseOnce()
+            if profile?() == true { phase = .transferred; dismissPreview = nil; return }
+        } else if watchRequested && valid() {
             releaseOnce()
             if handoff() { phase = .transferred; dismissPreview = nil; return }
         }
@@ -73,6 +85,7 @@ final class ContextPreviewSession {
     func cancel() {
         guard phase != .transferred, phase != .cancelled else { return }
         phase = .cancelled
+        activateProfile = nil
         stopOnce(); releaseOnce()
         let dismiss = dismissPreview; dismissPreview = nil; dismiss?()
     }

@@ -51,3 +51,9 @@ The build log confirms simulator host clipboard synchronization was disabled/ver
 Verified retrieval, all 67 post-download checks, exact-donor admission and local package verification passed. [Validation receipts and identities](SWIFTUI_ACCOUNT_AVATAR_RESOLUTION_VALIDATION.json) retain exact source/toolchain/archive/framework/IPA hashes. The package uses Twitch 32.0 build 263110145453907615, with 67 admitted Swift ABI entries, 25 probes, four newly pinned Objective-C quality selectors, retained donor contents verified and original HBC unchanged. Only the native IPA was assembled; donor/signing inputs remained local.
 
 Candidate: `artifacts/native-frontend/account-avatar-resolution-533e3f0/StreamsideNativeProof-Twitch32-native.ipa` (relative to the Streamside workspace). Sign with Feather using the existing app identity; adjacent `TESTING.txt` covers avatar/heading review, real quality selection, per-channel persistence, Auto and lifecycle regression checks. Physical-device validation remains pending.
+
+## Physical-device follow-up
+
+The user confirmed successful resolution switching, the authenticated account avatar in Settings, saved resolution restoration after reopening, and independent preferences on other channels for source `533e3f0`. [Scoped device record](SWIFTUI_ACCOUNT_AVATAR_RESOLUTION_DEVICE.json) associates those observations with the previously packaged IPA. No diagnostic export accompanied this report; it does not add a new runtime-count observation.
+
+The subsequent [channel profile trial](SWIFTUI_CHANNEL_PROFILE.md) removes audio-only quality choices following intermittent device behavior. The earlier successful build and its hashes above are unchanged.

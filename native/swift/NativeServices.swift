@@ -123,6 +123,9 @@ final class NativeServices: ObservableObject, AccountService {
             actionError = "The stream could not open. Check your account and diagnostics."
         }
     }
+    func profile(_ channel: FollowedChannel) {
+        if !SSNSwiftUIHost.beginProfile(channel) { actionError = "The channel profile could not open. Check your account and try again." }
+    }
     func actionUnavailable() { actionError = "Native navigation ownership is unavailable. Export diagnostics." }
     func signIn() {
         actionError = nil

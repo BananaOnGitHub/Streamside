@@ -140,6 +140,8 @@ import Foundation
         let avatar = StreamsideAccount(username: "fixture", displayName: "Fixture", avatarURL: URL(string: "https://static-cdn.jtvnw.net/test.png"))
         precondition(noAvatar == avatar && avatar.avatarURL != nil, "Avatar refresh must not imply account loss or close playback")
         precondition(avatar != StreamsideAccount(username: "other", displayName: "Fixture"))
+        quality.save("audio_only", for: "removed_audio")
+        precondition(quality.selection(for: "removed_audio") == "auto")
         print("PASS: per-channel quality persistence, Auto, isolation and bound; account avatar identity")
         repeatedRenderValues()
         await contentWarnings()

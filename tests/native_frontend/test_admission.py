@@ -24,20 +24,22 @@ class AccountAdapterAdmission(unittest.TestCase):
         validate_abi(self.images,self.plan)
 
     def test_quality_selectors_reject_changed_signature_and_prefix(self):
-        for name in ['playback_IVSPlayer_qualities', 'playback_IVSPlayer_setQuality:', 'playback_IVSPlayer_setQuality:adaptive:', 'playback_IVSQuality_name']:
+        for name in ['playback_IVSPlayer_qualities', 'playback_IVSPlayer_setQuality:', 'playback_IVSPlayer_setQuality:adaptive:', 'playback_IVSQuality_name','playback_IVSQuality_width','playback_IVSQuality_height']:
             for key, value in [('encoding', 'v16@0:8'), ('bytes', '00' * 16)]:
                 plan=copy.deepcopy(self.plan);plan['objc_services'][name][key]=value
                 with self.assertRaises(ValueError):validate_abi(self.images,plan)
 
     def test_all_native_adapter_literal_dependencies_are_admitted(self):
         names=set()
-        for filename in ['SSNContentLabels.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:
+        for filename in ['SSNProfileRequest.c','SSNContentLabels.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:
             source=(ROOT/'native'/filename).read_text()
             names.update(re.findall(r'ssn_resolve\("([^"\n]+)"\)',source))
             names.update(re.findall(r'metadata\("([^"\n]+)"\)',source))
             # Feed also resolves public system types; only donor metadata uses
             # no system argument or the explicit false argument.
             names.update(re.findall(r'meta\("([^"\n]+)"(?:,false)?\)',source))
+            if filename == 'SSNProfileRequest.c':
+                names.update(name for name in re.findall(r'"(\$s[^"\n]+)"', source) if name.startswith(("$s16TwitchGraphQLAPI", "$s9ApolloAPI", "$s12TwitchApollo", "$s12Tomorrowland", "$s9TwitchKit")))
         for accessor in [
             '$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataVMa',
             '$s16TwitchGraphQLAPI22StreamAccessTokenQueryC4DataV0d8PlaybackeF0VMa',

@@ -19,6 +19,31 @@ final class PlayerInputTests: XCTestCase {
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
     }
+    func testChannelProfile() {
+        continueAfterFailure = false
+        let app = XCUIApplication(); testedApp = app;app.launchArguments = ["--profile"];app.launch()
+        let following = app.buttons["Following"]
+        XCTAssertTrue(following.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["Subscribe"].isEnabled)
+        following.tap()
+        let confirm = app.buttons["profile.unfollow-confirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 3))
+        dismissPopover(confirm, in: app)
+        XCTAssertTrue(following.exists)
+        app.buttons["Channel notifications"].tap()
+        for title in ["Personalized", "Always", "Go Live Only", "Off"] { XCTAssertTrue(app.buttons[title].waitForExistence(timeout: 3)) }
+        app.buttons["Always"].tap()
+        following.tap();XCTAssertTrue(confirm.waitForExistence(timeout: 3));confirm.tap()
+        XCTAssertTrue(app.buttons["Follow"].waitForExistence(timeout: 5))
+        let tabs = app.segmentedControls["profile.tabs"]
+        tabs.buttons["About"].tap()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["About panel body"].exists)
+        app.buttons["Close profile"].tap()
+        XCTAssertTrue(app.staticTexts["profile.closed"].waitForExistence(timeout: 3))
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, disabled subscribe, outside-dismiss unfollow, notification menu, confirmed unfollow and close")
+    }
     func testMarkedContentConsent() {
         continueAfterFailure = false
         let editor = XCUIApplication(); testedApp = editor

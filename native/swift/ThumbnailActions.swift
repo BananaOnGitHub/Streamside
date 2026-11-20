@@ -172,8 +172,10 @@ struct ThumbnailActions: UIViewRepresentable {
             let presenter = AnchoredPreviewController(content: created.controller, source: source,
                 watch: { [weak self] in self?.finish(watch: true) },
                 dismiss: { [weak self] in self?.finish(watch: false) }, observeTarget: owner.observeTarget,
-                initialLift: lift, videoTapAvailability: created.videoTapAvailability)
+                initialLift: lift, videoTapAvailability: created.videoTapAvailability,
+                profile: created.canViewProfile ? { [weak self] in self?.finishProfile() } : nil)
             self.presenter = presenter
+            created.activateProfile = { [weak self] in self?.finishProfile() }
             let returned = owner.observeReturnCompletion
             created.dismissPreview = { [weak self, weak presenter, weak created] in
                 guard let presenter else { self?.clear(created); return }
@@ -191,6 +193,13 @@ struct ThumbnailActions: UIViewRepresentable {
             session.requestWatch()
             session.end(after: { complete in
                 presenter.dismiss(watching: watch) { [weak self, weak session] in self?.clear(session); complete() }
+            })
+        }
+        private func finishProfile() {
+            guard let session, session.phase == .visible, session.canViewProfile, let presenter else { return }
+            session.requestProfile()
+            session.end(after: { complete in
+                presenter.dismiss(watching: true) { [weak self, weak session] in self?.clear(session); complete() }
             })
         }
         private func clear(_ ended: ContextPreviewSession?) {

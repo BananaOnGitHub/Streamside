@@ -48,6 +48,7 @@ struct LiveChannelRow: View {
     let haptics: TitleHaptics
     let open: () -> Void
     let preview: (UIView) -> ContextPreviewSession?
+    var profile: (() -> Void)?
     var authorizePreview: ((UIView, @escaping (Bool) -> Void) -> Void)?
     @AppStorage(MarkedContentPreferences.thumbnailsKey) private var markedThumbnails = false
     @AppStorage(FeedPreferences.twoLineTitlesKey) private var twoLineTitles = false
@@ -109,30 +110,29 @@ struct LiveChannelRow: View {
     }
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            Button { profile?() } label: {
+                HStack(spacing: 6) {
                 RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, localImage: channel.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                     .frame(width: 22, height: 22)
                     .clipShape(Circle())
                     .overlay { LiveRing(clock: clock) }
                 VerifiedChannelName(channel: channel).font(.headline)
-            }
-            MeasuredStreamTitle(text: displayedTitle, lines: titleLines) { titleMeasurement = $0 }
-                .modifier(TitleHold(enabled: canPreviewTitle, haptics: haptics, owner: holdOwner, open: openTitle))
-                .accessibilityHint(canPreviewTitle ? "Hold for the full stream title" : "")
-            Text(channel.category.isEmpty ? "Category unavailable" : channel.category)
-                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            if !channel.tags.isEmpty { StreamTags(tags: channel.tags) }
-            if let viewers = channel.viewerCount {
-                Text("\(viewers.formatted()) viewers").font(.caption).foregroundStyle(.secondary)
-            } else {
-                Text("Viewers unavailable").font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: open)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { open() }
+                }
+            }.buttonStyle(.plain).accessibilityLabel("View " + channel.displayName + " profile")
+            VStack(alignment: .leading, spacing: 4) {
+                MeasuredStreamTitle(text: displayedTitle, lines: titleLines) { titleMeasurement = $0 }
+                    .modifier(TitleHold(enabled: canPreviewTitle, haptics: haptics, owner: holdOwner, open: openTitle))
+                    .accessibilityHint(canPreviewTitle ? "Hold for the full stream title" : "")
+                Text(channel.category.isEmpty ? "Category unavailable" : channel.category)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                if !channel.tags.isEmpty { StreamTags(tags: channel.tags) }
+                if let viewers = channel.viewerCount {
+                    Text("\(viewers.formatted()) viewers").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("Viewers unavailable").font(.caption).foregroundStyle(.secondary)
+                }
+            }.contentShape(Rectangle()).onTapGesture(perform: open)
+        }.accessibilityElement(children: .contain)
     }
 }
 
@@ -140,15 +140,17 @@ struct OfflineChannelRow: View {
     let channel: FollowedChannel
     let images: ChannelImageCache
     let generation: UInt64
+    var profile: (() -> Void)?
     var body: some View {
-        HStack(spacing: 10) {
+        Button { profile?() } label: {
+            HStack(spacing: 10) {
             RemoteChannelImage(url: channel.avatarURL, images: images, generation: generation, localImage: channel.localTest == nil ? nil : LocalTestArtwork.avatar, avatar: true)
                 .frame(width: 28, height: 28).clipShape(Circle())
             VerifiedChannelName(channel: channel)
             Spacer()
             Text("Offline").font(.caption).foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
+            }
+        }.buttonStyle(.plain).accessibilityLabel("View " + channel.displayName + " profile")
     }
 }
 

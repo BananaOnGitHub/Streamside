@@ -126,6 +126,8 @@ def run_controls_ui(root, stage, device, run):
                 print('Failure screenshot export unavailable: '+str(evidence_error), flush=True)
             raise
     observed='\n'.join(outputs)
+    if observed.count('PLAYER_CLIPBOARD PASS:') != 2:
+        raise ValueError('Both real Copy Link and system-share paste round trips must pass')
     if observed.count('PLAYER_RESOLUTION PASS:') != 2:
         raise ValueError('Both native resolution picker interaction checks must pass')
     if observed.count('PLAYER_MOTION_CHECKS PASS:') != 2:

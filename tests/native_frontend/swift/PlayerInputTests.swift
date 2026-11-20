@@ -364,6 +364,17 @@ final class PlayerInputTests: XCTestCase {
         // Tap within the padded hit target, outside the central glyph pixels.
         element.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.18)).tap()
     }
+    private func readCopiedLink(in app: XCUIApplication) {
+        let paste = app.buttons["read-clipboard"]
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND enabled == true"), object: paste)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed)
+        paste.tap()
+        wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
+    }
+    private func clearCopiedLink(in app: XCUIApplication) {
+        app.buttons["clear-clipboard"].tap()
+        wait(app.staticTexts["copied-link"], label: "Missing URL")
+    }
     private func exercise(plain: Bool) {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -372,17 +383,17 @@ final class PlayerInputTests: XCTestCase {
         app.launch()
         let mute = app.buttons["player.mute"], pause = app.buttons["player.pause"]
         for _ in 0..<3 {
+            clearCopiedLink(in: app)
             tap(mute); wait(mute, label: "Unmute stream")
             tap(mute); wait(mute, label: "Mute stream")
             tap(pause); wait(pause, label: "Play")
             tap(pause); wait(pause, label: "Pause")
             tap(app.buttons["player.share"])
             tap(app.buttons["player.copy"])
-            app.buttons["read-clipboard"].tap()
-            wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
+            readCopiedLink(in: app)
             app.buttons["resize"].tap()
         }
-        app.buttons["clear-clipboard"].tap()
+        clearCopiedLink(in: app)
         tap(app.buttons["player.share"])
         tap(app.buttons["player.system-share"])
         // Cold share-sheet startup can expose the Copy child text before UIKit
@@ -398,8 +409,8 @@ final class PlayerInputTests: XCTestCase {
         let dismissedShare = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: copyActivity)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissedShare], timeout: 5), .completed)
         dismissPopover(app.buttons["player.system-share"], in: app)
-        app.buttons["read-clipboard"].tap()
-        wait(app.staticTexts["copied-link"], label: "https://www.twitch.tv/fixture_channel")
+        readCopiedLink(in: app)
+        print("PLAYER_CLIPBOARD PASS: three fresh production Copy Link round trips and UIKit Share Copy through system Paste")
         tap(app.buttons["player.settings"])
         let glassSetting = app.switches["Liquid Glass"]
         XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))

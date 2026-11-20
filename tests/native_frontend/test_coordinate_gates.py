@@ -16,13 +16,13 @@ class CoordinateGates(unittest.TestCase):
     markers = {
         'testChannelProfile': ['CHANNEL_PROFILE_UI'],
         'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH', 'LOCAL_TEST_EDITOR'],
-        'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION'],
-        'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION'],
+        'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION', 'PLAYER_CLIPBOARD'],
+        'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION', 'PLAYER_CLIPBOARD'],
         'testPreviewPanelLayoutAndActions': ['PREVIEW_PANEL', 'PREVIEW_SWIPES', 'CONTEXT_VIDEO'],
         'testThumbnailHoldAndTap': ['THUMBNAIL_COORDINATES', 'THUMBNAIL_LIFT', 'VERIFICATION_SETTINGS'],
     }
 
-    def exercise(self, fail=None, missing_count=False):
+    def exercise(self, fail=None, missing_count=False, missing_clipboard=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / 'output').mkdir()
@@ -38,7 +38,7 @@ class CoordinateGates(unittest.TestCase):
                         raise RuntimeError('Actual coordinate gate failed')
                     footer = 'Executed 0 tests, with 0 failures' if missing_count else 'Executed 1 test, with 0 failures'
                     return (f"Test Case '-[PlayerInputTests {name}]' passed\n" + footer + '\n'
-                            + '\n'.join(marker + ' PASS: owned fixture' for marker in self.markers[name]))
+                            + '\n'.join(marker + ' PASS: owned fixture' for marker in self.markers[name] if not (missing_clipboard and marker == 'PLAYER_CLIPBOARD')))
                 if 'xcresulttool' in args:
                     exported = Path(args[args.index('--output-path') + 1]); exported.mkdir()
                     (exported / 'owned.png').write_bytes(b'\x89PNG\r\n\x1a\nfixture')
@@ -74,3 +74,7 @@ class CoordinateGates(unittest.TestCase):
     def test_pass_marker_without_actual_test_count_is_rejected(self):
         calls = self.exercise(missing_count=True)
         self.assertEqual(sum('test-without-building' in args for args, _ in calls), 1)
+
+    def test_missing_clipboard_round_trips_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'Both real Copy Link'):
+            self.exercise(missing_clipboard=True)

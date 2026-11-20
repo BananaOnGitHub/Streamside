@@ -340,8 +340,15 @@ private struct InputTestContent: View {
             Text("Harness").accessibilityIdentifier("harness-title")
             Toggle("Hold controls open", isOn: $holdOpen).accessibilityIdentifier("hold-controls")
             Button("Change renderer") { media.changedRenderer.toggle(); interact() }.accessibilityIdentifier("resize")
-            Button("Clear clipboard") { UIPasteboard.general.items = [] }.accessibilityIdentifier("clear-clipboard")
-            Button("Read clipboard") { copied = UIPasteboard.general.url?.absoluteString ?? "Missing URL" }.accessibilityIdentifier("read-clipboard")
+            Button("Clear clipboard") {
+                UIPasteboard.general.items = []; copied = "Missing URL"
+            }.accessibilityIdentifier("clear-clipboard")
+            // Exercise the real general pasteboard through system-authorized
+            // paste, rather than synchronously fetching its contents on the UI
+            // thread. The URL still comes from production Copy / UIKit Share.
+            PasteButton(payloadType: URL.self) { urls in
+                copied = urls.first?.absoluteString ?? "Missing URL"
+            }.accessibilityIdentifier("read-clipboard")
             Text(copied).accessibilityIdentifier("copied-link")
             Text(resolution).accessibilityIdentifier("resolution-choice")
             Text(verbatim: "hold=\(holdOpen) popup=\(presenting) visible=\(visibility.visible) \(motionSamples.lastFrame())")

@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "source_revision": "952cf7ba9d15b6c893cdf048ca69051c99279ff2",
+  "build": {
+    "provider": "github",
+    "id": "44680012229",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44680012229",
+    "artifact_id": "14604059741"
+  },
+  "result": "failed",
+  "stage": "Coordinate gate: testPlainControls",
+  "validation": {
+    "schema": 1,
+    "source_revision": "952cf7ba9d15b6c893cdf048ca69051c99279ff2",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 3.095
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.497
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 1184.343
+      }
+    ]
+  },
+  "files": {
+    "job.log": {
+      "bytes": 787381,
+      "sha256": "577d5a4a173d64488fbc052ec46ecf9a167f8cdfab8a40c20a7ab8df22695627"
+    },
+    "diagnostics.zip": {
+      "bytes": 86102,
+      "sha256": "0eeb07772bc1ec42d7e29d83dfee8c5723a0e1a5ed98339db76688f9cf6c3cd0"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-3",
+  "observation": "The first Read clipboard action after production Copy Link blocked the app event loop. The copied-link equality expectation failed at 87.51 seconds. Failure hierarchy collection also stopped responding; the unchanged 300-second gate deadline ended xcodebuild. The incomplete xcresult contained no exportable screenshot.",
+  "cause_scope": "A synchronous UIPasteboard.general.url read in the owned simulator fixture is the observed stall boundary. No process stack proves a pasteboard daemon, host synchronization or permission cause. PasteboardAutomaticSync was already disabled and verified; that mitigation alone did not prevent recurrence.",
+  "passed_before_failure": [
+    "production SwiftUI and C/Objective-C interoperability compilation, linking and signature verification",
+    "native profile normalization/account lifetime and Swift profile model tests, including the relocation/callback diagnostics correction",
+    "owned window, clock/title/haptics, preview lifecycle, playback/audio and one-shot launch fixtures",
+    "testMarkedContentConsent (164.299 seconds test body)",
+    "testGlassControls (185.812 seconds), including clipboard, resolution, rendered motion and pixel opacity checks"
+  ],
+  "not_reached": [
+    "remaining plain-controls interactions",
+    "preview-panel, thumbnail and channel-profile coordinate gates",
+    "complete component verification",
+    "packaging",
+    "physical-device validation of corrected profile access"
+  ],
+  "correction": "Use the genuine SwiftUI PasteButton accepting URL in the test fixture instead of a synchronous main-thread general-pasteboard read. Keep real production Copy Link and UIKit Share Copy writes and exact pasted-URL equality checks. Clear the pasteboard and displayed result before each round trip so an old success cannot satisfy a later check. Require both glass/plain clipboard pass markers.",
+  "preserved": [
+    "all six mandatory coordinate gates",
+    "three fresh direct-copy and one system-share round trip per controls style",
+    "existing test deadlines",
+    "existing production controls, playback, account and native profile adapters",
+    "scoped host pasteboard synchronization preference restoration"
+  ],
+  "apple_documentation": [
+    "https://developer.apple.com/documentation/swiftui/pastebutton/init(payloadtype:onpaste:)",
+    "https://developer.apple.com/documentation/uikit/uipastecontrol"
+  ],
+  "corrected_apple_build": "pending submission",
+  "limits": [
+    "This correction changes only the owned test fixture and its admission checks; authenticated profile access still needs device validation.",
+    "Ubuntu cannot compile or execute PasteButton/XCTest. Apple validation is pending; the underlying simulator service cause remains unproven."
+  ],
+  "correction_host_validation": {
+    "suite": "tests/native_frontend",
+    "tests": 117,
+    "passed": true,
+    "seconds": 26.567,
+    "log_sha256": "314dd06be48735a9545e3c53d6208efffc47539ddd93d17cb111493297f2447e",
+    "provider_tests": {
+      "tests": 12,
+      "passed": true,
+      "log_sha256": "f9f22bfabad2e869a3c721aed21b878985b1023d2f04fc292875ba35c44edac9"
+    },
+    "documentation_check": {
+      "markdown_files": 127,
+      "references": 1257,
+      "errors": 0
+    },
+    "initial_invocation": "Failed because pinned Zig was not configured in the shell. The complete suite was rerun with explicit ZIG and passed; no tests skipped."
+  }
+}

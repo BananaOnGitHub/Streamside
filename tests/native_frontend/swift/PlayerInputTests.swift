@@ -63,6 +63,11 @@ final class PlayerInputTests: XCTestCase {
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["About panel body"].exists)
+        let artwork = app.images["profile.panel-image"]
+        XCTAssertTrue(artwork.waitForExistence(timeout: 5))
+        let artworkFrame = artwork.frame
+        XCTAssertGreaterThan(artworkFrame.width, 0)
+        XCTAssertEqual(artworkFrame.width / max(1, artworkFrame.height), 2.0 / 3.0, accuracy: 0.03)
         app.buttons["Close profile"].tap()
         XCTAssertTrue(app.staticTexts["profile.closed"].waitForExistence(timeout: 3))
         app.terminate()
@@ -75,7 +80,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, notification menu, confirmed unfollow and close")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, notification menu, confirmed unfollow and close")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false

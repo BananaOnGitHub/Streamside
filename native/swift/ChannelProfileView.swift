@@ -195,10 +195,8 @@ struct ChannelProfileView<Video: View>: View {
             ForEach(panels) { panel in
                 VStack(alignment: .leading, spacing: 10) {
                     if !panel.title.isEmpty { Text(panel.title).font(.headline) }
-                    if panel.image != nil {
-                        Color.clear.frame(height: 150)
-                            .overlay { RemoteChannelImage(url: panel.image, images: images, generation: 0) }
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    if let url = panel.image {
+                        ProfilePanelArtwork(url: url, images: images)
                     }
                     if panel.supported {
                         if !panel.text.isEmpty { Text(panel.text).font(.subheadline).textSelection(.enabled) }
@@ -219,6 +217,38 @@ struct ChannelProfileView<Video: View>: View {
         }
     }
 }
+private struct ProfilePanelArtwork: View {
+    let url: URL
+    let images: ChannelImageCache
+    @State private var image: UIImage?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel("Panel image")
+                    .accessibilityIdentifier("profile.panel-image")
+            } else if failed {
+                Label("Panel image unavailable", systemImage: "photo")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else {
+                ProgressView().accessibilityLabel("Loading panel image")
+            }
+        }
+        .frame(maxWidth: 360)
+        .task(id: url) {
+            image = nil
+            failed = false
+            let result = await images.load(url: url, generation: 0, avatar: false)
+            guard !Task.isCancelled else { return }
+            image = result
+            failed = result == nil
+        }
+    }
+}
+
 private struct ProfileGlass: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @ViewBuilder func body(content: Content) -> some View {

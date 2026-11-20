@@ -144,10 +144,21 @@ struct StreamElapsed {
 
 
 enum ChannelImagePolicy {
+    private static let panelHost = "panels.twitch.tv"
+    private static let legacyPanelHost = "panels-images.twitch.tv"
+
     static func allowed(_ url: URL) -> Bool {
         guard url.scheme == "https", url.user == nil, url.password == nil,
               url.port == nil || url.port == 443, let host = url.host?.lowercased() else { return false }
-        return host == "panels-images.twitch.tv" || host == "jtvnw.net" || host.hasSuffix(".jtvnw.net")
+        return host == panelHost || host == legacyPanelHost || host == "jtvnw.net" || host.hasSuffix(".jtvnw.net")
+    }
+
+    static func panelURL(_ url: URL) -> URL? {
+        guard allowed(url) else { return nil }
+        guard url.host?.lowercased() == legacyPanelHost else { return url }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.host = panelHost
+        return components?.url
     }
 }
 

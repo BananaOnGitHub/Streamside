@@ -1,6 +1,24 @@
 import SwiftUI
 import UIKit
 
+private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        guard let url = request.url, url.absoluteString == "https://panels.twitch.tv/panel-fixture",
+              let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1",
+                                             headerFields: ["Content-Type": "image/png"]),
+              let data = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAACAAAAAwCAIAAAD/zu84AAAALklEQVR4nO3NQQkAAAgEsEtnPxNrCh/CYP+la05FIBAIBAKBQCAQCAQCgUDwKVi88QSmGj03zQAAAABJRU5ErkJggg==") else {
+            client?.urlProtocol(self, didFailWithError: URLError(.resourceUnavailable))
+            return
+        }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: data)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+
 @MainActor private final class ProfileFixtureBackend: ChannelProfileBackend {
     let relationshipUnavailable = ProcessInfo.processInfo.arguments.contains("--profile-relationship-failure")
     var followed = true
@@ -10,7 +28,7 @@ import UIKit
         case .profile:
             let user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
             "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]],
-            "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel", "description": "About panel body"]] as [Any]]
+            "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel", "description": "About panel body", "imageURL": "https://panels-images.twitch.tv/panel-fixture"]] as [Any]]
             return ["user": user]
         case .relationship:
             if relationshipUnavailable { throw CocoaError(.coderReadCorrupt) }
@@ -25,7 +43,7 @@ import UIKit
 }
 struct ProfileFixture: View {
     @StateObject private var model: ChannelProfileModel
-    private let images = ChannelImageCache()
+    private let images = ChannelImageCache(protocolClasses: [PanelImageFixtureProtocol.self])
     private let clock = StreamClock()
     @State private var closed = false
     init() {

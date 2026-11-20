@@ -63,7 +63,7 @@ struct ChannelProfileData {
         panels = (user["panels"] as? [Any])?.prefix(64).enumerated().compactMap { index, value in
             guard let row = value as? [String: Any] else { return nil }
             return Panel(id: index, title: String((row["title"] as? String ?? "").prefix(512)),
-                text: String((row["description"] as? String ?? "").prefix(16000)), image: Self.url(row["imageURL"]),
+                text: String((row["description"] as? String ?? "").prefix(16000)), image: Self.url(row["imageURL"]).flatMap(ChannelImagePolicy.panelURL),
                 link: Self.url(row["linkURL"]), supported: row["__typename"] as? String == "DefaultPanel")
         }
     }

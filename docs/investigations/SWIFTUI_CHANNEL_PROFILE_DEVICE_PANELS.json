@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "source_revision": "bfdabb800fa2cf6bca28f38dc509218969048349",
+  "proof_id": "10380c638c1474913174117977c6f3636631e5642ead2c50422392ae727253d0",
+  "report": {
+    "local_archive": "artifacts/archive/channel-profile-failures/device-bfdabb8/native-latest-2.json",
+    "sha256": "256d6d5d7942ec648c0fb56ec68384a4a9af7399373a554a4360d9364b940ff0",
+    "bytes": 2232
+  },
+  "device": {
+    "profile_completed": 3,
+    "relationship_completed": 3,
+    "nonempty_panel_lists": 3,
+    "panel_cards_or_image_placeholders": true,
+    "probe_count": 25,
+    "all_probes_zero": true,
+    "armed_mask": 15,
+    "failures": 0,
+    "baseline_calibrated": false
+  },
+  "public_cdn_inspection": {
+    "rendered_panel_images": 5,
+    "rendered_panel_image_host": "panels.twitch.tv",
+    "old_panel_host": "panels-images.twitch.tv",
+    "old_host_dns_a_aaaa_cname_answers": 0,
+    "current_host_head_results": [
+      {
+        "status": 200,
+        "mime": "image/png"
+      },
+      {
+        "status": 200,
+        "mime": "image/png"
+      },
+      {
+        "status": 200,
+        "mime": "image/png",
+        "legacy_panel_path": true
+      }
+    ],
+    "scope": "Panel image count, CDN hostnames, DNS results and response status and MIME type.",
+    "page_type": "Public Twitch channel About page"
+  },
+  "correction": "Admit the exact current Twitch panel host and normalize legacy panel artwork URLs to it. Preserve the credential-free session, transport and image admission checks. Show uncropped artwork and a separate fetch failure state.",
+  "device_retest": "Sign the replacement IPA with the existing identity and reopen the same channel About tab. Verify panel artwork, including tall images.",
+  "local_validation": {
+    "native_frontend_tests": 126,
+    "passed": true,
+    "log_sha256": "771d87b9aa63fbf30e8bbdfd5b253fd1905ef080f7d554b3123fd41b2605cf05",
+    "apple_simulator": "pending"
+  }
+}

@@ -53,6 +53,14 @@ import Foundation
         precondition(ChannelProfileData.url("javascript:alert(1)") == nil && ChannelProfileData.url("https://user:pass@example.com") == nil)
         precondition(ChannelImagePolicy.allowed(URL(string: "https://panels-images.twitch.tv/panel.jpg")!))
         precondition(!ChannelImagePolicy.allowed(URL(string: "https://panels-images.twitch.tv.evil.test/panel.jpg")!))
+        let panelURL = URL(string: "https://panels.twitch.tv/panel-fixture")!
+        precondition(ChannelImagePolicy.allowed(panelURL))
+        precondition(ChannelImagePolicy.panelURL(panelURL) == panelURL)
+        precondition(ChannelImagePolicy.panelURL(URL(string: "https://panels-images.twitch.tv/panel-fixture")!) == panelURL)
+        for invalid in ["https://panels.twitch.tv.evil.test/image", "http://panels.twitch.tv/image",
+                        "https://user@panels.twitch.tv/image", "https://panels.twitch.tv:8443/image"] {
+            precondition(ChannelImagePolicy.panelURL(URL(string: invalid)!) == nil)
+        }
         backend.relationshipUnavailable = true
         await model.load()
         precondition(model.data?.bio == "Bio" && model.data?.panels?.count == 2)

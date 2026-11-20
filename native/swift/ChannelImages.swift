@@ -22,8 +22,9 @@ private final class ImageRedirectPolicy: NSObject, URLSessionTaskDelegate, @unch
 actor ChannelImageCache {
     private let cache = NSCache<NSString, UIImage>()
     private let session: URLSession
-    init() {
+    init(protocolClasses: [AnyClass]? = nil) {
         let configuration = URLSessionConfiguration.ephemeral
+        if let protocolClasses { configuration.protocolClasses = protocolClasses }
         configuration.httpShouldSetCookies = false
         configuration.httpCookieStorage = nil
         configuration.urlCredentialStorage = nil

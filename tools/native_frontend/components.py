@@ -23,6 +23,9 @@ from probes import generate_header
 FRAMEWORK = "StreamsideNativeProof"
 LOAD = f"@rpath/{FRAMEWORK}.framework/{FRAMEWORK}"
 MODES = ("baseline", "native")
+# Native includes all six coordinate suites. The baseline runs only shared
+# fixtures. Keep both worker limits inside apple_ci.py's 3000-second stage.
+WORKER_TIMEOUT_SECONDS = {"native": 2250, "baseline": 600}
 ARTWORK = {path.name for path in (ROOT / "native/assets").glob("*.png")}
 FILES = {"SSNBuild.h", "SSNSwiftUI-Swift.h", "apple-abi.o", "compiler.json", "build.log",
          f"{FRAMEWORK}.framework/{FRAMEWORK}", f"{FRAMEWORK}.framework/Info.plist",
@@ -167,7 +170,7 @@ def build(output):
                 destination.write_bytes(data)
             try:
                 run_logged([sys.executable, "-u", str(stage / "tools/native_frontend/apple_worker.py"), str(stage)],
-                           cwd=ROOT, log_path=local / "build.log", timeout=1800,
+                           cwd=ROOT, log_path=local / "build.log", timeout=WORKER_TIMEOUT_SECONDS[mode],
                            label="Build and validate " + mode + " component", group=False, heartbeat=False, summary=True)
             finally:
                 images = stage / "output/player-input-failure.zip"

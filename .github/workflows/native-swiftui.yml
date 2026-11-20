@@ -19,7 +19,9 @@ concurrency:
 jobs:
   apple:
     runs-on: macos-26
-    timeout-minutes: 40
+    # The component stage can use up to 50 minutes. Leave room for the other
+    # Apple checks and artifact upload after that stage.
+    timeout-minutes: 55
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       PYTHONDONTWRITEBYTECODE: '1'

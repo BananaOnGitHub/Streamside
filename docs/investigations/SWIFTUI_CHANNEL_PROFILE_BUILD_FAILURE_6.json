@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "source_revision": "c93ae13530cffdc42966c8d4d705d1a5593c54ad",
+  "build": {
+    "provider": "github",
+    "id": "44785194285",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44785194285",
+    "artifact_id": "14655548514"
+  },
+  "result": "failed",
+  "stage": "Build and validate native component",
+  "validation": {
+    "schema": 1,
+    "source_revision": "c93ae13530cffdc42966c8d4d705d1a5593c54ad",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 10.162
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 4.393
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 1807.023
+      }
+    ]
+  },
+  "completed_before_deadline": {
+    "production_swiftui_and_interop": true,
+    "profile_native_and_model_fixtures": true,
+    "coordinate_commands_passed": [
+      "testMarkedContentConsent",
+      "testGlassControls",
+      "testPlainControls",
+      "testPreviewPanelLayoutAndActions"
+    ],
+    "thumbnail_case_passed": true,
+    "thumbnail_case_seconds": 109.202,
+    "thumbnail_xcode_exit_observed": false
+  },
+  "observation": "The native worker reached its 1800-second overall limit while the passed thumbnail test was saving results. The per-case finalization allowance was still running. The profile artwork case had not started. Temporary directory cleanup then reported a live xcresult data directory.",
+  "made_no_changes_to": [
+    "application source",
+    "coordinate startup, execution and result-finalization deadlines",
+    "required native and baseline receipts",
+    "Codemagic timeout and quota policy"
+  ],
+  "correction": {
+    "native_worker_seconds": 2250,
+    "baseline_worker_seconds": 600,
+    "shared_component_stage_seconds": 3000,
+    "github_apple_job_minutes": 55
+  },
+  "files": {
+    "job.log": {
+      "bytes": 964768,
+      "sha256": "de72616cfae51633825bb02cea6d612315882249215cb1248a78b8fdded9eed5"
+    },
+    "diagnostics.zip": {
+      "bytes": 112640,
+      "sha256": "58030a1876fdda1376684addedaa1723a053e6c548623c6c7927b1b6b9d3bf29"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-6",
+  "not_reached": [
+    "profile artwork coordinate gate",
+    "baseline component",
+    "component verification",
+    "IPA packaging",
+    "physical-device verification"
+  ],
+  "correction_host_validation": {
+    "build_logging": 13,
+    "coordinate_runner": 6,
+    "component_admission": 26,
+    "provider_routing": 12,
+    "total": 57,
+    "passed": true
+  }
+}

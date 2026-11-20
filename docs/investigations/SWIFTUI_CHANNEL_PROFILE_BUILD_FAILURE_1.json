@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "source_revision": "eb280a53864d6fe8be132e1f7bd4f46d432e2277",
+  "build": {
+    "provider": "github",
+    "id": "44649618815",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44649618815",
+    "artifact_id": "14590880325"
+  },
+  "result": "failed",
+  "stage": "Compile SwiftUI frontend for iPhone",
+  "cause": "ChannelProfileModel.change catch handler referenced the immutable implicit Error binding instead of self.error.",
+  "observed_errors": [
+    "cannot assign to value: error is immutable",
+    "cannot assign value of type String to type any Error"
+  ],
+  "validation": {
+    "schema": 1,
+    "source_revision": "eb280a53864d6fe8be132e1f7bd4f46d432e2277",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 3.214
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.508
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 21.238
+      }
+    ]
+  },
+  "files": {
+    "diagnostics.zip": {
+      "bytes": 5574,
+      "sha256": "3a2a9adf606f64fe6569163d5b2169e1f5b34d7c3e930b30694748b27d7d7e38"
+    },
+    "job.log": {
+      "bytes": 30109,
+      "sha256": "de2aaf8e3385b3ffc86bbba1a382047745e7512b41566935b1d403e52d4c849f"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-1",
+  "not_reached": [
+    "framework linking",
+    "new profile native/model tests",
+    "all simulator gates",
+    "component verification",
+    "packaging",
+    "device validation"
+  ],
+  "correction": "Qualify the presentation error state as self.error. Existing failed-mutation model assertions remain mandatory.",
+  "correction_host_tests": {
+    "suite": "tests/native_frontend",
+    "tests": 113,
+    "passed": true,
+    "seconds": 16.54,
+    "log_sha256": "236a9cf16c29324a4769cf6c8a5027fd5b7ee4e1bde6f70dae14f626b818e6f2"
+  },
+  "corrected_apple_build": "pending submission"
+}

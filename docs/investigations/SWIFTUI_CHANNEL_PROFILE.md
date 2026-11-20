@@ -49,3 +49,9 @@ Device checks after packaging:
 4. Confirm no audio-only resolution, saved video preferences remain per channel, and diagnostics still show the expected guarded native runtime counts. Export a report after profile/preview/theatre/background/reopen checks. Visual success alone is not evidence of zero RN/Hermes creation.
 
 Real authenticated profile queries, mutations, actual IVS profile playback and physical-device runtime counts remain unvalidated until device results are supplied.
+
+## First Apple build failure: error-state qualification
+
+[GitHub run 44649618815](https://github.com/BananaOnGitHub/Streamside/actions/runs/44649618815), source `eb280a53864d6fe8be132e1f7bd4f46d432e2277`, failed during the initial iPhone SwiftUI compilation. In `ChannelProfileModel.change`, the catch handler assigned a message to the implicit immutable `Error` binding named `error`, rather than the model's string property. The compiler reported both the immutable assignment and incompatible String/Error types. Build-logging and shared VAFT stages passed; linking, new profile model/native tests, simulator gates, component verification and packaging were not reached.
+
+The correction is limited to `self.error` in that handler. The existing model test that checks an unconfirmed mutation's failure state remains mandatory. All 113 Ubuntu native-frontend checks pass after the correction; Ubuntu does not compile this SwiftUI code. Apple revalidation remains pending at resubmission. No gate or deadline changed. [Failure record](SWIFTUI_CHANNEL_PROFILE_BUILD_FAILURE_1.json) retains the run identity and hashes for the bounded diagnostics archive and job log, stored outside the source checkout.

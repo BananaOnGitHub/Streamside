@@ -98,6 +98,6 @@ enum NotificationChoice: String, CaseIterable, Identifiable {
             guard let next = ChannelRelationship(result: try await request(.relationship)),
                   operation == .notifications ? next.setting == setting : next.followed == (operation == .follow) else { throw CocoaError(.coderReadCorrupt) }
             self.relationship = next; changed(); return true
-        } catch is CancellationError { return false } catch { error = "The change could not be confirmed. Refresh before trying again."; return false }
+        } catch is CancellationError { return false } catch { self.error = "The change could not be confirmed. Refresh before trying again."; return false }
     }
 }

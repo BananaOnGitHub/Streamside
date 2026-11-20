@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "source_revision": "a7c8e4a42476b96a401dfc8029e07f21f2d36033",
+  "build": {
+    "provider": "github",
+    "id": "44662345316",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44662345316",
+    "artifact_id": "14596635072"
+  },
+  "result": "failed",
+  "stage": "Build native profile normalization and account lifetime fixture",
+  "cause": "An inline Objective-C collection literal in an NSCAssert condition exposed commas to the preprocessor, splitting its macro arguments.",
+  "first_error": "tests/native_frontend/profile_test.m:33:5: expected } or comma",
+  "validation": {
+    "schema": 1,
+    "source_revision": "a7c8e4a42476b96a401dfc8029e07f21f2d36033",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 2.941
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.719
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 66.504
+      }
+    ]
+  },
+  "files": {
+    "diagnostics.zip": {
+      "bytes": 11310,
+      "sha256": "9fa587fcb512e9979bdee305af09587bc102b5f833a859e4e2c710361a8b30cd"
+    },
+    "job.log": {
+      "bytes": 60865,
+      "sha256": "e1bd761e9b5c459a49b44f5c24d2e01d9039408ff90a5aef9a492ef76c3d81eb"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-2",
+  "passed_before_failure": [
+    "production SwiftUI compilation",
+    "production native interoperability compilation including profile C/Objective-C",
+    "framework linking and signature verification",
+    "existing account/feed/presentation model tests",
+    "VAFT baseline/native transport tests",
+    "native content-label lifetime tests",
+    "inline preview/player consent admission tests"
+  ],
+  "not_reached": [
+    "execution of profile normalization/lifetime fixture",
+    "new profile model tests",
+    "all simulator gates",
+    "component verification",
+    "packaging",
+    "device validation"
+  ],
+  "correction": "Move the exact expected dictionary to a named variable before NSCAssert; retain the same equality assertion and all mandatory gates.",
+  "correction_host_tests": {
+    "suite": "tests/native_frontend",
+    "tests": 113,
+    "passed": true,
+    "seconds": 16.43,
+    "log_sha256": "dcbd74cfd6396bed009c9745a3e87ae77ec44113f0f9d3344fdad287c3fe66f5"
+  },
+  "corrected_apple_build": "pending submission"
+}

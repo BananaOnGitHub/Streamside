@@ -30,7 +30,9 @@ id ssn_profile_unbox(id object) { (void)object;return nil; }
 int main(void) { @autoreleasepool {
     NSDictionary *raw=@{@"user":@{@"displayName":@"Fixture",@"accessToken":@"never pass",@"panels":@[@{@"__typename":@"DefaultPanel",@"description":@"Panel"}]},@"credentials":@"never pass"};
     id clean=ssn_profile_normalize(raw);
-    NSCAssert([clean isEqual:@{@"user":@{@"displayName":@"Fixture",@"panels":@[@{@"__typename":@"DefaultPanel",@"description":@"Panel"}]}}],@"Whitelist at every depth");[clean release];
+    // Collection literal commas must stay outside assertion macro arguments.
+    NSDictionary *expected=@{@"user":@{@"displayName":@"Fixture",@"panels":@[@{@"__typename":@"DefaultPanel",@"description":@"Panel"}]}};
+    NSCAssert([clean isEqual:expected],@"Whitelist at every depth");[clean release];
     NSCAssert(!ssn_profile_normalize(@{@"user":[NSObject new]}),@"Reject unknown SDK values");
     NSCAssert(!ssn_profile_normalize(@{@"description":[@"x" stringByPaddingToLength:65537 withString:@"x" startingAtIndex:0]}),@"Bound payloads");
     identity=[NSObject new];value=@{@"user":@{@"displayName":@"Fixture"}};

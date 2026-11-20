@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+  "packaging_revision": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+  "artwork_fix_revision": "c93ae13530cffdc42966c8d4d705d1a5593c54ad",
+  "proof_id": "0afc4bff3be905350f5e551d1fa7a55eae928d83a642ecf2c8b7dfd1d5099d0f",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129"
+  },
+  "build": {
+    "provider": "github",
+    "id": "44821693367",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44821693367",
+    "apple_job_id": "136583883946",
+    "abi_job_id": "136601173574",
+    "apple_and_abi_jobs_passed": true,
+    "artifact_id": "14673269601",
+    "github_artifact_zip_sha256": "7ef6863f097a54cd521ac99417b549d3ac08020e993265ae2253d2c0f99dbdd0",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4"
+  },
+  "validation": {
+    "apple": {
+      "schema": 1,
+      "source_revision": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 10.012
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 1.961
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 2061.988
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 18.909
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.184
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.611
+        }
+      ],
+      "archive_sha256": "92983ef6b4710ce66b22df58e11b4a6c8ecd5fbd691924f42ff0734e4ebdff51",
+      "archive_bytes": 1800884
+    },
+    "coordinate_case_seconds": {
+      "testMarkedContentConsent": 198.411,
+      "testGlassControls": 209.273,
+      "testPlainControls": 170.107,
+      "testPreviewPanelLayoutAndActions": 204.284,
+      "testThumbnailHoldAndTap": 93.083,
+      "testChannelProfile": 52.922
+    },
+    "coordinate_command_seconds": {
+      "testMarkedContentConsent": 292.0,
+      "testGlassControls": 292.6,
+      "testPlainControls": 204.5,
+      "testPreviewPanelLayoutAndActions": 263.7,
+      "testThumbnailHoldAndTap": 149.7,
+      "testChannelProfile": 77.2
+    },
+    "profile_native_fixture": true,
+    "profile_model_fixture": true,
+    "artwork": "Fixture uses a legacy URL and requires the current CDN host before returning a real PNG. Home and About passed, including the decoded tall panel image at its natural aspect ratio.",
+    "quick_look": "Disabled profile action, one-tap long scrolled menu handoff of the same player, real decoded video, and thumbnail cancellation checks passed.",
+    "post_download": {
+      "tests": 78,
+      "suites": 7,
+      "passed": true
+    }
+  },
+  "package": {
+    "artifact": "artifacts/native-frontend/channel-profile-d50c38e/StreamsideNativeProof-Twitch32-native.ipa",
+    "bytes": 197250652,
+    "sha256": "d199aa52364f8d51e477fbac696f4764db5749496d24194c3ba72ffe3eaff6fd",
+    "framework_sha256": "33f78d3b62f6747e34afea0dedd17c583d9b5391bb4fbc81ae018f8d8343db8f",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "609d89181f820a5b6363640217cdbaf415a538fc906a2dc88fe2c33b0976cc8d",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "a2107598be71c24e8f2e29d1966c635e82793cd6545d355681ecc9d9162036af",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "dfea9cfd49c5cd587abcdd44b27e08a38d53f250cde36c4d6cffd61ec3430ac4",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "4e2afaa470d18c31d7febaae04ae3ba231c9165811c70e0b3e26358c603a25e8"
+    },
+    "manifest_sha256": "81f9dea6db6b4be7ae698384d9f9094d7226139d0ae51968087be7533f9df235",
+    "component_manifest_sha256": "fc8a0f12775c094a920ea3bad2fee25b1bf68abb12795154ec53819f61e73027",
+    "inspection": {
+      "abi_entries": 111,
+      "probe_entries": 25,
+      "all_retained_donor_entries_verified": true,
+      "original_hbc_unchanged": true
+    },
+    "packaged_social_asset_sha256": {
+      "profile-social-discord.png": "af846d698a321ae7149c88dae6b19b81ce08c2d1db470b240258cedd852d3dd4",
+      "profile-social-facebook.png": "3fec6838ae2a09785c66e9b74b19b0c29f445b9c0c7ed036d2bc54c78268a95d",
+      "profile-social-instagram.png": "e675c9993e1ac620c800d3760b529e8e092bd3a8adef2f5d8194064e91e42d28",
+      "profile-social-tiktok.png": "9e664376781005e982328e2132fdc7960213ceb5922efc5faa97441767f9a4ac",
+      "profile-social-twitch.png": "1b3a79ce4fe36c9b0876a53d3406ff556929075e249bfcdee96c04cc388c8ebd",
+      "profile-social-twitter.png": "bd3c69371905718b1ef36553a71078fa50e136c3203f6d5ec5c0a86aca5182e1",
+      "profile-social-x.png": "f4fecaad21b89545a4296c79bc57b77fed1745a4a257cb30361d31ba4803c326",
+      "profile-social-youtube.png": "5e74bb3dba80532989efce27f5b86b38516c4a7f7ba6eff8716de52d0d091de8"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here."
+  },
+  "device_validation": {
+    "status": "pending",
+    "scope": "Confirm real Twitch About panel images on a previously affected profile and Watch stream after scrolling a long Quick Look preview."
+  }
+}

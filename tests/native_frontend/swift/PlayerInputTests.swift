@@ -203,7 +203,9 @@ final class PlayerInputTests: XCTestCase {
         // press() has released the finger. The native preview must persist.
         Thread.sleep(forTimeInterval: 0.5)
         XCTAssertTrue(app.buttons["Watch stream"].exists)
-        XCTAssertFalse(app.buttons["View profile"].isEnabled)
+        let profile = app.buttons["quicklook.profile"]
+        XCTAssertTrue(profile.exists, "An unavailable profile action must remain visible")
+        XCTAssertFalse(profile.isEnabled, "The profile action must be exposed as disabled when it has no handler")
         XCTAssertFalse(app.buttons["quicklook.close"].exists)
         XCTAssertFalse(app.buttons["Close preview"].exists)
     }

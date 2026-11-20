@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "source_revision": "3fca3b985d785642b826c4e944208df1121d5658",
+  "build": {
+    "provider": "github",
+    "id": "44801411797",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44801411797",
+    "job_id": "136514223288",
+    "artifact_id": "14661714157"
+  },
+  "result": "failed",
+  "stage": "Coordinate gate: testPreviewPanelLayoutAndActions",
+  "validation": {
+    "schema": 1,
+    "source_revision": "3fca3b985d785642b826c4e944208df1121d5658",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 9.913
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 1.554
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 1269.972
+      }
+    ]
+  },
+  "completed_before_failure": {
+    "production_swiftui_and_interop": true,
+    "coordinate_commands_passed": [
+      "testMarkedContentConsent",
+      "testGlassControls",
+      "testPlainControls"
+    ]
+  },
+  "failure": {
+    "case": "testPreviewPanelLayoutAndActions",
+    "scenario": "Opening the short menu preview without a profile callback",
+    "assertion": "XCTAssertFalse(app.buttons[\"View profile\"].isEnabled)",
+    "observed": "The runner found the native UIKit row and reported it as enabled. The gate ended 17.649 seconds into the case.",
+    "limits": "No Watch touch was attempted. The failed assertion reports the button state exposed to XCTest, without establishing that tapping the unavailable action would run any code."
+  },
+  "correction": "Restore the previously passing disabled SwiftUI Button row for unavailable actions. Keep the full-row UIKit target for active actions and require the disabled assertion against the stable profile row identifier.",
+  "files": {
+    "job.log": {
+      "bytes": 902008,
+      "sha256": "d138ab63a351701e63c1d16ba4c55cbc445f0c9cea494e92729b6fc67690595c"
+    },
+    "diagnostics.zip": {
+      "bytes": 995540,
+      "sha256": "1351859c0d0038a64722c44072047dd88a48fa3d98da537dbe6b7efadfbb6dd8"
+    }
+  },
+  "fixture_screenshot": {
+    "scope": "donor-free simulator fixture failures only",
+    "files": {
+      "681791D0-4BCE-484C-B206-BB593E6D7598.png": {
+        "bytes": 918666,
+        "sha256": "ade18e2075e21f540d5baaff2229d24d38572ceb438107ea857f3e9b30082dd3"
+      }
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-8",
+  "not_reached": [
+    "single-tap Watch handoff and remaining Quick Look assertions",
+    "thumbnail and profile artwork coordinate gates",
+    "baseline build",
+    "component verification",
+    "IPA packaging",
+    "device verification"
+  ],
+  "replacement_validation": {
+    "host_tests": 126,
+    "host_result": "passed",
+    "host_seconds": 34.149,
+    "host_log_sha256": "5e48095f9a4fac6fa9b42d46738ec649329b5f83e508ed33f99d25dfa0599a28",
+    "apple_result": "pending"
+  }
+}

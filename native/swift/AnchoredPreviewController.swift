@@ -35,7 +35,7 @@ struct PreviewPlacement {
 private struct PreviewActionTarget: UIViewRepresentable {
     let title: String
     let identifier: String
-    let action: (() -> Void)?
+    let action: () -> Void
 
     @MainActor final class Coordinator: NSObject {
         var action: (() -> Void)?
@@ -53,7 +53,7 @@ private struct PreviewActionTarget: UIViewRepresentable {
 
     func updateUIView(_ button: UIButton, context: Context) {
         context.coordinator.action = action
-        button.isEnabled = action != nil
+        button.accessibilityTraits = .button
         button.accessibilityLabel = title
         button.accessibilityIdentifier = identifier
     }
@@ -64,13 +64,25 @@ private struct PreviewActions: View {
     let profile: (() -> Void)?
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    private func row(_ title: String, icon: String, identifier: String, action: (() -> Void)?) -> some View {
+    private func rowLabel(_ title: String, icon: String) -> some View {
         Label(title, systemImage: icon)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20).padding(.vertical, 15)
-            .opacity(action == nil ? 0.4 : 1)
-            .allowsHitTesting(false).accessibilityHidden(true)
-            .overlay { PreviewActionTarget(title: title, identifier: identifier, action: action) }
+    }
+
+    @ViewBuilder
+    private func row(_ title: String, icon: String, identifier: String, action: (() -> Void)?) -> some View {
+        if let action {
+            rowLabel(title, icon: icon)
+                .allowsHitTesting(false).accessibilityHidden(true)
+                .overlay { PreviewActionTarget(title: title, identifier: identifier, action: action) }
+        } else {
+            // Let SwiftUI publish an actual disabled button for unavailable
+            // actions. There is no UIKit touch target to activate in this row.
+            Button {} label: { rowLabel(title, icon: icon) }
+                .buttonStyle(.plain).disabled(true).opacity(0.4)
+                .accessibilityIdentifier(identifier)
+        }
     }
 
     private var rows: some View {

@@ -7,7 +7,7 @@ from unittest.mock import patch
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/native_frontend'))
-from controls_ui import EXPECTED, SELECTED_SUITE_PASSED, run_controls_ui
+from controls_ui import EXPECTED, SELECTED_SUITE_FINISHED, SELECTED_SUITE_PASSED, run_controls_ui
 
 
 class CoordinateGates(unittest.TestCase):
@@ -36,7 +36,8 @@ class CoordinateGates(unittest.TestCase):
                     name = selected[0]
                     if name == fail:
                         raise RuntimeError('Actual coordinate gate failed')
-                    footer = 'Executed 0 tests, with 0 failures' if missing_count else 'Executed 1 test, with 0 failures'
+                    count = '0 tests' if missing_count else '1 test'
+                    footer = f"Test Suite 'Selected tests' passed at 2026-11-20 08:12:46.650.\n\t Executed {count}, with 0 failures (0 unexpected) in 1.000 (1.001) seconds"
                     return (f"Test Case '-[PlayerInputTests {name}]' passed\n" + footer + '\n'
                             + '\n'.join(marker + ' PASS: owned fixture' for marker in self.markers[name] if not (missing_clipboard and marker == 'PLAYER_CLIPBOARD')))
                 if 'xcresulttool' in args:
@@ -63,7 +64,12 @@ class CoordinateGates(unittest.TestCase):
         bundles = [args[args.index('-resultBundlePath') + 1] for args, _ in tests]
         self.assertEqual(len(set(bundles)), 6)
         self.assertEqual([opts['timeout'] for _, opts in tests], [300, 300, 300, 600, 300, 300])
-        self.assertTrue(all(opts['finalization'] == (SELECTED_SUITE_PASSED, 120) for _, opts in tests))
+        self.assertTrue(all(opts['finalization'] == (SELECTED_SUITE_FINISHED, 120) for _, opts in tests))
+        for name, (_, opts) in zip(self.names, tests):
+            pattern, seconds = opts['startup']
+            self.assertEqual(seconds, 150)
+            self.assertIsNotNone(pattern.search(f"Test Case '-[PlayerInputTests.PlayerInputTests {name}]' started.\n"))
+            self.assertIsNone(pattern.search("Test Case '-[PlayerInputTests.PlayerInputTests otherCase]' started.\n"))
 
     def test_only_successful_selected_suite_footer_starts_finalization(self):
         suite = "Test Suite 'Selected tests' passed at 2026-11-20 08:12:46.650.\n"
@@ -72,6 +78,12 @@ class CoordinateGates(unittest.TestCase):
         for output in (suite, summary, suite + summary.replace('0 failures', '1 failure'),
                        suite + summary.replace('1 test', '0 tests'), suite.replace('passed', 'failed') + summary):
             self.assertIsNone(SELECTED_SUITE_PASSED.search(output))
+
+    def test_completed_failed_suite_gets_finalization_but_is_not_a_pass(self):
+        failure = ("Test Suite 'Selected tests' failed at 2026-11-20 11:07:25.266.\n"
+                   "\t Executed 1 test, with 1 failure (0 unexpected) in 157.588 (157.603) seconds\n")
+        self.assertIsNotNone(SELECTED_SUITE_FINISHED.search(failure))
+        self.assertIsNone(SELECTED_SUITE_PASSED.search(failure))
 
     def test_failed_gate_exports_its_own_evidence_without_retry_or_later_tests(self):
         calls = self.exercise(fail='testPlainControls')

@@ -77,7 +77,7 @@ class BuildProgressTests(unittest.TestCase):
                         run()
                 else:
                     self.assertEqual(run(), "suite passed\nsummary")
-                self.assertIn("Tests passed: allowing up to 2s", sink.getvalue())
+                self.assertIn("Test suite finished: allowing up to 2s", sink.getvalue())
 
     def test_finalization_timeout_is_bounded_even_with_repeated_completion_output(self):
         marker = re.compile(r"^suite passed\n", re.MULTILINE)
@@ -86,7 +86,7 @@ class BuildProgressTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "during finalization"):
                 run_logged([sys.executable, "-u", "-c", code], cwd=self.root, log_path=self.log,
                            timeout=1, finalization=(marker, 1.3))
-        self.assertEqual(sink.getvalue().count("Tests passed: allowing"), 1)
+        self.assertEqual(sink.getvalue().count("Test suite finished: allowing"), 1)
 
     def test_incomplete_completion_output_keeps_execution_deadline(self):
         marker = re.compile(r"^suite passed\nsummary\n", re.MULTILINE)
@@ -95,7 +95,22 @@ class BuildProgressTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "timed out after 1s:"):
                 run_logged([sys.executable, "-u", "-c", code], cwd=self.root, log_path=self.log,
                            timeout=1, finalization=(marker, 2))
-        self.assertNotIn("Tests passed: allowing", sink.getvalue())
+        self.assertNotIn("Test suite finished: allowing", sink.getvalue())
+
+    def test_startup_has_its_own_deadline_then_execution_gets_its_budget(self):
+        marker = re.compile(r"^case started\n", re.MULTILINE)
+        # The command lasts longer than its execution budget but completes
+        # inside that budget measured from the start of the case.
+        run = "import time; time.sleep(.65); print('case started'); time.sleep(.65); print('done')"
+        with contextlib.redirect_stdout(io.StringIO()) as sink:
+            self.assertEqual(run_logged([sys.executable, "-u", "-c", run], cwd=self.root,
+                log_path=self.log, timeout=1, startup=(marker, 1.5)), "case started\ndone")
+        self.assertIn("Test started: allowing up to 1s", sink.getvalue())
+        hang = "import time; print('no test case yet'); time.sleep(10)"
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(RuntimeError, "after 0.5s during startup"):
+                run_logged([sys.executable, "-u", "-c", hang], cwd=self.root,
+                           log_path=self.log, timeout=5, startup=(marker, .5))
 
     def test_missing_executable_closes_group_and_records_failure(self):
         with contextlib.redirect_stdout(io.StringIO()) as sink:

@@ -139,7 +139,8 @@ final class PlayerInputTests: XCTestCase {
                     "Video Watch must not cover consent controls or appear to VoiceOver")
             }
             remember.tap()
-            XCTAssertEqual(remember.value as? String, "Selected")
+            // The button action can complete before XCTest receives the updated accessibility snapshot.
+            waitValue(remember, value: "Selected")
             XCTAssertFalse(app.staticTexts["Admitted"].exists)
             if accept {
                 // Pending Watch must move the same gate into the theatre,

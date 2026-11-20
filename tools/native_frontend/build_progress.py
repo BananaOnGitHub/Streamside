@@ -23,18 +23,20 @@ def command_title(args):
 
 
 def run_logged(args, *, cwd, log_path, timeout=240, label=None, summary=False,
-               group=True, heartbeat=True, finalization=None):
+               group=True, heartbeat=True, startup=None, finalization=None):
     """Stream combined output immediately, retaining the command's return text.
 
     Call only with owned compiler/test commands: no environment or credentials
     are dumped. A quiet command emits elapsed status every 30 seconds.
-    An optional (pattern, seconds) gives a command time to finalize after
-    the output matches. The original deadline still applies until then.
+    Optional (pattern, seconds) pairs bound setup before execution and
+    result finalization after it. Patterns are matched against live output.
     """
     title = label or command_title(args)
     started = last_output = last_heartbeat = time.monotonic()
-    deadline = started + timeout
-    finalization_tail = ""
+    limit = startup[1] if startup else timeout
+    deadline = started + limit
+    phase = " during startup" if startup else ""
+    phase_tail = ""
     chunks = []
     decoder = codecs.getincrementaldecoder("utf-8")("replace")
     process = None
@@ -53,8 +55,7 @@ def run_logged(args, *, cwd, log_path, timeout=240, label=None, summary=False,
                 while selector.get_map() or process.poll() is None:
                     now = time.monotonic()
                     if now >= deadline:
-                        phase = " during finalization" if deadline > started + timeout else ""
-                        raise RuntimeError(f"Command timed out after {deadline - started:g}s{phase}: {title}")
+                        raise RuntimeError(f"Command timed out after {limit:g}s{phase}: {title}")
                     for key, _ in selector.select(min(0.5, deadline - now)):
                         data = os.read(key.fd, 65536)
                         if data:
@@ -62,14 +63,22 @@ def run_logged(args, *, cwd, log_path, timeout=240, label=None, summary=False,
                             output = decoder.decode(data)
                             observed_at = time.monotonic()
                             emit(output)
-                            if finalization and observed_at < deadline:
-                                pattern, seconds = finalization
-                                if pattern.search(finalization_tail + output):
-                                    deadline = max(deadline, observed_at + seconds)
+                            if (startup or finalization) and observed_at < deadline:
+                                pending = phase_tail + output
+                                if startup and (match := startup[0].search(pending)):
+                                    startup = None
+                                    phase = " during execution"
+                                    limit = timeout
+                                    deadline = observed_at + limit
+                                    pending = pending[match.end():]
+                                    emit(f"\nTest started: allowing up to {limit:g}s for execution\n")
+                                if not startup and finalization and finalization[0].search(pending):
+                                    limit = finalization[1]
+                                    deadline = observed_at + limit
+                                    phase = " during finalization"
                                     finalization = None
-                                    emit(f"\nTests passed: allowing up to {seconds:g}s for {title} to finalize\n")
-                                else:
-                                    finalization_tail = (finalization_tail + output)[-4096:]
+                                    emit(f"\nTest suite finished: allowing up to {limit:g}s for Xcode results\n")
+                                phase_tail = pending[-4096:]
                             last_output = observed_at
                         else: selector.unregister(key.fileobj)
                     if not selector.get_map() and process.poll() is None:

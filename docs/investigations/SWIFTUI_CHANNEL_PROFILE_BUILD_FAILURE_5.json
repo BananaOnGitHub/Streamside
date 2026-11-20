@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "source_revision": "319d4773b75d932c08170edd2cff72fc02068782",
+  "build": {
+    "provider": "github",
+    "id": "44723220754",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44723220754",
+    "artifact_id": "14623338002"
+  },
+  "result": "failed",
+  "stage": "Coordinate gate: testMarkedContentConsent",
+  "validation": {
+    "schema": 1,
+    "source_revision": "319d4773b75d932c08170edd2cff72fc02068782",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 8.017
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.605
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 773.689
+      }
+    ]
+  },
+  "completed_before_deadline": {
+    "production_swiftui_and_interop": true,
+    "profile_native_and_model_fixtures": true,
+    "development_local_stream_editor": true
+  },
+  "case": {
+    "name": "testMarkedContentConsent",
+    "startup_seconds_approximate": 109.0,
+    "body_seconds": 157.588,
+    "scenario": "Theatre with marked thumbnails already enabled",
+    "asserted": "Selected",
+    "immediate_accessibility_value": "Not selected",
+    "failure_snapshot_value": "Selected",
+    "test_count": 1,
+    "failures": 1,
+    "xcodebuild_exit_observed": false,
+    "result_bundle_completed": false
+  },
+  "files": {
+    "job.log": {
+      "bytes": 692324,
+      "sha256": "8a639123753bb9901d34328ee1ebffd27ef0c82f99dfb490c94c2b488d81280c"
+    },
+    "diagnostics.zip": {
+      "bytes": 71518,
+      "sha256": "1673cd197c102cf24411f4f0a1b36243eca8a29f0012247c70c4cc26b4819f82"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-5",
+  "correction": "Wait for the Selected accessibility value with the existing five-second predicate after one physical tap. Bound XCTest startup at 150 seconds, keep each case execution limit at 300 or 600 seconds, and give completed pass and failure summaries up to 120 seconds to finalize. Require the successful selected-suite summary, expected case and existing receipts for a passed gate.",
+  "not_reached": [
+    "remaining five coordinate gates",
+    "component verification",
+    "local packaging",
+    "physical-device verification"
+  ],
+  "correction_host_validation": {
+    "tests": 126,
+    "passed": true,
+    "log_sha256": "b47a605dc073ea970b4414e2430167e49dfa235e728c9674edc0a8bbd5500976"
+  }
+}

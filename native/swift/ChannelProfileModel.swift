@@ -83,9 +83,17 @@ enum NotificationChoice: String, CaseIterable, Identifiable {
         do {
             guard let next = ChannelProfileData(result: try await request(.profile)) else { rejected(.profile);throw CocoaError(.coderReadCorrupt) }
             data = next
+        } catch is CancellationError { return } catch {
+            self.error = "The channel profile could not be loaded. Try again."
+            return
+        }
+        do {
             guard let state = ChannelRelationship(result: try await request(.relationship)) else { rejected(.relationship);throw CocoaError(.coderReadCorrupt) }
             relationship = state
-        } catch is CancellationError { } catch { self.error = "The channel profile could not be loaded. Try again." }
+        } catch is CancellationError { } catch {
+            relationship = nil
+            self.error = "Follow and notification settings could not be loaded."
+        }
     }
     func change(_ operation: ProfileOperation, setting: String = "") async -> Bool {
         guard !busy, valid(), let relationship, channel.localTest == nil,

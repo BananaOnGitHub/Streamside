@@ -630,6 +630,11 @@
       "address": 45216,
       "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
     },
+    "_$s9ApolloAPI11GraphQLEnumO8rawValueSSvg": {
+      "image": "ApolloAPI",
+      "address": 45768,
+      "bytes": "f85fbca9f65701a9f44f02a9fd7b03a9"
+    },
     "_$s9ApolloAPI8EnumTypeMp": {
       "image": "ApolloAPI",
       "address": 166292,

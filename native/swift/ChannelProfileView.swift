@@ -18,8 +18,7 @@ struct ChannelProfileView<Video: View>: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    RemoteChannelImage(url: model.data?.banner, images: images, generation: 0)
-                        .frame(height: 190 + geometry.safeAreaInsets.top).clipped()
+                    banner(width: geometry.size.width, height: 190 + geometry.safeAreaInsets.top)
                     VStack(alignment: .leading, spacing: 16) {
                         identity.padding(.top, -42)
                         biography
@@ -33,7 +32,8 @@ struct ChannelProfileView<Video: View>: View {
                         }
                         page
                     }.padding(.horizontal, 20)
-                }.padding(.bottom, 24)
+                        .frame(width: geometry.size.width, alignment: .leading)
+                }.frame(width: geometry.size.width, alignment: .leading).padding(.bottom, 24)
             }.ignoresSafeArea(edges: .top)
                 .overlay(alignment: .topLeading) {
                     Button(action: close) { Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36) }
@@ -44,6 +44,27 @@ struct ChannelProfileView<Video: View>: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false }
     }
+    private func banner(width: CGFloat, height: CGFloat) -> some View {
+        Color(uiColor: .secondarySystemBackground)
+            .frame(width: width, height: height)
+            .overlay {
+                RemoteChannelImage(url: model.data?.banner, images: images, generation: 0)
+            }
+            .overlay(alignment: .bottom) {
+                if !reduceTransparency {
+                    Rectangle().fill(.ultraThinMaterial)
+                        .mask { LinearGradient(colors: [.clear, .white], startPoint: .top, endPoint: .bottom) }
+                        .frame(height: 56)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                LinearGradient(colors: [.clear, Color(uiColor: .systemBackground)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 42)
+            }
+            .clipped()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
     private var identity: some View {
         HStack(spacing: 12) {
             RemoteChannelImage(url: model.data?.avatar ?? channel.avatarURL, images: images, generation: 0, avatar: true)
@@ -53,7 +74,9 @@ struct ChannelProfileView<Video: View>: View {
                 VerifiedChannelName(channel: channel).font(.title2.bold())
                 if channel.isLive {
                     Label("Live · " + channel.category + (channel.viewerCount.map { " · " + $0.formatted() + " viewers" } ?? ""),
-                          systemImage: "dot.radiowaves.left.and.right").font(.subheadline).foregroundStyle(.red)
+                          systemImage: "dot.radiowaves.left.and.right")
+                        .font(.subheadline).foregroundStyle(.red).lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else { Text("Offline").foregroundStyle(.secondary) }
             }
         }
@@ -75,7 +98,10 @@ struct ChannelProfileView<Video: View>: View {
         HStack(spacing: 12) {
             followControl
             notificationControl
-            Button {} label: { Label("Subscribe", systemImage: "star").frame(maxWidth: .infinity, minHeight: 30) }
+            Button {} label: {
+                Label("Subscribe", systemImage: "star").lineLimit(1).minimumScaleFactor(0.75)
+                    .frame(maxWidth: .infinity, minHeight: 30)
+            }
                 .modifier(ProfileGlass()).disabled(true).accessibilityHint("Not available in this prototype")
         }
     }
@@ -131,8 +157,9 @@ struct ChannelProfileView<Video: View>: View {
                 VStack(alignment: .leading, spacing: 10) {
                     if !panel.title.isEmpty { Text(panel.title).font(.headline) }
                     if panel.image != nil {
-                        RemoteChannelImage(url: panel.image, images: images, generation: 0)
-                            .frame(height: 150).clipShape(RoundedRectangle(cornerRadius: 12))
+                        Color.clear.frame(height: 150)
+                            .overlay { RemoteChannelImage(url: panel.image, images: images, generation: 0) }
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     if panel.supported {
                         if !panel.text.isEmpty { Text(panel.text).font(.subheadline).textSelection(.enabled) }

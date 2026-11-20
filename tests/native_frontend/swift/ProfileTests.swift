@@ -3,6 +3,7 @@ import Foundation
 @MainActor private final class FixtureBackend: ChannelProfileBackend {
     var followed = true, stale = false, failing = false, malformed = false
     var setting = "PERSONALIZED"
+    var relationshipUnavailable = false
     var calls: [ProfileOperation] = []
     var during: (() -> Void)?
     func request(channelID: String, operation: ProfileOperation, setting: String) async throws -> [String: Any] {
@@ -16,6 +17,7 @@ import Foundation
             "panels": [["__typename": "DefaultPanel", "title": "About fixture", "description": "Panel text"], ["__typename": "ExtensionPanel"]]]
             return ["user": user]
         case .relationship:
+            if relationshipUnavailable { throw CocoaError(.coderReadCorrupt) }
             let follower: Any = followed ? ["notificationSettings": ["followsSettingState": self.setting]] : NSNull()
             let connection: [String: Any] = ["canFollow": true, "follower": follower]
             return ["user": ["connection": connection]]
@@ -38,6 +40,16 @@ import Foundation
         precondition(ChannelProfileData.url("javascript:alert(1)") == nil && ChannelProfileData.url("https://user:pass@example.com") == nil)
         precondition(ChannelImagePolicy.allowed(URL(string: "https://panels-images.twitch.tv/panel.jpg")!))
         precondition(!ChannelImagePolicy.allowed(URL(string: "https://panels-images.twitch.tv.evil.test/panel.jpg")!))
+        backend.relationshipUnavailable = true
+        await model.load()
+        precondition(model.data?.bio == "Bio" && model.data?.panels.count == 2)
+        precondition(model.relationship == nil && model.error == "Follow and notification settings could not be loaded.")
+        let requestCount = backend.calls.count
+        let unavailableChange = await model.change(.unfollow)
+        precondition(!unavailableChange && backend.calls.count == requestCount)
+        backend.relationshipUnavailable = false
+        await model.load()
+        precondition(model.error == nil && model.relationship?.followed == true)
         let count = backend.calls.count
         let invalid = await model.change(.notifications, setting: "WRONG");precondition(!invalid && backend.calls.count == count)
         for choice in NotificationChoice.allCases {

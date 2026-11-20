@@ -21,8 +21,17 @@ static id normalize(id value,unsigned depth,unsigned *remaining) {
     dispatch_once(&once,^{keys=[[NSSet alloc] initWithArray:@[@"user",@"id",@"login",@"displayName",@"description",@"bannerImageURL",@"profileImageURL",@"followers",@"totalCount",@"channel",@"socialMedias",@"name",@"title",@"url",@"panels",@"__typename",@"linkURL",@"imageURL",@"roles",@"isPartner",@"connection",@"canFollow",@"follower",@"notificationSettings",@"isEnabled",@"followsSettingState",@"unfollowUser",@"followUser",@"follow",@"followedAt",@"error",@"code",@"setLiveNotificationsEnrollment"]];});
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     for(id key in value) {
-        if(![keys containsObject:key])continue;id child=normalize(value[key],depth+1,remaining);
-        if(!child) { [unboxed release];return nil; }result[key]=child;
+        if(![keys containsObject:key])continue;
+        id field=value[key],decoded=nil;
+        if([key isEqual:@"followsSettingState"]&&field!=NSNull.null&&![field isKindOfClass:NSString.class]) {
+            decoded=ssn_profile_notification_string(field);
+            if(![decoded isKindOfClass:NSString.class]) { [decoded release];[unboxed release];return nil; }
+            field=decoded;
+        }
+        id child=normalize(field,depth+1,remaining);
+        if(child)result[key]=child;
+        [decoded release];
+        if(!child) { [unboxed release];return nil; }
     }
     [unboxed release];return result;
 }

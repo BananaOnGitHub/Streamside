@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "source_revision": "5e355f90b06aa7a5cefd206788a53e9b45f2c05f",
+  "proof_id": "284a807a984887457b1cd614496842d50da7251cd24b5ac39280dd6f72e69e29",
+  "report": {
+    "local_archive": "artifacts/archive/channel-profile-failures/device-5e355f9/native-latest.json",
+    "sha256": "60830fa40dc97c4eea3337c3b31ba95192e3458fa78d1731e231b7e9e0bb07d8",
+    "bytes": 2190
+  },
+  "observations": {
+    "layout": "The live status extends past the viewport, and the action buttons, tabs and inline preview extend off the trailing edge.",
+    "details": "The banner, biography, follower count, social links and live preview appeared alongside the generic load error.",
+    "profile_events": {
+      "profile": {
+        "started": 7,
+        "abi_ready": 7,
+        "submitted": 7,
+        "mapped": 7,
+        "normalization_failed": 0,
+        "native_error": 0,
+        "completed": 7,
+        "cancelled": 0,
+        "session_changed": 0,
+        "timed_out": 0,
+        "unavailable": 0,
+        "response_rejected": 0
+      },
+      "relationship": {
+        "started": 7,
+        "abi_ready": 7,
+        "submitted": 7,
+        "mapped": 7,
+        "normalization_failed": 7,
+        "native_error": 0,
+        "completed": 0,
+        "cancelled": 0,
+        "session_changed": 0,
+        "timed_out": 0,
+        "unavailable": 0,
+        "response_rejected": 7
+      },
+      "unfollow": {
+        "started": 0,
+        "abi_ready": 0,
+        "submitted": 0,
+        "mapped": 0,
+        "normalization_failed": 0,
+        "native_error": 0,
+        "completed": 0,
+        "cancelled": 0,
+        "session_changed": 0,
+        "timed_out": 0,
+        "unavailable": 0,
+        "response_rejected": 0
+      },
+      "follow": {
+        "started": 0,
+        "abi_ready": 0,
+        "submitted": 0,
+        "mapped": 0,
+        "normalization_failed": 0,
+        "native_error": 0,
+        "completed": 0,
+        "cancelled": 0,
+        "session_changed": 0,
+        "timed_out": 0,
+        "unavailable": 0,
+        "response_rejected": 0
+      },
+      "notifications": {
+        "started": 0,
+        "abi_ready": 0,
+        "submitted": 0,
+        "mapped": 0,
+        "normalization_failed": 0,
+        "native_error": 0,
+        "completed": 0,
+        "cancelled": 0,
+        "session_changed": 0,
+        "timed_out": 0,
+        "unavailable": 0,
+        "response_rejected": 0
+      }
+    },
+    "runtime": {
+      "armed_mask": 15,
+      "failures": 0,
+      "probe_count": 25,
+      "all_zero": true,
+      "baseline_calibrated": false
+    }
+  },
+  "correction": {
+    "layout": "Give banner and scroll content the viewport width. Draw crop-to-fill media in bounded overlays. Wrap long live status text and fade the banner into the background behind the identity, with a light material blur when Reduce Transparency is off.",
+    "data": "Handle the concrete GraphQLEnum<FollowsChannelNotificationSettingState> at followsSettingState. Cast through its metadata, call the pinned ApolloAPI rawValue accessor, and bridge the returned String. Keep metadata and About available on relationship-only failure and disable writes until relationship state loads.",
+    "donor_accessor": {
+      "image": "ApolloAPI",
+      "address": "0xb2c8",
+      "prefix": "f85fbca9f65701a9f44f02a9fd7b03a9",
+      "metadata": "x0",
+      "value_context": "x20",
+      "string_result": [
+        "x0",
+        "x1"
+      ]
+    }
+  },
+  "limits": "The report identifies the normalization stage but contains no field payload. The generated donor field type supports the enum correction. Apple fixture execution, real relationship loading and banner appearance require new build and device validation.",
+  "local_validation": {
+    "native_frontend": {
+      "passed": true,
+      "tests": 118,
+      "log_sha256": "68e22d845fa7fc74a863ecf596989bde03d5febc1b8dc4ab5d0cdfa99d94725e"
+    },
+    "provider_routing": {
+      "passed": true,
+      "tests": 12
+    },
+    "arm64_ios_c_compile": {
+      "passed": true,
+      "warnings_as_errors": true,
+      "object_sha256": "d4a5090710ac1c2070c8d478190993706cc9af9253f1d031285d0ac6fbd0b144"
+    }
+  }
+}

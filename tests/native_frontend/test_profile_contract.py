@@ -3,7 +3,7 @@ import copy
 import struct
 import unittest
 from unicorn import Uc,UC_ARCH_ARM64,UC_MODE_ARM,UC_HOOK_CODE
-from unicorn.arm64_const import UC_ARM64_REG_X0,UC_ARM64_REG_X1,UC_ARM64_REG_X2,UC_ARM64_REG_X3,UC_ARM64_REG_X8,UC_ARM64_REG_X20,UC_ARM64_REG_X30,UC_ARM64_REG_PC
+from unicorn.arm64_const import UC_ARM64_REG_X0,UC_ARM64_REG_X1,UC_ARM64_REG_X2,UC_ARM64_REG_X3,UC_ARM64_REG_X8,UC_ARM64_REG_X20,UC_ARM64_REG_X30,UC_ARM64_REG_PC,UC_ARM64_REG_SP
 import test_feed_contract as feed
 from probes import file_offset
 from validate import validate_abi,chained_fixup_locations
@@ -19,7 +19,6 @@ class ProfileContract(unittest.TestCase):
             if spec['image']==image:
                 pos=file_offset(data,spec['address']);u.mem_write(spec['address'],data[pos:pos+256])
         for address in [0x4000000,0x4100000,0x4200000]:u.mem_map(address,4096)
-        from unicorn.arm64_const import UC_ARM64_REG_SP
         u.reg_write(UC_ARM64_REG_SP,0x4100800);u.reg_write(UC_ARM64_REG_X30,0x4200000);return u
     def test_profile_query_actual_allocator_consumes_exact_lowering(self):
         u=self.machine('TwitchGraphQLAPI');allocated=0x4000100;metatype=0x4000500
@@ -74,3 +73,54 @@ class ProfileContract(unittest.TestCase):
             u.emu_start(slide+spec['address'],end,count=10)
             self.assertEqual(u.reg_read(UC_ARM64_REG_X0),slide+0x14a20)
             self.assertEqual(u.reg_read(UC_ARM64_REG_X1),0)
+
+    def test_notification_raw_value_accessor_uses_metadata_and_swift_context(self):
+        spec = self.plan['abi']['_$s9ApolloAPI11GraphQLEnumO8rawValueSSvg']
+        for known in (False, True):
+            with self.subTest(known=known):
+                vm = self.machine('ApolloAPI')
+                value, metadata, payload = 0x4000100, 0x4000200, 0x4000300
+                enum_vwt, payload_vwt, conformance = 0x4000400, 0x4000500, 0x4000600
+                copy, project, destroy = 0x4000700, 0x4000800, 0x4000900
+                getter = 0x4000A00
+                words = struct.pack('<2Q', 0x1234, 0x5678)
+                vm.mem_write(value, words + b'\x00')
+                for addr, word in (
+                    (metadata - 8, enum_vwt), (metadata + 16, payload), (metadata + 24, conformance),
+                    (enum_vwt + 16, copy), (enum_vwt + 64, 17), (payload - 8, payload_vwt),
+                    (payload_vwt + 8, destroy), (payload_vwt + 32, project), (payload_vwt + 64, 16),
+                    (conformance + 32, getter),
+                ):
+                    vm.mem_write(addr, struct.pack('<Q', word))
+                vm.reg_write(UC_ARM64_REG_X0, metadata)
+                vm.reg_write(UC_ARM64_REG_X20, value)
+                calls = []
+
+                def hook(machine, pc, size, _):
+                    x0, x1, x2 = (machine.reg_read(register) for register in
+                                  (UC_ARM64_REG_X0, UC_ARM64_REG_X1, UC_ARM64_REG_X2))
+                    if pc == copy:
+                        self.assertEqual((x1, x2), (value, metadata))
+                        machine.mem_write(x0, bytes(machine.mem_read(x1, 17)))
+                    elif pc == 0x256EC:
+                        self.assertEqual(x1, metadata)
+                        machine.reg_write(UC_ARM64_REG_X0, 0 if known else 1)
+                    elif pc == project:
+                        self.assertEqual(x2, payload)
+                        machine.mem_write(x0, bytes(machine.mem_read(x1, 16)))
+                    elif pc == 0x2511C:
+                        self.assertEqual((x0, x1), (payload, getter))
+                        self.assertEqual(bytes(machine.mem_read(machine.reg_read(UC_ARM64_REG_X20), 16)), words)
+                        machine.mem_write(machine.reg_read(UC_ARM64_REG_X8), words)
+                    elif pc == destroy:
+                        self.assertEqual(x1, payload)
+                    else:
+                        return
+                    calls.append(pc)
+                    machine.reg_write(UC_ARM64_REG_PC, machine.reg_read(UC_ARM64_REG_X30))
+
+                vm.hook_add(UC_HOOK_CODE, hook)
+                vm.emu_start(spec['address'], 0x4200000, count=100)
+                self.assertEqual(vm.reg_read(UC_ARM64_REG_PC), 0x4200000)
+                self.assertEqual((vm.reg_read(UC_ARM64_REG_X0), vm.reg_read(UC_ARM64_REG_X1)), (0x1234, 0x5678))
+                self.assertEqual(calls, [copy, 0x256EC, project, 0x2511C, destroy] if known else [copy, 0x256EC])

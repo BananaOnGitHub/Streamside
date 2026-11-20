@@ -24,7 +24,16 @@ final class PlayerInputTests: XCTestCase {
         let app = XCUIApplication(); testedApp = app;app.launchArguments = ["--profile"];app.launch()
         let following = app.buttons["Following"]
         XCTAssertTrue(following.waitForExistence(timeout: 8))
-        XCTAssertFalse(app.buttons["Subscribe"].isEnabled)
+        let subscribe = app.buttons["Subscribe"]
+        XCTAssertFalse(subscribe.isEnabled)
+        let preview = app.descendants(matching: .any)["profile.fixture-preview"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 5))
+        for frame in [following.frame, subscribe.frame, app.segmentedControls["profile.tabs"].frame, preview.frame] {
+            XCTAssertGreaterThan(frame.width, 0)
+            XCTAssertGreaterThanOrEqual(frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(frame.maxX, app.frame.maxX)
+        }
+        XCTAssertEqual(preview.frame.width / preview.frame.height, 16.0 / 9.0, accuracy: 0.02)
         following.tap()
         let confirm = app.buttons["profile.unfollow-confirm"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 3))
@@ -42,6 +51,16 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["About panel body"].exists)
         app.buttons["Close profile"].tap()
         XCTAssertTrue(app.staticTexts["profile.closed"].waitForExistence(timeout: 3))
+        app.terminate()
+        app.launchArguments = ["--profile", "--profile-relationship-failure"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Follow and notification settings could not be loaded."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Fixture biography"].exists)
+        XCTAssertFalse(app.buttons["Follow"].isEnabled)
+        XCTAssertFalse(app.buttons["Channel notifications"].isEnabled)
+        app.segmentedControls["profile.tabs"].buttons["About"].tap()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
         print("CHANNEL_PROFILE_UI PASS: production Home/About, disabled subscribe, outside-dismiss unfollow, notification menu, confirmed unfollow and close")
     }
     func testMarkedContentConsent() {

@@ -28,7 +28,14 @@ __attribute__((objc_runtime_name("_TtC6PMHTTP11HTTPManager")))
 id ssn_profile_request(id channel,unsigned operation,id setting) {
     (void)setting;NSCAssert([channel isEqual:@"123"]&&operation<=4,@"Native query identity");requests++;return [FakeProfile new];
 }
+@interface FixtureNotificationValue : NSObject
+@end
+@implementation FixtureNotificationValue
+@end
 id ssn_profile_unbox(id object) { (void)object;return nil; }
+id ssn_profile_notification_string(id object) {
+    return [object isKindOfClass:FixtureNotificationValue.class]?[@"PERSONALIZED" copy]:nil;
+}
 int main(void) { @autoreleasepool {
     NSDictionary *raw=@{@"user":@{@"displayName":@"Fixture",@"accessToken":@"never pass",@"panels":@[@{@"__typename":@"DefaultPanel",@"description":@"Panel"}]},@"credentials":@"never pass"};
     id clean=ssn_profile_normalize(raw);
@@ -37,6 +44,13 @@ int main(void) { @autoreleasepool {
     NSCAssert([clean isEqual:expected],@"Whitelist at every depth");[clean release];
     NSCAssert(!ssn_profile_normalize(@{@"user":[NSObject new]}),@"Reject unknown SDK values");
     NSCAssert(!ssn_profile_normalize(@{@"description":[@"x" stringByPaddingToLength:65537 withString:@"x" startingAtIndex:0]}),@"Bound payloads");
+    id boxed=[[[FixtureNotificationValue alloc] init] autorelease];
+    NSDictionary *relationship=@{@"user":@{@"connection":@{@"canFollow":@YES,@"follower":@{@"notificationSettings":@{@"followsSettingState":boxed}}}}};
+    NSDictionary *normalized=ssn_profile_normalize(relationship);
+    NSCAssert([normalized[@"user"][@"connection"][@"follower"][@"notificationSettings"][@"followsSettingState"] isEqual:@"PERSONALIZED"],@"Typed settings decode without losing follow state");
+    [normalized release];
+    NSCAssert(!ssn_profile_normalize(@{@"followsSettingState":@42}),@"Unexpected scalar types cannot become a setting");
+    NSCAssert(!ssn_profile_normalize(@{@"description":boxed}),@"Boxed enum decoder is limited to the notification field");
     identity=[NSObject new];value=@{@"user":@{@"displayName":@"Fixture"}};
     for(unsigned op=0;op<5;op++) {
         SSNProfileRequest *r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:op setting:@"PERSONALIZED"];

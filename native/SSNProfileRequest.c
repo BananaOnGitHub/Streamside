@@ -16,11 +16,14 @@ static struct Operation ops[5]={
     {.root="$s16TwitchGraphQLAPI38SetLiveNotificationsEnrollmentMutationC4DataV6__data9ApolloAPI0I4DictVvg",.query="$s16TwitchGraphQLAPI38SetLiveNotificationsEnrollmentMutationCMa",.data="$s16TwitchGraphQLAPI38SetLiveNotificationsEnrollmentMutationC4DataVMa",.factory="$s16TwitchGraphQLAPI38SetLiveNotificationsEnrollmentMutationC5inputAcA0defG5InputV_tcfC"},
 };
 static const void *dict_type,*data_type,*objc_type,*string_type,*error_type,*error_witness,*notify_enum,*notify_witness,*notify_value;
+typedef SW Words2 (*EnumRawValue)(const void *type, const void *value CTX);
+static EnumRawValue notification_raw_value;
 static Bridge bridge;static PlaybackField dict_getter;static ApolloClientGetter client_getter;
 static SW Words2 (*from_string)(id);static bool (*cast)(void*,void*,const void*,const void*,uintptr_t);
 static void (*release_object)(uintptr_t);static PromiseObjC promise_objc;static PairMeta promise_meta;
 static PlaybackFetch fetch;static Perform perform;static PackedMeta result_meta;static Unwrap unwrap;
 static bool initialized,available;
+static const void *enum_value_type(const char *name,const void **payload,const void **witness);
 static const uintptr_t *vw(const void *t) { return t?((const uintptr_t*const*)t)[-1]:NULL; }
 static bool sized(const void *t,size_t n) { const uintptr_t *w=vw(t);return w&&w[8]==n&&w[9]>=n&&(w[10]&255)<=15; }
 static void destroy(void *v,const void *t) { ((Destroy)vw(t)[1])(v,t); }
@@ -31,6 +34,18 @@ id ssn_profile_unbox(id object) {
     if(!available||!cast(&raw,&object,objc_type,data_type,0)) return nil;
     uintptr_t dict=dict_getter(raw);destroy(&raw,data_type);
     id result=bridge(&dict,dict_type);destroy(&dict,dict_type);return result;
+}
+/* DataDict bridges GraphQLEnum as an opaque Swift value. Cast only the donor's
+ * concrete notification enum and get its String through Apollo's accessor. */
+id ssn_profile_notification_string(id object) {
+    _Alignas(16) unsigned char storage[24];
+    if(!available||!notification_raw_value||!sized(notify_value,17)||
+       !cast(storage,&object,objc_type,notify_value,0))return nil;
+    Words2 raw=notification_raw_value(notify_value,storage);
+    destroy(storage,notify_value);
+    id string=bridge(&raw,string_type);
+    destroy(&raw,string_type);
+    return string;
 }
 static id map_data(const void *value,unsigned operation) {
     ssn_profile_event(operation,SSN_PROFILE_MAPPED);
@@ -90,6 +105,8 @@ static bool initialize(void) {
             if(result.state||!vw(result.value)||vw(result.value)[8]>65536)return false;op->mutation_result=result.value;
         }
     }
+    notify_value=enum_value_type("$s16TwitchGraphQLAPI38FollowsChannelNotificationSettingStateOMa",&notify_enum,&notify_witness);
+    notification_raw_value=(EnumRawValue)ssn_resolve("$s9ApolloAPI11GraphQLEnumO8rawValueSSvg");
     available=true;return true;
 }
 /* Native nil-literal initializer constructs .none, not a synthesized enum tag.
@@ -130,7 +147,6 @@ id ssn_profile_request(id channel,unsigned operation,id setting) {
         if(operation==3) { FollowInput make=(void*)ssn_resolve("$s16TwitchGraphQLAPI15FollowUserInputV20disableNotifications8targetIDACSb_SStcfC");if(make)input=make(0,name.a,name.b); }
         if(operation==4) {
             EnumInit make_enum=(void*)ssn_resolve("$s9ApolloAPI11GraphQLEnumO8rawValueACyxGSS_tcfC");NotifyInput make=(void*)ssn_resolve("$s16TwitchGraphQLAPI35SetLiveNotificationsEnrollmentInputV9channelID12settingStateACSS_9ApolloAPI0B6QLEnumOyAA033FollowsChannelNotificationSettingL0OGtcfC");
-            notify_value=enum_value_type("$s16TwitchGraphQLAPI38FollowsChannelNotificationSettingStateOMa",&notify_enum,&notify_witness);
             if(!sized(notify_value,17)||!make_enum||!make||!kind(setting,"NSString")) { destroy(&name,string_type);return nil; }
             _Alignas(16) unsigned char storage[24]={0};Words2 choice=from_string(setting);
             make_enum(storage,choice.a,choice.b,notify_enum,notify_witness);

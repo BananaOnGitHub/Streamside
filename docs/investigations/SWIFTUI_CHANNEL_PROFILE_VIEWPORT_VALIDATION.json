@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "source_revision": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+  "packaging_revision": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+  "profile_layout_and_relationship_revision": "8bacfc875a81cee83c4db96a5dc451c73ad8a4ec",
+  "proof_id": "98d4549fbb5f412e5c97d3c26c80d0ef0d62b24cc933f82952479f77450bbe8e",
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129"
+  },
+  "build": {
+    "provider": "github",
+    "id": "44701442860",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44701442860",
+    "xcode": "Xcode 26.6\nBuild version 17F113",
+    "swift": "swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "sdk": "26.5",
+    "target": "arm64-apple-ios16.4",
+    "apple_and_abi_jobs_passed": true
+  },
+  "validation": {
+    "apple": {
+      "schema": 1,
+      "source_revision": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+      "passed": true,
+      "stages": [
+        {
+          "name": "Build logging tests",
+          "passed": true,
+          "seconds": 8.244
+        },
+        {
+          "name": "Shared VAFT playlist engine",
+          "passed": true,
+          "seconds": 2.415
+        },
+        {
+          "name": "SwiftUI, interoperability and simulator gates",
+          "passed": true,
+          "seconds": 1879.243
+        },
+        {
+          "name": "Foundation networking integration",
+          "passed": true,
+          "seconds": 12.922
+        },
+        {
+          "name": "Report comparison tests",
+          "passed": true,
+          "seconds": 0.194
+        },
+        {
+          "name": "Build provider routing tests",
+          "passed": true,
+          "seconds": 0.512
+        }
+      ],
+      "archive_sha256": "5c251af45abf74138bf4fc9043bb2070d0e1ad0c61d8997bf2c90b5bdca01c03",
+      "archive_bytes": 1725599
+    },
+    "profile_fixtures": {
+      "native": true,
+      "model": true
+    },
+    "coordinate_case_seconds": {
+      "testMarkedContentConsent": 168.771,
+      "testGlassControls": 200.493,
+      "testPlainControls": 164.041,
+      "testPreviewPanelLayoutAndActions": 183.899,
+      "testThumbnailHoldAndTap": 93.198,
+      "testChannelProfile": 45.105
+    },
+    "coordinate_command_seconds": {
+      "testMarkedContentConsent": 245.1,
+      "testGlassControls": 223.7,
+      "testPlainControls": 206.3,
+      "testPreviewPanelLayoutAndActions": 226.6,
+      "testThumbnailHoldAndTap": 159.0,
+      "testChannelProfile": 61.8
+    },
+    "all_commands_finished_within_previous_deadlines": true,
+    "clipboard_pass_markers": 2,
+    "post_download": {
+      "tests": 77,
+      "suites": 7,
+      "passed": true,
+      "log_sha256": "b004579ce134e2cc3a682343c35f20eca624ea9b613e9c0a76a556cef9d675be"
+    }
+  },
+  "package": {
+    "artifact": "artifacts/native-frontend/channel-profile-ea8b0d9/StreamsideNativeProof-Twitch32-native.ipa",
+    "bytes": 197213705,
+    "sha256": "ce2eb58101f3f33976e05fde125cbbd54ec98aae18263d63703cf56102572efb",
+    "framework_sha256": "322bba3c7ee25ff76fbafd8918ceb8557410984a69150c7754909f7902cd220c",
+    "modified_images": {
+      "Payload/Twitch.app/Twitch": "b3af8fe7d05ceaee1802081b545f55dafef575a551b250f04675bacc50807475",
+      "Payload/Twitch.app/Frameworks/React.framework/React": "4908884fc57a8c0874e797e53f133e99ecc0cc4f49420532b0d68d464251ca85",
+      "Payload/Twitch.app/Frameworks/hermesvm.framework/hermesvm": "f7e4cbeea33ec9ae44c32b1ff4800386ff1076c3c915b4c1561be89625c60b59",
+      "Payload/Twitch.app/Frameworks/worklets.framework/worklets": "29ed8dd9e09b0b5e42e705806608ef959dab0e1d8d57a69b4d333562549013a2"
+    },
+    "signing": "Requires device-authorized re-signing with the same application/keychain identity; no distribution profile is available here.",
+    "manifest_sha256": "eb0da7bdde1fb73dd1cecfae8568579402353486dec54eefe99e6af69b240782",
+    "component_manifest_sha256": "b73082d050162d384018bb15ea4688f7f94e4ac12b546a38b8917b6fbc446534",
+    "inspection": {
+      "abi_entries": 109,
+      "probe_entries": 25,
+      "all_retained_donor_entries_verified": true,
+      "original_hbc_unchanged": true
+    }
+  },
+  "device_validation": {
+    "status": "pending",
+    "scope": "Profile viewport, banner fade over downloaded artwork, and authenticated follow and notification state. Export native diagnostics after opening the same channel."
+  }
+}

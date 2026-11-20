@@ -92,6 +92,17 @@ def preserve_failure_images(exported, archive):
         bundle.writestr('manifest.json', json.dumps(dict(scope='donor-free simulator fixture failures only', files=files), indent=2))
 
 
+# A case can pass while Xcode is still finalizing its xcresult bundle. Use the
+# selected suite summary to start a bounded cleanup window. A successful
+# xcodebuild exit, the expected case name and receipts are still required.
+SELECTED_SUITE_PASSED = re.compile(
+    r"^Test Suite 'Selected tests' passed at [^\n]+\n"
+    r"[ \t]+Executed 1 test, with 0 failures \(0 unexpected\)[^\n]*\n",
+    re.MULTILINE,
+)
+RESULT_FINALIZATION_SECONDS = 120
+
+
 def run_controls_ui(root, stage, device, run):
     folder=project(root,stage/'player-input-ui')
     base=['xcodebuild','-project',str(folder),'-scheme','PlayerInput','-configuration','Debug',
@@ -110,7 +121,8 @@ def run_controls_ui(root, stage, device, run):
             observed=run(base+['test-without-building', '-only-testing:PlayerInputTests/PlayerInputTests/'+name,
                               '-resultBundlePath', str(result_bundle)],
                          timeout=600 if name=='testPreviewPanelLayoutAndActions' else 300,
-                         label='Coordinate gate: '+name)
+                         label='Coordinate gate: '+name,
+                         finalization=(SELECTED_SUITE_PASSED, RESULT_FINALIZATION_SECONDS))
             if not re.search(r"Test Case .*"+name+r".* passed", observed):
                 raise ValueError('Player coordinate test did not pass: '+name)
             if not re.search(r'Executed 1 test, with 0 failures', observed):

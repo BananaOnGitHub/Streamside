@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "source_revision": "8bacfc875a81cee83c4db96a5dc451c73ad8a4ec",
+  "build": {
+    "provider": "github",
+    "id": "44698730424",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44698730424",
+    "artifact_id": "14611599866"
+  },
+  "result": "failed",
+  "stage": "Coordinate gate: testMarkedContentConsent",
+  "validation": {
+    "schema": 1,
+    "source_revision": "8bacfc875a81cee83c4db96a5dc451c73ad8a4ec",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 2.906
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.462
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 994.653
+      }
+    ]
+  },
+  "completed_before_deadline": {
+    "production_compilation_and_linking": true,
+    "profile_native_and_model_fixtures": true,
+    "coordinate_case": "testMarkedContentConsent",
+    "case_body_seconds": 208.647,
+    "selected_suite_tests": 1,
+    "selected_suite_failures": 0
+  },
+  "timeout": {
+    "command_limit_seconds": 300,
+    "selected_suite_pass_observed_after_seconds": 255.435,
+    "remaining_finalization_seconds_approximate": 44.6,
+    "xcodebuild_success_exit_observed": false,
+    "result_bundle_completed": false
+  },
+  "files": {
+    "job.log": {
+      "bytes": 693074,
+      "sha256": "ca6d7a0d0113e53701e84c0491da464b082319cf72b731e2386f5416ed5f5d6f"
+    },
+    "diagnostics.zip": {
+      "bytes": 70774,
+      "sha256": "b1596d32f9ec193a93fa441d9731f6adb46c28545ac5e2b4d935783eef44de9a"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-4",
+  "observation": "XCTest printed the successful selected suite and one executed test with no failures. xcodebuild did not exit before the command deadline. The killed command left an xcresult without Info.plist. A stall or resource delay internal to Xcode is not diagnosed by the available evidence.",
+  "correction": "Keep every coordinate execution deadline and give xcodebuild up to 120 seconds from the matching successful selected-suite footer to finalize, when that gives it more time than the original deadline. A nonzero exit or a finalization timeout still fails. Keep existing receipts, deadlines for all other commands and six mandatory coordinate cases.",
+  "not_reached": [
+    "remaining five coordinate gates",
+    "component download and verification",
+    "IPA packaging",
+    "physical-device validation"
+  ],
+  "correction_host_validation": {
+    "tests": 122,
+    "passed": true,
+    "log_sha256": "5ab10d46a86056a3e14e9bc66352d1ac7edbaa6a03f12330914feecfe0155f73"
+  }
+}

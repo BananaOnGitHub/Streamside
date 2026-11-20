@@ -18,9 +18,10 @@ def main():
     output=root/'output';output.mkdir(exist_ok=True)
     mode_name = "Native frontend" if config['mode']=='native' else "Original-startup control"
     print(f"Building {mode_name}: source {config['source_revision']}; {len(config['inputs'])} owned inputs verified", flush=True)
-    def run(args, timeout=240, label=None):
+    def run(args, timeout=240, label=None, *, finalization=None):
         return run_logged(args, cwd=root, log_path=output/'build.log', timeout=timeout,
-                          label=mode_name + " / " + (label or command_title(args)), summary=label is not None)
+                          label=mode_name + " / " + (label or command_title(args)),
+                          summary=label is not None, finalization=finalization)
     sdk=run(['xcrun','--sdk','iphoneos','--show-sdk-path'])
     info={'xcode':run(['xcodebuild','-version']),'swift':run(['swift','--version']),
           'sdk_path':sdk,'sdk_version':run(['xcrun','--sdk','iphoneos','--show-sdk-version']),

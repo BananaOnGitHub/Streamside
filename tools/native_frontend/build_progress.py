@@ -23,14 +23,18 @@ def command_title(args):
 
 
 def run_logged(args, *, cwd, log_path, timeout=240, label=None, summary=False,
-               group=True, heartbeat=True):
+               group=True, heartbeat=True, finalization=None):
     """Stream combined output immediately, retaining the command's return text.
 
     Call only with owned compiler/test commands: no environment or credentials
     are dumped. A quiet command emits elapsed status every 30 seconds.
+    An optional (pattern, seconds) gives a command time to finalize after
+    the output matches. The original deadline still applies until then.
     """
     title = label or command_title(args)
     started = last_output = last_heartbeat = time.monotonic()
+    deadline = started + timeout
+    finalization_tail = ""
     chunks = []
     decoder = codecs.getincrementaldecoder("utf-8")("replace")
     process = None
@@ -48,13 +52,25 @@ def run_logged(args, *, cwd, log_path, timeout=240, label=None, summary=False,
                 selector.register(process.stdout, selectors.EVENT_READ)
                 while selector.get_map() or process.poll() is None:
                     now = time.monotonic()
-                    if now - started >= timeout:
-                        raise RuntimeError(f"Command timed out after {timeout}s: {title}")
-                    for key, _ in selector.select(min(0.5, timeout - (now - started))):
+                    if now >= deadline:
+                        phase = " during finalization" if deadline > started + timeout else ""
+                        raise RuntimeError(f"Command timed out after {deadline - started:g}s{phase}: {title}")
+                    for key, _ in selector.select(min(0.5, deadline - now)):
                         data = os.read(key.fd, 65536)
                         if data:
-                            chunks.append(data); emit(decoder.decode(data))
-                            last_output = time.monotonic()
+                            chunks.append(data)
+                            output = decoder.decode(data)
+                            observed_at = time.monotonic()
+                            emit(output)
+                            if finalization and observed_at < deadline:
+                                pattern, seconds = finalization
+                                if pattern.search(finalization_tail + output):
+                                    deadline = max(deadline, observed_at + seconds)
+                                    finalization = None
+                                    emit(f"\nTests passed: allowing up to {seconds:g}s for {title} to finalize\n")
+                                else:
+                                    finalization_tail = (finalization_tail + output)[-4096:]
+                            last_output = observed_at
                         else: selector.unregister(key.fileobj)
                     if not selector.get_map() and process.poll() is None:
                         time.sleep(0.05)

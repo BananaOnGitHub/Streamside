@@ -7,7 +7,7 @@ from unittest.mock import patch
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/native_frontend'))
-from controls_ui import EXPECTED, run_controls_ui
+from controls_ui import EXPECTED, SELECTED_SUITE_PASSED, run_controls_ui
 
 
 class CoordinateGates(unittest.TestCase):
@@ -62,7 +62,16 @@ class CoordinateGates(unittest.TestCase):
         self.assertEqual(selections, self.names)
         bundles = [args[args.index('-resultBundlePath') + 1] for args, _ in tests]
         self.assertEqual(len(set(bundles)), 6)
-        self.assertTrue(all(opts['timeout'] <= 600 for _, opts in tests))
+        self.assertEqual([opts['timeout'] for _, opts in tests], [300, 300, 300, 600, 300, 300])
+        self.assertTrue(all(opts['finalization'] == (SELECTED_SUITE_PASSED, 120) for _, opts in tests))
+
+    def test_only_successful_selected_suite_footer_starts_finalization(self):
+        suite = "Test Suite 'Selected tests' passed at 2026-11-20 08:12:46.650.\n"
+        summary = "\t Executed 1 test, with 0 failures (0 unexpected) in 208.647 (208.661) seconds\n"
+        self.assertIsNotNone(SELECTED_SUITE_PASSED.search(suite + summary))
+        for output in (suite, summary, suite + summary.replace('0 failures', '1 failure'),
+                       suite + summary.replace('1 test', '0 tests'), suite.replace('passed', 'failed') + summary):
+            self.assertIsNone(SELECTED_SUITE_PASSED.search(output))
 
     def test_failed_gate_exports_its_own_evidence_without_retry_or_later_tests(self):
         calls = self.exercise(fail='testPlainControls')

@@ -2,6 +2,7 @@
 import contextlib
 import io
 import os
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -62,6 +63,39 @@ class BuildProgressTests(unittest.TestCase):
         self.assertIn("partial", self.log.read_text())
         time.sleep(2)
         self.assertFalse(late.exists(), "Child survived the owned command timeout")
+
+    def test_completion_output_extends_only_finalization_and_requires_exit_zero(self):
+        marker = re.compile(r"^suite passed\nsummary\n", re.MULTILINE)
+        script = "import time; print('suite passed'); time.sleep(.1); print('summary'); time.sleep(1.1); "
+        for exit_code in (0, 7):
+            with self.subTest(exit_code=exit_code), contextlib.redirect_stdout(io.StringIO()) as sink:
+                def run():
+                    return run_logged([sys.executable, "-u", "-c", script + f"raise SystemExit({exit_code})"],
+                                      cwd=self.root, log_path=self.log, timeout=1, finalization=(marker, 2))
+                if exit_code:
+                    with self.assertRaisesRegex(RuntimeError, "exited 7"):
+                        run()
+                else:
+                    self.assertEqual(run(), "suite passed\nsummary")
+                self.assertIn("Tests passed: allowing up to 2s", sink.getvalue())
+
+    def test_finalization_timeout_is_bounded_even_with_repeated_completion_output(self):
+        marker = re.compile(r"^suite passed\n", re.MULTILINE)
+        code = "import time; exec(\"while True: print('suite passed'); time.sleep(.1)\")"
+        with contextlib.redirect_stdout(io.StringIO()) as sink:
+            with self.assertRaisesRegex(RuntimeError, "during finalization"):
+                run_logged([sys.executable, "-u", "-c", code], cwd=self.root, log_path=self.log,
+                           timeout=1, finalization=(marker, 1.3))
+        self.assertEqual(sink.getvalue().count("Tests passed: allowing"), 1)
+
+    def test_incomplete_completion_output_keeps_execution_deadline(self):
+        marker = re.compile(r"^suite passed\nsummary\n", re.MULTILINE)
+        code = "import time; print('suite passed'); time.sleep(10)"
+        with contextlib.redirect_stdout(io.StringIO()) as sink:
+            with self.assertRaisesRegex(RuntimeError, "timed out after 1s:"):
+                run_logged([sys.executable, "-u", "-c", code], cwd=self.root, log_path=self.log,
+                           timeout=1, finalization=(marker, 2))
+        self.assertNotIn("Tests passed: allowing", sink.getvalue())
 
     def test_missing_executable_closes_group_and_records_failure(self):
         with contextlib.redirect_stdout(io.StringIO()) as sink:

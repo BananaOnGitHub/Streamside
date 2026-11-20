@@ -73,7 +73,7 @@ class CoreEvidence(unittest.TestCase):
         for mode in [0,1]:
             with tempfile.TemporaryDirectory() as d:
                 _,report=self.run_core(mode,'profile',Path(d))
-                self.assertEqual(report['profile_events'],[[mode]*12 for _ in range(5)])
+                self.assertEqual(report['profile_events'],[[mode]*16 for _ in range(5)])
                 self.assertEqual(report['failures'],0)
                 self.assertTrue(all(value==0 for value in report['probes'].values()))
 

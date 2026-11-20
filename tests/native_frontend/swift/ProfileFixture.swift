@@ -9,7 +9,8 @@ import UIKit
         switch operation {
         case .profile:
             let user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
-            "panels": [["__typename": "DefaultPanel", "title": "Fixture panel", "description": "About panel body"]]]
+            "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]],
+            "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel", "description": "About panel body"]] as [Any]]
             return ["user": user]
         case .relationship:
             if relationshipUnavailable { throw CocoaError(.coderReadCorrupt) }
@@ -33,6 +34,7 @@ struct ProfileFixture: View {
         channel.isLive = true
         channel.category = "A long live category name that must wrap inside the profile viewport"
         channel.viewerCount = 75_231
+        channel.title = "Fixture stream title"
         _model = StateObject(wrappedValue: ChannelProfileModel(channel: channel, backend: ProfileFixtureBackend(), valid: { true }))
     }
     var body: some View {

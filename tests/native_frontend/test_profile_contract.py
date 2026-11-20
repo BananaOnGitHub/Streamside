@@ -124,3 +124,21 @@ class ProfileContract(unittest.TestCase):
                 self.assertEqual(vm.reg_read(UC_ARM64_REG_PC), 0x4200000)
                 self.assertEqual((vm.reg_read(UC_ARM64_REG_X0), vm.reg_read(UC_ARM64_REG_X1)), (0x1234, 0x5678))
                 self.assertEqual(calls, [copy, 0x256EC, project, 0x2511C, destroy] if known else [copy, 0x256EC])
+
+    def test_profile_fragment_selects_panels_and_subscription_with_typed_panel_data(self):
+        image = 'TwitchGraphQLAPI'
+        donor_data = self.images[image][1]
+        fragment_offset = donor_data.index(b'fragment ProfileInfoFragment on User {')
+        fragment = donor_data[fragment_offset:fragment_offset + 2048].split(b'\0', 1)[0]
+        self.assertIn(b'currentUser: self { __typename subscriptionBenefit { __typename id } }', fragment)
+        self.assertIn(b'panels { __typename ... on DefaultPanel { title linkURL imageURL description } }', fragment)
+        metadata = self.plan['abi']['_$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelVMa']['address']
+        getter = self.plan['abi']['_$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelV6__data9ApolloAPI8DataDictVvg']['address']
+        vm = self.machine(image)
+        vm.emu_start(metadata, 0x4200000, count=12)
+        self.assertEqual((vm.reg_read(UC_ARM64_REG_X0), vm.reg_read(UC_ARM64_REG_X1)), (0xB03A80, 0))
+        return_data = 0x4000180
+        vm.reg_write(UC_ARM64_REG_X0, return_data)
+        vm.emu_start(getter, 0x4684, count=2)
+        self.assertEqual(vm.reg_read(UC_ARM64_REG_PC), 0x4684)
+        self.assertEqual(vm.reg_read(UC_ARM64_REG_X0), return_data)

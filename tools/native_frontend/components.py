@@ -23,9 +23,10 @@ from probes import generate_header
 FRAMEWORK = "StreamsideNativeProof"
 LOAD = f"@rpath/{FRAMEWORK}.framework/{FRAMEWORK}"
 MODES = ("baseline", "native")
+ARTWORK = {path.name for path in (ROOT / "native/assets").glob("*.png")}
 FILES = {"SSNBuild.h", "SSNSwiftUI-Swift.h", "apple-abi.o", "compiler.json", "build.log",
          f"{FRAMEWORK}.framework/{FRAMEWORK}", f"{FRAMEWORK}.framework/Info.plist",
-         f"{FRAMEWORK}.framework/twitch-verified.png", f"{FRAMEWORK}.framework/verifiedbtw.png"}
+         *(f"{FRAMEWORK}.framework/{asset}" for asset in ARTWORK)}
 
 
 def sha(data):
@@ -131,9 +132,9 @@ def verify(directory, revision=None):
         if compiler.get("adblock_tests") != {k:True for k in ['passed','default_enabled','disabled_passthrough','baseline_untouched','native_tokens','clean_alternate','fallback_segments','stream_isolation','cancellation','account_change','preference_restoration']}:
             raise ValueError("Native VAFT transport validation missing or failed")
         framework = local / (FRAMEWORK + ".framework")
-        for asset in ["twitch-verified.png", "verifiedbtw.png"]:
+        for asset in sorted(ARTWORK):
             if (framework / asset).read_bytes() != (ROOT / "native/assets" / asset).read_bytes():
-                raise ValueError("Verification artwork differs from source: " + asset)
+                raise ValueError("Framework artwork differs from source: " + asset)
         if plistlib.loads((framework / "Info.plist").read_bytes()) != framework_info(mode, manifest["proof_id"], expected_revision):
             raise ValueError("Framework metadata mismatch")
         check_binary(framework / FRAMEWORK)
@@ -174,10 +175,9 @@ def build(output):
                     shutil.copy2(images, output.parent / "player-input-failure.zip")
             framework = local / (FRAMEWORK + ".framework")
             framework.mkdir()
-            for asset in ["twitch-verified.png", "verifiedbtw.png"]:
+            for asset in sorted(ARTWORK):
                 shutil.copy2(stage / "native/assets" / asset, framework / asset)
-            for name in FILES - {"SSNBuild.h", "build.log", f"{FRAMEWORK}.framework/Info.plist", f"{FRAMEWORK}.framework/{FRAMEWORK}",
-                                 f"{FRAMEWORK}.framework/twitch-verified.png", f"{FRAMEWORK}.framework/verifiedbtw.png"}:
+            for name in ("SSNSwiftUI-Swift.h", "apple-abi.o", "compiler.json"):
                 shutil.copy2(stage / "output" / name, local / name)
             shutil.copy2(stage / "output" / FRAMEWORK, framework / FRAMEWORK)
             (framework / "Info.plist").write_bytes(plistlib.dumps(framework_info(mode, proof, revision)))

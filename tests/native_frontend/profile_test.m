@@ -32,6 +32,22 @@ id ssn_profile_request(id channel,unsigned operation,id setting) {
 @end
 @implementation FixtureNotificationValue
 @end
+@interface FixturePanel : NSObject
+@end
+@implementation FixturePanel
+@end
+@interface FixturePanelList : NSObject
+@end
+@implementation FixturePanelList
+@end
+id ssn_profile_unbox_panel(id object) {
+    if(![object isKindOfClass:FixturePanel.class])return nil;
+    return [@{@"__typename":@"DefaultPanel",@"title":@"About panel",@"description":@"Panel text"} retain];
+}
+id ssn_profile_unbox_panel_list(id object) {
+    if(![object isKindOfClass:FixturePanelList.class])return nil;
+    return [@[NSNull.null,[[[FixturePanel alloc] init] autorelease],@42] retain];
+}
 id ssn_profile_unbox(id object) { (void)object;return nil; }
 id ssn_profile_notification_string(id object) {
     return [object isKindOfClass:FixtureNotificationValue.class]?[@"PERSONALIZED" copy]:nil;
@@ -51,6 +67,22 @@ int main(void) { @autoreleasepool {
     [normalized release];
     NSCAssert(!ssn_profile_normalize(@{@"followsSettingState":@42}),@"Unexpected scalar types cannot become a setting");
     NSCAssert(!ssn_profile_normalize(@{@"description":boxed}),@"Boxed enum decoder is limited to the notification field");
+    id typedList=[[[FixturePanelList alloc] init] autorelease];
+    NSDictionary *typedResponse=@{@"user":@{@"displayName":@"Fixture",@"panels":typedList,@"currentUser":@{@"subscriptionBenefit":@{@"id":@"fixture-benefit"}}}};
+    NSDictionary *typedProfile=ssn_profile_normalize(typedResponse);
+    NSArray *typedPanels=typedProfile[@"user"][@"panels"];
+    NSCAssert(typedPanels.count==1&&[typedPanels[0][@"title"] isEqual:@"About panel"],@"Nullable boxed panels survive unrelated malformed entries");
+    NSCAssert(ssn_profile_panel_stage(typedProfile)==SSN_PROFILE_PANELS_AVAILABLE,@"Panel availability is numeric");
+    NSCAssert([typedProfile[@"user"][@"currentUser"][@"subscriptionBenefit"][@"id"] isEqual:@"fixture-benefit"],@"Native subscription benefit survives the profile whitelist");
+    [typedProfile release];
+    NSDictionary *missingPanels=@{@"user":@{@"displayName":@"Fixture"}};
+    NSDictionary *emptyPanels=@{@"user":@{@"panels":@[]}};
+    NSDictionary *invalidPanels=@{@"user":@{@"displayName":@"Fixture",@"panels":@42}};
+    NSDictionary *invalidProfile=ssn_profile_normalize(invalidPanels);
+    NSCAssert(ssn_profile_panel_stage(missingPanels)==SSN_PROFILE_PANELS_MISSING,@"Missing panels differ from an empty array");
+    NSCAssert(ssn_profile_panel_stage(emptyPanels)==SSN_PROFILE_PANELS_EMPTY,@"Explicit empty panel array");
+    NSCAssert(ssn_profile_panel_stage(invalidProfile)==SSN_PROFILE_PANELS_UNREADABLE&&[invalidProfile[@"user"][@"displayName"] isEqual:@"Fixture"],@"Malformed panel data must not discard the profile");
+    [invalidProfile release];
     identity=[NSObject new];value=@{@"user":@{@"displayName":@"Fixture"}};
     for(unsigned op=0;op<5;op++) {
         SSNProfileRequest *r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:op setting:@"PERSONALIZED"];

@@ -35,14 +35,27 @@ import Foundation
         let model = ChannelProfileModel(channel: channel, backend: backend, valid: { valid }, changed: { changes += 1 }, rejected: { rejections.append($0) })
         await model.load()
         precondition(model.data?.followers == 1234 && model.data?.bio == "Bio" && model.data?.links.count == 1)
-        precondition(model.data?.panels.count == 2 && model.data?.panels[0].supported == true && model.data?.panels[1].supported == false)
+        precondition(model.data?.panels?.count == 2 && model.data?.panels?[0].supported == true && model.data?.panels?[1].supported == false)
         precondition(model.relationship?.followed == true && model.relationship?.setting == "PERSONALIZED")
+        let subscribed: [String: Any] = ["displayName": "Fixture", "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]]]
+        let unsubscribed: [String: Any] = ["displayName": "Fixture", "currentUser": ["subscriptionBenefit": NSNull()], "panels": [] as [Any]]
+        let subscribedProfile = ChannelProfileData(result: ["user": subscribed])
+        let unsubscribedProfile = ChannelProfileData(result: ["user": unsubscribed])
+        precondition(subscribedProfile?.subscribed == true && subscribedProfile?.panels == nil)
+        precondition(unsubscribedProfile?.subscribed == false && unsubscribedProfile?.panels?.isEmpty == true)
+        precondition(model.data?.subscribed == nil, "Missing account data is not an unsubscribed status")
+        let xURL = URL(string: "https://x.com/fixture")!
+        precondition(ProfileSocialPlatform(url: xURL, title: "Twitter") == .twitter)
+        precondition(ProfileSocialPlatform(url: xURL, title: "Follow me on X") == .x)
+        precondition(ProfileSocialPlatform(url: xURL, title: "Social") == .twitter)
+        precondition(ProfileSocialPlatform(url: URL(string: "https://youtu.be/fixture")!, title: "Video") == .youtube)
+        precondition(ProfileSocialPlatform(url: URL(string: "https://discord.com.example.org/fixture")!, title: "Discord") == nil)
         precondition(ChannelProfileData.url("javascript:alert(1)") == nil && ChannelProfileData.url("https://user:pass@example.com") == nil)
         precondition(ChannelImagePolicy.allowed(URL(string: "https://panels-images.twitch.tv/panel.jpg")!))
         precondition(!ChannelImagePolicy.allowed(URL(string: "https://panels-images.twitch.tv.evil.test/panel.jpg")!))
         backend.relationshipUnavailable = true
         await model.load()
-        precondition(model.data?.bio == "Bio" && model.data?.panels.count == 2)
+        precondition(model.data?.bio == "Bio" && model.data?.panels?.count == 2)
         precondition(model.relationship == nil && model.error == "Follow and notification settings could not be loaded.")
         let requestCount = backend.calls.count
         let unavailableChange = await model.change(.unfollow)

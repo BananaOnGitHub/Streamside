@@ -630,6 +630,16 @@
       "address": 45216,
       "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
     },
+    "_$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1589648,
+      "bytes": "e04b00f000002a91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelV6__data9ApolloAPI8DataDictVvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 423984,
+      "bytes": "9573fe17804600d00040099161438052"
+    },
     "_$s9ApolloAPI11GraphQLEnumO8rawValueSSvg": {
       "image": "ApolloAPI",
       "address": 45768,

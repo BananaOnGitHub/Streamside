@@ -24,8 +24,18 @@ final class PlayerInputTests: XCTestCase {
         let app = XCUIApplication(); testedApp = app;app.launchArguments = ["--profile"];app.launch()
         let following = app.buttons["Following"]
         XCTAssertTrue(following.waitForExistence(timeout: 8))
-        let subscribe = app.buttons["Subscribe"]
-        XCTAssertFalse(subscribe.isEnabled)
+        let subscribe = app.buttons["Subscription"]
+        XCTAssertTrue(subscribe.isEnabled)
+        XCTAssertEqual(subscribe.value as? String, "Subscribed")
+        let followers = app.staticTexts["profile.followers"]
+        XCTAssertTrue(followers.exists)
+        XCTAssertLessThan(followers.frame.maxX, following.frame.minX)
+        XCTAssertEqual(followers.frame.midY, following.frame.midY, accuracy: 4)
+        XCTAssertLessThan(app.buttons["Channel notifications"].frame.maxX, subscribe.frame.minX)
+        subscribe.tap()
+        let manage = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Manage on Twitch")).firstMatch
+        XCTAssertTrue(manage.waitForExistence(timeout: 3))
+        dismissPopover(manage, in: app)
         let preview = app.descendants(matching: .any)["profile.fixture-preview"].firstMatch
         XCTAssertTrue(preview.waitForExistence(timeout: 5))
         for frame in [following.frame, subscribe.frame, app.segmentedControls["profile.tabs"].frame, preview.frame] {
@@ -34,6 +44,10 @@ final class PlayerInputTests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxX, app.frame.maxX)
         }
         XCTAssertEqual(preview.frame.width / preview.frame.height, 16.0 / 9.0, accuracy: 0.02)
+        let streamDetails = app.staticTexts["profile.stream-details"]
+        XCTAssertTrue(streamDetails.exists)
+        XCTAssertTrue(streamDetails.label.contains("A long live category name"))
+        XCTAssertGreaterThan(streamDetails.frame.minY, preview.frame.maxY)
         following.tap()
         let confirm = app.buttons["profile.unfollow-confirm"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 3))
@@ -61,7 +75,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, disabled subscribe, outside-dismiss unfollow, notification menu, confirmed unfollow and close")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, notification menu, confirmed unfollow and close")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false

@@ -9,6 +9,7 @@ struct ChannelProfileView<Video: View>: View {
     let video: () -> Video
     @State private var unfollow = false
     @State private var notifications = false
+    @State private var subscription = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var channel: FollowedChannel { model.channel }
     private var actionBackground: some ShapeStyle {
@@ -42,7 +43,7 @@ struct ChannelProfileView<Video: View>: View {
         }.background(Color(uiColor: .systemBackground)).tint(.purple)
             .task { await model.load() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false; subscription = false }
     }
     private func banner(width: CGFloat, height: CGFloat) -> some View {
         Color(uiColor: .secondarySystemBackground)
@@ -73,10 +74,8 @@ struct ChannelProfileView<Video: View>: View {
             VStack(alignment: .leading, spacing: 5) {
                 VerifiedChannelName(channel: channel).font(.title2.bold())
                 if channel.isLive {
-                    Label("Live · " + channel.category + (channel.viewerCount.map { " · " + $0.formatted() + " viewers" } ?? ""),
-                          systemImage: "dot.radiowaves.left.and.right")
-                        .font(.subheadline).foregroundStyle(.red).lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Label("Live", systemImage: "dot.radiowaves.left.and.right")
+                        .font(.subheadline).foregroundStyle(.red)
                 } else { Text("Offline").foregroundStyle(.secondary) }
             }
         }
@@ -84,25 +83,50 @@ struct ChannelProfileView<Video: View>: View {
     @ViewBuilder private var biography: some View {
         if let data = model.data {
             if !data.bio.isEmpty { Text(data.bio).font(.subheadline).textSelection(.enabled) }
-            if let followers = data.followers { Text("\(followers.formatted()) followers").foregroundStyle(.secondary) }
             if !data.links.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        ForEach(data.links) { item in Link(destination: item.url) { Label(item.title, systemImage: "link") } }
+                        ForEach(data.links) { item in
+                            Link(destination: item.url) {
+                                Label { Text(item.title) } icon: { ProfileSocialIcon(platform: item.platform) }
+                            }
+                        }
                     }
                 }.font(.subheadline)
             }
         }
     }
     private var actionBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
+            if let followers = model.data?.followers {
+                Text("\(followers.formatted()) followers")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("profile.followers")
+            }
+            Spacer(minLength: 0)
             followControl
             notificationControl
-            Button {} label: {
-                Label("Subscribe", systemImage: "star").lineLimit(1).minimumScaleFactor(0.75)
-                    .frame(maxWidth: .infinity, minHeight: 30)
+            subscriptionControl
+        }
+    }
+    private var subscriptionControl: some View {
+        Button { subscription = true } label: {
+            Image(systemName: model.data?.subscribed == true ? "star.fill" : "star")
+                .font(.body.weight(.semibold))
+                .frame(width: 48, height: 44)
+                .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Subscription")
+        .accessibilityValue(model.data?.subscribed.map { $0 ? "Subscribed" : "Not subscribed" } ?? "Status unavailable")
+        .popover(isPresented: $subscription, arrowEdge: .top) {
+            Link(destination: URL(string: "https://www.twitch.tv/subscriptions")!) {
+                Label("Manage on Twitch", systemImage: "arrow.up.right")
+                    .font(.subheadline.weight(.medium)).padding(16)
             }
-                .modifier(ProfileGlass()).disabled(true).accessibilityHint("Not available in this prototype")
+            .presentationCompactAdaptation(.popover)
+            .presentationBackground(Color(uiColor: .secondarySystemBackground))
         }
     }
     private var followControl: some View {
@@ -110,7 +134,7 @@ struct ChannelProfileView<Video: View>: View {
             if model.relationship?.followed == true { unfollow = true }
             else { Task { _ = await model.change(.follow) } }
         } label: {
-            Image(systemName: model.relationship?.followed == true ? "heart.fill" : "heart").frame(width: 54, height: 30)
+            Image(systemName: model.relationship?.followed == true ? "heart.fill" : "heart").frame(width: 38, height: 32)
         }.modifier(ProfileGlass())
             .disabled(model.busy || model.relationship == nil || (model.relationship?.followed == false && model.relationship?.canFollow == false))
             .accessibilityLabel(model.relationship?.followed == true ? "Following" : "Follow")
@@ -124,7 +148,7 @@ struct ChannelProfileView<Video: View>: View {
     }
     private var notificationControl: some View {
         Button { notifications = true } label: {
-            Image(systemName: NotificationChoice(rawValue: model.relationship?.setting ?? "")?.icon ?? "bell").frame(width: 54, height: 30)
+            Image(systemName: NotificationChoice(rawValue: model.relationship?.setting ?? "")?.icon ?? "bell").frame(width: 38, height: 32)
         }.modifier(ProfileGlass()).disabled(model.busy || model.relationship?.followed != true)
             .accessibilityLabel("Channel notifications")
             .popover(isPresented: $notifications, arrowEdge: .top) {
@@ -143,17 +167,32 @@ struct ChannelProfileView<Video: View>: View {
                 }.padding(.horizontal, 18).frame(width: 260).presentationCompactAdaptation(.popover).presentationBackground(.regularMaterial)
             }
     }
+    private var streamDetails: String {
+        [channel.category.isEmpty ? nil : channel.category,
+         channel.viewerCount.map { $0 == 1 ? "1 viewer" : "\($0.formatted()) viewers" }]
+            .compactMap { $0 }.joined(separator: " · ")
+    }
     @ViewBuilder private var page: some View {
         if model.tab == 0 {
             if channel.isLive {
                 Text("Live").font(.title3.bold()); video()
-                Text(channel.title).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(channel.title).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                    if !streamDetails.isEmpty {
+                        Text(streamDetails).font(.subheadline).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("profile.stream-details")
+                    }
+                }
                 if !channel.tags.isEmpty { AllStreamTags(tags: channel.tags) }
                 if !channel.playbackAllowed { Text("Twitch does not currently allow this account to watch this stream.").font(.footnote) }
             } else { Text("This channel is offline.").foregroundStyle(.secondary) }
-        } else if let data = model.data {
-            if data.panels.isEmpty { Text("No channel panels.").foregroundStyle(.secondary) }
-            ForEach(data.panels) { panel in
+        } else if let panels = model.data?.panels {
+            if panels.isEmpty {
+                Text("No channel panels.").foregroundStyle(.secondary)
+                aboutWebLink
+            }
+            ForEach(panels) { panel in
                 VStack(alignment: .leading, spacing: 10) {
                     if !panel.title.isEmpty { Text(panel.title).font(.headline) }
                     if panel.image != nil {
@@ -168,6 +207,15 @@ struct ChannelProfileView<Video: View>: View {
                 }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
                     .background(actionBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
+        } else if !model.busy, model.data != nil {
+            Text("Channel panels could not be loaded.").foregroundStyle(.secondary)
+            Button("Retry panels") { Task { await model.load() } }
+            aboutWebLink
+        }
+    }
+    @ViewBuilder private var aboutWebLink: some View {
+        if let url = StreamShareLink.url(username: channel.username)?.appendingPathComponent("about") {
+            Link(destination: url) { Label("Open About on Twitch", systemImage: "arrow.up.right") }
         }
     }
 }
@@ -177,5 +225,38 @@ private struct ProfileGlass: ViewModifier {
         if reduceTransparency { content.padding(6).background(Color(uiColor: .secondarySystemBackground), in: Capsule()) }
         else if #available(iOS 26.0, *) { content.padding(6).glassEffect(.regular.interactive(), in: Capsule()) }
         else { content.padding(6).background(.regularMaterial, in: Capsule()) }
+    }
+}
+
+private final class ProfileSocialBundle: NSObject {}
+
+private struct ProfileSocialIcon: View {
+    let platform: ProfileSocialPlatform?
+
+    var body: some View {
+        if let platform, let image = Self.artwork[platform] {
+            Image(uiImage: image).renderingMode(.template).resizable().scaledToFit()
+                .frame(width: 16, height: 16).foregroundStyle(color(platform))
+        } else { Image(systemName: "link") }
+    }
+    private static let artwork: [ProfileSocialPlatform: UIImage] = {
+        let bundle = Bundle(for: ProfileSocialBundle.self)
+        var images: [ProfileSocialPlatform: UIImage] = [:]
+        for platform in ProfileSocialPlatform.allCases {
+            if let url = bundle.url(forResource: "profile-social-" + platform.rawValue, withExtension: "png"),
+               let image = UIImage(contentsOfFile: url.path) { images[platform] = image }
+        }
+        return images
+    }()
+    private func color(_ platform: ProfileSocialPlatform) -> Color {
+        switch platform {
+        case .twitter: return Color(red: 0.11, green: 0.63, blue: 0.95)
+        case .x, .tiktok: return .primary
+        case .youtube: return Color(red: 1, green: 0.16, blue: 0.18)
+        case .instagram: return Color(red: 0.89, green: 0.25, blue: 0.50)
+        case .discord: return Color(red: 0.42, green: 0.46, blue: 1)
+        case .facebook: return Color(red: 0.26, green: 0.55, blue: 1)
+        case .twitch: return Color(red: 0.65, green: 0.39, blue: 1)
+        }
     }
 }

@@ -168,6 +168,16 @@ class ComponentAdmission(unittest.TestCase):
             self.assertEqual(struct.unpack('>II',data[16:24]),(record['pixels'],record['pixels']))
             self.assertLess(len(data),32768)
 
+    def test_profile_social_artwork_matches_pinned_sources(self):
+        manifest = json.loads((ROOT / 'native/assets/profile-social.json').read_text())
+        assets = {path.name for path in (ROOT / 'native/assets').glob('profile-social-*.png')}
+        self.assertEqual(set(manifest['assets']), assets)
+        for name, record in manifest['assets'].items():
+            data = (ROOT / 'native/assets' / name).read_bytes()
+            self.assertEqual(sha(data), record['sha256'])
+            self.assertEqual(struct.unpack('>II', data[16:24]), (60, 60))
+            self.assertIn(f'{FRAMEWORK}.framework/{name}', FILES)
+
     def test_changed_badge_resource_is_rejected_even_with_updated_manifest(self):
         path=self.directory/'native'/ (FRAMEWORK+'.framework')/'twitch-verified.png'
         path.write_bytes(b'changed-artwork');self.record()

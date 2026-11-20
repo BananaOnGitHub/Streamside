@@ -18,6 +18,8 @@ static struct Operation ops[5]={
 static const void *dict_type,*data_type,*objc_type,*string_type,*error_type,*error_witness,*notify_enum,*notify_witness,*notify_value;
 typedef SW Words2 (*EnumRawValue)(const void *type, const void *value CTX);
 static EnumRawValue notification_raw_value;
+static const void *panel_type,*panel_array_types[3];
+static PlaybackField panel_data;
 static Bridge bridge;static PlaybackField dict_getter;static ApolloClientGetter client_getter;
 static SW Words2 (*from_string)(id);static bool (*cast)(void*,void*,const void*,const void*,uintptr_t);
 static void (*release_object)(uintptr_t);static PromiseObjC promise_objc;static PairMeta promise_meta;
@@ -34,6 +36,32 @@ id ssn_profile_unbox(id object) {
     if(!available||!cast(&raw,&object,objc_type,data_type,0)) return nil;
     uintptr_t dict=dict_getter(raw);destroy(&raw,data_type);
     id result=bridge(&dict,dict_type);destroy(&dict,dict_type);return result;
+}
+/* Use Apollo's existing value witnesses to turn a generated Panel or an
+ * opaque array of nullable panel values into Foundation containers. */
+id ssn_profile_unbox_panel(id object) {
+    uintptr_t panel=0;
+    if(!available||!panel_data||!sized(panel_type,8)||!cast(&panel,&object,objc_type,panel_type,0))return nil;
+    uintptr_t raw=panel_data(panel);
+    destroy(&panel,panel_type);
+    uintptr_t dictionary=dict_getter(raw);
+    destroy(&raw,data_type);
+    id result=bridge(&dictionary,dict_type);
+    destroy(&dictionary,dict_type);
+    return result;
+}
+id ssn_profile_unbox_panel_list(id object) {
+    if(!available)return nil;
+    for(unsigned i=0;i<sizeof(panel_array_types)/sizeof(panel_array_types[0]);i++) {
+        const void *type=panel_array_types[i];
+        uintptr_t array=0;
+        if(!sized(type,8)||!cast(&array,&object,objc_type,type,0))continue;
+        id result=bridge(&array,type);
+        destroy(&array,type);
+        if(kind(result,"NSArray"))return result;
+        objc_release(result);
+    }
+    return nil;
 }
 /* DataDict bridges GraphQLEnum as an opaque Swift value. Cast only the donor's
  * concrete notification enum and get its String through Apollo's accessor. */
@@ -55,6 +83,7 @@ static id map_data(const void *value,unsigned operation) {
     id boxed=bridge(&dict,dict_type);destroy(&dict,dict_type);
     id result=ssn_profile_normalize(boxed);objc_release(boxed);
     if(!result)ssn_profile_event(operation,SSN_PROFILE_NORMALIZATION_FAILED);
+    else if(operation==0)ssn_profile_event(operation,ssn_profile_panel_stage(result));
     return result?:failed();
 }
 /* A Swift thick closure context is Swift-managed storage. Never give it a
@@ -103,6 +132,20 @@ static bool initialize(void) {
             const void *arguments[]={op->d,error_type,data_witness,error_witness};
             Response result=result_meta(0,arguments);
             if(result.state||!vw(result.value)||vw(result.value)[8]>65536)return false;op->mutation_result=result.value;
+        }
+    }
+    panel_type=meta("$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelVMa");
+    panel_data=(PlaybackField)ssn_resolve("$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelV6__data9ApolloAPI8DataDictVvg");
+    GenericMeta array_meta=(GenericMeta)dlsym(RTLD_DEFAULT,"$sSaMa");
+    GenericMeta optional_meta=(GenericMeta)dlsym(RTLD_DEFAULT,"$sSqMa");
+    if(array_meta&&optional_meta&&panel_type) {
+        Response hashable_optional=optional_meta(0,hashable),panel_optional=optional_meta(0,panel_type);
+        const void *elements[]={hashable,hashable_optional.state?NULL:hashable_optional.value,
+                               panel_optional.state?NULL:panel_optional.value};
+        for(unsigned i=0;i<sizeof(elements)/sizeof(elements[0]);i++) {
+            if(!elements[i])continue;
+            Response array=array_meta(0,elements[i]);
+            if(!array.state)panel_array_types[i]=array.value;
         }
     }
     notify_value=enum_value_type("$s16TwitchGraphQLAPI38FollowsChannelNotificationSettingStateOMa",&notify_enum,&notify_witness);

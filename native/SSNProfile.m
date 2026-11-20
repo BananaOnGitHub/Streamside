@@ -5,6 +5,47 @@
 
 /* Normalize only profile/follow fields. No HTML execution, SDK value storage,
  * account credentials, error text or unrelated query fields reach SwiftUI. */
+static id normalize_panel(id value) {
+    id boxed=nil;
+    if(![value isKindOfClass:NSDictionary.class]) {
+        boxed=ssn_profile_unbox(value);
+        if(!boxed)boxed=ssn_profile_unbox_panel(value);
+        value=boxed;
+    }
+    NSMutableDictionary *panel=[NSMutableDictionary dictionary];
+    if([value isKindOfClass:NSDictionary.class]) {
+        for(NSString *key in @[@"__typename",@"title",@"description",@"imageURL",@"linkURL"]) {
+            id field=value[key];
+            if([field isKindOfClass:NSString.class]&&[field length]<=65536)panel[key]=field;
+        }
+    }
+    [boxed release];
+    return panel.count?panel:nil;
+}
+
+static id normalize_panels(id value) {
+    id boxed=nil;
+    if(![value isKindOfClass:NSArray.class]) {
+        if(value==NSNull.null)return value;
+        boxed=ssn_profile_unbox_panel_list(value);
+        value=boxed;
+    }
+    if(![value isKindOfClass:NSArray.class]||[value count]>256) {
+        [boxed release];return NSNull.null;
+    }
+    NSMutableArray *panels=[NSMutableArray array];
+    BOOL skipped=NO;
+    for(id item in value) {
+        if(item==NSNull.null)continue;
+        if(panels.count>=64)break;
+        id panel=normalize_panel(item);
+        if(panel)[panels addObject:panel];
+        else skipped=YES;
+    }
+    [boxed release];
+    return skipped&&!panels.count?NSNull.null:panels;
+}
+
 static id normalize(id value,unsigned depth,unsigned *remaining) {
     if(!value||depth>10||!*remaining)return nil;(*remaining)--;
     if(value==NSNull.null)return value;
@@ -18,11 +59,15 @@ static id normalize(id value,unsigned depth,unsigned *remaining) {
     if(![value isKindOfClass:NSDictionary.class]) { unboxed=ssn_profile_unbox(value);value=unboxed; }
     if(![value isKindOfClass:NSDictionary.class]) { [unboxed release];return nil; }
     static NSSet *keys;static dispatch_once_t once;
-    dispatch_once(&once,^{keys=[[NSSet alloc] initWithArray:@[@"user",@"id",@"login",@"displayName",@"description",@"bannerImageURL",@"profileImageURL",@"followers",@"totalCount",@"channel",@"socialMedias",@"name",@"title",@"url",@"panels",@"__typename",@"linkURL",@"imageURL",@"roles",@"isPartner",@"connection",@"canFollow",@"follower",@"notificationSettings",@"isEnabled",@"followsSettingState",@"unfollowUser",@"followUser",@"follow",@"followedAt",@"error",@"code",@"setLiveNotificationsEnrollment"]];});
+    dispatch_once(&once,^{keys=[[NSSet alloc] initWithArray:@[@"user",@"id",@"login",@"displayName",@"description",@"bannerImageURL",@"profileImageURL",@"followers",@"totalCount",@"currentUser",@"subscriptionBenefit",@"channel",@"socialMedias",@"name",@"title",@"url",@"panels",@"__typename",@"linkURL",@"imageURL",@"roles",@"isPartner",@"connection",@"canFollow",@"follower",@"notificationSettings",@"isEnabled",@"followsSettingState",@"unfollowUser",@"followUser",@"follow",@"followedAt",@"error",@"code",@"setLiveNotificationsEnrollment"]];});
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     for(id key in value) {
         if(![keys containsObject:key])continue;
         id field=value[key],decoded=nil;
+        if([key isEqual:@"panels"]) {
+            result[key]=normalize_panels(field);
+            continue;
+        }
         if([key isEqual:@"followsSettingState"]&&field!=NSNull.null&&![field isKindOfClass:NSString.class]) {
             decoded=ssn_profile_notification_string(field);
             if(![decoded isKindOfClass:NSString.class]) { [decoded release];[unboxed release];return nil; }
@@ -36,6 +81,14 @@ static id normalize(id value,unsigned depth,unsigned *remaining) {
     [unboxed release];return result;
 }
 id ssn_profile_normalize(id object) { unsigned budget=2048;return [normalize(object,0,&budget) retain]; }
+
+unsigned ssn_profile_panel_stage(id result) {
+    id user=result[@"user"];
+    id panels=[user isKindOfClass:NSDictionary.class]?user[@"panels"]:nil;
+    if(!panels)return SSN_PROFILE_PANELS_MISSING;
+    if(![panels isKindOfClass:NSArray.class])return SSN_PROFILE_PANELS_UNREADABLE;
+    return [panels count]?SSN_PROFILE_PANELS_AVAILABLE:SSN_PROFILE_PANELS_EMPTY;
+}
 
 @implementation SSNProfileRequest {
     id _promise,_auth;

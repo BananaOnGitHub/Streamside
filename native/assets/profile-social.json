@@ -1,0 +1,47 @@
+{
+  "source": "https://github.com/simple-icons/simple-icons/tree/10.0.0",
+  "license": "CC0-1.0 artwork. Brand marks remain their respective owners\u2019 trademarks.",
+  "pixels": 60,
+  "assets": {
+    "profile-social-discord.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/discord.svg",
+      "svg_sha256": "1d364b72c9eaf1fe37d17ca88cd8fb541308dc0f3b09e2ab3b824f380b3493d5",
+      "sha256": "af846d698a321ae7149c88dae6b19b81ce08c2d1db470b240258cedd852d3dd4"
+    },
+    "profile-social-facebook.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/facebook.svg",
+      "svg_sha256": "b06d18d844ed621b89faffb1a33440cc0ec4f1ffea9f36191f50db19a47c59a6",
+      "sha256": "3fec6838ae2a09785c66e9b74b19b0c29f445b9c0c7ed036d2bc54c78268a95d"
+    },
+    "profile-social-instagram.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/instagram.svg",
+      "svg_sha256": "44b8583767405ed5e936cf3fb180139ac3e4a452fe1132b40abc0765003a25e5",
+      "sha256": "e675c9993e1ac620c800d3760b529e8e092bd3a8adef2f5d8194064e91e42d28"
+    },
+    "profile-social-tiktok.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/tiktok.svg",
+      "svg_sha256": "6f54ac8d325faacea8935bdc44cbed60206a6b408641799e5fea1cba7c1a0af7",
+      "sha256": "9e664376781005e982328e2132fdc7960213ceb5922efc5faa97441767f9a4ac"
+    },
+    "profile-social-twitch.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/twitch.svg",
+      "svg_sha256": "dbe27bc02a01b8d89b6259cacef328c9fa70bb13c29f38c36eb1421863f6f0b6",
+      "sha256": "1b3a79ce4fe36c9b0876a53d3406ff556929075e249bfcdee96c04cc388c8ebd"
+    },
+    "profile-social-twitter.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/twitter.svg",
+      "svg_sha256": "4e7e73ba9813f46b7b95bc707704ddaf5367048c6571e07a4ff3cd3ba18bb04a",
+      "sha256": "bd3c69371905718b1ef36553a71078fa50e136c3203f6d5ec5c0a86aca5182e1"
+    },
+    "profile-social-x.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/x.svg",
+      "svg_sha256": "be03adbfce4a46c4e42eae5ee7b5e676b59627fa25e15a317e453bb18153ff5f",
+      "sha256": "f4fecaad21b89545a4296c79bc57b77fed1745a4a257cb30361d31ba4803c326"
+    },
+    "profile-social-youtube.png": {
+      "source": "https://github.com/simple-icons/simple-icons/blob/10.0.0/icons/youtube.svg",
+      "svg_sha256": "5038808acbbc4e6edda16cbeb1cc6dec80e4e4ee4e227e039c41229fa222aa8c",
+      "sha256": "5e74bb3dba80532989efce27f5b86b38516c4a7f7ba6eff8716de52d0d091de8"
+    }
+  }
+}

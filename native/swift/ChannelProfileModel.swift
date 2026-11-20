@@ -5,16 +5,41 @@ enum ProfileOperation: Int { case profile, relationship, unfollow, follow, notif
 @MainActor protocol ChannelProfileBackend {
     func request(channelID: String, operation: ProfileOperation, setting: String) async throws -> [String: Any]
 }
+enum ProfileSocialPlatform: String, CaseIterable {
+    case twitter, x, youtube, instagram, discord, tiktok, facebook, twitch
+
+    init?(url: URL, title: String) {
+        guard let host = url.host?.lowercased() else { return nil }
+        func matches(_ domain: String) -> Bool { host == domain || host.hasSuffix("." + domain) }
+        if matches("twitter.com") || matches("x.com") {
+            let words = title.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init)
+            let explicitX = words.first == "x" || words.suffix(2).elementsEqual(["on", "x"])
+            self = explicitX ? .x : .twitter
+        } else if matches("youtube.com") || matches("youtu.be") { self = .youtube }
+        else if matches("instagram.com") { self = .instagram }
+        else if matches("discord.com") || matches("discord.gg") { self = .discord }
+        else if matches("tiktok.com") { self = .tiktok }
+        else if matches("facebook.com") || matches("fb.me") { self = .facebook }
+        else if matches("twitch.tv") { self = .twitch }
+        else { return nil }
+    }
+}
 struct ChannelProfileData {
-    struct Link: Identifiable { let id: String; let title: String; let url: URL }
+    struct Link: Identifiable {
+        let id: String
+        let title: String
+        let url: URL
+        var platform: ProfileSocialPlatform? { ProfileSocialPlatform(url: url, title: title) }
+    }
     struct Panel: Identifiable { let id: Int; let title: String; let text: String; let image: URL?; let link: URL?; let supported: Bool }
     let name: String
     let bio: String
     let avatar: URL?
     let banner: URL?
     let followers: Int?
+    let subscribed: Bool?
     let links: [Link]
-    let panels: [Panel]
+    let panels: [Panel]?
     static func url(_ value: Any?) -> URL? {
         guard let text = value as? String, text.count <= 2048, let url = URL(string: text),
               ["https", "http"].contains(url.scheme?.lowercased() ?? ""), url.host != nil,
@@ -26,12 +51,16 @@ struct ChannelProfileData {
         self.name = String(name.prefix(256)); bio = String((user["description"] as? String ?? "").prefix(16000))
         avatar = Self.url(user["profileImageURL"]); banner = Self.url(user["bannerImageURL"])
         followers = (user["followers"] as? [String: Any])?["totalCount"] as? Int
+        let benefit = (user["currentUser"] as? [String: Any])?["subscriptionBenefit"]
+        if let id = (benefit as? [String: Any])?["id"] as? String, !id.isEmpty { subscribed = true }
+        else if benefit is NSNull { subscribed = false }
+        else { subscribed = nil }
         let channel = user["channel"] as? [String: Any]
         links = (channel?["socialMedias"] as? [[String: Any]] ?? []).prefix(32).compactMap { row in
             guard let url = Self.url(row["url"]), let title = row["title"] as? String else { return nil }
             return Link(id: row["id"] as? String ?? url.absoluteString, title: String(title.prefix(256)), url: url)
         }
-        panels = (user["panels"] as? [Any] ?? []).prefix(64).enumerated().compactMap { index, value in
+        panels = (user["panels"] as? [Any])?.prefix(64).enumerated().compactMap { index, value in
             guard let row = value as? [String: Any] else { return nil }
             return Panel(id: index, title: String((row["title"] as? String ?? "").prefix(512)),
                 text: String((row["description"] as? String ?? "").prefix(16000)), image: Self.url(row["imageURL"]),

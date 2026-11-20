@@ -5,3 +5,6 @@ id ssn_profile_request(id channel,unsigned operation,id setting);
 id ssn_profile_unbox(id object);
 id ssn_profile_notification_string(id object); // retained
 id ssn_profile_normalize(id object);
+id ssn_profile_unbox_panel(id object); // retained
+id ssn_profile_unbox_panel_list(id object); // retained
+unsigned ssn_profile_panel_stage(id result);

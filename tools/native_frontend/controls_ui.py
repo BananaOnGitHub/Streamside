@@ -25,8 +25,8 @@ def project(root, stage):
     app_product=obj('PBXFileReference',explicitFileType='wrapper.application',path='InputTest.app',sourceTree='BUILT_PRODUCTS_DIR')
     ui_product=obj('PBXFileReference',explicitFileType='wrapper.cfbundle',path='PlayerInputTests.xctest',sourceTree='BUILT_PRODUCTS_DIR')
     app_files=[];ui_files=[];refs=[];asset_files=[]
-    for asset in ['twitch-verified.png', 'verifiedbtw.png']:
-        ref=obj('PBXFileReference',lastKnownFileType='image.png',path=os.path.relpath(root/'native/assets'/asset,stage),sourceTree='<group>')
+    for asset in sorted((root/'native/assets').glob('*.png')):
+        ref=obj('PBXFileReference',lastKnownFileType='image.png',path=os.path.relpath(asset,stage),sourceTree='<group>')
         refs.append(ref);asset_files.append(obj('PBXBuildFile',fileRef=ref))
     for name in SOURCES:
         ref=obj('PBXFileReference',lastKnownFileType='sourcecode.swift',path=os.path.relpath(root/name,stage),sourceTree='<group>');refs.append(ref)

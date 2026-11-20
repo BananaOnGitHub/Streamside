@@ -5,6 +5,8 @@
 static id identity,value;
 static BOOL authorized=YES,pending,failed;
 static unsigned cancels,requests;
+static unsigned stages[5][SSN_PROFILE_STAGE_COUNT];
+void ssn_profile_event(unsigned op,unsigned stage) { if(op<5&&stage<SSN_PROFILE_STAGE_COUNT)stages[op][stage]++; }
 bool ssn_playback_authorized(void) { return authorized; }
 __attribute__((objc_runtime_name("_TtC6PMHTTP11HTTPManager")))
 @interface FakeHTTP : NSObject
@@ -49,5 +51,7 @@ int main(void) { @autoreleasepool {
     r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];id previous=identity;identity=[NSObject new];[r poll];
     NSCAssert(r.phase==2,@"Account replacement cancels");[r release];[previous release];
     r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];authorized=NO;[r poll];NSCAssert(r.phase==2,@"Account loss cancels");[r release];[identity release];
+    for(unsigned op=0;op<5;op++) NSCAssert(stages[op][SSN_PROFILE_STARTED]>0&&stages[op][SSN_PROFILE_COMPLETED]==1,@"Each native operation reports request and completion");
+    NSCAssert(stages[0][SSN_PROFILE_CANCELLED]>0&&stages[0][SSN_PROFILE_SESSION_CHANGED]==2,@"Cancellation and account boundaries are numeric");
     puts("PROFILE_NATIVE PASS: whitelist, bounds, five native operations, invalid setting, pending, errors, single cancellation, account replacement/loss");
 }return 0; }

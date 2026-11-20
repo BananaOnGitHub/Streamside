@@ -68,8 +68,9 @@ enum NotificationChoice: String, CaseIterable, Identifiable {
     private let backend: ChannelProfileBackend
     private let valid: () -> Bool
     private let changed: () -> Void
-    init(channel: FollowedChannel, backend: ChannelProfileBackend, valid: @escaping () -> Bool, changed: @escaping () -> Void = {}) {
-        self.channel = channel; self.backend = backend; self.valid = valid; self.changed = changed
+    private let rejected: (ProfileOperation) -> Void
+    init(channel: FollowedChannel, backend: ChannelProfileBackend, valid: @escaping () -> Bool, changed: @escaping () -> Void = {}, rejected: @escaping (ProfileOperation) -> Void = { _ in }) {
+        self.channel = channel; self.backend = backend; self.valid = valid; self.changed = changed; self.rejected = rejected
     }
     private func request(_ operation: ProfileOperation, setting: String = "") async throws -> [String: Any] {
         guard valid(), !Task.isCancelled else { throw CancellationError() }
@@ -80,9 +81,9 @@ enum NotificationChoice: String, CaseIterable, Identifiable {
         guard !busy, valid(), channel.localTest == nil else { return }; busy = true; error = nil
         defer { busy = false }
         do {
-            guard let next = ChannelProfileData(result: try await request(.profile)) else { throw CocoaError(.coderReadCorrupt) }
+            guard let next = ChannelProfileData(result: try await request(.profile)) else { rejected(.profile);throw CocoaError(.coderReadCorrupt) }
             data = next
-            guard let state = ChannelRelationship(result: try await request(.relationship)) else { throw CocoaError(.coderReadCorrupt) }
+            guard let state = ChannelRelationship(result: try await request(.relationship)) else { rejected(.relationship);throw CocoaError(.coderReadCorrupt) }
             relationship = state
         } catch is CancellationError { } catch { self.error = "The channel profile could not be loaded. Try again." }
     }
@@ -94,9 +95,9 @@ enum NotificationChoice: String, CaseIterable, Identifiable {
         do {
             let result = try await request(operation, setting: setting)
             let key = operation == .unfollow ? "unfollowUser" : operation == .follow ? "followUser" : "setLiveNotificationsEnrollment"
-            guard let payload = result[key] as? [String: Any], payload["error"] == nil || payload["error"] is NSNull else { throw CocoaError(.coderReadCorrupt) }
+            guard let payload = result[key] as? [String: Any], payload["error"] == nil || payload["error"] is NSNull else { rejected(operation);throw CocoaError(.coderReadCorrupt) }
             guard let next = ChannelRelationship(result: try await request(.relationship)),
-                  operation == .notifications ? next.setting == setting : next.followed == (operation == .follow) else { throw CocoaError(.coderReadCorrupt) }
+                  operation == .notifications ? next.setting == setting : next.followed == (operation == .follow) else { rejected(operation);throw CocoaError(.coderReadCorrupt) }
             self.relationship = next; changed(); return true
         } catch is CancellationError { return false } catch { self.error = "The change could not be confirmed. Refresh before trying again."; return false }
     }

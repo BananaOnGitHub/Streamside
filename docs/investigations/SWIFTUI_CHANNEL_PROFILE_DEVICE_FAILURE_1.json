@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "branch": "feat/native-frontend",
+  "implementation_base": "a1658e6075c5ae467c00f6b2199da242761333fd",
+  "device_report": {
+    "source_revision": "d3c96a775b0fb0935ca0395180d01edf6dec02f6",
+    "proof_id": "374657d1f7eeceed06b409c4c2002d5bd052b9614dc94b6fdfecd21e5db999dc",
+    "sha256": "be2e597750764c364bec2cb5b4fa867b07097a5245f22dbe7494be927c7d2f29",
+    "bytes": 2042,
+    "artifact": "artifacts/archive/channel-profile-failures/device-d3c96a7/native-latest-2.json",
+    "observed": "User reports the profile page opens but details cannot be fetched.",
+    "ui_root_owner": 1,
+    "armed_mask": 15,
+    "failures": 0,
+    "runtime_entries": {
+      "twitch_holder": 0,
+      "warmup": 0,
+      "twitch_factory": 0,
+      "bundle_url": 0,
+      "rn_factory": 0,
+      "rn_runtime_factory": 0,
+      "rn_host": 0,
+      "rn_host_start": 0,
+      "rn_surface": 0,
+      "rn_root_surface": 0,
+      "rn_instance": 0,
+      "rn_bundle_load": 0,
+      "rn_script_load": 0,
+      "rn_hermes_instance": 0,
+      "hermes_factory": 0,
+      "hermes_factory_nothrow": 0,
+      "hermes_runtime": 0,
+      "hermes_eval": 0,
+      "hermes_eval_prepared": 0,
+      "hermes_eval_source_map": 0,
+      "worklet_factory": 0,
+      "worklet_ui_factory": 0,
+      "worklet_runtime": 0,
+      "hermes_implementation": 0,
+      "hermes_engine": 0
+    },
+    "baseline_calibrated": false,
+    "account_list_state": 4,
+    "returned_channel_count": 100,
+    "profile_stage_diagnostics_present": false
+  },
+  "donor": {
+    "version": "32.0",
+    "build": "263110145453907615",
+    "sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129"
+  },
+  "confirmed_static_failure": {
+    "image": "TwitchApollo",
+    "symbol": "_$s12TwitchApollo0A12GraphQLErrorVN",
+    "address": "0x14a20",
+    "rebased_pointer": "0x14a28",
+    "pointer_file_encoding": "0x0030000000010df0",
+    "target": "0x10df0",
+    "failure": "The runtime prefix resolver compares on-disk chained pointer bytes to relocated metadata. dyld rewrites the second word; the initialization check rejects the error type before native profile requests can start.",
+    "correction": "Resolve the inspected native metadata accessor _$s12TwitchApollo0A12GraphQLErrorVMa at 0xcc68 and call it to obtain the runtime metadata. Keep data-export bytes only as static investigation evidence."
+  },
+  "additional_correction": "Replace non-Swift C operation pointers used as Swift thick-closure contexts with per-operation capture-free mapping entry points and NULL contexts.",
+  "diagnostic_contract": {
+    "field": "profile_events",
+    "operations": [
+      "profile",
+      "relationship",
+      "unfollow",
+      "follow",
+      "notifications"
+    ],
+    "stages": [
+      "started",
+      "abi_ready",
+      "submitted",
+      "mapped",
+      "normalization_failed",
+      "native_error",
+      "completed",
+      "cancelled",
+      "session_changed",
+      "timed_out",
+      "unavailable",
+      "response_rejected"
+    ],
+    "privacy": "Fixed numeric counts only; no identities, payloads, URLs, tokens or error text. Native-only and separate from runtime probe/failure fields."
+  },
+  "correction_host_validation": {
+    "tests": 116,
+    "passed": true,
+    "seconds": 26.303,
+    "log_sha256": "376d7acd52cd5579f5dec0915bd5bf0f45c743f7d5d87f0f6434e1e7164aed7e",
+    "provider_tests": {
+      "tests": 12,
+      "passed": true
+    },
+    "c_adapter": {
+      "target": "aarch64-ios-none",
+      "compiler": "Zig 0.14.0 / Clang",
+      "warnings_as_errors": true,
+      "passed": true,
+      "object_sha256": "408fbbf0905664b3f4dfd88ceb49e687d3ee5309269c696da407600d7b7c1e6c"
+    }
+  },
+  "corrected_proof_id": "13bf5e4420d220e613de86a9b8c812b7e7c041cfbfee42db258ded565a0f0c35",
+  "limits": [
+    "The old device report has no profile-stage counts and does not identify a native request/normalization outcome.",
+    "The static rejection is reproduced from the exact donor; authenticated profile success still requires retesting the replacement build.",
+    "All 25 observed runtime entry counters are zero with all probe images armed, but this export has no matching baseline calibration; do not infer a new positive-control comparison.",
+    "Apple compilation/simulator execution and physical-device correction validation are pending."
+  ]
+}

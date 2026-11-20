@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "SSNLaunch.h"
+#include "SSNProfileDiagnostics.h"
 typedef struct { const char *name,*image; uintptr_t offset; uint32_t opcode; bool guard; } SSNProbeSpec;
 typedef struct { const char *name; uintptr_t cave,slot; } SSNImageSpec;
 #include "SSNBuild.h"

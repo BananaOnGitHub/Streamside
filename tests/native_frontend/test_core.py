@@ -69,6 +69,14 @@ class CoreEvidence(unittest.TestCase):
             self.assertNotIn('username',report);self.assertNotIn('tokens',report);self.assertNotIn('channels',report)
             self.assertFalse(report['memory_available']);self.assertFalse(report['baseline_calibrated'])
 
+    def test_profile_stages_are_numeric_bounded_and_native_only(self):
+        for mode in [0,1]:
+            with tempfile.TemporaryDirectory() as d:
+                _,report=self.run_core(mode,'profile',Path(d))
+                self.assertEqual(report['profile_events'],[[mode]*12 for _ in range(5)])
+                self.assertEqual(report['failures'],0)
+                self.assertTrue(all(value==0 for value in report['probes'].values()))
+
     def test_playback_work_timings_are_bounded_and_separate_from_runtime_probes(self):
         with tempfile.TemporaryDirectory() as d:
             _,report=self.run_core(1,'work',Path(d))

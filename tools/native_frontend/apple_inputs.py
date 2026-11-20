@@ -8,7 +8,7 @@ def build_inputs(root, header, mode, proof, revision):
         "SSNLaunch.c", "SSNLaunch.h", "SSNLaunchPreferences.m", "SSNCore.c", "SSNCore.h", "SSNIntegration.c", "SSNIntegration.h",
         "SSNWindowOwnership.h", "SSNWindowOwnership.m", "SSNSessionPolicy.h",
         "SSNContentLabels.h", "SSNContentLabels.m", "SSNContentLabelsRequest.h", "SSNContentLabels.c",
-        "SSNProfile.h", "SSNProfile.m", "SSNProfileRequest.h", "SSNProfileRequest.c",
+        "SSNProfileDiagnostics.h", "SSNProfile.h", "SSNProfile.m", "SSNProfileRequest.h", "SSNProfileRequest.c",
         "SSNAdBlock.h", "SSNAdBlock.m", "SSNPlayback.h", "SSNPlayback.m", "SSNPlaybackRequest.h", "SSNPlaybackRequest.c",
         "SSNAccount.c", "SSNFeed.c", "SSNFeed.h", "SSNSwiftABI.h", "SSNObjC.h", "SSNNativeBridge.h", "SSNNativeBridge.m")]
     names += [str(p.relative_to(root)) for p in sorted((root / "native/swift").glob("*.swift"))]

@@ -1,5 +1,6 @@
 """Validate the integration declarations against the exact donor's exports."""
 import struct
+from functools import lru_cache
 from macho import load_commands
 from probes import file_offset
 
@@ -30,10 +31,58 @@ def exports(data, base):
     return result
 
 
+@lru_cache(maxsize=16)
+def chained_fixup_locations(data):
+    """Exact supported donor pointer chains; byte-compared prefixes must be immutable."""
+    locations=set()
+    segments=[struct.unpack_from('<4Q',data,c.offset+24) for c in load_commands(data) if c.command==0x19]
+    base=min(vm for vm,_,_,size in segments if size)
+    for command in load_commands(data):
+        if command.command!=0x80000034:continue
+        offset,size=struct.unpack_from('<II',data,command.offset+8)
+        version,relative=struct.unpack_from('<II',data,offset)
+        if version!=0:raise ValueError('Unsupported chained fixup header')
+        start=offset+relative;count=struct.unpack_from('<I',data,start)[0]
+        if count>len(segments):raise ValueError('Invalid chained fixup segment count')
+        for index in range(count):
+            relative=struct.unpack_from('<I',data,start+4+4*index)[0]
+            if not relative:continue
+            at=start+relative
+            length,page_size,fmt,segment_offset,_,pages=struct.unpack_from('<IHHQIH',data,at)
+            if fmt!=6 or length<22+pages*2 or at+length>offset+size:
+                raise ValueError('Unsupported chained fixup segment')
+            entries=struct.unpack_from('<'+'H'*((length-22)//2),data,at+22)
+            for page in range(pages):
+                entry=entries[page]
+                if entry==0xffff:continue
+                starts=[entry]
+                if entry&0x8000:
+                    starts=[];cursor=entry&0x7fff
+                    while cursor<len(entries):
+                        item=entries[cursor];starts.append(item&0x7fff);cursor+=1
+                        if item&0x8000:break
+                    else:raise ValueError('Unterminated chained fixup page starts')
+                for beginning in starts:
+                    page_address=base+segment_offset+page*page_size
+                    address=page_address+beginning
+                    visited=set()
+                    while True:
+                        if address in visited or not page_address<=address<page_address+page_size:
+                            raise ValueError('Invalid chained fixup page')
+                        visited.add(address);locations.add(address)
+                        raw=struct.unpack_from('<Q',data,file_offset(data,address))[0]
+                        next_offset=(raw>>51)&0xfff
+                        if not next_offset:break
+                        address+=next_offset*4
+    return frozenset(locations)
+
+
 def validate_abi(images,plan):
     tables={name:exports(data,plan['layout'].get(name,{}).get('base',0)) for name,(_,data) in images.items()}
     for name,spec in plan['abi'].items():
         _,data=images[spec['image']]
+        if any(address in chained_fixup_locations(data) for address in range(spec['address']-7,spec['address']+16)):
+            raise ValueError('ABI prefix includes a dyld fixup: '+name)
         pos=file_offset(data,spec['address'])
         if data[pos:pos+16].hex()!=spec['bytes']:raise ValueError('ABI entry prefix mismatch: '+name)
         if name.startswith('_$') and tables[spec['image']].get(name)!=spec['address']:

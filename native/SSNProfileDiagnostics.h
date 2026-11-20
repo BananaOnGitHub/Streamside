@@ -1,0 +1,11 @@
+#pragma once
+/* Five native operations, twelve fixed stages; no payload, identity or errors.
+ * The event index is independent of all RN/Hermes runtime entry counters. */
+enum {
+    SSN_PROFILE_STARTED, SSN_PROFILE_ABI_READY, SSN_PROFILE_SUBMITTED,
+    SSN_PROFILE_MAPPED, SSN_PROFILE_NORMALIZATION_FAILED, SSN_PROFILE_NATIVE_ERROR,
+    SSN_PROFILE_COMPLETED, SSN_PROFILE_CANCELLED, SSN_PROFILE_SESSION_CHANGED,
+    SSN_PROFILE_TIMED_OUT, SSN_PROFILE_UNAVAILABLE, SSN_PROFILE_RESPONSE_REJECTED,
+    SSN_PROFILE_STAGE_COUNT
+};
+void ssn_profile_event(unsigned operation,unsigned stage);

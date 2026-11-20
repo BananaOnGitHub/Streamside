@@ -112,7 +112,7 @@ private struct ProfileContent: View {
             services.state.session == .authenticated && services.state.account == account
         }
         let model = ChannelProfileModel(channel: channel, backend: NativeProfileBackend(valid: valid), valid: valid,
-            changed: { services.refreshPlayerInfo() })
+            changed: { services.refreshPlayerInfo() }, rejected: { SSNProfileResponseRejected($0.rawValue) })
         let controller = UIHostingController(rootView: ProfileContent(services: services, model: model, account: account, close: close, watch: watch))
         controller.modalPresentationStyle = .fullScreen
         controller.modalTransitionStyle = .crossDissolve

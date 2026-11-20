@@ -29,6 +29,10 @@ int main(int argc,char **argv) {
            !ssn_preserve_account_event(SSN_USER_AVAILABLE,true)) return 6;
         ssn_account_data_cleared();ssn_account_data_cleared();
     }
+    if(!strcmp(argv[2],"profile")) {
+        for(unsigned op=0;op<5;op++) for(unsigned stage=0;stage<SSN_PROFILE_STAGE_COUNT;stage++) ssn_profile_event(op,stage);
+        ssn_profile_event(5,0);ssn_profile_event(0,SSN_PROFILE_STAGE_COUNT);ssn_profile_event(99,99);
+    }
     if(!strcmp(argv[2],"controls")) { for(unsigned i=0;i<9;i++) ssn_player_control_event(i); ssn_playback_mute(false,true,false);ssn_playback_mute(true,true,false);ssn_playback_mute(true,true,true); }
     if(!strcmp(argv[2],"playback")) {
         for(unsigned i=0;i<9;i++) ssn_playback_event(i);

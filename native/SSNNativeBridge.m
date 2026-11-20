@@ -5,6 +5,7 @@
 #import "SSNSwiftUI-Swift.h"
 
 NSNotificationName const SSNNativeServiceDidChange = @"SSNNativeServiceDidChange";
+void SSNProfileResponseRejected(NSInteger operation) { if(operation>=0&&operation<=4)ssn_profile_event((unsigned)operation,SSN_PROFILE_RESPONSE_REJECTED); }
 void SSNPlayerControlEvent(unsigned event) { ssn_player_control_event(event); ssn_report(); }
 void SSNNavigationEvent(unsigned event) { ssn_navigation_event(event); ssn_report(); }
 BOOL SSNNavigationPermitted(void) { return ssn_native_mode() && ssn_navigation_guarded() && ssn_armed() && !ssn_failed(); }

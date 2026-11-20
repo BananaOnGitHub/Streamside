@@ -24,3 +24,5 @@ FOUNDATION_EXPORT BOOL SSNNavigationPermitted(void);
 - (NSArray<NSURL *> *)exportReports;
 @end
 NS_ASSUME_NONNULL_END
+
+FOUNDATION_EXPORT void SSNProfileResponseRejected(NSInteger operation);

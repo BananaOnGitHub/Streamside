@@ -770,11 +770,6 @@
       "address": 423984,
       "bytes": "9573fe17804600d00040099161438052"
     },
-    "_$s12TwitchApollo0A12GraphQLErrorVN": {
-      "image": "TwitchApollo",
-      "address": 84512,
-      "bytes": "0002000000000000f00d010000003000"
-    },
     "_$s9ApolloAPI12GraphQLQueryMp": {
       "image": "ApolloAPI",
       "address": 165028,
@@ -784,6 +779,11 @@
       "image": "ApolloAPI",
       "address": 165072,
       "bytes": "430000003cfbffff1be8ffff01000000"
+    },
+    "_$s12TwitchApollo0A12GraphQLErrorVMa": {
+      "image": "TwitchApollo",
+      "address": 52328,
+      "bytes": "4000009000802891010080d2c0035fd6"
     }
   },
   "gate": {
@@ -1064,6 +1064,14 @@
       "ALWAYS",
       "PERSONALIZED",
       "NEVER"
-    ]
+    ],
+    "error_metadata_export": {
+      "symbol": "_$s12TwitchApollo0A12GraphQLErrorVN",
+      "image": "TwitchApollo",
+      "address": 84512,
+      "bytes": "0002000000000000f00d010000003000",
+      "rebased_pointer_offset": 8,
+      "target": 69104
+    }
   }
 }

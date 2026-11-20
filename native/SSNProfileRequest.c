@@ -26,20 +26,34 @@ static bool sized(const void *t,size_t n) { const uintptr_t *w=vw(t);return w&&w
 static void destroy(void *v,const void *t) { ((Destroy)vw(t)[1])(v,t); }
 static const void *meta(const char *name) { Meta fn=(Meta)ssn_resolve(name);if(!fn)return NULL;Response x=fn(0);return x.state?NULL:x.value; }
 static id failed(void) { return m0(c("NSNull"),"new"); }
-static id SW map_error(const void *value,void *context CTX) { (void)value;(void)context;return failed(); }
 id ssn_profile_unbox(id object) {
     uintptr_t raw=0;
     if(!available||!cast(&raw,&object,objc_type,data_type,0)) return nil;
     uintptr_t dict=dict_getter(raw);destroy(&raw,data_type);
     id result=bridge(&dict,dict_type);destroy(&dict,dict_type);return result;
 }
-static id SW map_data(const void *value,void *context CTX) {
-    PlaybackField root_getter=(void*)ssn_resolve(((const struct Operation*)context)->root);
+static id map_data(const void *value,unsigned operation) {
+    ssn_profile_event(operation,SSN_PROFILE_MAPPED);
+    PlaybackField root_getter=(void*)ssn_resolve(ops[operation].root);
     uintptr_t raw=root_getter(*(const uintptr_t*)value);
     uintptr_t dict=dict_getter(raw);destroy(&raw,data_type);
     id boxed=bridge(&dict,dict_type);destroy(&dict,dict_type);
-    id result=ssn_profile_normalize(boxed);objc_release(boxed);return result?:failed();
+    id result=ssn_profile_normalize(boxed);objc_release(boxed);
+    if(!result)ssn_profile_event(operation,SSN_PROFILE_NORMALIZATION_FAILED);
+    return result?:failed();
 }
+/* A Swift thick closure context is Swift-managed storage. Never give it a
+ * pointer to a C operation record; capture-free entry points use NULL instead. */
+#define PROFILE_MAP(N) \
+static id SW map##N(const void *value,void *context CTX) { (void)context;return map_data(value,N); } \
+static id SW error##N(const void *value,void *context CTX) { (void)value;(void)context;ssn_profile_event(N,SSN_PROFILE_NATIVE_ERROR);return failed(); }
+PROFILE_MAP(0)
+PROFILE_MAP(1)
+PROFILE_MAP(2)
+PROFILE_MAP(3)
+PROFILE_MAP(4)
+#undef PROFILE_MAP
+static const Map value_maps[]={map0,map1,map2,map3,map4},error_maps[]={error0,error1,error2,error3,error4};
 static void SW unwrap2(void* OUT out,const void *value,void *context CTX) { (void)context;unwrap(out,ops[2].mutation_result,value); }
 static void SW unwrap3(void* OUT out,const void *value,void *context CTX) { (void)context;unwrap(out,ops[3].mutation_result,value); }
 static void SW unwrap4(void* OUT out,const void *value,void *context CTX) { (void)context;unwrap(out,ops[4].mutation_result,value); }
@@ -51,7 +65,7 @@ static bool initialize(void) {
     const void *(*conforms)(const void*,const void*)=dlsym(RTLD_DEFAULT,"swift_conformsToProtocol");
     const void *(*objc_meta)(Class)=dlsym(RTLD_DEFAULT,"swift_getObjCClassMetadata");
     data_type=meta("$s9ApolloAPI8DataDictVMa");string_type=dlsym(RTLD_DEFAULT,"$sSSN");
-    error_type=ssn_resolve("$s12TwitchApollo0A12GraphQLErrorVN");
+    error_type=meta("$s12TwitchApollo0A12GraphQLErrorVMa");
     const void *hashable=dlsym(RTLD_DEFAULT,"$ss11AnyHashableVN"),*hash_protocol=dlsym(RTLD_DEFAULT,"$sSHMp");
     Meta3 dictionary=dlsym(RTLD_DEFAULT,"$sSDMa");
     dict_getter=(void*)ssn_resolve("$s9ApolloAPI8DataDictV5_dataSDySSs11AnyHashableVGvg");client_getter=(void*)ssn_resolve("$s9TwitchKit9TKGraphQLC12apolloClientAA08TWApolloF0Vvg");
@@ -94,7 +108,11 @@ static const void *enum_value_type(const char *name,const void **payload,const v
     Response value=generic(0,*payload,*witness);return value.state?NULL:value.value;
 }
 id ssn_profile_request(id channel,unsigned operation,id setting) {
-    if(operation>4||!ssn_playback_authorized()||!initialize()||!kind(channel,"NSString")||!num(channel,"length")||num(channel,"length")>128)return nil;
+    if(operation>4)return nil;
+    if(!ssn_playback_authorized()) { ssn_profile_event(operation,SSN_PROFILE_SESSION_CHANGED);return nil; }
+    if(!initialize()) { ssn_profile_event(operation,SSN_PROFILE_UNAVAILABLE);return nil; }
+    ssn_profile_event(operation,SSN_PROFILE_ABI_READY);
+    if(!kind(channel,"NSString")||!num(channel,"length")||num(channel,"length")>128)return nil;
     id graph=m0(c("_TtC9TwitchKit9TKGraphQL"),"sharedInstance");if(!graph)return nil;
     struct Operation *op=&ops[operation];Words2 name=from_string(channel);uintptr_t query=0;
     if(operation==0) {
@@ -122,14 +140,15 @@ id ssn_profile_request(id channel,unsigned operation,id setting) {
         SW uintptr_t (*make)(uintptr_t,const void* CTX)=(void*)ssn_resolve(op->factory);
         if(input&&make)query=make(input,op->q);
     }
-    if(!query)return nil;
+    if(!query) { ssn_profile_event(operation,SSN_PROFILE_UNAVAILABLE);return nil; }
     Words2 client=client_getter(graph);uintptr_t result=0;
     if(operation<2) fetch(&result,query,1,client.a,client.b,op->q,op->witness);
     else {
         MutationMap maps[]={NULL,NULL,unwrap2,unwrap3,unwrap4};
         perform(&result,query,(id)dispatch_get_main_queue(),maps[operation],NULL,client.a,client.b,op->q,op->d,error_type,op->witness,error_witness);
     }
+    ssn_profile_event(operation,SSN_PROFILE_SUBMITTED);
     release_object(query);release_object(client.a);release_object(client.b);
-    id mapped=promise_objc(map_data,op,map_error,NULL,op->promise,objc_type,objc_type,&result);destroy(&result,op->promise);
+    id mapped=promise_objc(value_maps[operation],NULL,error_maps[operation],NULL,op->promise,objc_type,objc_type,&result);destroy(&result,op->promise);
     if(!kind(mapped,"TWLPromise")){objc_release(mapped);return nil;}return mapped;
 }

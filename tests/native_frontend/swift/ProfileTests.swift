@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor private final class FixtureBackend: ChannelProfileBackend {
-    var followed = true, stale = false, failing = false
+    var followed = true, stale = false, failing = false, malformed = false
     var setting = "PERSONALIZED"
     var calls: [ProfileOperation] = []
     var during: (() -> Void)?
@@ -10,6 +10,7 @@ import Foundation
         if failing { throw CocoaError(.coderReadCorrupt) }
         switch operation {
         case .profile:
+            if malformed { return [:] }
             let user: [String: Any] = ["displayName": "Fixture", "description": "Bio", "bannerImageURL": "https://static-cdn.jtvnw.net/banner.jpg",
             "followers": ["totalCount": 1234], "channel": ["socialMedias": [["id": "1", "title": "Social", "url": "https://example.com"]]],
             "panels": [["__typename": "DefaultPanel", "title": "About fixture", "description": "Panel text"], ["__typename": "ExtensionPanel"]]]
@@ -28,7 +29,8 @@ import Foundation
     @MainActor static func main() async {
         var channel = FollowedChannel(username: "fixture", displayName: "Fixture"); channel.channelID = "123"
         let backend = FixtureBackend();var valid = true, changes = 0
-        let model = ChannelProfileModel(channel: channel, backend: backend, valid: { valid }, changed: { changes += 1 })
+        var rejections: [ProfileOperation] = []
+        let model = ChannelProfileModel(channel: channel, backend: backend, valid: { valid }, changed: { changes += 1 }, rejected: { rejections.append($0) })
         await model.load()
         precondition(model.data?.followers == 1234 && model.data?.bio == "Bio" && model.data?.links.count == 1)
         precondition(model.data?.panels.count == 2 && model.data?.panels[0].supported == true && model.data?.panels[1].supported == false)
@@ -46,11 +48,14 @@ import Foundation
         let blocked = await model.change(.notifications, setting: "ALWAYS");precondition(!blocked)
         let follow = await model.change(.follow);precondition(follow && model.relationship?.followed == true)
         backend.stale = true;let stale = await model.change(.unfollow);precondition(!stale && model.relationship?.followed == true && model.error != nil)
+        precondition(rejections == [.unfollow], "Unconfirmed mutation reports only its numeric operation")
         backend.stale = false;backend.during = { valid = false }
         await model.load();precondition(changes == 6)
         let invalidCount = backend.calls.count;let lost = await model.change(.unfollow)
         precondition(!lost && backend.calls.count == invalidCount)
         backend.during = nil;valid = true;backend.failing = true;await model.load();precondition(model.error != nil)
+        backend.failing = false;backend.malformed = true;await model.load()
+        precondition(rejections == [.unfollow, .profile] && model.error != nil, "Malformed metadata records a bounded presentation rejection")
         print("PROFILE_MODEL PASS: profile, panels, safe URLs, follow state, four notification values, verified mutations, stale response and account-loss guards")
     }
 }

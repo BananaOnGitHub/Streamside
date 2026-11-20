@@ -24,6 +24,7 @@ static _Atomic uint64_t playback_events[9],player_control_events[7],mute_mismatc
 static _Atomic unsigned mute_flags;
 static _Atomic uint64_t playback_work[5][3];
 static _Atomic uint64_t frontend_events[4];
+static _Atomic uint64_t profile_events[5][SSN_PROFILE_STAGE_COUNT];
 static _Atomic unsigned adblock_flags;
 static _Atomic uint64_t adblock_metrics[11];
 static uint64_t peak_footprint;
@@ -96,6 +97,10 @@ void ssn_playback_work(unsigned stage,uint64_t microseconds) {
     uint64_t maximum=atomic_load(&playback_work[stage][2]);
     while(microseconds>maximum&&!atomic_compare_exchange_weak(&playback_work[stage][2],&maximum,microseconds)) {}
 }
+void ssn_profile_event(unsigned operation,unsigned stage) {
+    if(ssn_native_mode() && operation<5 && stage<SSN_PROFILE_STAGE_COUNT)
+        atomic_fetch_add(&profile_events[operation][stage],1);
+}
 void ssn_frontend_event(unsigned event) { if(event<4) atomic_fetch_add(&frontend_events[event],1); }
 void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }
 void ssn_scaffold_ready(void) { if(!visible_ms) visible_ms=(clock_ns()-started_ns)/1000000; }
@@ -162,6 +167,14 @@ void ssn_report(void) {
     ADD("\"player_mute_state\":[%u,%u,%u],\"player_mute_mismatched_samples\":%llu,",mute&1,(mute>>1)&1,(mute>>2)&1,(unsigned long long)atomic_load(&mute_mismatches));
     ADD("\"player_control_events\":[");
     for(unsigned i=0;i<7;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&player_control_events[i]));
+    ADD("],");
+    ADD("\"profile_events\":[");
+    for(unsigned op=0;op<5;op++) {
+        ADD("%s[",op?",":"");
+        for(unsigned stage=0;stage<SSN_PROFILE_STAGE_COUNT;stage++)
+            ADD("%s%llu",stage?",":"",(unsigned long long)atomic_load(&profile_events[op][stage]));
+        ADD("]");
+    }
     ADD("],");
     ADD("\"native_frontend_events\":[");
     for(unsigned i=0;i<4;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&frontend_events[i]));

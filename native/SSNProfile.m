@@ -32,12 +32,15 @@ id ssn_profile_normalize(id object) { unsigned budget=2048;return [normalize(obj
     id _promise,_auth;
     NSDictionary *_result;
     NSInteger _phase;
+    unsigned _operation;
     NSTimeInterval _deadline;
 }
 @synthesize phase=_phase,result=_result;
 - (instancetype)initWithChannelID:(NSString *)channelID operation:(NSInteger)operation setting:(NSString *)setting {
     if((self=[super init])) {
         NSAssert(NSThread.isMainThread,@"Profile requests belong to main");
+        _operation=operation>=0&&operation<=4?(unsigned)operation:5;
+        ssn_profile_event(_operation,SSN_PROFILE_STARTED);
         _result=[@{} retain];_deadline=NSProcessInfo.processInfo.systemUptime+15;
         _auth=[m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth") retain];
         if(operation>=0&&operation<=4&&([@[@"PERSONALIZED",@"ALWAYS",@"LIVE_UP_ONLY",@"NEVER"] containsObject:setting]||operation!=4))
@@ -45,14 +48,16 @@ id ssn_profile_normalize(id object) { unsigned budget=2048;return [normalize(obj
         if(!_promise)_phase=2;
     }return self;
 }
-- (void)cancel { if(_promise) { v0(_promise,"requestCancel");[_promise release];_promise=nil; }if(!_phase)_phase=2; }
+- (void)cancel { if(_promise) { v0(_promise,"requestCancel");[_promise release];_promise=nil; }if(!_phase) { _phase=2;ssn_profile_event(_operation,SSN_PROFILE_CANCELLED); } }
 - (void)poll {
     NSAssert(NSThread.isMainThread,@"Profile requests belong to main");if(_phase)return;
     id auth=m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth");
-    if(!ssn_playback_authorized()||auth!=_auth||NSProcessInfo.processInfo.systemUptime>=_deadline) { [self cancel];return; }
+    if(!ssn_playback_authorized()||auth!=_auth) { ssn_profile_event(_operation,SSN_PROFILE_SESSION_CHANGED);[self cancel];return; }
+    if(NSProcessInfo.processInfo.systemUptime>=_deadline) { ssn_profile_event(_operation,SSN_PROFILE_TIMED_OUT);[self cancel];return; }
     id value=nil,error=nil;BOOL done=((BOOL(*)(id,SEL,id*,id*))objc_msgSend)(_promise,ss("getValue:error:"),&value,&error);
     if(!done)return;
-    if(!error&&[value isKindOfClass:NSDictionary.class]) { [_result release];_result=[value copy];_phase=1; }else _phase=2;
+    if(!error&&[value isKindOfClass:NSDictionary.class]) { [_result release];_result=[value copy];_phase=1;ssn_profile_event(_operation,SSN_PROFILE_COMPLETED); }
+    else { _phase=2;ssn_profile_event(_operation,error?SSN_PROFILE_NATIVE_ERROR:SSN_PROFILE_RESPONSE_REJECTED); }
     [_promise release];_promise=nil;
 }
 - (void)dealloc { [self cancel];[_auth release];[_result release];[super dealloc]; }

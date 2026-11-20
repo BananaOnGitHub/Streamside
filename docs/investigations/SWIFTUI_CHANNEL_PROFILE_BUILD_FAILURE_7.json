@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "source_revision": "2bbd3e86629e9d80ab38b1dc490fa7740bf0f75d",
+  "build": {
+    "provider": "github",
+    "id": "44791085804",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44791085804",
+    "artifact_id": "14657517965"
+  },
+  "result": "failed",
+  "stage": "Coordinate gate: testPreviewPanelLayoutAndActions",
+  "validation": {
+    "schema": 1,
+    "source_revision": "2bbd3e86629e9d80ab38b1dc490fa7740bf0f75d",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 10.257
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.974
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 1530.946
+      }
+    ]
+  },
+  "completed_before_failure": {
+    "production_swiftui_and_interop": true,
+    "profile_native_and_model_fixtures": true,
+    "coordinate_commands_passed": [
+      "testMarkedContentConsent",
+      "testGlassControls",
+      "testPlainControls"
+    ],
+    "short_preview_watch_handoffs": [
+      "menu row",
+      "video tap"
+    ]
+  },
+  "failure": {
+    "case": "testPreviewPanelLayoutAndActions",
+    "scenario": "Long preview after scrolling to its final detail",
+    "assertion": "Watch action must transfer into theatre",
+    "observed": "The selected preview and Watch row stayed visible after one tap. XCTest returned an assertion failure and xcodebuild completed with exit 65.",
+    "limits": "The rendered screen and accessibility snapshot show the menu and retained preview. No touch instrumentation in this run identifies the internal gesture failure."
+  },
+  "correction": "Use full-row UIKit buttons for Watch and View profile with decorative SwiftUI artwork and material. Require one coordinate tap inside the trailing padding in the existing short and scrolled long menu handoff cases. The same player, decoding, gesture and lifecycle assertions remain required.",
+  "files": {
+    "job.log": {
+      "bytes": 944946,
+      "sha256": "520e6a0a7bb15115ca6c256e8a7c42c27a8ad14cde069ab5c1f67d81537232be"
+    },
+    "diagnostics.zip": {
+      "bytes": 1009591,
+      "sha256": "bffbf0192bb7793788e1244b1e7a35071c7ad9dd4a79d3b61a9690ca1b045070"
+    }
+  },
+  "fixture_screenshot": {
+    "scope": "donor-free simulator fixture failures only",
+    "files": {
+      "9EF8964A-FA26-4745-A054-E6DED9B73C1E.png": {
+        "bytes": 930742,
+        "sha256": "1f8976afd4c3963f37fcac9590ff49638b49e54c44880f26567dd6d3735f4bbb"
+      }
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-7",
+  "not_reached": [
+    "thumbnail and profile artwork coordinate gates",
+    "baseline build",
+    "component verification",
+    "IPA packaging",
+    "device verification"
+  ],
+  "replacement_validation": {
+    "host_tests": 126,
+    "host_result": "passed",
+    "host_seconds": 33.884,
+    "host_log_sha256": "1b1d3b01cabf8fc40deed84d4743de8dc24f58f184e5a999c1dfeb44d4e1d6fb",
+    "apple_result": "pending"
+  }
+}

@@ -348,7 +348,12 @@ final class PlayerInputTests: XCTestCase {
             if commit {
                 let point = CGVector(dx: (frame.midX - app.frame.minX) / app.frame.width, dy: (frame.midY - app.frame.minY) / app.frame.height)
                 app.coordinate(withNormalizedOffset: point).tap()
-            } else { watch.tap() }
+            } else {
+                XCTAssertTrue(watch.isHittable)
+                // One tap in the trailing padding must reach the actual row,
+                // including after the independent details scroll view moves.
+                watch.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.5)).tap()
+            }
             let watched = app.staticTexts["preview-watched"]
             XCTAssertTrue(watched.waitForExistence(timeout: 5), "Watch action must transfer into theatre")
             XCTAssertEqual(watched.label, "Same player: 1", "Watch must reuse the decoded preview player")

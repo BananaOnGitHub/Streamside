@@ -32,23 +32,53 @@ struct PreviewPlacement {
     }
 }
 
+private struct PreviewActionTarget: UIViewRepresentable {
+    let title: String
+    let identifier: String
+    let action: (() -> Void)?
+
+    @MainActor final class Coordinator: NSObject {
+        var action: (() -> Void)?
+        @objc func activate() { action?() }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .custom)
+        button.isAccessibilityElement = true
+        button.addTarget(context.coordinator, action: #selector(Coordinator.activate), for: .touchUpInside)
+        return button
+    }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        context.coordinator.action = action
+        button.isEnabled = action != nil
+        button.accessibilityLabel = title
+        button.accessibilityIdentifier = identifier
+    }
+}
+
 private struct PreviewActions: View {
     let watch: () -> Void
     let profile: (() -> Void)?
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private func row(_ title: String, icon: String, identifier: String, action: (() -> Void)?) -> some View {
+        Label(title, systemImage: icon)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20).padding(.vertical, 15)
+            .opacity(action == nil ? 0.4 : 1)
+            .allowsHitTesting(false).accessibilityHidden(true)
+            .overlay { PreviewActionTarget(title: title, identifier: identifier, action: action) }
+    }
+
     private var rows: some View {
         VStack(spacing: 0) {
-            Button(action: watch) {
-                Label("Watch stream", systemImage: "play.fill")
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 15)
-                    .contentShape(Rectangle())
-            }.accessibilityIdentifier("quicklook.watch")
+            row("Watch stream", icon: "play.fill", identifier: "quicklook.watch", action: watch)
             Divider().padding(.horizontal, 16)
-            Button { profile?() } label: {
-                Label("View profile", systemImage: "person.fill")
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 15)
-            }.disabled(profile == nil).opacity(profile == nil ? 0.4 : 1).accessibilityIdentifier("quicklook.profile")
-        }.font(.body).foregroundStyle(.primary).buttonStyle(.plain)
+            row("View profile", icon: "person.fill", identifier: "quicklook.profile", action: profile)
+        }.font(.body).foregroundStyle(.primary)
     }
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)

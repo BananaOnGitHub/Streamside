@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "source_revision": "0d315526cb80ca8e267e01e406d4569ca8df73bd",
+  "build": {
+    "provider": "github",
+    "id": "44808271626",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44808271626",
+    "job_id": "136537880142",
+    "artifact_id": "14668485782"
+  },
+  "result": "failed",
+  "stage": "Coordinate gate: testThumbnailHoldAndTap",
+  "validation": {
+    "schema": 1,
+    "source_revision": "0d315526cb80ca8e267e01e406d4569ca8df73bd",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 10.172
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.44
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 1604.588
+      }
+    ]
+  },
+  "completed_before_failure": {
+    "production_swiftui_and_interop": true,
+    "profile_native_and_model_fixtures": true,
+    "coordinate_commands_passed": [
+      "testMarkedContentConsent",
+      "testGlassControls",
+      "testPlainControls",
+      "testPreviewPanelLayoutAndActions"
+    ],
+    "quick_look_observations": [
+      "Unavailable profile action visible and disabled",
+      "One tap on Watch's trailing padding transferred the player, including after scrolling long details",
+      "Both decoded colors still rendered after the three tested handoffs",
+      "All four dismissal swipes passed"
+    ]
+  },
+  "failure": {
+    "case": "testThumbnailHoldAndTap",
+    "scenario": "Account loss after the preview opened",
+    "assertion": "XCTAssertFalse(account.buttons[\"Watch stream\"].exists)",
+    "observed": "The one-stop assertion passed before the immediate menu-absence assertion failed. The teardown snapshot showed one stop, zero watches, the restored thumbnail and no preview menu.",
+    "cause": "The fixture marks the player stopped at the beginning of cancellation. The passive return and removal from the UI hierarchy follow independently."
+  },
+  "correction": "Use the existing bounded disappearance predicate after cancellation for account loss, backgrounding and swipe. Require the restored thumbnail to be hittable, and recheck exactly one stop and zero watches after account-loss dismissal. No production source or required gates changed.",
+  "files": {
+    "job.log": {
+      "bytes": 985541,
+      "sha256": "0fe35cfafb6b765e2d20641d74e4a66f730039e2108358698ad3a6a6ccb479ff"
+    },
+    "diagnostics.zip": {
+      "bytes": 222130,
+      "sha256": "dc829bba60bc033c9084d2b0ca45b04afbf10436663e34fdf83002b31dfc7fe7"
+    }
+  },
+  "fixture_screenshot": {
+    "scope": "donor-free simulator fixture failures only",
+    "files": {
+      "AA5ABB52-EBA5-4DA1-BBF2-71BB9181616C.png": {
+        "bytes": 144731,
+        "sha256": "1c020583ed2916173be6760324500a6014b4b4a3c060ea450e5bcbe8dd577ea3"
+      }
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-9",
+  "not_reached": [
+    "profile artwork coordinate gate",
+    "baseline build",
+    "component verification",
+    "IPA packaging",
+    "device verification"
+  ],
+  "replacement_validation": {
+    "host_tests": 126,
+    "host_result": "passed",
+    "host_seconds": 34.129,
+    "host_log_sha256": "771d87b9aa63fbf30e8bbdfd5b253fd1905ef080f7d554b3123fd41b2605cf05",
+    "apple_result": "pending"
+  }
+}

@@ -16,8 +16,12 @@ final class PlayerInputTests: XCTestCase {
         // Tap actual empty space below the fixture. An obscured underlying
         // label can have a {-1,-1} accessibility hit point while modal.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)).tap()
+        assertDismissed(element)
+    }
+    private func assertDismissed(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
-        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed,
+            "The dismissed control must leave the accessibility hierarchy", file: file, line: line)
     }
     func testChannelProfile() {
         continueAfterFailure = false
@@ -236,13 +240,17 @@ final class PlayerInputTests: XCTestCase {
         openContext(background)
         XCUIDevice.shared.press(.home); background.activate()
         wait(background.staticTexts["preview-stops"], label: "Stops: 1")
-        XCTAssertFalse(background.buttons["Watch stream"].exists)
+        assertDismissed(background.buttons["quicklook.watch"])
         XCTAssertEqual(background.staticTexts["thumbnail-watches"].label, "Watches: 0")
         background.terminate()
         let account = contextApp(["--cancel-preview"])
         openContext(account)
         wait(account.staticTexts["preview-stops"], label: "Stops: 1", timeout: 10)
-        XCTAssertFalse(account.buttons["Watch stream"].exists)
+        // Stopping the player releases media ownership before the passive
+        // return animation finishes. Check both outcomes independently.
+        assertDismissed(account.buttons["quicklook.watch"])
+        XCTAssertTrue(account.buttons["preview-thumbnail"].isHittable)
+        XCTAssertEqual(account.staticTexts["preview-stops"].label, "Stops: 1")
         XCTAssertEqual(account.staticTexts["thumbnail-watches"].label, "Watches: 0")
         print("THUMBNAIL_LIFT PASS: slight centered expansion; rendered artwork outside clip; held scroll cancels without playback")
         print("THUMBNAIL_COORDINATES PASS: source lift/return; outside dismissal; hold/tap/scroll; background/account cancellation")
@@ -386,7 +394,7 @@ final class PlayerInputTests: XCTestCase {
             let start = video.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             start.press(forDuration: 0.05, thenDragTo: start.withOffset(direction))
             wait(app.staticTexts["preview-stops"], label: "Stops: 1")
-            XCTAssertFalse(app.buttons["Watch stream"].exists)
+            assertDismissed(app.buttons["quicklook.watch"])
             XCTAssertEqual(app.staticTexts["thumbnail-watches"].label, "Watches: 0", "Swipe must cancel the video-tap action")
             XCTAssertEqual(app.staticTexts["thumbnail-previews"].label, "Previews: 1")
             app.terminate()

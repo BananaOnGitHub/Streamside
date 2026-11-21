@@ -60,7 +60,7 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
 
     func updateUIView(_ view: UITextView, context: Context) {
         let openURL = openURL
-        context.coordinator.open = { url in _ = openURL(url) }
+        context.coordinator.open = { url in openURL(url) }
         context.coordinator.previewSize = previewSize
         view.linkTextAttributes = [.foregroundColor: UIColor(accent), .underlineStyle: NSUnderlineStyle.single.rawValue]
         let trait = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
@@ -68,7 +68,7 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
         let content = NSMutableAttributedString(string: "")
         for run in text.runs {
             let intent = run.inlinePresentationIntent ?? []
-            var font = intent.contains(.codeVoice) ? UIFont.monospacedSystemFont(ofSize: base.pointSize, weight: .regular) : base
+            var font = intent.contains(.code) ? UIFont.monospacedSystemFont(ofSize: base.pointSize, weight: .regular) : base
             var traits = font.fontDescriptor.symbolicTraits
             if bold || intent.contains(.stronglyEmphasized) { traits.insert(.traitBold) }
             if intent.contains(.emphasized) { traits.insert(.traitItalic) }

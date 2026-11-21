@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "source_revision": "66b4fd5bd2822b6361be8c4abc8b1a5e549a1a9f",
+  "result": "failed",
+  "build": {
+    "provider": "github",
+    "id": "44888747898",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44888747898",
+    "job_id": "136799698053",
+    "artifact_id": "14701491285"
+  },
+  "validation": {
+    "schema": 1,
+    "source_revision": "66b4fd5bd2822b6361be8c4abc8b1a5e549a1a9f",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 10.087
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 3.082
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 18.979
+      }
+    ]
+  },
+  "failure": {
+    "stage": "Compile SwiftUI frontend for iPhone",
+    "issues": [
+      "OpenURLAction returns Void and discarding that value is redundant under warnings-as-errors.",
+      "Swift Foundation spells the monospaced Markdown intent .code. The unavailable .codeVoice member also prevented inference of the dependent font traits."
+    ]
+  },
+  "correction": "Invoke OpenURLAction directly and use InlinePresentationIntent.code for inline code spans.",
+  "files": {
+    "job.log": {
+      "bytes": 33266,
+      "sha256": "4935bda2f93f0ccd670bdeef1108f4e366389072bcb650295d0bacb850385f9f"
+    },
+    "diagnostics.zip": {
+      "bytes": 6553,
+      "sha256": "954c0dbd5f5d52c2e0447279501dfc8c5238f4a7fb2661a51637eef876a6d1b1"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-11",
+  "not_reached": [
+    "Component linking",
+    "Simulator coordinate gates",
+    "ABI job",
+    "Component publication",
+    "IPA packaging",
+    "Device validation"
+  ]
+}

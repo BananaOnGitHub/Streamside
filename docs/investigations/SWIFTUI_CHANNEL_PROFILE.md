@@ -219,3 +219,7 @@ Device feedback confirmed the larger preview and the standard profile push. On i
 The anchored stream preview keeps its shared-player lifecycle and separate action plate. The full-width rows use native button presentation and pressed feedback. Player quick settings no longer include the marked-content warning switch. The existing switch remains in Settings → Player. Settings → General adds a system color picker and reset for the profile accent. The preference applies within profiles, including Markdown links, while live indicators and brand artwork keep their semantic colors.
 
 The simulator fixture checks both tab swipe directions, Markdown link tap and long-press actions, the General color picker, and the quick-settings contents. Apple validation and an iPhone visual check are pending.
+
+## Eleventh Apple failure: Markdown link compilation
+
+[GitHub run 44888747898](https://github.com/BananaOnGitHub/Streamside/actions/runs/44888747898), source `66b4fd5`, stopped before linking. Xcode rejected a redundant discarded result from the Void-returning `OpenURLAction` and the inline-code intent name in the TextKit view. The view now calls the URL action directly and uses [Foundation’s Swift inline-code intent](https://developer.apple.com/documentation/foundation/inlinepresentationintent). [Failure evidence](SWIFTUI_CHANNEL_PROFILE_BUILD_FAILURE_11.json) records the source, compiler phase and artifact hashes. The new interactions still require Apple simulator validation.

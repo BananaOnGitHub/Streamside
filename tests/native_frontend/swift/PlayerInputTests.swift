@@ -26,6 +26,9 @@ final class PlayerInputTests: XCTestCase {
     func testChannelProfile() {
         continueAfterFailure = false
         let app = XCUIApplication(); testedApp = app;app.launchArguments = ["--profile"];app.launch()
+        let openProfile = app.buttons["Open fixture profile"]
+        XCTAssertTrue(openProfile.waitForExistence(timeout: 5))
+        openProfile.tap()
         let following = app.buttons["Following"]
         XCTAssertTrue(following.waitForExistence(timeout: 8))
         let subscribe = app.buttons["Subscription"]
@@ -69,6 +72,9 @@ final class PlayerInputTests: XCTestCase {
         let credits = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == %@", "About panel body")).firstMatch
         XCTAssertTrue(credits.exists)
+        let heading = app.staticTexts["profile.panel-heading"]
+        XCTAssertTrue(heading.exists)
+        XCTAssertEqual(heading.label, "Panel notes")
         let artwork = app.descendants(matching: .any)["profile.panel-image-link"].firstMatch
         XCTAssertTrue(artwork.waitForExistence(timeout: 5))
         let artworkFrame = artwork.frame
@@ -93,10 +99,17 @@ final class PlayerInputTests: XCTestCase {
         credits.tap()
         wait(destination, label: "Opened 3: https://example.invalid/credits")
         app.buttons["Close profile"].tap()
-        XCTAssertTrue(app.staticTexts["profile.closed"].waitForExistence(timeout: 3))
+        XCTAssertTrue(openProfile.waitForExistence(timeout: 5))
+        openProfile.tap()
+        XCTAssertTrue(app.buttons["Close profile"].waitForExistence(timeout: 5))
+        let edge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.008, dy: 0.42))
+        edge.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.80, dy: 0.42)))
+        XCTAssertTrue(openProfile.waitForExistence(timeout: 5), "An edge swipe must pop the profile")
         app.terminate()
         app.launchArguments = ["--profile", "--profile-relationship-failure"]
         app.launch()
+        XCTAssertTrue(openProfile.waitForExistence(timeout: 5))
+        openProfile.tap()
         XCTAssertTrue(app.staticTexts["Follow and notification settings could not be loaded."].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Fixture biography"].exists)
         XCTAssertFalse(app.buttons["Follow"].isEnabled)
@@ -104,7 +117,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and context menu, Markdown link tap, notification menu, confirmed unfollow and close")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and context menu, Markdown block styling and link tap, notification menu, confirmed unfollow and navigation pop")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false

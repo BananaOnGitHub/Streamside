@@ -7,7 +7,7 @@ import UIKit
 public final class SSNSwiftUIHost: NSObject {
     private static var window: UIWindow?
     private static var services: NativeServices?
-    private static var nativeController: UIViewController?
+    private static var nativeController: ProfileNavigationController?
     private static var authenticationRoot: UIViewController?
     private static var authenticationController: UINavigationController?
     private static var diagnosticsController: UIViewController?
@@ -15,7 +15,7 @@ public final class SSNSwiftUIHost: NSObject {
     private static var baseline = false
     private static var theatreController: UIViewController?
     private static var previewID: UUID?
-    private static var profileController: UIViewController?
+    private static var profileController: UIViewController? { nativeController?.profile }
 
     @objc public static func rootOwner() -> Int {
         guard let window else { return 0 }
@@ -37,7 +37,8 @@ public final class SSNSwiftUIHost: NSObject {
         baseline = !native
         if native, let services {
             retainAuthenticationRoot(window.rootViewController)
-            let controller = UIHostingController(rootView: StreamsideShell(services: services))
+            let shell = UIHostingController(rootView: StreamsideShell(services: services))
+            let controller = ProfileNavigationController(root: shell)
             nativeController = controller
             if !SSNInstallWindowOwnership(window, controller) {
                 // Keep diagnostics accessible; never claim guarded ownership.
@@ -124,24 +125,16 @@ public final class SSNSwiftUIHost: NSObject {
               let root = nativeController, root.presentedViewController == nil,
               theatreController == nil, profileController == nil, previewID == nil else { return false }
         let account = services.state.account
-        let controller = NativeProfile.controller(channel: channel, services: services, close: { endProfile() }, watch: { playback in
-            guard profileController != nil, SSNNavigationPermitted(), rootOwner() == 1,
+        let controller = NativeProfile.controller(channel: channel, services: services, close: { [weak root] in
+            root?.closeProfile()
+        }, watch: { [weak root] playback in
+            guard let root, SSNNavigationPermitted(), rootOwner() == 1,
                   services.state.session == .authenticated, services.state.account == account else { return false }
-            endProfile {
+            return root.closeProfile {
                 if !beginPlayback(channel, sharedPlayback: playback) { playback.stop() }
             }
-            return true
         })
-        profileController = controller
-        root.present(controller, animated: true)
-        return true
-    }
-    static func endProfile(completion: @escaping () -> Void = {}) {
-        guard let controller = profileController, !controller.isBeingDismissed else { return }
-        controller.dismiss(animated: true) {
-            if profileController === controller { profileController = nil }
-            completion()
-        }
+        return root.openProfile(controller)
     }
     // Entering a profile from theatre retires that player first. There is never
     // a hidden audible theatre underneath the profile's muted inline player.

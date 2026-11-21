@@ -90,7 +90,7 @@ def main():
          'native/SSNProfile.m','tests/native_frontend/profile_test.m','-framework','Foundation','-o','output/profile-tests'], label='Build native profile normalization and account lifetime fixture')
     profile_native=run([str(output/'profile-tests')], label='Test profile privacy filtering, account change, cancellation and errors')
     run(['xcrun','swiftc','-O','-swift-version','5','-warnings-as-errors',
-         'native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/ChannelProfileModel.swift',
+         'native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/ChannelProfileModel.swift','native/swift/PanelMarkdown.swift',
          'tests/native_frontend/swift/ProfileTests.swift','-o','output/profile-model-tests']+development,
          label='Build profile data and follow/notification state tests')
     profile_model=run([str(output/'profile-model-tests')], label='Test profile decoding, panels, mutations, verification and account loss')

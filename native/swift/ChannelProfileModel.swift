@@ -34,7 +34,7 @@ struct ChannelProfileData {
     struct Panel: Identifiable {
         let id: Int
         let title: String
-        let text: AttributedString
+        let text: PanelMarkdown
         let image: URL?
         let link: URL?
         let supported: Bool
@@ -46,14 +46,7 @@ struct ChannelProfileData {
             image = ChannelProfileData.url(row["imageURL"]).flatMap(ChannelImagePolicy.panelURL)
             link = ChannelProfileData.url(row["linkURL"])
             let description = String((row["description"] as? String ?? "").prefix(16000))
-            var formatted = (try? AttributedString(markdown: description,
-                options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(description)
-            for run in formatted.runs {
-                if let destination = run.link, ChannelProfileData.url(destination.absoluteString) == nil {
-                    formatted[run.range].link = nil
-                }
-            }
-            text = formatted
+            text = PanelMarkdown(description)
         }
     }
     let name: String

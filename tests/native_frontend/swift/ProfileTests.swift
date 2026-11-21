@@ -44,11 +44,36 @@ import Foundation
                 + "[Local](file:///tmp/owned) [Relative](/local) [Custom](custom://open) [Credentials](https://user:pass@example.com)",
             "linkURL": "https://example.com/panel"
         ])
-        precondition(String(credits.text.characters) == "Credits\n\nModel Art: Artist\nRig: rig_fixture\nLocal Relative Custom Credentials")
-        precondition(credits.text.runs.compactMap { $0.link?.absoluteString } == [
+        precondition(String(credits.text.blocks[0].text.characters) == "Credits\n\nModel Art: Artist\nRig: rig_fixture\nLocal Relative Custom Credentials")
+        precondition(credits.text.blocks[0].text.runs.compactMap { $0.link?.absoluteString } == [
             "https://bsky.app/profile/artist.bsky.social", "https://x.com/rig_fixture"
         ])
         precondition(credits.link?.absoluteString == "https://example.com/panel")
+        let styled = PanelMarkdown("""
+        ## Channels
+
+        > - **Primary**
+        > - [Archive](https://example.com/archive)
+
+        1. Numbered item
+
+        ```text
+        hello
+        ```
+
+        | Name | Status |
+        | --- | --- |
+        | Archive | Offline |
+        """)
+        let heading = styled.blocks.first
+        precondition(heading?.kind == .header(level: 2) && heading.map { String($0.text.characters) } == "Channels")
+        let quote = styled.blocks.first { $0.kind == .blockQuote }
+        let list = quote?.children.first
+        precondition(list?.kind == .unorderedList && list?.children.count == 2)
+        precondition(list?.children.last?.children.first?.text.runs.first?.link?.absoluteString == "https://example.com/archive")
+        precondition(styled.blocks.contains { $0.kind == .orderedList })
+        precondition(styled.blocks.contains { $0.kind == .codeBlock(languageHint: "text") })
+        precondition(styled.blocks.contains { if case .table = $0.kind { return $0.children.count == 2 }; return false })
         let subscribed: [String: Any] = ["displayName": "Fixture", "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]]]
         let unsubscribed: [String: Any] = ["displayName": "Fixture", "currentUser": ["subscriptionBenefit": NSNull()], "panels": [] as [Any]]
         let subscribedProfile = ChannelProfileData(result: ["user": subscribed])
@@ -101,6 +126,6 @@ import Foundation
         backend.during = nil;valid = true;backend.failing = true;await model.load();precondition(model.error != nil)
         backend.failing = false;backend.malformed = true;await model.load()
         precondition(rejections == [.unfollow, .profile] && model.error != nil, "Malformed metadata records a bounded presentation rejection")
-        print("PROFILE_MODEL PASS: profile, panels, Markdown links, safe URLs, follow state, four notification values, verified mutations, stale response and account-loss guards")
+        print("PROFILE_MODEL PASS: profile, panels, Markdown blocks and links, safe URLs, follow state, four notification values, verified mutations, stale response and account-loss guards")
     }
 }

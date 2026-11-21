@@ -29,7 +29,7 @@ private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable 
             let user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
             "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]],
             "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel",
-                "description": "[About panel body](https://example.invalid/credits)",
+                "description": "## Panel notes\n\n[About panel body](https://example.invalid/credits)",
                 "imageURL": "https://panels-images.twitch.tv/panel-fixture",
                 "linkURL": "https://example.invalid/artwork"]] as [Any]]
             return ["user": user]
@@ -44,14 +44,32 @@ private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable 
         }
     }
 }
-struct ProfileFixture: View {
+struct ProfileFixture: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> ProfileNavigationController {
+        let root = UIHostingController(rootView: AnyView(EmptyView()))
+        let navigation = ProfileNavigationController(root: root)
+        root.rootView = AnyView(Button("Open fixture profile") { [weak navigation] in
+            guard let navigation else { return }
+            let profile = UIHostingController(rootView: ProfileFixtureContent(close: { [weak navigation] in
+                navigation?.closeProfile()
+            }))
+            _ = navigation.openProfile(profile)
+        })
+        return navigation
+    }
+
+    func updateUIViewController(_ navigation: ProfileNavigationController, context: Context) {}
+}
+
+private struct ProfileFixtureContent: View {
+    let close: () -> Void
     @StateObject private var model: ChannelProfileModel
     private let images = ChannelImageCache(protocolClasses: [PanelImageFixtureProtocol.self])
     private let clock = StreamClock()
-    @State private var closed = false
     @State private var openedLink = ""
     @State private var openCount = 0
-    init() {
+    init(close: @escaping () -> Void) {
+        self.close = close
         var channel = FollowedChannel(username: "fixture", displayName: "Profile fixture")
         channel.channelID = "123"
         channel.isLive = true
@@ -61,24 +79,21 @@ struct ProfileFixture: View {
         _model = StateObject(wrappedValue: ChannelProfileModel(channel: channel, backend: ProfileFixtureBackend(), valid: { true }))
     }
     var body: some View {
-        if closed { Text("Profile closed").accessibilityIdentifier("profile.closed") }
-        else {
-            ChannelProfileView(model: model, images: images, clock: clock, close: { closed = true }) {
-                Color.indigo.aspectRatio(16.0 / 9.0, contentMode: .fit)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Fixture live preview")
-                    .accessibilityIdentifier("profile.fixture-preview")
-            }
-            .environment(\.openURL, OpenURLAction { url in
-                openCount += 1
-                openedLink = "Opened \(openCount): \(url.absoluteString)"
-                return .handled
-            })
-            .overlay(alignment: .topTrailing) {
-                if !openedLink.isEmpty {
-                    Text(openedLink).font(.caption2)
-                        .accessibilityIdentifier("profile.opened-link").allowsHitTesting(false)
-                }
+        ChannelProfileView(model: model, images: images, clock: clock, close: close) {
+            Color.indigo.aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Fixture live preview")
+                .accessibilityIdentifier("profile.fixture-preview")
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            openCount += 1
+            openedLink = "Opened \(openCount): \(url.absoluteString)"
+            return .handled
+        })
+        .overlay(alignment: .topTrailing) {
+            if !openedLink.isEmpty {
+                Text(openedLink).font(.caption2)
+                    .accessibilityIdentifier("profile.opened-link").allowsHitTesting(false)
             }
         }
     }

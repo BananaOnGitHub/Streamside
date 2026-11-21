@@ -32,7 +32,7 @@ struct ChannelProfileView<Video: View>: View {
                             Text(error).foregroundStyle(.secondary)
                             Button("Retry profile") { Task { await model.load() } }
                         }
-                        page
+                        page(previewSize: panelPreviewSize(in: geometry.size))
                     }.padding(.horizontal, 20)
                         .frame(width: geometry.size.width, alignment: .leading)
                 }.frame(width: geometry.size.width, alignment: .leading).padding(.bottom, 24)
@@ -173,7 +173,12 @@ struct ChannelProfileView<Video: View>: View {
          channel.viewerCount.map { $0 == 1 ? "1 viewer" : "\($0.formatted()) viewers" }]
             .compactMap { $0 }.joined(separator: " · ")
     }
-    @ViewBuilder private var page: some View {
+    private func panelPreviewSize(in viewport: CGSize) -> CGSize {
+        let width = max(1, min(460, viewport.width - 32))
+        return CGSize(width: width, height: max(1, min(width * 1.42, viewport.height - 104)))
+    }
+
+    @ViewBuilder private func page(previewSize: CGSize) -> some View {
         if model.tab == 0 {
             if channel.isLive {
                 Text("Live").font(.title3.bold()); video()
@@ -198,10 +203,10 @@ struct ChannelProfileView<Video: View>: View {
                     if !panel.title.isEmpty { Text(panel.title).font(.headline) }
                     if let url = panel.image {
                         ProfilePanelArtwork(url: url, link: panel.supported ? panel.link : nil,
-                            title: panel.title, images: images)
+                            title: panel.title, images: images, previewSize: previewSize)
                     }
                     if panel.supported {
-                        if !panel.text.characters.isEmpty { Text(panel.text).font(.subheadline).textSelection(.enabled) }
+                        if !panel.text.blocks.isEmpty { PanelMarkdownView(markdown: panel.text) }
                         if panel.image == nil, let link = panel.link { Link("Open panel link", destination: link) }
                     } else { Text("Interactive panels are not supported yet.").font(.footnote).foregroundStyle(.secondary) }
                 }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
@@ -224,6 +229,7 @@ private struct ProfilePanelArtwork: View {
     let link: URL?
     let title: String
     let images: ChannelImageCache
+    let previewSize: CGSize
     @Environment(\.openURL) private var openURL
     @State private var image: UIImage?
     @State private var failed = false
@@ -241,7 +247,7 @@ private struct ProfilePanelArtwork: View {
                         .contextMenu {
                             Button { openURL(link) } label: { Label("Open link", systemImage: "arrow.up.right") }
                         } preview: {
-                            PanelLinkPreview(url: link)
+                            PanelLinkPreview(url: link, size: previewSize)
                         }
                 } else {
                     artwork.accessibilityLabel("Panel image").accessibilityIdentifier("profile.panel-image")
@@ -270,13 +276,14 @@ private struct ProfilePanelArtwork: View {
 
 private struct PanelLinkPreview: View {
     let url: URL
+    let size: CGSize
 
     var body: some View {
         VStack(spacing: 0) {
             Text(url.host ?? url.absoluteString)
                 .font(.footnote.weight(.semibold)).lineLimit(1).padding(12)
-            PanelWebPage(url: url).frame(height: 310)
-        }.frame(width: 300)
+            PanelWebPage(url: url).frame(maxHeight: .infinity)
+        }.frame(width: size.width, height: size.height)
             .background(Color(uiColor: .systemBackground))
     }
 }

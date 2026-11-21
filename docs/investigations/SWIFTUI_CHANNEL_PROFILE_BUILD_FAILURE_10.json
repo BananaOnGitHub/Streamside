@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "source_revision": "007d1085d0cb4b28e979183168ecbb57d62292a5",
+  "build": {
+    "provider": "github",
+    "id": "44852174365",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44852174365",
+    "job_id": "136685846876",
+    "artifact_id": "14686740753"
+  },
+  "result": "failed",
+  "validation": {
+    "schema": 1,
+    "source_revision": "007d1085d0cb4b28e979183168ecbb57d62292a5",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 9.773
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 1.823
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 851.514
+      }
+    ]
+  },
+  "completed_before_failure": [
+    "Production SwiftUI and interop compilation and linking",
+    "Native profile fixture and Foundation Markdown block and link fixture",
+    "Marked content coordinate gate",
+    "First four motion sampling stages in the glass controls gate"
+  ],
+  "failure": {
+    "case": "testGlassControls",
+    "stage": "Fade entry with Liquid Glass",
+    "recorded_progress_range": [
+      0.018,
+      0.766
+    ],
+    "required_late_progress": "strictly above 0.8",
+    "observed": "Four edge regions, 152 edge observations and 38 center observations with synchronized motion and no invalid samples. The endpoint waiter returned and the coverage assertion failed."
+  },
+  "correction": "Keep the same intermediate progress bounds, observations and timeout. During each measured transition the existing waiter requires an endpoint and the covered range before finishing the observation. Timeout evidence includes the missing progress range and completed stages.",
+  "files": {
+    "job.log": {
+      "bytes": 784988,
+      "sha256": "777b5ccee355cd18a76580fdde3f2d9772e72a61b3fadb99526ffe8e244611c0"
+    },
+    "diagnostics.zip": {
+      "bytes": 369893,
+      "sha256": "8d184c27d54576f92d3131dc1696f2521674fc2f6be3dafd8857cda7530b4122"
+    }
+  },
+  "fixture_screenshot": {
+    "scope": "donor-free simulator fixture failures only",
+    "files": {
+      "B08F1358-A7C6-4245-9A83-8EA2FFF5B579.png": {
+        "bytes": 310652,
+        "sha256": "023f0396b97a09c53ece587bc27c25548d430cfe9363746d02c9c84c2adda2a6"
+      }
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-10",
+  "not_reached": [
+    "Profile navigation and preview coordinate gate",
+    "ABI job",
+    "Component publication",
+    "IPA packaging",
+    "Device validation"
+  ]
+}

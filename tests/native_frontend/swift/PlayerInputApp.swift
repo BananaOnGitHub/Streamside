@@ -91,11 +91,18 @@ private final class MotionFrameSamples {
         lock.lock(); defer { lock.unlock() }
         return latest
     }
+    private var coversRange: Bool { minimum < 0.25 && maximum > 0.8 }
+
+    func sampledRange() -> (covered: Bool, detail: String) {
+        lock.lock(); defer { lock.unlock() }
+        return (coversRange, String(format: "range=%.3f...%.3f", minimum, maximum))
+    }
+
     func finish() -> (Bool, String) {
         lock.lock(); defer { lock.unlock() }
         let allEdges = edgeRegions.count == 4 && edgeRegions.values.allSatisfy { $0 >= 2 }
         let synchronized = sharedTravel != nil && allEdges && midCenterFading && (expected == .fade || (midEdgesMoving && earlyRegions.count == 4))
-        let passed = !invalid && edges >= 2 && center >= 2 && minimum < 0.25 && maximum > 0.8 && synchronized
+        let passed = !invalid && edges >= 2 && center >= 2 && coversRange && synchronized
         let range = String(format: "%.3f...%.3f", minimum, maximum)
         let detail = "range=\(range), \(expected?.rawValue ?? "missing") \(entering ? "in" : "out"): sharedTravel=\(sharedTravel.map { "\(Int($0.width))x\(Int($0.height))" } ?? "missing"), edgeRegions=\(edgeRegions.count), earlyRegions=\(earlyRegions.count), edges=\(edges), center=\(center), synchronized=\(synchronized), invalid=\(invalid)"
         expected = nil
@@ -246,10 +253,11 @@ private struct InputTestContent: View {
         try await waitForRenderedEndpoint(0)
         return entry.0 && exit.0
     }
-    @MainActor private func waitForRenderedEndpoint(_ target: Double, after sequence: UInt64? = nil) async throws {
-        // A sleep from a state assignment is not a render barrier on a busy
-        // runner. Keep sampling until the real modifier reaches its endpoint.
-        // Coverage thresholds in MotionFrameSamples.finish remain unchanged.
+    @MainActor private func waitForRenderedEndpoint(_ target: Double, after sequence: UInt64? = nil,
+                                                     requireSampledRange: Bool = false) async throws {
+        // A model endpoint can be evaluated while its animation still has
+        // interpolated values to render. Keep the collector armed until it
+        // sees the existing progress range as well as an endpoint.
         let deadline = CACurrentMediaTime() + 5
         var intermediate = sequence == nil
         while CACurrentMediaTime() < deadline {
@@ -257,12 +265,14 @@ private struct InputTestContent: View {
                 if frame.progress > 0.001 && frame.progress < 0.999 { intermediate = true }
                 // SwiftUI can evaluate the model endpoint before rendering its
                 // intermediate frames. Require an observed transition first.
-                if intermediate && abs(frame.progress - target) < 0.001 { return }
+                if intermediate && abs(frame.progress - target) < 0.001,
+                   !requireSampledRange || motionSamples.sampledRange().covered { return }
             }
             try await Task.sleep(nanoseconds: 10_000_000)
         }
+        let range = requireSampledRange ? "; " + motionSamples.sampledRange().detail : ""
         throw NSError(domain: "MotionEndpoint", code: 1,
-            userInfo: [NSLocalizedDescriptionKey: "Rendered endpoint \(target) not reached: " + motionSamples.lastFrame()])
+            userInfo: [NSLocalizedDescriptionKey: "Rendered endpoint \(target) or required observations missing: " + motionSamples.lastFrame() + range])
     }
     @MainActor private func checkMotion() async {
         guard !checkingMotion else { return }
@@ -288,7 +298,7 @@ private struct InputTestContent: View {
                     motionSamples.begin(style: reduced ? .fade : style, entering: entering)
                     let sequence = motionSamples.renderedCenter()?.sequence ?? 0
                     motionVisible = entering
-                    try await waitForRenderedEndpoint(entering ? 1 : 0, after: sequence)
+                    try await waitForRenderedEndpoint(entering ? 1 : 0, after: sequence, requireSampledRange: true)
                     let (passed, detail) = motionSamples.finish()
                     details.append(detail)
                     guard passed else { motionResult = "Failed"; motionDetails = details.joined(separator: "; "); return }
@@ -310,7 +320,11 @@ private struct InputTestContent: View {
             motionVisible = true
             try await Task.sleep(nanoseconds: 800_000_000)
             motionDetails = details.joined(separator: "; "); motionResult = "Passed"
-        } catch { motionResult = "Failed"; motionDetails = "Sampling failed: " + error.localizedDescription }
+        } catch {
+            details.append("Sampling failed: " + error.localizedDescription)
+            motionDetails = details.joined(separator: "; ")
+            motionResult = "Failed"
+        }
     }
     var body: some View {
         VStack {

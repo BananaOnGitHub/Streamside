@@ -223,3 +223,9 @@ The simulator fixture checks both tab swipe directions, Markdown link tap and lo
 ## Eleventh Apple failure: Markdown link compilation
 
 [GitHub run 44888747898](https://github.com/BananaOnGitHub/Streamside/actions/runs/44888747898), source `66b4fd5`, stopped before linking. Xcode rejected a redundant discarded result from the Void-returning `OpenURLAction` and the inline-code intent name in the TextKit view. The view now calls the URL action directly and uses [Foundation’s Swift inline-code intent](https://developer.apple.com/documentation/foundation/inlinepresentationintent). [Failure evidence](SWIFTUI_CHANNEL_PROFILE_BUILD_FAILURE_11.json) records the source, compiler phase and artifact hashes. The new interactions still require Apple simulator validation.
+
+## Verified profile accent and link preview package
+
+Source `6116a79d81bc908daf5add49db791118958b0141` passed both jobs in [GitHub run 44917030520](https://github.com/BananaOnGitHub/Streamside/actions/runs/44917030520). All six coordinate cases passed. The simulator verified both tab swipe directions, Markdown and image link actions, the preview menu handoff, General color picker presence and the updated player quick settings. All 78 local component checks passed.
+
+The verified Xcode 26.6 component archive has SHA-256 `46e16c084534e38950b50de9b99c87c155323f49546493e7116310e84b70198c`. Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/channel-profile-6116a79/StreamsideNativeProof-Twitch32-native.ipa`, 197,313,598 bytes, SHA-256 `42387b4b4243a80ec96c18f5d560a18adc6ad9f091db878ece4dd2affe3dfd50`. Live webpage rendering, the accent's appearance and saved color behavior need an iPhone check.

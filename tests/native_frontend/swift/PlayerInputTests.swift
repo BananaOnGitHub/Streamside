@@ -38,7 +38,10 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertTrue(followers.exists)
         XCTAssertLessThan(followers.frame.maxX, following.frame.minX)
         XCTAssertEqual(followers.frame.midY, following.frame.midY, accuracy: 4)
-        XCTAssertLessThan(app.buttons["Channel notifications"].frame.maxX, subscribe.frame.minX)
+        let notifications = app.buttons["Channel notifications"]
+        XCTAssertLessThan(notifications.frame.maxX, subscribe.frame.minX)
+        XCTAssertEqual(following.frame.midY, subscribe.frame.midY, accuracy: 1)
+        XCTAssertEqual(notifications.frame.midY, subscribe.frame.midY, accuracy: 1)
         subscribe.tap()
         let manage = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Manage on Twitch")).firstMatch
         XCTAssertTrue(manage.waitForExistence(timeout: 3))
@@ -68,6 +71,10 @@ final class PlayerInputTests: XCTestCase {
         let tabs = app.segmentedControls["profile.tabs"]
         let right = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.56))
         let left = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.56))
+        let partial = app.coordinate(withNormalizedOffset: CGVector(dx: 0.76, dy: 0.56))
+        right.press(forDuration: 0.05, thenDragTo: partial)
+        XCTAssertTrue(tabs.buttons["Home"].isSelected, "A short drag must settle back on Home")
+        XCTAssertTrue(preview.isHittable, "Cancelled swipe must restore Home interaction")
         right.press(forDuration: 0.05, thenDragTo: left)
         XCTAssertTrue(tabs.buttons["About"].isSelected, "Swipe left must select About")
         left.press(forDuration: 0.05, thenDragTo: right)
@@ -306,7 +313,7 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(ordinary.images.count, 0, "Ordinary channels must never receive a verification icon")
         for (option, identifier) in [("VERIFIEDBTW", "verification.verifiedbtw"), ("Off", ""), ("Twitch", "verification.twitch")] {
             app.buttons["General settings"].tap()
-            XCTAssertTrue(app.descendants(matching: .any)["profile.accent-picker"].firstMatch.waitForExistence(timeout: 5))
+            XCTAssertFalse(app.descendants(matching: .any)["profile.accent-picker"].firstMatch.exists)
             let picker = app.buttons["verification.style"].firstMatch
             XCTAssertTrue(picker.waitForExistence(timeout: 5)); picker.tap()
             let choice = app.buttons[option].firstMatch

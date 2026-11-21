@@ -8,13 +8,18 @@ struct ChannelProfileView<Video: View>: View {
     let clock: StreamClock
     let close: () -> Void
     let video: () -> Video
-    @AppStorage(ProfileAccent.key) private var profileColor = ProfileAccent.defaultRGB
+    @State private var bannerAccent: UInt32?
+    @State private var avatarAccent: UInt32?
     @State private var unfollow = false
     @State private var notifications = false
     @State private var subscription = false
+    @State private var pageDrag: CGFloat = 0
+    @State private var aboutMounted = false
+    @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var channel: FollowedChannel { model.channel }
-    private var accent: Color { ProfileAccent.color(profileColor) }
+    private var accent: Color { ProfileAccent.color(bannerAccent ?? avatarAccent) }
     private var actionBackground: some ShapeStyle {
         reduceTransparency ? AnyShapeStyle(Color(uiColor: .secondarySystemBackground)) : AnyShapeStyle(.regularMaterial)
     }
@@ -27,24 +32,30 @@ struct ChannelProfileView<Video: View>: View {
                         identity.padding(.top, -42)
                         biography
                         actionBar
-                        Picker("Profile page", selection: $model.tab) { Text("Home").tag(0); Text("About").tag(1) }
+                        Picker("Profile page", selection: Binding(get: { model.tab }, set: selectTab)) {
+                            Text("Home").tag(0); Text("About").tag(1)
+                        }
                             .pickerStyle(.segmented).accessibilityIdentifier("profile.tabs")
                         if model.busy { ProgressView().frame(maxWidth: .infinity) }
                         if let error = model.error {
                             Text(error).foregroundStyle(.secondary)
                             Button("Retry profile") { Task { await model.load() } }
                         }
-                        page(previewSize: panelPreviewSize(in: geometry.size))
+                        pages(width: max(1, geometry.size.width - 40), previewSize: panelPreviewSize(in: geometry.size))
                     }.padding(.horizontal, 20)
                         .frame(width: geometry.size.width, alignment: .leading)
                 }.frame(width: geometry.size.width, alignment: .leading).padding(.bottom, 24)
             }.ignoresSafeArea(edges: .top)
+                .background {
+                    ProfileTabSwipe { event in
+                        trackTabSwipe(event, width: max(1, geometry.size.width - 40))
+                    }
+                }
                 .overlay(alignment: .topLeading) {
                     Button(action: close) { Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36) }
                         .modifier(ProfileGlass()).padding(.leading, 16).padding(.top, 6).accessibilityLabel("Close profile")
                 }
         }.background(Color(uiColor: .systemBackground)).tint(accent)
-            .background { ProfileTabSwipe(selection: $model.tab) }
             .task { await model.load() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false; subscription = false }
@@ -53,7 +64,8 @@ struct ChannelProfileView<Video: View>: View {
         Color(uiColor: .secondarySystemBackground)
             .frame(width: width, height: height)
             .overlay {
-                RemoteChannelImage(url: model.data?.banner, images: images, generation: 0)
+                RemoteChannelImage(url: model.data?.banner, images: images, generation: 0,
+                    artworkAccent: { bannerAccent = $0 })
             }
             .overlay(alignment: .bottom) {
                 if !reduceTransparency {
@@ -72,7 +84,8 @@ struct ChannelProfileView<Video: View>: View {
     }
     private var identity: some View {
         HStack(spacing: 12) {
-            RemoteChannelImage(url: model.data?.avatar ?? channel.avatarURL, images: images, generation: 0, avatar: true)
+            RemoteChannelImage(url: model.data?.avatar ?? channel.avatarURL, images: images, generation: 0, avatar: true,
+                artworkAccent: { avatarAccent = $0 })
                 .frame(width: 76, height: 76).clipShape(Circle())
                 .overlay { if channel.isLive { LiveRing(clock: clock) } }
             VStack(alignment: .leading, spacing: 5) {
@@ -118,8 +131,9 @@ struct ChannelProfileView<Video: View>: View {
         Button { subscription = true } label: {
             Image(systemName: model.data?.subscribed == true ? "star.fill" : "star")
                 .font(.body.weight(.semibold))
+                .foregroundStyle(accent)
                 .frame(width: 48, height: 44)
-                .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Subscription")
@@ -181,22 +195,63 @@ struct ChannelProfileView<Video: View>: View {
         return CGSize(width: width, height: max(1, min(width * 1.42, viewport.height - 104)))
     }
 
-    @ViewBuilder private func page(previewSize: CGSize) -> some View {
-        if model.tab == 0 {
-            if channel.isLive {
-                Text("Live").font(.title3.bold()); video()
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(channel.title).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                    if !streamDetails.isEmpty {
-                        Text(streamDetails).font(.subheadline).foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("profile.stream-details")
-                    }
+    private func pages(width: CGFloat, previewSize: CGSize) -> some View {
+        ProfileTabPages(selection: model.tab,
+                        position: min(1, max(0, CGFloat(model.tab) - pageDrag / width))) {
+            VStack(alignment: .leading, spacing: 16) { homePage }
+                .allowsHitTesting(model.tab == 0).accessibilityHidden(model.tab != 0)
+            VStack(alignment: .leading, spacing: 16) {
+                if aboutMounted || model.tab == 1 { aboutPage(previewSize: previewSize) }
+            }
+            .allowsHitTesting(model.tab == 1).accessibilityHidden(model.tab != 1)
+        }
+        .frame(width: width, alignment: .leading)
+        .clipped()
+    }
+
+    private func trackTabSwipe(_ event: ProfileTabSwipe.Event, width: CGFloat) {
+        let direction: CGFloat = layoutDirection == .rightToLeft ? -1 : 1
+        switch event {
+        case .changed(let distance):
+            if model.tab == 0 && distance * direction < 0 { aboutMounted = true }
+            pageDrag = distance * direction
+        case .ended(let distance, let velocity):
+            let towardOther = (model.tab == 0 ? -direction : direction)
+            let travel = distance * towardOther
+            let projected = travel + velocity * towardOther * 0.12
+            let commit = travel > width * 0.34 || (travel > 24 && projected > width * 0.5)
+            selectTab(commit ? 1 - model.tab : model.tab)
+        case .cancelled:
+            selectTab(model.tab)
+        }
+    }
+
+    private func selectTab(_ tab: Int) {
+        if tab == 1 { aboutMounted = true }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.9)) {
+            model.tab = tab
+            pageDrag = 0
+        }
+    }
+
+    @ViewBuilder private var homePage: some View {
+        if channel.isLive {
+            Text("Live").font(.title3.bold()); video()
+            VStack(alignment: .leading, spacing: 5) {
+                Text(channel.title).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                if !streamDetails.isEmpty {
+                    Text(streamDetails).font(.subheadline).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("profile.stream-details")
                 }
-                if !channel.tags.isEmpty { AllStreamTags(tags: channel.tags) }
-                if !channel.playbackAllowed { Text("Twitch does not currently allow this account to watch this stream.").font(.footnote) }
-            } else { Text("This channel is offline.").foregroundStyle(.secondary) }
-        } else if let panels = model.data?.panels {
+            }
+            if !channel.tags.isEmpty { AllStreamTags(tags: channel.tags) }
+            if !channel.playbackAllowed { Text("Twitch does not currently allow this account to watch this stream.").font(.footnote) }
+        } else { Text("This channel is offline.").foregroundStyle(.secondary) }
+    }
+
+    @ViewBuilder private func aboutPage(previewSize: CGSize) -> some View {
+        if let panels = model.data?.panels {
             if panels.isEmpty {
                 Text("No channel panels.").foregroundStyle(.secondary)
                 aboutWebLink
@@ -250,7 +305,8 @@ private struct ProfilePanelArtwork: View {
                         .contextMenu {
                             Button { openURL(link) } label: { Label("Open link", systemImage: "arrow.up.right") }
                         } preview: {
-                            PanelLinkPreview(url: link, size: previewSize)
+                            PanelWebPage(url: link, size: previewSize)
+                                .frame(width: previewSize.width, height: previewSize.height)
                         }
                 } else {
                     artwork.accessibilityLabel("Panel image").accessibilityIdentifier("profile.panel-image")
@@ -277,24 +333,11 @@ private struct ProfilePanelArtwork: View {
     }
 }
 
-private struct PanelLinkPreview: View {
+struct PanelWebPage: UIViewRepresentable {
     let url: URL
     let size: CGSize
 
-    var body: some View {
-        VStack(spacing: 0) {
-            Text(url.host ?? url.absoluteString)
-                .font(.footnote.weight(.semibold)).lineLimit(1).padding(12)
-            PanelWebPage(url: url).frame(maxHeight: .infinity)
-        }.frame(width: size.width, height: size.height)
-            .background(Color(uiColor: .systemBackground))
-    }
-}
-
-struct PanelWebPage: UIViewRepresentable {
-    let url: URL
-
-    static func makeWebView(url: URL, size: CGSize = .zero) -> WKWebView {
+    static func makeWebView(url: URL, size: CGSize) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = false
@@ -304,7 +347,7 @@ struct PanelWebPage: UIViewRepresentable {
         return webView
     }
 
-    func makeUIView(context: Context) -> WKWebView { Self.makeWebView(url: url) }
+    func makeUIView(context: Context) -> WKWebView { Self.makeWebView(url: url, size: size) }
     func updateUIView(_ webView: WKWebView, context: Context) {}
 
     static func dismantleUIView(_ webView: WKWebView, coordinator: ()) {

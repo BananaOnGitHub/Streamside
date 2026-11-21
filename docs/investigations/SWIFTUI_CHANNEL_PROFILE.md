@@ -229,3 +229,11 @@ The simulator fixture checks both tab swipe directions, Markdown link tap and lo
 Source `6116a79d81bc908daf5add49db791118958b0141` passed both jobs in [GitHub run 44917030520](https://github.com/BananaOnGitHub/Streamside/actions/runs/44917030520). All six coordinate cases passed. The simulator verified both tab swipe directions, Markdown and image link actions, the preview menu handoff, General color picker presence and the updated player quick settings. All 78 local component checks passed.
 
 The verified Xcode 26.6 component archive has SHA-256 `46e16c084534e38950b50de9b99c87c155323f49546493e7116310e84b70198c`. Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/channel-profile-6116a79/StreamsideNativeProof-Twitch32-native.ipa`, 197,313,598 bytes, SHA-256 `42387b4b4243a80ec96c18f5d560a18adc6ad9f091db878ece4dd2affe3dfd50`. Live webpage rendering, the accent's appearance and saved color behavior need an iPhone check.
+
+## Artwork accents and interactive tab paging
+
+Device feedback confirmed the profile swipes, link interactions and picker from the previous package. This revision replaces the picker with a bounded dominant-color sample of the decoded banner, falling back to the avatar and then to the system foreground. The sampler uses the cached image, groups opaque pixels by quantized color and adjusts brightness for the light or dark surface. The subscription star keeps its centered hit area and subscription action with a glyph-only presentation.
+
+Home and About now follow the horizontal pan within the profile. Short pulls return to the selected page; committed swipes update the same selection used by the segmented control. Only the active page sets the vertical scroll extent and participates in accessibility. The navigation edge gesture and independently scrolling content retain priority. Both About link types now use the same sized WebKit preview content and the same Open link action. The originating text and image retain their platform context-menu anchors.
+
+The simulator checks a short cancelled swipe, full swipes in both directions, edge navigation, both link menus and the star's alignment. App appearance, live webpage rendering and artwork color matching still need an iPhone check.

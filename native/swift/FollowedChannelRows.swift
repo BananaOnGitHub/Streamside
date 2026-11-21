@@ -9,6 +9,7 @@ struct RemoteChannelImage: View {
     var avatar = false
     var restricted = false
     var thumbnailActions: ThumbnailActions?
+    var artworkAccent: ((UInt32?) -> Void)?
     @State private var image: UIImage?
     private var requestID: String { "\(generation)|\(restricted)|\(url?.absoluteString ?? "")" }
     private var displayedImage: UIImage? { localImage ?? image }
@@ -30,10 +31,12 @@ struct RemoteChannelImage: View {
         }
         .clipped()
         .task(id: requestID) {
+            artworkAccent?(nil)
             guard !restricted, let url else { image = nil; return }
             let fetched = await images.load(url: url, generation: generation, avatar: avatar)
             guard !Task.isCancelled else { return }
             image = fetched
+            if let artworkAccent { artworkAccent(fetched.flatMap(ProfileAccent.dominantRGB)) }
         }
         .accessibilityHidden(thumbnailActions == nil)
     }

@@ -37,6 +37,18 @@ import Foundation
         precondition(model.data?.followers == 1234 && model.data?.bio == "Bio" && model.data?.links.count == 1)
         precondition(model.data?.panels?.count == 2 && model.data?.panels?[0].supported == true && model.data?.panels?[1].supported == false)
         precondition(model.relationship?.followed == true && model.relationship?.setting == "PERSONALIZED")
+        let credits = ChannelProfileData.Panel(id: 0, row: [
+            "__typename": "DefaultPanel",
+            "description": "Credits\n\nModel Art: [Artist](https://bsky.app/profile/artist.bsky.social)\n"
+                + "Rig: [rig_fixture](https://x.com/rig_fixture)\n"
+                + "[Local](file:///tmp/owned) [Relative](/local) [Custom](custom://open) [Credentials](https://user:pass@example.com)",
+            "linkURL": "https://example.com/panel"
+        ])
+        precondition(String(credits.text.characters) == "Credits\n\nModel Art: Artist\nRig: rig_fixture\nLocal Relative Custom Credentials")
+        precondition(credits.text.runs.compactMap { $0.link?.absoluteString } == [
+            "https://bsky.app/profile/artist.bsky.social", "https://x.com/rig_fixture"
+        ])
+        precondition(credits.link?.absoluteString == "https://example.com/panel")
         let subscribed: [String: Any] = ["displayName": "Fixture", "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]]]
         let unsubscribed: [String: Any] = ["displayName": "Fixture", "currentUser": ["subscriptionBenefit": NSNull()], "panels": [] as [Any]]
         let subscribedProfile = ChannelProfileData(result: ["user": subscribed])
@@ -89,6 +101,6 @@ import Foundation
         backend.during = nil;valid = true;backend.failing = true;await model.load();precondition(model.error != nil)
         backend.failing = false;backend.malformed = true;await model.load()
         precondition(rejections == [.unfollow, .profile] && model.error != nil, "Malformed metadata records a bounded presentation rejection")
-        print("PROFILE_MODEL PASS: profile, panels, safe URLs, follow state, four notification values, verified mutations, stale response and account-loss guards")
+        print("PROFILE_MODEL PASS: profile, panels, Markdown links, safe URLs, follow state, four notification values, verified mutations, stale response and account-loss guards")
     }
 }

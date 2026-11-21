@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import WebKit
 
 struct ChannelProfileView<Video: View>: View {
     @ObservedObject var model: ChannelProfileModel
@@ -196,11 +197,12 @@ struct ChannelProfileView<Video: View>: View {
                 VStack(alignment: .leading, spacing: 10) {
                     if !panel.title.isEmpty { Text(panel.title).font(.headline) }
                     if let url = panel.image {
-                        ProfilePanelArtwork(url: url, images: images)
+                        ProfilePanelArtwork(url: url, link: panel.supported ? panel.link : nil,
+                            title: panel.title, images: images)
                     }
                     if panel.supported {
-                        if !panel.text.isEmpty { Text(panel.text).font(.subheadline).textSelection(.enabled) }
-                        if let url = panel.link { Link("Open panel link", destination: url) }
+                        if !panel.text.characters.isEmpty { Text(panel.text).font(.subheadline).textSelection(.enabled) }
+                        if panel.image == nil, let link = panel.link { Link("Open panel link", destination: link) }
                     } else { Text("Interactive panels are not supported yet.").font(.footnote).foregroundStyle(.secondary) }
                 }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
                     .background(actionBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -219,20 +221,37 @@ struct ChannelProfileView<Video: View>: View {
 }
 private struct ProfilePanelArtwork: View {
     let url: URL
+    let link: URL?
+    let title: String
     let images: ChannelImageCache
+    @Environment(\.openURL) private var openURL
     @State private var image: UIImage?
     @State private var failed = false
 
     var body: some View {
         Group {
             if let image {
-                Image(uiImage: image).resizable().scaledToFit()
+                let artwork = Image(uiImage: image).resizable().scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .accessibilityLabel("Panel image")
-                    .accessibilityIdentifier("profile.panel-image")
+                if let link {
+                    Link(destination: link) { artwork.contentShape(RoundedRectangle(cornerRadius: 12)) }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(title.isEmpty ? "Open linked panel image" : "Open \(title)")
+                        .accessibilityIdentifier("profile.panel-image-link")
+                        .contextMenu {
+                            Button { openURL(link) } label: { Label("Open link", systemImage: "arrow.up.right") }
+                        } preview: {
+                            PanelLinkPreview(url: link)
+                        }
+                } else {
+                    artwork.accessibilityLabel("Panel image").accessibilityIdentifier("profile.panel-image")
+                }
             } else if failed {
-                Label("Panel image unavailable", systemImage: "photo")
-                    .font(.footnote).foregroundStyle(.secondary)
+                if let link { Link("Open panel link", destination: link) }
+                else {
+                    Label("Panel image unavailable", systemImage: "photo")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             } else {
                 ProgressView().accessibilityLabel("Loading panel image")
             }
@@ -246,6 +265,39 @@ private struct ProfilePanelArtwork: View {
             image = result
             failed = result == nil
         }
+    }
+}
+
+private struct PanelLinkPreview: View {
+    let url: URL
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(url.host ?? url.absoluteString)
+                .font(.footnote.weight(.semibold)).lineLimit(1).padding(12)
+            PanelWebPage(url: url).frame(height: 310)
+        }.frame(width: 300)
+            .background(Color(uiColor: .systemBackground))
+    }
+}
+
+private struct PanelWebPage: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+        configuration.mediaTypesRequiringUserActionForPlayback = .all
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.load(URLRequest(url: url, timeoutInterval: 12))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: ()) {
+        webView.stopLoading()
     }
 }
 

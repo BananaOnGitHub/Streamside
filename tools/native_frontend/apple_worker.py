@@ -56,7 +56,7 @@ def main():
     run(['xcrun','clang']+common+['-c','tests/native_frontend/abi_calls.c','-o','output/apple-abi.o'])
     binary='output/StreamsideNativeProof'
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-emit-library','-o',binary]+objects+
-        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics','-framework','AVFAudio',
+        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics','-framework','AVFAudio','-framework','WebKit',
          '-Xlinker','-install_name','-Xlinker','@rpath/StreamsideNativeProof.framework/StreamsideNativeProof',
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])

@@ -66,12 +66,32 @@ final class PlayerInputTests: XCTestCase {
         tabs.buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["About panel body"].exists)
-        let artwork = app.images["profile.panel-image"]
+        let credits = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "About panel body")).firstMatch
+        XCTAssertTrue(credits.exists)
+        let artwork = app.descendants(matching: .any)["profile.panel-image-link"].firstMatch
         XCTAssertTrue(artwork.waitForExistence(timeout: 5))
         let artworkFrame = artwork.frame
         XCTAssertGreaterThan(artworkFrame.width, 0)
         XCTAssertEqual(artworkFrame.width / max(1, artworkFrame.height), 2.0 / 3.0, accuracy: 0.03)
+        XCTAssertFalse(app.buttons["Open panel link"].exists)
+        let destination = app.staticTexts["profile.opened-link"]
+        XCTAssertTrue(artwork.isHittable)
+        artwork.tap()
+        wait(destination, label: "Opened 1: https://example.invalid/artwork")
+        artwork.press(forDuration: 1.2)
+        let openLink = app.buttons["Open link"]
+        XCTAssertTrue(openLink.waitForExistence(timeout: 5))
+        XCTAssertEqual(destination.label, "Opened 1: https://example.invalid/artwork", "Holding must not open the browser")
+        openLink.tap()
+        wait(destination, label: "Opened 2: https://example.invalid/artwork")
+        for _ in 0..<3 {
+            if credits.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(credits.isHittable)
+        credits.tap()
+        wait(destination, label: "Opened 3: https://example.invalid/credits")
         app.buttons["Close profile"].tap()
         XCTAssertTrue(app.staticTexts["profile.closed"].waitForExistence(timeout: 3))
         app.terminate()
@@ -84,7 +104,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, notification menu, confirmed unfollow and close")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and context menu, Markdown link tap, notification menu, confirmed unfollow and close")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false

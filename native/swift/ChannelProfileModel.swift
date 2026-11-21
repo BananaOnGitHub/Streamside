@@ -31,7 +31,31 @@ struct ChannelProfileData {
         let url: URL
         var platform: ProfileSocialPlatform? { ProfileSocialPlatform(url: url, title: title) }
     }
-    struct Panel: Identifiable { let id: Int; let title: String; let text: String; let image: URL?; let link: URL?; let supported: Bool }
+    struct Panel: Identifiable {
+        let id: Int
+        let title: String
+        let text: AttributedString
+        let image: URL?
+        let link: URL?
+        let supported: Bool
+
+        init(id: Int, row: [String: Any]) {
+            self.id = id
+            title = String((row["title"] as? String ?? "").prefix(512))
+            supported = row["__typename"] as? String == "DefaultPanel"
+            image = ChannelProfileData.url(row["imageURL"]).flatMap(ChannelImagePolicy.panelURL)
+            link = ChannelProfileData.url(row["linkURL"])
+            let description = String((row["description"] as? String ?? "").prefix(16000))
+            var formatted = (try? AttributedString(markdown: description,
+                options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(description)
+            for run in formatted.runs {
+                if let destination = run.link, ChannelProfileData.url(destination.absoluteString) == nil {
+                    formatted[run.range].link = nil
+                }
+            }
+            text = formatted
+        }
+    }
     let name: String
     let bio: String
     let avatar: URL?
@@ -42,7 +66,7 @@ struct ChannelProfileData {
     let panels: [Panel]?
     static func url(_ value: Any?) -> URL? {
         guard let text = value as? String, text.count <= 2048, let url = URL(string: text),
-              ["https", "http"].contains(url.scheme?.lowercased() ?? ""), url.host != nil,
+              ["https", "http"].contains(url.scheme?.lowercased() ?? ""), let host = url.host, !host.isEmpty,
               url.user == nil, url.password == nil else { return nil }
         return url
     }
@@ -62,9 +86,7 @@ struct ChannelProfileData {
         }
         panels = (user["panels"] as? [Any])?.prefix(64).enumerated().compactMap { index, value in
             guard let row = value as? [String: Any] else { return nil }
-            return Panel(id: index, title: String((row["title"] as? String ?? "").prefix(512)),
-                text: String((row["description"] as? String ?? "").prefix(16000)), image: Self.url(row["imageURL"]).flatMap(ChannelImagePolicy.panelURL),
-                link: Self.url(row["linkURL"]), supported: row["__typename"] as? String == "DefaultPanel")
+            return Panel(id: index, row: row)
         }
     }
 }

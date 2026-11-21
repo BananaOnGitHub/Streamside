@@ -28,7 +28,10 @@ private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable 
         case .profile:
             let user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
             "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]],
-            "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel", "description": "About panel body", "imageURL": "https://panels-images.twitch.tv/panel-fixture"]] as [Any]]
+            "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel",
+                "description": "[About panel body](https://example.invalid/credits)",
+                "imageURL": "https://panels-images.twitch.tv/panel-fixture",
+                "linkURL": "https://example.invalid/artwork"]] as [Any]]
             return ["user": user]
         case .relationship:
             if relationshipUnavailable { throw CocoaError(.coderReadCorrupt) }
@@ -46,6 +49,8 @@ struct ProfileFixture: View {
     private let images = ChannelImageCache(protocolClasses: [PanelImageFixtureProtocol.self])
     private let clock = StreamClock()
     @State private var closed = false
+    @State private var openedLink = ""
+    @State private var openCount = 0
     init() {
         var channel = FollowedChannel(username: "fixture", displayName: "Profile fixture")
         channel.channelID = "123"
@@ -63,6 +68,17 @@ struct ProfileFixture: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Fixture live preview")
                     .accessibilityIdentifier("profile.fixture-preview")
+            }
+            .environment(\.openURL, OpenURLAction { url in
+                openCount += 1
+                openedLink = "Opened \(openCount): \(url.absoluteString)"
+                return .handled
+            })
+            .overlay(alignment: .topTrailing) {
+                if !openedLink.isEmpty {
+                    Text(openedLink).font(.caption2)
+                        .accessibilityIdentifier("profile.opened-link").allowsHitTesting(false)
+                }
             }
         }
     }

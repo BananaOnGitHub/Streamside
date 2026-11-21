@@ -45,6 +45,11 @@ struct VerifiedChannelName: View {
 
 struct GeneralSettings: View {
     @AppStorage(VerificationStyle.preferenceKey) private var stored = VerificationStyle.twitch.rawValue
+    @AppStorage(ProfileAccent.key) private var profileColor = ProfileAccent.defaultRGB
+
+    private var profileTint: Binding<Color> {
+        Binding(get: { ProfileAccent.color(profileColor) }, set: { profileColor = ProfileAccent.encode($0) })
+    }
     var body: some View {
         Form {
             Section {
@@ -58,6 +63,13 @@ struct GeneralSettings: View {
                         }.tag(style.rawValue)
                     }
                 }.pickerStyle(.menu).accessibilityIdentifier("verification.style")
+            }
+            Section {
+                ColorPicker("Profile accent color", selection: profileTint, supportsOpacity: false)
+                    .accessibilityIdentifier("profile.accent-picker")
+                if profileColor != ProfileAccent.defaultRGB {
+                    Button("Reset profile accent") { profileColor = ProfileAccent.defaultRGB }
+                }
             }
         }
         .navigationTitle("General").navigationBarTitleDisplayMode(.inline)

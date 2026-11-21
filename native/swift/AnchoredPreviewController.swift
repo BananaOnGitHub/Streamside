@@ -34,6 +34,7 @@ struct PreviewPlacement {
 
 private struct PreviewActionTarget: UIViewRepresentable {
     let title: String
+    let icon: String
     let identifier: String
     let action: () -> Void
 
@@ -45,14 +46,24 @@ private struct PreviewActionTarget: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> UIButton {
-        let button = UIButton(type: .custom)
+        let button = UIButton(type: .system)
         button.isAccessibilityElement = true
+        button.contentHorizontalAlignment = .leading
         button.addTarget(context.coordinator, action: #selector(Coordinator.activate), for: .touchUpInside)
         return button
     }
 
     func updateUIView(_ button: UIButton, context: Context) {
         context.coordinator.action = action
+        if button.configuration == nil {
+            var config = UIButton.Configuration.plain()
+            config.title = title
+            config.image = UIImage(systemName: icon)
+            config.imagePadding = 13
+            config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20)
+            config.baseForegroundColor = .label
+            button.configuration = config
+        }
         button.accessibilityTraits = .button
         button.accessibilityLabel = title
         button.accessibilityIdentifier = identifier
@@ -74,8 +85,8 @@ private struct PreviewActions: View {
     private func row(_ title: String, icon: String, identifier: String, action: (() -> Void)?) -> some View {
         if let action {
             rowLabel(title, icon: icon)
-                .allowsHitTesting(false).accessibilityHidden(true)
-                .overlay { PreviewActionTarget(title: title, identifier: identifier, action: action) }
+                .hidden().accessibilityHidden(true)
+                .overlay { PreviewActionTarget(title: title, icon: icon, identifier: identifier, action: action) }
         } else {
             // Let SwiftUI publish an actual disabled button for unavailable
             // actions. There is no UIKit touch target to activate in this row.
@@ -87,13 +98,13 @@ private struct PreviewActions: View {
 
     private var rows: some View {
         VStack(spacing: 0) {
-            row("Watch stream", icon: "play.fill", identifier: "quicklook.watch", action: watch)
+            row("Watch stream", icon: "play", identifier: "quicklook.watch", action: watch)
             Divider().padding(.horizontal, 16)
-            row("View profile", icon: "person.fill", identifier: "quicklook.profile", action: profile)
+            row("View profile", icon: "person", identifier: "quicklook.profile", action: profile)
         }.font(.body).foregroundStyle(.primary)
     }
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
         Group {
             if reduceTransparency { rows.background(Color(uiColor: .secondarySystemBackground), in: shape) }
             else if #available(iOS 26.0, *) { rows.glassEffect(.regular, in: shape) }

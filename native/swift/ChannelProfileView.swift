@@ -8,11 +8,13 @@ struct ChannelProfileView<Video: View>: View {
     let clock: StreamClock
     let close: () -> Void
     let video: () -> Video
+    @AppStorage(ProfileAccent.key) private var profileColor = ProfileAccent.defaultRGB
     @State private var unfollow = false
     @State private var notifications = false
     @State private var subscription = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var channel: FollowedChannel { model.channel }
+    private var accent: Color { ProfileAccent.color(profileColor) }
     private var actionBackground: some ShapeStyle {
         reduceTransparency ? AnyShapeStyle(Color(uiColor: .secondarySystemBackground)) : AnyShapeStyle(.regularMaterial)
     }
@@ -41,7 +43,8 @@ struct ChannelProfileView<Video: View>: View {
                     Button(action: close) { Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36) }
                         .modifier(ProfileGlass()).padding(.leading, 16).padding(.top, 6).accessibilityLabel("Close profile")
                 }
-        }.background(Color(uiColor: .systemBackground)).tint(.purple)
+        }.background(Color(uiColor: .systemBackground)).tint(accent)
+            .background { ProfileTabSwipe(selection: $model.tab) }
             .task { await model.load() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false; subscription = false }
@@ -206,7 +209,7 @@ struct ChannelProfileView<Video: View>: View {
                             title: panel.title, images: images, previewSize: previewSize)
                     }
                     if panel.supported {
-                        if !panel.text.blocks.isEmpty { PanelMarkdownView(markdown: panel.text) }
+                        if !panel.text.blocks.isEmpty { PanelMarkdownView(markdown: panel.text, previewSize: previewSize, accent: accent) }
                         if panel.image == nil, let link = panel.link { Link("Open panel link", destination: link) }
                     } else { Text("Interactive panels are not supported yet.").font(.footnote).foregroundStyle(.secondary) }
                 }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
@@ -288,19 +291,20 @@ private struct PanelLinkPreview: View {
     }
 }
 
-private struct PanelWebPage: UIViewRepresentable {
+struct PanelWebPage: UIViewRepresentable {
     let url: URL
 
-    func makeUIView(context: Context) -> WKWebView {
+    static func makeWebView(url: URL, size: CGSize = .zero) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = false
         configuration.mediaTypesRequiringUserActionForPlayback = .all
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = WKWebView(frame: CGRect(origin: .zero, size: size), configuration: configuration)
         webView.load(URLRequest(url: url, timeoutInterval: 12))
         return webView
     }
 
+    func makeUIView(context: Context) -> WKWebView { Self.makeWebView(url: url) }
     func updateUIView(_ webView: WKWebView, context: Context) {}
 
     static func dismantleUIView(_ webView: WKWebView, coordinator: ()) {

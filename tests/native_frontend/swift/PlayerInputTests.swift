@@ -66,11 +66,16 @@ final class PlayerInputTests: XCTestCase {
         following.tap();XCTAssertTrue(confirm.waitForExistence(timeout: 3));confirm.tap()
         XCTAssertTrue(app.buttons["Follow"].waitForExistence(timeout: 5))
         let tabs = app.segmentedControls["profile.tabs"]
+        let right = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.56))
+        let left = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.56))
+        right.press(forDuration: 0.05, thenDragTo: left)
+        XCTAssertTrue(tabs.buttons["About"].isSelected, "Swipe left must select About")
+        left.press(forDuration: 0.05, thenDragTo: right)
+        XCTAssertTrue(tabs.buttons["Home"].isSelected, "Swipe right must select Home")
         tabs.buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        let credits = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", "About panel body")).firstMatch
+        let credits = app.descendants(matching: .any)["profile.markdown-link-text"].firstMatch
         XCTAssertTrue(credits.exists)
         let heading = app.staticTexts["profile.panel-heading"]
         XCTAssertTrue(heading.exists)
@@ -96,8 +101,14 @@ final class PlayerInputTests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(credits.isHittable)
-        credits.tap()
+        let creditLink = credits.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+        creditLink.tap()
         wait(destination, label: "Opened 3: https://example.invalid/credits")
+        creditLink.press(forDuration: 1.2)
+        XCTAssertTrue(openLink.waitForExistence(timeout: 5))
+        XCTAssertEqual(destination.label, "Opened 3: https://example.invalid/credits")
+        openLink.tap()
+        wait(destination, label: "Opened 4: https://example.invalid/credits")
         app.buttons["Close profile"].tap()
         XCTAssertTrue(openProfile.waitForExistence(timeout: 5))
         openProfile.tap()
@@ -117,7 +128,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and context menu, Markdown block styling and link tap, notification menu, confirmed unfollow and navigation pop")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and context menu, Markdown block styling, link tap and context menu, tab swipes, notification menu, confirmed unfollow and navigation pop")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false
@@ -295,6 +306,7 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(ordinary.images.count, 0, "Ordinary channels must never receive a verification icon")
         for (option, identifier) in [("VERIFIEDBTW", "verification.verifiedbtw"), ("Off", ""), ("Twitch", "verification.twitch")] {
             app.buttons["General settings"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["profile.accent-picker"].firstMatch.waitForExistence(timeout: 5))
             let picker = app.buttons["verification.style"].firstMatch
             XCTAssertTrue(picker.waitForExistence(timeout: 5)); picker.tap()
             let choice = app.buttons[option].firstMatch
@@ -501,6 +513,7 @@ final class PlayerInputTests: XCTestCase {
         tap(app.buttons["player.settings"])
         let glassSetting = app.switches["Liquid Glass"]
         XCTAssertTrue(glassSetting.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.switches["Show marked stream warnings"].exists)
         let resolution = app.buttons["player.resolution"]
         guard resolution.waitForExistence(timeout: 5), resolution.isHittable else {
             XCTFail("Resolution dropdown must be visible and hittable"); return

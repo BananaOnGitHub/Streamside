@@ -145,7 +145,6 @@ struct PlayerControls: View {
                             select: { interact(); selectQuality($0) })
                         Divider()
                         PlayerSettingsOptions()
-                        PlayerContentWarningOptions()
                     }.padding(16).frame(idealWidth: 270, maxWidth: 290)
                         .presentationCompactAdaptation(.popover)
                         .presentationBackground(.regularMaterial)

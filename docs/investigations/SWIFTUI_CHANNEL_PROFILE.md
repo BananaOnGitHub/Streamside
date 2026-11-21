@@ -211,3 +211,11 @@ The measured stages now wait for both the rendered endpoint and the existing sam
 Source `156eb857fc87ed382367294b6522a3585bf3ce0e` passed both jobs in [GitHub run 44854539551](https://github.com/BananaOnGitHub/Streamside/actions/runs/44854539551). All six coordinate gates passed. The profile fixture verified Markdown headings and links, the image context menu, the back button and the leading-edge swipe. Both player styles met the existing motion and pixel requirements. Local component verification passed 78 checks.
 
 Xcode 26.6 (17F113) compiled the SwiftUI component. The verified component archive SHA-256 is `3a5f78f8e4a183817f17d40d0d9172ac8612866b62335e0ad9995cc1779d7265`. Local assembly from the pinned Twitch 32.0 donor produced one native IPA at `artifacts/native-frontend/channel-profile-156eb85/StreamsideNativeProof-Twitch32-native.ipa`, 197,291,232 bytes, SHA-256 `0e9bfd7c0aa0d720607d7557eead0169cbc0d84f0dc5db26bd55dd22624cfc0e`. The actual webpage preview size and appearance on an iPhone remain to be checked.
+
+## Profile link menus, swipes and accent color
+
+Device feedback confirmed the larger preview and the standard profile push. On iOS 17 and later, link-bearing Markdown blocks use TextKit to open the native link menu on the actual link range. The preview uses the same nonpersistent WebKit configuration and size as linked artwork. Earlier iOS versions retain inline link taps. A profile-only swipe selects Home or About and yields at the screen edges, inside horizontal scroll views and over the segmented control.
+
+The anchored stream preview keeps its shared-player lifecycle and separate action plate. The full-width rows use native button presentation and pressed feedback. Player quick settings no longer include the marked-content warning switch. The existing switch remains in Settings → Player. Settings → General adds a system color picker and reset for the profile accent. The preference applies within profiles, including Markdown links, while live indicators and brand artwork keep their semantic colors.
+
+The simulator fixture checks both tab swipe directions, Markdown link tap and long-press actions, the General color picker, and the quick-settings contents. Apple validation and an iPhone visual check are pending.

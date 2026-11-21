@@ -19,6 +19,7 @@
     "baseline_calibrated": false
   },
   "public_cdn_inspection": {
+    "page_type": "Public Twitch channel About page",
     "rendered_panel_images": 5,
     "rendered_panel_image_host": "panels.twitch.tv",
     "old_panel_host": "panels-images.twitch.tv",
@@ -38,8 +39,7 @@
         "legacy_panel_path": true
       }
     ],
-    "scope": "Panel image count, CDN hostnames, DNS results and response status and MIME type.",
-    "page_type": "Public Twitch channel About page"
+    "scope": "Panel image count, CDN hostnames, DNS results and response status and MIME type."
   },
   "correction": "Admit the exact current Twitch panel host and normalize legacy panel artwork URLs to it. Preserve the credential-free session, transport and image admission checks. Show uncropped artwork and a separate fetch failure state.",
   "device_retest": "Sign the replacement IPA with the existing identity and reopen the same channel About tab. Verify panel artwork, including tall images.",

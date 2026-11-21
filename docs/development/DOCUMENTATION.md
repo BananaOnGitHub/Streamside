@@ -41,7 +41,7 @@ When moving records, update the investigation or archive index and affected link
 
 Write in a natural maintainer voice, with direct descriptions of behavior, decisions, and evidence. Keep references to prompts, conversations, and drafting instructions out of repository documentation.
 
-Separate current behavior from proposals and historical observations. Explain limitations where they affect use or maintenance. Prefer source and test links over repeated explanations.
+Separate current behavior from proposals and historical observations. Explain limitations where they affect use or maintenance. Prefer source and test links over repeated explanations. Use anonymized channel and account references in device findings. Keep identifying profile URLs, handles and any raw evidence that contains them in the local archive.
 
 Compatibility and validation claims must have supporting evidence. Distinguish host tests, donor inspection, package verification, CI, and device testing. Record failures and skips accurately; a skipped check is not a pass. Successful packaging does not establish device compatibility, and clean playback alone does not establish ad suppression.
 

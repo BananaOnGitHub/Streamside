@@ -241,3 +241,9 @@ The simulator checks a short cancelled swipe, full swipes in both directions, ed
 ## Twelfth Apple failure: profile gesture override
 
 [GitHub run 44955554283](https://github.com/BananaOnGitHub/Streamside/actions/runs/44955554283), source `6268c7f`, stopped during Swift compilation. The tab pan's gesture start method overrides a UIKit view method and required an explicit `override`. The method now overrides UIKit's implementation, applies the directional filter only to the profile pan and defers to the inherited method for other gestures. The run did not reach linking or simulator tests. [Failure evidence](SWIFTUI_CHANNEL_PROFILE_BUILD_FAILURE_12.json)
+
+## Verified artwork accent and paging package
+
+Source `d73e602ee1d7f3ceeb626f42df13cf2044cfc003` passed both jobs in [GitHub run 44974608274](https://github.com/BananaOnGitHub/Streamside/actions/runs/44974608274). All six coordinate cases passed. Profile checks covered a short swipe that returned to Home, committed swipes in both directions, the navigation edge swipe, the subscription star’s alignment and both link menus. All 78 local component checks passed.
+
+The verified Xcode 26.6 component archive has SHA-256 `9dfbc00e45d4a2cbaeaf7d1ea8bc4bc77521545b9b77a371aeaeb0245132d4c5`. Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/channel-profile-d73e602/StreamsideNativeProof-Twitch32-native.ipa`, 197,322,374 bytes, SHA-256 `bde5c849377caa30bffa5e7a9ff5d5ea247702f796d5cf6867f7e58c26039c87`. Artwork color matching, how the pages track the finger, and the look of live webpage previews still need iPhone review.

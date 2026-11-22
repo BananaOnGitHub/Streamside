@@ -2,6 +2,24 @@ import SwiftUI
 import UIKit
 
 enum ProfileAccent {
+    static let sourceKey = "dev.streamside.profile.accent-source"
+    static let manualKey = "dev.streamside.profile.accent"
+    static let defaultManual = 0x9146FF
+
+    static func manualColor(_ value: Int) -> Color {
+        let rgb = ProfileAccentSource.manual.rgb(banner: nil, avatar: nil, manual: value) ?? UInt32(defaultManual)
+        return Color(red: Double((rgb >> 16) & 255) / 255,
+                     green: Double((rgb >> 8) & 255) / 255,
+                     blue: Double(rgb & 255) / 255)
+    }
+
+    static func encode(_ color: Color) -> Int {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        guard UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return defaultManual }
+        func byte(_ component: CGFloat) -> Int { Int((min(1, max(0, component)) * 255).rounded()) }
+        return (byte(red) << 16) | (byte(green) << 8) | byte(blue)
+    }
+
     private struct Bucket {
         var count = 0
         var red = 0
@@ -68,5 +86,51 @@ enum ProfileAccent {
                 weight = min(1, weight + 0.05)
             }
         })
+    }
+}
+
+enum ProfileAccentSource: String, CaseIterable, Identifiable {
+    case banner, avatar, manual
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .banner: return "Banner"
+        case .avatar: return "Profile picture"
+        case .manual: return "Manual"
+        }
+    }
+
+    func rgb(banner: UInt32?, avatar: UInt32?, manual: Int) -> UInt32? {
+        switch self {
+        case .banner: return banner ?? avatar
+        case .avatar: return avatar
+        case .manual: return UInt32((0...0xFFFFFF).contains(manual) ? manual : ProfileAccent.defaultManual)
+        }
+    }
+}
+
+struct ProfileSettings: View {
+    @AppStorage(ProfileAccent.sourceKey) private var source = ProfileAccentSource.banner.rawValue
+    @AppStorage(ProfileAccent.manualKey) private var manual = ProfileAccent.defaultManual
+
+    private var manualColor: Binding<Color> {
+        Binding(get: { ProfileAccent.manualColor(manual) }, set: { manual = ProfileAccent.encode($0) })
+    }
+
+    var body: some View {
+        Form {
+            Picker("Accent source", selection: $source) {
+                ForEach(ProfileAccentSource.allCases) { Text($0.title).tag($0.rawValue) }
+            }
+            .pickerStyle(.inline)
+            .accessibilityIdentifier("profile.accent-source")
+            if source == ProfileAccentSource.manual.rawValue {
+                ColorPicker("Accent color", selection: manualColor, supportsOpacity: false)
+                    .accessibilityIdentifier("profile.accent-picker")
+            }
+        }
+        .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

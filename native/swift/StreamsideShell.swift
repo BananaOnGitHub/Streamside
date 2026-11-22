@@ -142,6 +142,7 @@ private struct AccountSettings: View {
                 Section("Account") { AccountPanel(services: services) }
                 Section {
                     NavigationLink { GeneralSettings() } label: { Label("General", systemImage: "gearshape") }
+                    NavigationLink { ProfileSettings() } label: { Label("Profile", systemImage: "person.crop.circle") }
                     NavigationLink { FollowedStreamSettings() } label: {
                         Label("Followed streams", systemImage: "heart.fill")
                     }

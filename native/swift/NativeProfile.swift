@@ -82,7 +82,8 @@ private struct ProfileContent: View {
     let close: () -> Void
     let watch: (TheatrePlayback) -> Bool
     var body: some View {
-        ChannelProfileView(model: model, images: services.images, clock: services.clock, close: close) {
+        ChannelProfileView(model: model, images: services.images, clock: services.clock, close: close,
+                           onTabSettled: { if $0 == 0 { startMedia() } else { media.stop() } }) {
             Group {
                 if let playback = media.playback { ProfileLivePreview(playback: playback) { media.watch(watch) } }
                 else { Color.black.aspectRatio(16.0 / 9.0, contentMode: .fit) }
@@ -90,7 +91,6 @@ private struct ProfileContent: View {
         }
         .onAppear { if model.tab == 0 { startMedia() } }
         .onDisappear { media.stop() }
-        .onChange(of: model.tab) { if $0 == 0 { startMedia() } else { media.stop() } }
         .onChange(of: services.state.session) { if $0 != .authenticated { media.stop(); close() } }
         .onChange(of: services.state.account) { if $0 != account { media.stop(); close() } }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in media.stop() }

@@ -1,25 +1,32 @@
 import SwiftUI
 import UIKit
-import WebKit
 
 struct ChannelProfileView<Video: View>: View {
     @ObservedObject var model: ChannelProfileModel
     let images: ChannelImageCache
     let clock: StreamClock
     let close: () -> Void
+    var onTabSettled: (Int) -> Void = { _ in }
     let video: () -> Video
+    @AppStorage(ProfileAccent.sourceKey) private var storedAccent = ProfileAccentSource.banner.rawValue
+    @AppStorage(ProfileAccent.manualKey) private var manualAccent = ProfileAccent.defaultManual
     @State private var bannerAccent: UInt32?
     @State private var avatarAccent: UInt32?
     @State private var unfollow = false
     @State private var notifications = false
     @State private var subscription = false
     @State private var pageDrag: CGFloat = 0
-    @State private var aboutMounted = false
+    @State private var hasVisitedAbout = false
+    @State private var tabGeneration = 0
+    @State private var settleTask: Task<Void, Never>?
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var channel: FollowedChannel { model.channel }
-    private var accent: Color { ProfileAccent.color(bannerAccent ?? avatarAccent) }
+    private var accent: Color {
+        let source = ProfileAccentSource(rawValue: storedAccent) ?? .banner
+        return ProfileAccent.color(source.rgb(banner: bannerAccent, avatar: avatarAccent, manual: manualAccent))
+    }
     private var actionBackground: some ShapeStyle {
         reduceTransparency ? AnyShapeStyle(Color(uiColor: .secondarySystemBackground)) : AnyShapeStyle(.regularMaterial)
     }
@@ -57,6 +64,7 @@ struct ChannelProfileView<Video: View>: View {
                 }
         }.background(Color(uiColor: .systemBackground)).tint(accent)
             .task { await model.load() }
+            .onDisappear { invalidateTabSettlement() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false; subscription = false }
     }
@@ -201,7 +209,7 @@ struct ChannelProfileView<Video: View>: View {
             VStack(alignment: .leading, spacing: 16) { homePage }
                 .allowsHitTesting(model.tab == 0).accessibilityHidden(model.tab != 0)
             VStack(alignment: .leading, spacing: 16) {
-                if aboutMounted || model.tab == 1 { aboutPage(previewSize: previewSize) }
+                aboutPage(previewSize: previewSize)
             }
             .allowsHitTesting(model.tab == 1).accessibilityHidden(model.tab != 1)
         }
@@ -212,8 +220,10 @@ struct ChannelProfileView<Video: View>: View {
     private func trackTabSwipe(_ event: ProfileTabSwipe.Event, width: CGFloat) {
         let direction: CGFloat = layoutDirection == .rightToLeft ? -1 : 1
         switch event {
+        case .began(let distance):
+            invalidateTabSettlement()
+            pageDrag = distance * direction
         case .changed(let distance):
-            if model.tab == 0 && distance * direction < 0 { aboutMounted = true }
             pageDrag = distance * direction
         case .ended(let distance, let velocity):
             let towardOther = (model.tab == 0 ? -direction : direction)
@@ -227,11 +237,37 @@ struct ChannelProfileView<Video: View>: View {
     }
 
     private func selectTab(_ tab: Int) {
-        if tab == 1 { aboutMounted = true }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.9)) {
-            model.tab = tab
-            pageDrag = 0
+        invalidateTabSettlement()
+        let generation = tabGeneration
+        let update = { model.tab = tab; pageDrag = 0 }
+        let settled = {
+            guard generation == tabGeneration, model.tab == tab else { return }
+            if tab == 1 { hasVisitedAbout = true }
+            onTabSettled(tab)
         }
+        if #available(iOS 17, *), !reduceMotion {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.9), completionCriteria: .removed) {
+                update()
+            } completion: {
+                // Start/stop can synchronously touch the native media view.
+                // Keep that work out of the page's animation transaction.
+                DispatchQueue.main.async { settled() }
+            }
+        } else {
+            let duration = reduceMotion ? 0.0 : 0.32
+            withAnimation(reduceMotion ? nil : .easeOut(duration: duration), update)
+            settleTask = Task { @MainActor in
+                do { try await Task.sleep(nanoseconds: UInt64((duration + 0.03) * 1_000_000_000)) }
+                catch { return }
+                settled()
+            }
+        }
+    }
+
+    private func invalidateTabSettlement() {
+        tabGeneration &+= 1
+        settleTask?.cancel()
+        settleTask = nil
     }
 
     @ViewBuilder private var homePage: some View {
@@ -261,7 +297,7 @@ struct ChannelProfileView<Video: View>: View {
                     if !panel.title.isEmpty { Text(panel.title).font(.headline) }
                     if let url = panel.image {
                         ProfilePanelArtwork(url: url, link: panel.supported ? panel.link : nil,
-                            title: panel.title, images: images, previewSize: previewSize)
+                            title: panel.title, images: images, previewSize: previewSize, loadArtwork: hasVisitedAbout)
                     }
                     if panel.supported {
                         if !panel.text.blocks.isEmpty { PanelMarkdownView(markdown: panel.text, previewSize: previewSize, accent: accent) }
@@ -288,7 +324,7 @@ private struct ProfilePanelArtwork: View {
     let title: String
     let images: ChannelImageCache
     let previewSize: CGSize
-    @Environment(\.openURL) private var openURL
+    let loadArtwork: Bool
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -298,16 +334,7 @@ private struct ProfilePanelArtwork: View {
                 let artwork = Image(uiImage: image).resizable().scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 if let link {
-                    Link(destination: link) { artwork.contentShape(RoundedRectangle(cornerRadius: 12)) }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(title.isEmpty ? "Open linked panel image" : "Open \(title)")
-                        .accessibilityIdentifier("profile.panel-image-link")
-                        .contextMenu {
-                            Button { openURL(link) } label: { Label("Open link", systemImage: "arrow.up.right") }
-                        } preview: {
-                            PanelWebPage(url: link, size: previewSize)
-                                .frame(width: previewSize.width, height: previewSize.height)
-                        }
+                    LinkedPanelImage(image: image, url: link, title: title, previewSize: previewSize)
                 } else {
                     artwork.accessibilityLabel("Panel image").accessibilityIdentifier("profile.panel-image")
                 }
@@ -322,36 +349,15 @@ private struct ProfilePanelArtwork: View {
             }
         }
         .frame(maxWidth: 360)
-        .task(id: url) {
+        .task(id: loadArtwork ? url : nil) {
             image = nil
             failed = false
+            guard loadArtwork else { return }
             let result = await images.load(url: url, generation: 0, avatar: false)
             guard !Task.isCancelled else { return }
             image = result
             failed = result == nil
         }
-    }
-}
-
-struct PanelWebPage: UIViewRepresentable {
-    let url: URL
-    let size: CGSize
-
-    static func makeWebView(url: URL, size: CGSize) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .nonPersistent()
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
-        configuration.mediaTypesRequiringUserActionForPlayback = .all
-        let webView = WKWebView(frame: CGRect(origin: .zero, size: size), configuration: configuration)
-        webView.load(URLRequest(url: url, timeoutInterval: 12))
-        return webView
-    }
-
-    func makeUIView(context: Context) -> WKWebView { Self.makeWebView(url: url, size: size) }
-    func updateUIView(_ webView: WKWebView, context: Context) {}
-
-    static func dismantleUIView(_ webView: WKWebView, coordinator: ()) {
-        webView.stopLoading()
     }
 }
 

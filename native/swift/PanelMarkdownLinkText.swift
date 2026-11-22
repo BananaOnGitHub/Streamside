@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import WebKit
 
 // TextKit supplies link-specific hit-testing, wrapping, and native context
 // menus while SwiftUI still owns the surrounding Markdown block layout.
@@ -14,31 +13,27 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
     @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    struct RenderedText: Equatable {
+        let text: AttributedString
+        let style: UIFont.TextStyle
+        let bold: Bool
+        let dynamicTypeSize: DynamicTypeSize
+    }
+
     final class Coordinator: NSObject, UITextViewDelegate {
-        var open: (URL) -> Void = { _ in }
-        var previewSize = CGSize.zero
-        private weak var preview: WKWebView?
+        let linkMenu = PanelLinkMenu()
+        var renderedText: RenderedText?
 
         func textView(_ textView: UITextView, primaryActionFor textItem: UITextItem, defaultAction: UIAction) -> UIAction? {
             guard case .link(let url) = textItem.content else { return defaultAction }
-            return UIAction(title: "Open link") { [weak self] _ in self?.open(url) }
+            return UIAction(title: "Open link") { [weak self] _ in self?.linkMenu.open(url) }
         }
 
         func textView(_ textView: UITextView, menuConfigurationFor textItem: UITextItem,
                       defaultMenu: UIMenu) -> UITextItem.MenuConfiguration? {
-            guard case .link(let url) = textItem.content else { return .init(preview: nil, menu: defaultMenu) }
-            let page = PanelWebPage.makeWebView(url: url, size: previewSize)
-            preview = page
-            let openLink = UIAction(title: "Open link", image: UIImage(systemName: "arrow.up.right")) { [weak self] _ in
-                self?.open(url)
-            }
-            return .init(preview: .view(page), menu: UIMenu(children: [openLink]))
-        }
-
-        func textView(_ textView: UITextView, textItemMenuWillEndFor textItem: UITextItem,
-                      animator: any UIContextMenuInteractionAnimating) {
-            preview?.stopLoading()
-            preview = nil
+            // The shared interaction handles link holds and preview commits.
+            if case .link = textItem.content { return nil }
+            return .init(preview: nil, menu: defaultMenu)
         }
     }
 
@@ -47,6 +42,15 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
     func makeUIView(context: Context) -> UITextView {
         let view = UITextView()
         view.delegate = context.coordinator
+        let menu = context.coordinator.linkMenu
+        menu.destination = { [weak view] point in
+            guard let view, let range = view.characterRange(at: point),
+                  view.firstRect(for: range).contains(point) else { return nil }
+            let index = view.offset(from: view.beginningOfDocument, to: range.start)
+            guard let text = view.attributedText, index >= 0, index < text.length else { return nil }
+            return text.attribute(.link, at: index, effectiveRange: nil) as? URL
+        }
+        view.addInteraction(UIContextMenuInteraction(delegate: menu))
         view.isEditable = false
         view.isSelectable = true
         view.isScrollEnabled = false
@@ -60,9 +64,12 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
 
     func updateUIView(_ view: UITextView, context: Context) {
         let openURL = openURL
-        context.coordinator.open = { url in openURL(url) }
-        context.coordinator.previewSize = previewSize
+        context.coordinator.linkMenu.open = { url in openURL(url) }
+        context.coordinator.linkMenu.previewSize = previewSize
         view.linkTextAttributes = [.foregroundColor: UIColor(accent), .underlineStyle: NSUnderlineStyle.single.rawValue]
+        let input = RenderedText(text: text, style: style, bold: bold, dynamicTypeSize: dynamicTypeSize)
+        guard context.coordinator.renderedText != input else { return }
+        context.coordinator.renderedText = input
         let trait = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
         let base = UIFont.preferredFont(forTextStyle: style, compatibleWith: trait)
         let content = NSMutableAttributedString(string: "")

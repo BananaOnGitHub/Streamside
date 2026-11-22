@@ -5,6 +5,7 @@ import UIKit
 // text/link gestures, or the navigation controller's leading-edge back gesture.
 struct ProfileTabSwipe: UIViewRepresentable {
     enum Event {
+        case began(CGFloat)
         case changed(CGFloat)
         case ended(CGFloat, velocity: CGFloat)
         case cancelled
@@ -49,7 +50,8 @@ struct ProfileTabSwipe: UIViewRepresentable {
             guard let target else { return }
             let distance = gesture.translation(in: target).x
             switch gesture.state {
-            case .began, .changed: onPan?(.changed(distance))
+            case .began: onPan?(.began(distance))
+            case .changed: onPan?(.changed(distance))
             case .ended: onPan?(.ended(distance, velocity: gesture.velocity(in: target).x))
             case .cancelled, .failed: onPan?(.cancelled)
             default: break

@@ -23,6 +23,18 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed,
             "The dismissed control must leave the accessibility hierarchy", file: file, line: line)
     }
+    private func tapPanelPreview(in app: XCUIApplication, above openLink: XCUIElement) {
+        let webPreview = app.descendants(matching: .any)["profile.link-preview"].firstMatch
+        if webPreview.exists && webPreview.isHittable {
+            webPreview.tap()
+        } else {
+            // UIKit may hide a context preview's subviews from accessibility.
+            // Tap inside the large card above the separate Open link row.
+            openLink.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.0))
+                .withOffset(CGVector(dx: 0, dy: -110)).tap()
+        }
+    }
+
     func testChannelProfile() {
         continueAfterFailure = false
         let app = XCUIApplication(); testedApp = app;app.launchArguments = ["--profile"];app.launch()
@@ -101,7 +113,7 @@ final class PlayerInputTests: XCTestCase {
         let openLink = app.buttons["Open link"]
         XCTAssertTrue(openLink.waitForExistence(timeout: 5))
         XCTAssertEqual(destination.label, "Opened 1: https://example.invalid/artwork", "Holding must not open the browser")
-        openLink.tap()
+        tapPanelPreview(in: app, above: openLink)
         wait(destination, label: "Opened 2: https://example.invalid/artwork")
         for _ in 0..<3 {
             if credits.isHittable { break }
@@ -114,7 +126,7 @@ final class PlayerInputTests: XCTestCase {
         creditLink.press(forDuration: 1.2)
         XCTAssertTrue(openLink.waitForExistence(timeout: 5))
         XCTAssertEqual(destination.label, "Opened 3: https://example.invalid/credits")
-        openLink.tap()
+        tapPanelPreview(in: app, above: openLink)
         wait(destination, label: "Opened 4: https://example.invalid/credits")
         app.buttons["Close profile"].tap()
         XCTAssertTrue(openProfile.waitForExistence(timeout: 5))
@@ -135,7 +147,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and context menu, Markdown block styling, link tap and context menu, tab swipes, notification menu, confirmed unfollow and navigation pop")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and preview commit, Markdown block styling, link tap and preview commit, tab swipes, notification menu, confirmed unfollow and navigation pop")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false

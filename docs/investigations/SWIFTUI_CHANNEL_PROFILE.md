@@ -255,3 +255,9 @@ An iPhone report described a stall when swiping from Home to About. The profile 
 Settings → Profile offers Banner, Profile picture and Manual. Banner falls back to the avatar and then the system foreground. Profile picture falls back to the system foreground. Manual uses one saved color for all channels and reuses the previous manual color preference when available.
 
 Image and Markdown links share the UIKit preview commit action. A tap on the WebKit preview and the Open link menu row both open the original link. Inline text still uses TextKit to identify links and dispatch short taps. Simulator fixtures exercise the preview's actual tap location for both link types. Responsiveness with the live native player and live webpage rendering require iPhone validation.
+
+## Verified profile playback and preview commit package
+
+Source `9b8e5ebfc414f40876b8a6df66b63ccf2fed7ef1` passed both jobs in [GitHub run 45002682355](https://github.com/BananaOnGitHub/Streamside/actions/runs/45002682355). All six coordinate cases passed, including the tab swipes and tapping the WebKit preview to open both image and Markdown links. All 78 local component checks passed.
+
+The verified Xcode 26.6 component archive has SHA-256 `eebd8ac2a2f6592d0e3bb1ca4e4dce29c0e1dfe542338bbdf67f8ebabdfe256d`. Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/channel-profile-9b8e5eb/StreamsideNativeProof-Twitch32-native.ipa`, 197,334,876 bytes, SHA-256 `1918bcc208b6e45da3eac5b490530b8757f92b974327ac6c8706664f612a5f56`. The fixture uses a synthetic profile video surface, so the live playback swipe and the three accent modes still need an iPhone check.

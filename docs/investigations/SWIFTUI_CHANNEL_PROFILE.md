@@ -237,3 +237,7 @@ Device feedback confirmed the profile swipes, link interactions and picker from 
 Home and About now follow the horizontal pan within the profile. Short pulls return to the selected page; committed swipes update the same selection used by the segmented control. Only the active page sets the vertical scroll extent and participates in accessibility. The navigation edge gesture and independently scrolling content retain priority. Both About link types now use the same sized WebKit preview content and the same Open link action. The originating text and image retain their platform context-menu anchors.
 
 The simulator checks a short cancelled swipe, full swipes in both directions, edge navigation, both link menus and the star's alignment. App appearance, live webpage rendering and artwork color matching still need an iPhone check.
+
+## Twelfth Apple failure: profile gesture override
+
+[GitHub run 44955554283](https://github.com/BananaOnGitHub/Streamside/actions/runs/44955554283), source `6268c7f`, stopped during Swift compilation. The tab pan's gesture start method overrides a UIKit view method and required an explicit `override`. The method now overrides UIKit's implementation, applies the directional filter only to the profile pan and defers to the inherited method for other gestures. The run did not reach linking or simulator tests. [Failure evidence](SWIFTUI_CHANNEL_PROFILE_BUILD_FAILURE_12.json)

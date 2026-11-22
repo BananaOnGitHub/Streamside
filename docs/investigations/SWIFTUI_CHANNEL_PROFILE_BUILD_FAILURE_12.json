@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "source_revision": "6268c7f44620b034d1e561643e67056d796f6bfb",
+  "result": "failed",
+  "build": {
+    "provider": "github",
+    "id": "44955554283",
+    "url": "https://github.com/BananaOnGitHub/Streamside/actions/runs/44955554283",
+    "job_id": "137002724365",
+    "artifact_id": "14727203602"
+  },
+  "validation": {
+    "schema": 1,
+    "source_revision": "6268c7f44620b034d1e561643e67056d796f6bfb",
+    "passed": false,
+    "stages": [
+      {
+        "name": "Build logging tests",
+        "passed": true,
+        "seconds": 10.071
+      },
+      {
+        "name": "Shared VAFT playlist engine",
+        "passed": true,
+        "seconds": 2.6
+      },
+      {
+        "name": "SwiftUI, interoperability and simulator gates",
+        "passed": false,
+        "seconds": 16.89
+      }
+    ]
+  },
+  "failure": {
+    "stage": "Compile SwiftUI frontend for iPhone",
+    "source": "native/swift/ProfileTabSwipe.swift:59",
+    "issue": "The gesture start method overrides UIView.gestureRecognizerShouldBegin and requires the override keyword."
+  },
+  "correction": "Declare the UIView override and apply the horizontal-velocity filter only to the profile's page pan. Other recognizers use UIView's implementation.",
+  "files": {
+    "job.log": {
+      "bytes": 30677,
+      "sha256": "75b1d178489b55634d6caa8b38eb431e067003d60a2f4612e2dbf77f43c7c972"
+    },
+    "diagnostics.zip": {
+      "bytes": 5754,
+      "sha256": "e7d6aeee84df7e6751bc775934fffcf199e56dd8c787fb2253630c92ef0750ee"
+    }
+  },
+  "evidence_location": "artifacts/archive/channel-profile-failures/failure-12",
+  "not_reached": [
+    "Component linking",
+    "Simulator coordinate gates",
+    "ABI job",
+    "Component publication",
+    "IPA packaging",
+    "Device validation"
+  ]
+}

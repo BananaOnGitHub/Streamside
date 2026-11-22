@@ -56,7 +56,8 @@ struct ProfileTabSwipe: UIViewRepresentable {
             }
         }
 
-        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard gestureRecognizer === pan else { return super.gestureRecognizerShouldBegin(gestureRecognizer) }
             let velocity = pan.velocity(in: target)
             return abs(velocity.x) > 1.25 * abs(velocity.y)
         }

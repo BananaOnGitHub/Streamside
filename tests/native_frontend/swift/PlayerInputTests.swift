@@ -198,6 +198,7 @@ final class PlayerInputTests: XCTestCase {
             .matching(NSPredicate(format: "label == %@", "Image canvas")).firstMatch
         let done = app.buttons["profile.artwork-done"]
         let share = app.buttons["profile.artwork-share"]
+        let back = app.buttons["Close profile"]
         for artworkID in ["profile.banner", "profile.avatar"] {
             let artwork = app.descendants(matching: .any)[artworkID].firstMatch
             XCTAssertTrue(artwork.waitForExistence(timeout: 5))
@@ -211,11 +212,15 @@ final class PlayerInputTests: XCTestCase {
             XCTAssertGreaterThan(canvas.frame.height, 0)
             XCTAssertTrue(share.isHittable, "The image viewer must offer a visible Share control")
             XCTAssertTrue(done.isHittable, "The image viewer must offer a visible Done control")
+            XCTAssertFalse(back.isHittable, "The underlying profile back button must not receive touches")
             done.tap()
             assertDismissed(canvas)
             assertDismissed(done)
+            XCTAssertTrue(back.waitForExistence(timeout: 5), "Closing the viewer must leave the profile open")
+            XCTAssertTrue(app.segmentedControls["profile.tabs"].buttons["Home"].isSelected)
         }
-        XCTAssertTrue(app.segmentedControls["profile.tabs"].buttons["Home"].isSelected)
+        back.tap()
+        XCTAssertTrue(profile.waitForExistence(timeout: 5), "A separate tap can still close the profile")
         print("PROFILE_PREVIEWS PASS: short social tap, long hold and WebKit preview commit, banner and avatar system viewer with Share")
     }
 

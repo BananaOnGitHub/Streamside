@@ -15,6 +15,8 @@ struct ChannelProfileView<Video: View>: View {
     @State private var unfollow = false
     @State private var notifications = false
     @State private var subscription = false
+    @State private var artworkFile: ProfileArtworkFile?
+    @State private var artworkViewerActive = false
     @State private var pageDrag: CGFloat = 0
     @State private var swipeExclusions = ProfileSwipeExclusions()
     @State private var hasVisitedAbout = false
@@ -62,15 +64,31 @@ struct ChannelProfileView<Video: View>: View {
                     }
                 }
                 .overlay(alignment: .topLeading) {
-                    Button(action: close) { Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36) }
-                        .modifier(ProfileGlass()).padding(.leading, 16).padding(.top, 6).accessibilityLabel("Close profile")
+                    Button {
+                        if !artworkViewerActive { close() }
+                    } label: {
+                        Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36)
+                    }
+                    .modifier(ProfileGlass()).padding(.leading, 16).padding(.top, 6).accessibilityLabel("Close profile")
+                    .allowsHitTesting(!artworkViewerActive)
+                    .accessibilityHidden(artworkViewerActive)
                 }
         }.background(Color(uiColor: .systemBackground)).tint(accent)
+            .fullScreenCover(item: $artworkFile, onDismiss: { artworkViewerActive = false }) { file in
+                ProfileArtworkViewer(file: file)
+            }
             .task { await model.load() }
             .onDisappear { invalidateTabSettlement() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false; subscription = false }
     }
+    private func openArtwork(_ file: ProfileArtworkFile) {
+        guard !artworkViewerActive else { return }
+        // Keep the back button inactive until the cover has finished dismissing.
+        artworkViewerActive = true
+        artworkFile = file
+    }
+
     private func banner(width: CGFloat, height: CGFloat, previewSize: CGSize) -> some View {
         Color(uiColor: .secondarySystemBackground)
             .frame(width: width, height: height)
@@ -91,7 +109,8 @@ struct ChannelProfileView<Video: View>: View {
             }
             .clipped()
             .contentShape(Rectangle())
-            .modifier(ProfileArtworkMenu(url: model.data?.banner, kind: .banner, images: images, previewSize: previewSize))
+            .modifier(ProfileArtworkMenu(url: model.data?.banner, kind: .banner, images: images,
+                                         previewSize: previewSize, presentViewer: openArtwork))
     }
     private func identity(previewSize: CGSize) -> some View {
         let avatar = model.data?.avatar ?? channel.avatarURL
@@ -101,7 +120,8 @@ struct ChannelProfileView<Video: View>: View {
                 .frame(width: 76, height: 76).clipShape(Circle())
                 .contentShape(Circle())
                 .contentShape(.contextMenuPreview, Circle())
-                .modifier(ProfileArtworkMenu(url: avatar, kind: .avatar, images: images, previewSize: previewSize))
+                .modifier(ProfileArtworkMenu(url: avatar, kind: .avatar, images: images,
+                                             previewSize: previewSize, presentViewer: openArtwork))
                 .overlay { if channel.isLive { LiveRing(clock: clock).allowsHitTesting(false) } }
             VStack(alignment: .leading, spacing: 5) {
                 VerifiedChannelName(channel: channel).font(.title2.bold())

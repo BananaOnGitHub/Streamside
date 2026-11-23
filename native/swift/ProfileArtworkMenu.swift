@@ -14,15 +14,14 @@ struct ProfileArtworkMenu: ViewModifier {
     let kind: Kind
     let images: ChannelImageCache
     let previewSize: CGSize
+    let presentViewer: (ProfileArtworkFile) -> Void
     @State private var file: ProfileArtworkFile?
-    @State private var viewerFile: ProfileArtworkFile?
     @State private var preparingViewer = false
     @State private var viewerError = false
 
     func body(content: Content) -> some View {
         artwork(content)
             .onChange(of: url) { _ in
-                viewerFile = nil
                 preparingViewer = false
                 file = nil
             }
@@ -44,9 +43,6 @@ struct ProfileArtworkMenu: ViewModifier {
                 }
                 .overlay {
                     if preparingViewer { ProgressView().accessibilityLabel("Loading image").allowsHitTesting(false) }
-                }
-                .fullScreenCover(item: $viewerFile) { file in
-                    ProfileArtworkViewer(file: file)
                 }
                 .task(id: preparingViewer ? url : nil) {
                     guard preparingViewer else { return }
@@ -74,7 +70,7 @@ struct ProfileArtworkMenu: ViewModifier {
             viewerError = true
             return
         }
-        viewerFile = loaded
+        presentViewer(loaded)
     }
 }
 
@@ -117,7 +113,7 @@ private struct ProfileArtworkPreview: View {
 
 // The profile navigation bar is hidden. Give the image preview its own
 // controls outside Quick Look's content view so sharing and closing stay visible.
-private struct ProfileArtworkViewer: View {
+struct ProfileArtworkViewer: View {
     let file: ProfileArtworkFile
     @Environment(\.dismiss) private var dismiss
 

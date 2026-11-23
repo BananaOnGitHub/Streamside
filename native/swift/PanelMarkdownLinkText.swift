@@ -97,23 +97,49 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
         }
 
         func targetedPreview(at point: CGPoint) -> UITargetedPreview? {
-            guard let view = textView, view.window != nil, let link = link(at: point) else { return nil }
-            let parameters = UIPreviewParameters(textLineRects: link.rects.map { NSValue(cgRect: $0) })
-            parameters.backgroundColor = .secondarySystemBackground
-            return UITargetedPreview(view: view, parameters: parameters)
+            guard let view = textView, let window, let link = link(at: point) else { return nil }
+            let path = highlightPath(for: link.rects, in: view, clippedTo: convert(window.bounds, from: window))
+            let frame = path.bounds.integral
+            guard !frame.isNull, !frame.isEmpty else { return nil }
+
+            // UIKit may hide the animation source. Lift a copy of the link
+            // so the live text view and its surrounding lines stay visible.
+            let origin = convert(view.bounds.origin, from: view)
+            let image = UIGraphicsImageRenderer(size: frame.size).image { renderer in
+                let context = renderer.cgContext
+                context.translateBy(x: -frame.minX, y: -frame.minY)
+                path.addClip()
+                UIColor.secondarySystemBackground.resolvedColor(with: view.traitCollection).setFill()
+                path.fill()
+                context.translateBy(x: origin.x, y: origin.y)
+                view.layer.render(in: context)
+            }
+            let lift = UIImageView(image: image)
+            path.apply(CGAffineTransform(translationX: -frame.minX, y: -frame.minY))
+            let parameters = UIPreviewParameters()
+            parameters.backgroundColor = .clear
+            parameters.visiblePath = path
+            let target = UIPreviewTarget(container: self, center: CGPoint(x: frame.midX, y: frame.midY))
+            return UITargetedPreview(view: lift, parameters: parameters, target: target)
+        }
+
+        private func highlightPath(for rects: [CGRect], in view: UIView, clippedTo clip: CGRect = .infinite) -> UIBezierPath {
+            let path = UIBezierPath()
+            for rect in rects {
+                let bounds = convert(rect, from: view).insetBy(dx: -3, dy: -2).intersection(clip)
+                if !bounds.isNull, !bounds.isEmpty {
+                    path.append(UIBezierPath(roundedRect: bounds, cornerRadius: 5))
+                }
+            }
+            return path
         }
 
         override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
             super.touchesBegan(touches, with: event)
             guard let point = touches.first?.location(in: self), let view = textView,
                   let link = link(at: point) else { return }
-            let path = UIBezierPath()
-            for rect in link.rects {
-                let rounded = convert(rect, from: view).insetBy(dx: -3, dy: -2)
-                path.append(UIBezierPath(roundedRect: rounded, cornerRadius: 5))
-            }
             highlight.fillColor = UIColor.label.withAlphaComponent(0.14).resolvedColor(with: traitCollection).cgColor
-            highlight.path = path.cgPath
+            highlight.path = highlightPath(for: link.rects, in: view).cgPath
         }
 
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {

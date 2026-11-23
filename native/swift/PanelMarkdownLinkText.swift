@@ -1,8 +1,8 @@
 import SwiftUI
 import UIKit
 
-// TextKit supplies link-specific hit-testing, wrapping, and native context
-// menus while SwiftUI still owns the surrounding Markdown block layout.
+// TextKit owns text layout and selection. A sibling view receives touches
+// on links so TextKit and the context menu never track the same link press.
 @available(iOS 17.0, *)
 struct PanelMarkdownLinkText: UIViewRepresentable {
     let text: AttributedString
@@ -37,20 +37,71 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
         }
     }
 
+    final class ContentView: UIView {
+        let textView = UITextView()
+        let linkTarget = LinkTarget()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            addSubview(textView)
+            addSubview(linkTarget)
+            linkTarget.textView = textView
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            textView.frame = bounds
+            linkTarget.frame = bounds
+        }
+    }
+
+    final class LinkTarget: UIView {
+        weak var textView: UITextView?
+        weak var menu: PanelLinkMenu?
+
+        override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+            super.point(inside: point, with: event) && destination(at: point) != nil
+        }
+
+        func destination(at point: CGPoint) -> URL? {
+            guard let view = textView, let text = view.attributedText else { return nil }
+            let location = view.convert(point, from: self)
+            guard let closest = view.closestPosition(to: location) else { return nil }
+            let index = view.offset(from: view.beginningOfDocument, to: closest)
+            // A caret in the last half of a glyph can fall at the insertion
+            // point after a link. Check both neighbors against its line rects.
+            for candidate in [index, index - 1] where (0..<text.length).contains(candidate) {
+                var effective = NSRange()
+                guard let url = text.attribute(.link, at: candidate, effectiveRange: &effective) as? URL,
+                      let start = view.position(from: view.beginningOfDocument, offset: effective.location),
+                      let end = view.position(from: start, offset: effective.length),
+                      let range = view.textRange(from: start, to: end) else { continue }
+                if view.selectionRects(for: range).contains(where: { $0.rect.insetBy(dx: -2, dy: -1).contains(location) }) {
+                    return url
+                }
+            }
+            return nil
+        }
+
+        @objc func openLink(_ gesture: UITapGestureRecognizer) {
+            if let url = destination(at: gesture.location(in: self)) { menu?.open(url) }
+        }
+    }
+
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    func makeUIView(context: Context) -> UITextView {
-        let view = UITextView()
+    func makeUIView(context: Context) -> ContentView {
+        let content = ContentView(frame: .zero)
+        let view = content.textView
+        let linkTarget = content.linkTarget
         view.delegate = context.coordinator
         let menu = context.coordinator.linkMenu
-        menu.destination = { [weak view] point in
-            guard let view, let range = view.characterRange(at: point),
-                  view.firstRect(for: range).contains(point) else { return nil }
-            let index = view.offset(from: view.beginningOfDocument, to: range.start)
-            guard let text = view.attributedText, index >= 0, index < text.length else { return nil }
-            return text.attribute(.link, at: index, effectiveRange: nil) as? URL
-        }
-        view.addInteraction(UIContextMenuInteraction(delegate: menu))
+        linkTarget.menu = menu
+        menu.destination = { [weak linkTarget] point in linkTarget?.destination(at: point) }
+        linkTarget.addInteraction(UIContextMenuInteraction(delegate: menu))
+        linkTarget.addGestureRecognizer(UITapGestureRecognizer(target: linkTarget, action: #selector(LinkTarget.openLink(_:))))
         view.isEditable = false
         view.isSelectable = true
         view.isScrollEnabled = false
@@ -59,10 +110,11 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
         view.textContainer.lineFragmentPadding = 0
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         view.accessibilityIdentifier = "profile.markdown-link-text"
-        return view
+        return content
     }
 
-    func updateUIView(_ view: UITextView, context: Context) {
+    func updateUIView(_ contentView: ContentView, context: Context) {
+        let view = contentView.textView
         let openURL = openURL
         context.coordinator.linkMenu.open = { url in openURL(url) }
         context.coordinator.linkMenu.previewSize = previewSize
@@ -90,9 +142,10 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
         if view.attributedText != content { view.attributedText = content }
     }
 
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
-        let width = proposal.width ?? ceil(uiView.attributedText?.size().width ?? 0)
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: ContentView, context: Context) -> CGSize? {
+        let textView = uiView.textView
+        let width = proposal.width ?? ceil(textView.attributedText?.size().width ?? 0)
         guard width.isFinite, width > 0 else { return nil }
-        return CGSize(width: width, height: ceil(uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height))
+        return CGSize(width: width, height: ceil(textView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height))
     }
 }

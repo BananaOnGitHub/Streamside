@@ -81,9 +81,24 @@ final class PlayerInputTests: XCTestCase {
         following.tap();XCTAssertTrue(confirm.waitForExistence(timeout: 3));confirm.tap()
         XCTAssertTrue(app.buttons["Follow"].waitForExistence(timeout: 5))
         let tabs = app.segmentedControls["profile.tabs"]
-        let right = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.56))
-        let left = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.56))
-        let partial = app.coordinate(withNormalizedOffset: CGVector(dx: 0.76, dy: 0.56))
+        let rail = app.scrollViews["profile.social-links"]
+        XCTAssertTrue(rail.waitForExistence(timeout: 5))
+        let lastSocial = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Fixture social link 5")).firstMatch
+        XCTAssertFalse(lastSocial.isHittable)
+        let homeOrigin = preview.frame.origin
+        for _ in 0..<3 {
+            if lastSocial.isHittable { break }
+            rail.swipeLeft()
+        }
+        XCTAssertTrue(lastSocial.isHittable, "The social links must scroll to their last item")
+        XCTAssertTrue(tabs.buttons["Home"].isSelected, "Swiping the social rail must not change tabs")
+        XCTAssertEqual(preview.frame.minX, homeOrigin.x, accuracy: 1)
+        XCTAssertEqual(preview.frame.minY, homeOrigin.y, accuracy: 1)
+        let pageY = (tabs.frame.maxY - app.frame.minY + 40) / app.frame.height
+        let right = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: pageY))
+        let left = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: pageY))
+        let partial = app.coordinate(withNormalizedOffset: CGVector(dx: 0.76, dy: pageY))
         right.press(forDuration: 0.05, thenDragTo: partial)
         XCTAssertTrue(tabs.buttons["Home"].isSelected, "A short drag must settle back on Home")
         XCTAssertTrue(preview.isHittable, "Cancelled swipe must restore Home interaction")
@@ -128,6 +143,12 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(destination.label, "Opened 3: https://example.invalid/credits")
         tapPanelPreview(in: app, above: openLink)
         wait(destination, label: "Opened 4: https://example.invalid/credits")
+        let trailingCredit = credits.coordinate(withNormalizedOffset: CGVector(dx: 0.27, dy: 0.5))
+        trailingCredit.press(forDuration: 1.2)
+        XCTAssertTrue(openLink.waitForExistence(timeout: 5), "The link must also preview near its trailing glyphs")
+        XCTAssertEqual(destination.label, "Opened 4: https://example.invalid/credits")
+        tapPanelPreview(in: app, above: openLink)
+        wait(destination, label: "Opened 5: https://example.invalid/credits")
         app.buttons["Close profile"].tap()
         XCTAssertTrue(openProfile.waitForExistence(timeout: 5))
         openProfile.tap()
@@ -147,7 +168,7 @@ final class PlayerInputTests: XCTestCase {
         app.segmentedControls["profile.tabs"].buttons["About"].tap()
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
-        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and preview commit, Markdown block styling, link tap and preview commit, tab swipes, notification menu, confirmed unfollow and navigation pop")
+        print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and preview commit, Markdown block styling, link tap and preview commits, isolated social scroll, tab swipes, notification menu, confirmed unfollow and navigation pop")
     }
     func testMarkedContentConsent() {
         continueAfterFailure = false

@@ -261,3 +261,11 @@ Image and Markdown links share the UIKit preview commit action. A tap on the Web
 Source `9b8e5ebfc414f40876b8a6df66b63ccf2fed7ef1` passed both jobs in [GitHub run 45002682355](https://github.com/BananaOnGitHub/Streamside/actions/runs/45002682355). All six coordinate cases passed, including the tab swipes and tapping the WebKit preview to open both image and Markdown links. All 78 local component checks passed.
 
 The verified Xcode 26.6 component archive has SHA-256 `eebd8ac2a2f6592d0e3bb1ca4e4dce29c0e1dfe542338bbdf67f8ebabdfe256d`. Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/channel-profile-9b8e5eb/StreamsideNativeProof-Twitch32-native.ipa`, 197,334,876 bytes, SHA-256 `1918bcc208b6e45da3eac5b490530b8757f92b974327ac6c8706664f612a5f56`. The fixture uses a synthetic profile video surface, so the live playback swipe and the three accent modes still need an iPhone check.
+
+## Social rail and Markdown gesture isolation
+
+Device feedback confirmed the live-player tab transition and artwork accent modes. A horizontal drag on the social links could still move the page underneath. The tab recognizer previously relied on finding a horizontally scrollable UIKit ancestor of the touched view. The social rail now supplies its own visible bounds for touch admission so the profile pan yields throughout the rail.
+
+Markdown link holds could produce two haptics and only intermittently show a preview. Previously the UITextView had its built-in text interactions and the added panel context-menu interaction on the same hit view. A transparent sibling now admits only touches inside the intended link's TextKit line rectangles. It owns short taps and the shared context menu, while the text view retains text rendering, selection outside links and accessible link activation. The context preview still opens the original URL on tap.
+
+The profile coordinate fixture scrolls the rail through its final link and requires the Home page to stay in place. It also opens the same Markdown preview from two distinct positions and checks both committed destinations. Apple validation and an iPhone haptic check are pending.

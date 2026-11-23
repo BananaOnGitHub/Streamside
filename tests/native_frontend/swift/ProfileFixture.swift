@@ -26,7 +26,11 @@ private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable 
     func request(channelID: String, operation: ProfileOperation, setting: String) async throws -> [String: Any] {
         switch operation {
         case .profile:
+            let socials = (1...5).map { index in
+                ["title": "Fixture social link \(index)", "url": "https://example.invalid/social-\(index)"]
+            }
             let user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
+            "channel": ["socialMedias": socials],
             "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]],
             "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel",
                 "description": "## Panel notes\n\n[About panel body](https://example.invalid/credits)",

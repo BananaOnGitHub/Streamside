@@ -16,6 +16,7 @@ struct ChannelProfileView<Video: View>: View {
     @State private var notifications = false
     @State private var subscription = false
     @State private var pageDrag: CGFloat = 0
+    @State private var swipeExclusions = ProfileSwipeExclusions()
     @State private var hasVisitedAbout = false
     @State private var tabGeneration = 0
     @State private var settleTask: Task<Void, Never>?
@@ -54,7 +55,7 @@ struct ChannelProfileView<Video: View>: View {
                 }.frame(width: geometry.size.width, alignment: .leading).padding(.bottom, 24)
             }.ignoresSafeArea(edges: .top)
                 .background {
-                    ProfileTabSwipe { event in
+                    ProfileTabSwipe(exclusions: swipeExclusions) { event in
                         trackTabSwipe(event, width: max(1, geometry.size.width - 40))
                     }
                 }
@@ -117,7 +118,10 @@ struct ChannelProfileView<Video: View>: View {
                             }
                         }
                     }
-                }.font(.subheadline)
+                }
+                .font(.subheadline)
+                .background { ProfileSocialLinksRegion(exclusions: swipeExclusions) }
+                .accessibilityIdentifier("profile.social-links")
             }
         }
     }

@@ -11,16 +11,19 @@ struct ProfileTabSwipe: UIViewRepresentable {
         case cancelled
     }
 
+    let exclusions: ProfileSwipeExclusions
     let onPan: (Event) -> Void
 
     func makeUIView(context: Context) -> Anchor { Anchor() }
 
     func updateUIView(_ view: Anchor, context: Context) {
         view.onPan = onPan
+        view.exclusions = exclusions
     }
 
     final class Anchor: UIView, UIGestureRecognizerDelegate {
         var onPan: ((Event) -> Void)?
+        weak var exclusions: ProfileSwipeExclusions?
         private weak var target: UIView?
         private lazy var pan: UIPanGestureRecognizer = {
             let gesture = UIPanGestureRecognizer(target: self, action: #selector(panned(_:)))
@@ -66,8 +69,9 @@ struct ProfileTabSwipe: UIViewRepresentable {
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
             guard let target else { return false }
-            let x = touch.location(in: target).x
-            guard x > 28, x < target.bounds.width - 28 else { return false }
+            let point = touch.location(in: target)
+            guard point.x > 28, point.x < target.bounds.width - 28,
+                  exclusions?.contains(point, in: target) != true else { return false }
             var ancestor = touch.view
             while let view = ancestor, view !== target {
                 if view is UISegmentedControl { return false }
@@ -82,6 +86,31 @@ struct ProfileTabSwipe: UIViewRepresentable {
                                shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
             otherGestureRecognizer is UIPanGestureRecognizer && !(otherGestureRecognizer is UIScreenEdgePanGestureRecognizer)
         }
+    }
+}
+
+// SwiftUI can deliver touches through hosting views that are outside the
+// horizontal scroll view's UIKit ancestry. Mark the visible rail explicitly.
+@MainActor final class ProfileSwipeExclusions {
+    weak var socialLinks: UIView?
+
+    func contains(_ point: CGPoint, in host: UIView) -> Bool {
+        guard let socialLinks, socialLinks.window != nil, socialLinks.window === host.window else { return false }
+        return socialLinks.bounds.contains(socialLinks.convert(point, from: host))
+    }
+}
+
+struct ProfileSocialLinksRegion: UIViewRepresentable {
+    let exclusions: ProfileSwipeExclusions
+
+    func makeUIView(context: Context) -> UIView {
+        let marker = UIView()
+        marker.isUserInteractionEnabled = false
+        return marker
+    }
+
+    func updateUIView(_ marker: UIView, context: Context) {
+        exclusions.socialLinks = marker
     }
 }
 

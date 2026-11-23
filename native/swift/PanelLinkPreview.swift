@@ -2,18 +2,31 @@ import SwiftUI
 import UIKit
 import WebKit
 
-// Context menus for both panel artwork and inline Markdown links use the
-// system commit callback. A tap on the preview opens the original destination.
+// Panel images, inline Markdown and social links share the system commit
+// callback. A tap on the preview opens the original destination.
 @MainActor final class PanelLinkMenu: NSObject, UIContextMenuInteractionDelegate {
     var destination: (CGPoint) -> URL? = { _ in nil }
     var open: (URL) -> Void = { _ in }
     var previewSize = CGSize.zero
+    var sourcePreview: ((CGPoint) -> UITargetedPreview?)?
     private weak var webView: WKWebView?
+
+    private final class Link: NSObject, NSCopying {
+        let url: URL
+        let location: CGPoint
+
+        init(url: URL, location: CGPoint) {
+            self.url = url
+            self.location = location
+        }
+
+        nonisolated func copy(with zone: NSZone? = nil) -> Any { self }
+    }
 
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
                                 configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
         guard let url = destination(location) else { return nil }
-        return UIContextMenuConfiguration(identifier: url as NSURL, previewProvider: { [weak self] in
+        return UIContextMenuConfiguration(identifier: Link(url: url, location: location), previewProvider: { [weak self] in
             guard let self else { return nil }
             let configuration = WKWebViewConfiguration()
             configuration.websiteDataStore = .nonPersistent()
@@ -35,13 +48,28 @@ import WebKit
         })
     }
 
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configuration: UIContextMenuConfiguration,
+                                highlightPreviewForItemWithIdentifier identifier: any NSCopying) -> UITargetedPreview? {
+        targetedPreview(configuration)
+    }
+
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configuration: UIContextMenuConfiguration,
+                                dismissalPreviewForItemWithIdentifier identifier: any NSCopying) -> UITargetedPreview? {
+        targetedPreview(configuration)
+    }
+
+    private func targetedPreview(_ configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let link = configuration.identifier as? Link else { return nil }
+        return sourcePreview?(link.location)
+    }
+
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
                                 willPerformPreviewActionForMenuWith configuration: UIContextMenuConfiguration,
                                 animator: any UIContextMenuInteractionCommitAnimating) {
-        guard let url = configuration.identifier as? NSURL else { return }
+        guard let link = configuration.identifier as? Link else { return }
         let open = open
         animator.preferredCommitStyle = .dismiss
-        animator.addCompletion { open(url as URL) }
+        animator.addCompletion { open(link.url) }
     }
 
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction,

@@ -33,12 +33,14 @@ struct ChannelProfileView<Video: View>: View {
     }
     var body: some View {
         GeometryReader { geometry in
+            let previewSize = panelPreviewSize(in: geometry.size)
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    banner(width: geometry.size.width, height: 190 + geometry.safeAreaInsets.top)
+                    banner(width: geometry.size.width, height: 190 + geometry.safeAreaInsets.top,
+                           previewSize: previewSize)
                     VStack(alignment: .leading, spacing: 16) {
-                        identity.padding(.top, -42)
-                        biography
+                        identity(previewSize: previewSize).padding(.top, -42)
+                        biography(previewSize: previewSize)
                         actionBar
                         Picker("Profile page", selection: Binding(get: { model.tab }, set: selectTab)) {
                             Text("Home").tag(0); Text("About").tag(1)
@@ -49,7 +51,7 @@ struct ChannelProfileView<Video: View>: View {
                             Text(error).foregroundStyle(.secondary)
                             Button("Retry profile") { Task { await model.load() } }
                         }
-                        pages(width: max(1, geometry.size.width - 40), previewSize: panelPreviewSize(in: geometry.size))
+                        pages(width: max(1, geometry.size.width - 40), previewSize: previewSize)
                     }.padding(.horizontal, 20)
                         .frame(width: geometry.size.width, alignment: .leading)
                 }.frame(width: geometry.size.width, alignment: .leading).padding(.bottom, 24)
@@ -69,12 +71,12 @@ struct ChannelProfileView<Video: View>: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in Task { await model.load() } }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in unfollow = false; notifications = false; subscription = false }
     }
-    private func banner(width: CGFloat, height: CGFloat) -> some View {
+    private func banner(width: CGFloat, height: CGFloat, previewSize: CGSize) -> some View {
         Color(uiColor: .secondarySystemBackground)
             .frame(width: width, height: height)
             .overlay {
                 RemoteChannelImage(url: model.data?.banner, images: images, generation: 0,
-                    artworkAccent: { bannerAccent = $0 })
+                    artworkAccent: { bannerAccent = $0 }).allowsHitTesting(false)
             }
             .overlay(alignment: .bottom) {
                 if !reduceTransparency {
@@ -88,15 +90,19 @@ struct ChannelProfileView<Video: View>: View {
                     .frame(height: 42)
             }
             .clipped()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+            .contentShape(Rectangle())
+            .modifier(ProfileArtworkMenu(url: model.data?.banner, kind: .banner, images: images, previewSize: previewSize))
     }
-    private var identity: some View {
-        HStack(spacing: 12) {
-            RemoteChannelImage(url: model.data?.avatar ?? channel.avatarURL, images: images, generation: 0, avatar: true,
+    private func identity(previewSize: CGSize) -> some View {
+        let avatar = model.data?.avatar ?? channel.avatarURL
+        return HStack(spacing: 12) {
+            RemoteChannelImage(url: avatar, images: images, generation: 0, avatar: true,
                 artworkAccent: { avatarAccent = $0 })
                 .frame(width: 76, height: 76).clipShape(Circle())
-                .overlay { if channel.isLive { LiveRing(clock: clock) } }
+                .contentShape(Circle())
+                .contentShape(.contextMenuPreview, Circle())
+                .modifier(ProfileArtworkMenu(url: avatar, kind: .avatar, images: images, previewSize: previewSize))
+                .overlay { if channel.isLive { LiveRing(clock: clock).allowsHitTesting(false) } }
             VStack(alignment: .leading, spacing: 5) {
                 VerifiedChannelName(channel: channel).font(.title2.bold())
                 if channel.isLive {
@@ -106,16 +112,14 @@ struct ChannelProfileView<Video: View>: View {
             }
         }
     }
-    @ViewBuilder private var biography: some View {
+    @ViewBuilder private func biography(previewSize: CGSize) -> some View {
         if let data = model.data {
             if !data.bio.isEmpty { Text(data.bio).font(.subheadline).textSelection(.enabled) }
             if !data.links.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
                         ForEach(data.links) { item in
-                            Link(destination: item.url) {
-                                Label { Text(item.title) } icon: { ProfileSocialIcon(platform: item.platform) }
-                            }
+                            ProfileSocialLink(item: item, accent: accent, previewSize: previewSize)
                         }
                     }
                 }
@@ -376,33 +380,84 @@ private struct ProfileGlass: ViewModifier {
 
 private final class ProfileSocialBundle: NSObject {}
 
-private struct ProfileSocialIcon: View {
-    let platform: ProfileSocialPlatform?
+private struct ProfileSocialLink: UIViewRepresentable {
+    let item: ChannelProfileData.Link
+    let accent: Color
+    let previewSize: CGSize
+    @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    var body: some View {
-        if let platform, let image = Self.artwork[platform] {
-            Image(uiImage: image).renderingMode(.template).resizable().scaledToFit()
-                .frame(width: 16, height: 16).foregroundStyle(color(platform))
-        } else { Image(systemName: "link") }
+    func makeCoordinator() -> PanelLinkMenu { PanelLinkMenu() }
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        let menu = context.coordinator
+        button.addInteraction(UIContextMenuInteraction(delegate: menu))
+        button.addAction(UIAction { [weak menu] _ in
+            guard let menu, let url = menu.destination(.zero) else { return }
+            menu.open(url)
+        }, for: .touchUpInside)
+        button.accessibilityTraits = .link
+        return button
     }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        let url = item.url
+        let openURL = openURL
+        context.coordinator.destination = { _ in url }
+        context.coordinator.open = { openURL($0) }
+        context.coordinator.previewSize = previewSize
+        var configuration = UIButton.Configuration.plain()
+        let trait = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
+        let title = NSAttributedString(string: item.title, attributes: [
+            .font: UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: trait)
+        ])
+        if let formattedTitle = try? AttributedString(title, including: \.uiKit) {
+            configuration.attributedTitle = formattedTitle
+        } else {
+            configuration.title = item.title
+        }
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 0, bottom: 3, trailing: 0)
+        configuration.imagePadding = 5
+        configuration.baseForegroundColor = UIColor(accent)
+        if let platform = item.platform, let image = Self.artwork[platform] {
+            configuration.image = image
+            let tint = color(platform)
+            configuration.imageColorTransformer = UIConfigurationColorTransformer { _ in tint }
+        } else {
+            configuration.image = UIImage(systemName: "link", withConfiguration: UIImage.SymbolConfiguration(textStyle: .subheadline))
+        }
+        button.configuration = configuration
+        button.accessibilityLabel = item.title
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIButton, context: Context) -> CGSize? {
+        uiView.intrinsicContentSize
+    }
+
     private static let artwork: [ProfileSocialPlatform: UIImage] = {
         let bundle = Bundle(for: ProfileSocialBundle.self)
         var images: [ProfileSocialPlatform: UIImage] = [:]
+        let size = CGSize(width: 16, height: 16)
         for platform in ProfileSocialPlatform.allCases {
             if let url = bundle.url(forResource: "profile-social-" + platform.rawValue, withExtension: "png"),
-               let image = UIImage(contentsOfFile: url.path) { images[platform] = image }
+               let image = UIImage(contentsOfFile: url.path) {
+                images[platform] = UIGraphicsImageRenderer(size: size).image { _ in
+                    image.draw(in: CGRect(origin: .zero, size: size))
+                }.withRenderingMode(.alwaysTemplate)
+            }
         }
         return images
     }()
-    private func color(_ platform: ProfileSocialPlatform) -> Color {
+    private func color(_ platform: ProfileSocialPlatform) -> UIColor {
         switch platform {
-        case .twitter: return Color(red: 0.11, green: 0.63, blue: 0.95)
-        case .x, .tiktok: return .primary
-        case .youtube: return Color(red: 1, green: 0.16, blue: 0.18)
-        case .instagram: return Color(red: 0.89, green: 0.25, blue: 0.50)
-        case .discord: return Color(red: 0.42, green: 0.46, blue: 1)
-        case .facebook: return Color(red: 0.26, green: 0.55, blue: 1)
-        case .twitch: return Color(red: 0.65, green: 0.39, blue: 1)
+        case .twitter: return UIColor(red: 0.11, green: 0.63, blue: 0.95, alpha: 1)
+        case .x, .tiktok: return .label
+        case .youtube: return UIColor(red: 1, green: 0.16, blue: 0.18, alpha: 1)
+        case .instagram: return UIColor(red: 0.89, green: 0.25, blue: 0.50, alpha: 1)
+        case .discord: return UIColor(red: 0.42, green: 0.46, blue: 1, alpha: 1)
+        case .facebook: return UIColor(red: 0.26, green: 0.55, blue: 1, alpha: 1)
+        case .twitch: return UIColor(red: 0.65, green: 0.39, blue: 1, alpha: 1)
         }
     }
 }

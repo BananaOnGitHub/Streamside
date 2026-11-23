@@ -170,6 +170,49 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Fixture panel"].waitForExistence(timeout: 3))
         print("CHANNEL_PROFILE_UI PASS: production Home/About, web subscription popover, compact header, stream details, decoded tall panel artwork, image link tap and preview commit, Markdown block styling, link tap and preview commits, isolated social scroll, tab swipes, notification menu, confirmed unfollow and navigation pop")
     }
+    func testProfilePreviews() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        testedApp = app
+        app.launchArguments = ["--profile", "--profile-artwork"]
+        app.launch()
+        let profile = app.buttons["Open fixture profile"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 5))
+        profile.tap()
+
+        let social = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Fixture social link 1")).firstMatch
+        XCTAssertTrue(social.waitForExistence(timeout: 8))
+        let destination = app.staticTexts["profile.opened-link"]
+        social.tap()
+        wait(destination, label: "Opened 1: https://example.invalid/social-1")
+        social.press(forDuration: 1.2)
+        let openLink = app.buttons["Open link"]
+        XCTAssertTrue(openLink.waitForExistence(timeout: 5))
+        XCTAssertEqual(destination.label, "Opened 1: https://example.invalid/social-1")
+        tapPanelPreview(in: app, above: openLink)
+        wait(destination, label: "Opened 2: https://example.invalid/social-1")
+
+        let openImage = app.buttons["Open image"]
+        let done = app.navigationBars.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Done", "Close")).firstMatch
+        for artworkID in ["profile.banner", "profile.avatar"] {
+            let artwork = app.descendants(matching: .any)[artworkID].firstMatch
+            XCTAssertTrue(artwork.waitForExistence(timeout: 5))
+            // Avoid the back button overlay at the banner's upper left.
+            artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.56, dy: 0.48)).press(forDuration: 1.2)
+            XCTAssertTrue(openImage.waitForExistence(timeout: 6), artworkID)
+            XCTAssertFalse(done.exists, "Holding should show a preview before opening the native viewer")
+            openImage.tap()
+            XCTAssertTrue(done.waitForExistence(timeout: 10), "The native viewer must receive the loaded image")
+            let share = app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Share", "Action")).firstMatch
+            XCTAssertTrue(share.waitForExistence(timeout: 5), "Quick Look must offer system sharing")
+            done.tap()
+            assertDismissed(done)
+        }
+        XCTAssertTrue(app.segmentedControls["profile.tabs"].buttons["Home"].isSelected)
+        print("PROFILE_PREVIEWS PASS: short social tap, long hold and WebKit preview commit, banner and avatar system viewer with Share")
+    }
+
     func testMarkedContentConsent() {
         continueAfterFailure = false
         let editor = XCUIApplication(); testedApp = editor

@@ -39,7 +39,7 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
 
     final class ContentView: UIView {
         let textView = UITextView()
-        let linkTarget = LinkTarget()
+        let linkTarget = LinkTarget(frame: .zero)
 
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -60,12 +60,22 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
     final class LinkTarget: UIView {
         weak var textView: UITextView?
         weak var menu: PanelLinkMenu?
+        private let highlight = CAShapeLayer()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            layer.addSublayer(highlight)
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
         override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
             super.point(inside: point, with: event) && destination(at: point) != nil
         }
 
-        func destination(at point: CGPoint) -> URL? {
+        func destination(at point: CGPoint) -> URL? { link(at: point)?.url }
+
+        private func link(at point: CGPoint) -> (url: URL, rects: [CGRect])? {
             guard let view = textView, let text = view.attributedText else { return nil }
             let location = view.convert(point, from: self)
             guard let closest = view.closestPosition(to: location) else { return nil }
@@ -78,11 +88,48 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
                       let start = view.position(from: view.beginningOfDocument, offset: effective.location),
                       let end = view.position(from: start, offset: effective.length),
                       let range = view.textRange(from: start, to: end) else { continue }
-                if view.selectionRects(for: range).contains(where: { $0.rect.insetBy(dx: -2, dy: -1).contains(location) }) {
-                    return url
+                let rects = view.selectionRects(for: range).map(\.rect).filter { !$0.isEmpty }
+                if rects.contains(where: { $0.insetBy(dx: -2, dy: -1).contains(location) }) {
+                    return (url, rects)
                 }
             }
             return nil
+        }
+
+        func targetedPreview(at point: CGPoint) -> UITargetedPreview? {
+            guard let view = textView, view.window != nil, let link = link(at: point) else { return nil }
+            let parameters = UIPreviewParameters(textLineRects: link.rects.map { NSValue(cgRect: $0) })
+            parameters.backgroundColor = .secondarySystemBackground
+            return UITargetedPreview(view: view, parameters: parameters)
+        }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+            super.touchesBegan(touches, with: event)
+            guard let point = touches.first?.location(in: self), let view = textView,
+                  let link = link(at: point) else { return }
+            let path = UIBezierPath()
+            for rect in link.rects {
+                let rounded = convert(rect, from: view).insetBy(dx: -3, dy: -2)
+                path.append(UIBezierPath(roundedRect: rounded, cornerRadius: 5))
+            }
+            highlight.fillColor = UIColor.label.withAlphaComponent(0.14).resolvedColor(with: traitCollection).cgColor
+            highlight.path = path.cgPath
+        }
+
+        override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+            super.touchesMoved(touches, with: event)
+            if let point = touches.first?.location(in: self),
+               highlight.path?.contains(point) != true { highlight.path = nil }
+        }
+
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+            super.touchesEnded(touches, with: event)
+            highlight.path = nil
+        }
+
+        override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+            super.touchesCancelled(touches, with: event)
+            highlight.path = nil
         }
 
         @objc func openLink(_ gesture: UITapGestureRecognizer) {
@@ -100,6 +147,7 @@ struct PanelMarkdownLinkText: UIViewRepresentable {
         let menu = context.coordinator.linkMenu
         linkTarget.menu = menu
         menu.destination = { [weak linkTarget] point in linkTarget?.destination(at: point) }
+        menu.sourcePreview = { [weak linkTarget] point in linkTarget?.targetedPreview(at: point) }
         linkTarget.addInteraction(UIContextMenuInteraction(delegate: menu))
         linkTarget.addGestureRecognizer(UITapGestureRecognizer(target: linkTarget, action: #selector(LinkTarget.openLink(_:))))
         view.isEditable = false

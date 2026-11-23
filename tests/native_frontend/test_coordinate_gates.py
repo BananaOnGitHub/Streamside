@@ -12,9 +12,10 @@ from controls_ui import EXPECTED, SELECTED_SUITE_FINISHED, SELECTED_SUITE_PASSED
 
 class CoordinateGates(unittest.TestCase):
     names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
-             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile']
+             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews']
     markers = {
         'testChannelProfile': ['CHANNEL_PROFILE_UI'],
+        'testProfilePreviews': ['PROFILE_PREVIEWS'],
         'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH', 'LOCAL_TEST_EDITOR'],
         'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION', 'PLAYER_CLIPBOARD'],
         'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION', 'PLAYER_CLIPBOARD'],
@@ -55,15 +56,15 @@ class CoordinateGates(unittest.TestCase):
                     self.assertEqual(run_controls_ui(root, root, 'owned-device', run), EXPECTED)
             return calls
 
-    def test_six_independent_required_gates_with_unique_result_bundles(self):
+    def test_seven_independent_required_gates_with_unique_result_bundles(self):
         calls = self.exercise()
         tests = [(args, opts) for args, opts in calls if 'test-without-building' in args]
-        self.assertEqual(len(tests), 6)
+        self.assertEqual(len(tests), 7)
         selections = [next(a for a in args if a.startswith('-only-testing:')).rsplit('/', 1)[-1] for args, _ in tests]
         self.assertEqual(selections, self.names)
         bundles = [args[args.index('-resultBundlePath') + 1] for args, _ in tests]
-        self.assertEqual(len(set(bundles)), 6)
-        self.assertEqual([opts['timeout'] for _, opts in tests], [300, 300, 300, 600, 300, 300])
+        self.assertEqual(len(set(bundles)), 7)
+        self.assertEqual([opts['timeout'] for _, opts in tests], [300, 300, 300, 600, 300, 300, 300])
         self.assertTrue(all(opts['finalization'] == (SELECTED_SUITE_FINISHED, 120) for _, opts in tests))
         for name, (_, opts) in zip(self.names, tests):
             pattern, seconds = opts['startup']

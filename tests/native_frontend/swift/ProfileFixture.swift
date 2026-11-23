@@ -5,7 +5,13 @@ private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        guard let url = request.url, url.absoluteString == "https://panels.twitch.tv/panel-fixture",
+        let fixturePaths = [
+            "https://panels.twitch.tv/panel-fixture",
+            "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-profile_image-70x70.png",
+            "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-profile_image-600x600.png",
+            "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-banner.png"
+        ]
+        guard let url = request.url, fixturePaths.contains(url.absoluteString),
               let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1",
                                              headerFields: ["Content-Type": "image/png"]),
               let data = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAACAAAAAwCAIAAAD/zu84AAAALklEQVR4nO3NQQkAAAgEsEtnPxNrCh/CYP+la05FIBAIBAKBQCAQCAQCgUDwKVi88QSmGj03zQAAAABJRU5ErkJggg==") else {
@@ -29,13 +35,17 @@ private final class PanelImageFixtureProtocol: URLProtocol, @unchecked Sendable 
             let socials = (1...5).map { index in
                 ["title": "Fixture social link \(index)", "url": "https://example.invalid/social-\(index)"]
             }
-            let user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
+            var user: [String: Any] = ["displayName": "Profile fixture", "description": "Fixture biography", "followers": ["totalCount": 123],
             "channel": ["socialMedias": socials],
             "currentUser": ["subscriptionBenefit": ["id": "fixture-benefit"]],
             "panels": [NSNull(), ["__typename": "DefaultPanel", "title": "Fixture panel",
                 "description": "## Panel notes\n\n[About panel body](https://example.invalid/credits)",
                 "imageURL": "https://panels-images.twitch.tv/panel-fixture",
                 "linkURL": "https://example.invalid/artwork"]] as [Any]]
+            if ProcessInfo.processInfo.arguments.contains("--profile-artwork") {
+                user["profileImageURL"] = "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-profile_image-70x70.png"
+                user["bannerImageURL"] = "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-banner.png"
+            }
             return ["user": user]
         case .relationship:
             if relationshipUnavailable { throw CocoaError(.coderReadCorrupt) }

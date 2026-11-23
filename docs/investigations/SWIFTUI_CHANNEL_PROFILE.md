@@ -273,3 +273,11 @@ The profile coordinate fixture scrolls the rail through its final link and requi
 Source `3adb20dd1ecf59ace6262a94522db45d0ecbaf71` passed both jobs in [GitHub run 45107061678](https://github.com/BananaOnGitHub/Streamside/actions/runs/45107061678), including the profile gesture checks in the iOS Simulator. Local component verification also passed. The Xcode 26.6 component archive has SHA-256 `de7f733bd888036c8a40c33500500619c15f6b8aadbb6fad052fcdc185a5d2e5`.
 
 Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/channel-profile-3adb20d/StreamsideNativeProof-Twitch32-native.ipa`, 197,340,563 bytes, SHA-256 `e94732c515936a73d327a16ac372e814418a56f620cada4337240d2b122841d5`. Archive integrity passed. The swipe and link preview behavior still need confirmation on an iPhone, including haptics and live webpage loading.
+
+## Profile link and artwork previews
+
+Device testing confirmed that swiping the social rail leaves the rest of the profile still. Markdown link holds could open the right preview without a visible lift. The single touch owner now draws a pressed highlight around the hit link's TextKit line rectangles. UIKit animates those rectangles from the actual text view when opening and closing the menu. Social buttons reuse the panel WebKit menu and its tap-to-open behavior, with the existing rail swipe exclusion.
+
+Banner and profile picture holds use SwiftUI context previews with the entire image fitted into the card. Open image presents the local file in system Quick Look for zoom and sharing. A publicly documented CDN sample served 300×300 and 600×600 avatars, and returned 404 for 1200×1200 and an unsized URL. The image loader tries 600×600 only for matching Twitch avatar URLs and falls back to the supplied URL. Banners use the supplied URL at its delivered resolution. The existing credential-free image session and host policy apply. Quick Look receives the original response bytes, and the temporary file is released with the owning artwork view.
+
+A separate simulator gate covers social link tap and preview commit, both artwork menu sources, native viewer presentation and the Share control. It leaves the existing profile and playback gates in place. The CDN resolution with real profile responses and the hold animation still need physical-device validation.

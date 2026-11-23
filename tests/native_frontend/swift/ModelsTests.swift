@@ -325,6 +325,15 @@ import Foundation
         for text in ["http://static-cdn.jtvnw.net/image.jpg", "https://jtvnw.net.attacker.invalid/image.jpg", "https://user:pass@static-cdn.jtvnw.net/image.jpg", "https://static-cdn.jtvnw.net:8443/image.jpg", "file:///private/image.jpg"] {
             precondition(!ChannelImagePolicy.allowed(URL(string:text)!))
         }
+        let avatarStem = "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-profile_image-"
+        let lowRes = URL(string: avatarStem + "70x70.png")!
+        precondition(ChannelImagePolicy.largerProfileAvatar(lowRes)?.absoluteString == avatarStem + "600x600.png")
+        for unchanged in [avatarStem + "600x600.png", avatarStem + "1200x1200.png",
+                          avatarStem + "300x300.png?signature=fixture",
+                          "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-banner-300x300.png",
+                          "https://images.example.invalid/jtv_user_pictures/fixture-profile_image-70x70.png"] {
+            precondition(ChannelImagePolicy.largerProfileAvatar(URL(string: unchanged)!) == nil)
+        }
         let cycles: [TimeInterval?] = [0.5, 1, 2.5, 3.75, 5, 10, nil]
         for index in 0...6 { precondition(LivePingCycle.seconds(index: index) == cycles[index]) }
         precondition(LivePingCycle.seconds(index: 2) == 2.5)

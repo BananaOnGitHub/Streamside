@@ -153,6 +153,22 @@ enum ChannelImagePolicy {
         return host == panelHost || host == legacyPanelHost || host == "jtvnw.net" || host.hasSuffix(".jtvnw.net")
     }
 
+    // Only the documented Twitch CDN avatar filename takes a size suffix.
+    // Keep the supplied URL as the fallback when that variant is unavailable.
+    static func largerProfileAvatar(_ url: URL) -> URL? {
+        guard allowed(url), url.host?.lowercased() == "static-cdn.jtvnw.net",
+              url.path.hasPrefix("/jtv_user_pictures/"),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.query == nil,
+              let match = components.percentEncodedPath.range(of: "-profile_image-[0-9]{1,3}x[0-9]{1,3}(?=\\.[A-Za-z]+$)",
+                                                             options: .regularExpression) else { return nil }
+        let variant = components.percentEncodedPath[match]
+        let sides = variant.dropFirst("-profile_image-".count).split(separator: "x").compactMap { Int($0) }
+        guard sides.count == 2, sides.allSatisfy({ (1..<600).contains($0) }) else { return nil }
+        components.percentEncodedPath.replaceSubrange(match, with: "-profile_image-600x600")
+        return components.url
+    }
+
     static func panelURL(_ url: URL) -> URL? {
         guard allowed(url) else { return nil }
         guard url.host?.lowercased() == legacyPanelHost else { return url }

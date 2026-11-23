@@ -22,7 +22,8 @@ private final class ImageRedirectPolicy: NSObject, URLSessionTaskDelegate, @unch
 
 // The native viewer and menu share this file. Keep the CDN bytes for zoom
 // and sharing, and release the temporary directory when both are finished.
-final class ProfileArtworkFile {
+final class ProfileArtworkFile: Identifiable {
+    var id: URL { fileURL }
     let source: URL
     let fileURL: URL
     let preview: UIImage

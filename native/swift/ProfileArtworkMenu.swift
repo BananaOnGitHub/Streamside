@@ -15,14 +15,14 @@ struct ProfileArtworkMenu: ViewModifier {
     let images: ChannelImageCache
     let previewSize: CGSize
     @State private var file: ProfileArtworkFile?
-    @State private var viewerURL: URL?
+    @State private var viewerFile: ProfileArtworkFile?
     @State private var preparingViewer = false
     @State private var viewerError = false
 
     func body(content: Content) -> some View {
         artwork(content)
             .onChange(of: url) { _ in
-                viewerURL = nil
+                viewerFile = nil
                 preparingViewer = false
                 file = nil
             }
@@ -45,7 +45,9 @@ struct ProfileArtworkMenu: ViewModifier {
                 .overlay {
                     if preparingViewer { ProgressView().accessibilityLabel("Loading image").allowsHitTesting(false) }
                 }
-                .quickLookPreview($viewerURL)
+                .fullScreenCover(item: $viewerFile) { file in
+                    ProfileArtworkViewer(file: file)
+                }
                 .task(id: preparingViewer ? url : nil) {
                     guard preparingViewer else { return }
                     let loaded = await images.loadProfileArtwork(url: url, avatar: kind == .avatar, title: kind.title)
@@ -72,7 +74,7 @@ struct ProfileArtworkMenu: ViewModifier {
             viewerError = true
             return
         }
-        viewerURL = loaded.fileURL
+        viewerFile = loaded
     }
 }
 
@@ -111,4 +113,60 @@ private struct ProfileArtworkPreview: View {
             failed = loaded == nil
         }
     }
+}
+
+// The profile navigation bar is hidden. Give the image preview its own
+// controls outside Quick Look's content view so sharing and closing stay visible.
+private struct ProfileArtworkViewer: View {
+    let file: ProfileArtworkFile
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button { dismiss() } label: {
+                    Text("Done").frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityIdentifier("profile.artwork-done")
+                Spacer()
+                Text(file.fileURL.deletingPathExtension().lastPathComponent)
+                    .font(.headline).lineLimit(1)
+                Spacer()
+                ShareLink(item: file.fileURL) {
+                    Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Share")
+                .accessibilityIdentifier("profile.artwork-share")
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 48)
+            .background(Color(uiColor: .systemBackground))
+            ProfileArtworkCanvas(file: file).frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+private struct ProfileArtworkCanvas: UIViewControllerRepresentable {
+    let file: ProfileArtworkFile
+
+    @MainActor final class Source: NSObject, QLPreviewControllerDataSource {
+        let file: ProfileArtworkFile
+        init(file: ProfileArtworkFile) { self.file = file }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> any QLPreviewItem {
+            file.fileURL as NSURL
+        }
+    }
+
+    func makeCoordinator() -> Source { Source(file: file) }
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let preview = QLPreviewController()
+        preview.dataSource = context.coordinator
+        return preview
+    }
+
+    func updateUIViewController(_ controller: QLPreviewController, context: Context) {}
 }

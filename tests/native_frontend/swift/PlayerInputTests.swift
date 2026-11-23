@@ -194,19 +194,25 @@ final class PlayerInputTests: XCTestCase {
         wait(destination, label: "Opened 2: https://example.invalid/social-1")
 
         let openImage = app.buttons["Open image"]
-        let done = app.navigationBars.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Done", "Close")).firstMatch
+        let canvas = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Image canvas")).firstMatch
+        let done = app.buttons["profile.artwork-done"]
+        let share = app.buttons["profile.artwork-share"]
         for artworkID in ["profile.banner", "profile.avatar"] {
             let artwork = app.descendants(matching: .any)[artworkID].firstMatch
             XCTAssertTrue(artwork.waitForExistence(timeout: 5))
             // Avoid the back button overlay at the banner's upper left.
             artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.56, dy: 0.48)).press(forDuration: 1.2)
             XCTAssertTrue(openImage.waitForExistence(timeout: 6), artworkID)
-            XCTAssertFalse(done.exists, "Holding should show a preview before opening the native viewer")
+            XCTAssertFalse(canvas.exists, "Holding should show a preview before opening the native viewer")
             openImage.tap()
-            XCTAssertTrue(done.waitForExistence(timeout: 10), "The native viewer must receive the loaded image")
-            let share = app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Share", "Action")).firstMatch
-            XCTAssertTrue(share.waitForExistence(timeout: 5), "Quick Look must offer system sharing")
+            XCTAssertTrue(canvas.waitForExistence(timeout: 10), "Quick Look must render the actual image for " + artworkID)
+            XCTAssertGreaterThan(canvas.frame.width, 0)
+            XCTAssertGreaterThan(canvas.frame.height, 0)
+            XCTAssertTrue(share.isHittable, "The image viewer must offer a visible Share control")
+            XCTAssertTrue(done.isHittable, "The image viewer must offer a visible Done control")
             done.tap()
+            assertDismissed(canvas)
             assertDismissed(done)
         }
         XCTAssertTrue(app.segmentedControls["profile.tabs"].buttons["Home"].isSelected)

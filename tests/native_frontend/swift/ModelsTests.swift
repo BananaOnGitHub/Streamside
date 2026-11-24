@@ -151,6 +151,8 @@ import Foundation
         transcript.apply(TwitchChatMessages.parse(":tmi.twitch.tv CLEARCHAT #fixture", channel: "fixture"))
         precondition(transcript.messages.isEmpty)
         precondition(TwitchChatMessages.parse(":tmi.twitch.tv NOTICE * :Login unsuccessful", channel: "fixture") == [.unavailable])
+        precondition(TwitchChatMessages.parse(":tmi.twitch.tv ROOMSTATE\r\nPING", channel: "fixture").isEmpty)
+        precondition(TwitchChatMessages.parse("PING tmi.twitch.tv", channel: "fixture") == [.ping("tmi.twitch.tv")])
         precondition(TwitchChatMessages.parse("PING :sample", channel: "fixture\r\nextra").isEmpty)
         precondition(TwitchChatMessages.parse(String(repeating: "x", count: 65537), channel: "fixture").isEmpty)
         for id in 0...220 {

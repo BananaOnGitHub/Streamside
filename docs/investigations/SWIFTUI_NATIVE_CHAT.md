@@ -13,3 +13,7 @@ The theatre opens chat after native stream access and content consent, while the
 ## Validation
 
 An Ubuntu probe against Twitch returned a guest welcome, tag capability acknowledgement, seven public room-state responses, and two tagged messages with Twitch colors. The probe retained counts only. Apple model fixtures cover tagged frames, Unicode names, color parsing, wrong rooms, deletes, duplicate IDs, and the bounded transcript. Device testing still needs to cover live message rendering, scrolling, and rejoining after backgrounding in the signed theatre.
+
+### Initial Swift compiler failure
+
+[GitHub run 45328037839](https://github.com/BananaOnGitHub/Streamside/actions/runs/45328037839) for `5aedc14d9e823bc29a60a172785ad36861c49d08` failed in the iPhone SwiftUI build. The compiler rejected direct comparisons of a parsed optional `Substring` with the expected room's `String`. The parser now compares two `Substring` values and treats a missing destination as an empty token. The model fixtures check a missing room and both IRC keepalive forms. The failed job log is retained beside the local build ticket. Linking, model execution and simulator validation were not reached.

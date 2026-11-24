@@ -32,12 +32,12 @@ enum TwitchChatMessages {
 
     static func parse(_ frame: String, channel: String) -> [TwitchChatEvent] {
         guard frame.utf8.count <= 64 * 1024, let channel = normalizedLogin(channel) else { return [] }
-        let room = "#" + channel
+        let room = Substring("#" + channel)
         return frame.unicodeScalars.split(whereSeparator: { $0.value == 10 || $0.value == 13 })
             .compactMap { parseLine(String($0), room: room) }
     }
 
-    private static func parseLine(_ line: String, room: String) -> TwitchChatEvent? {
+    private static func parseLine(_ line: String, room: Substring) -> TwitchChatEvent? {
         guard line.utf8.count <= 8192 else { return nil }
         var rest = line[...]
         var tags: [Substring: Substring] = [:]
@@ -60,24 +60,26 @@ enum TwitchChatMessages {
         let body = separator.map { rest[$0.upperBound...] }
         let words = (separator.map { rest[..<$0.lowerBound] } ?? rest).split(separator: " ")
         guard let command = words.first else { return nil }
-        let destination = words.dropFirst().first
+        let destination = words.dropFirst().first ?? ""
+        let inRoom = destination == room
 
         switch command {
         case "001": return .welcome
         case "PING":
-            guard let payload = body ?? destination, !payload.isEmpty else { return nil }
+            let payload = body ?? destination
+            guard !payload.isEmpty else { return nil }
             return .ping(String(payload))
         case "RECONNECT": return .reconnect
         case "CAP": return words.contains("NAK") ? .unavailable : nil
         case "NOTICE":
             let denied = ["msg_banned", "msg_channel_suspended", "msg_room_not_found", "no_permission"]
-            if destination == "*" || (destination == room && denied.contains(String(tags["msg-id"] ?? ""))) {
+            if destination == "*" || (inRoom && denied.contains(String(tags["msg-id"] ?? ""))) {
                 return .unavailable
             }
             return nil
-        case "ROOMSTATE": return destination == room ? .joined : nil
+        case "ROOMSTATE": return inRoom ? .joined : nil
         case "PRIVMSG":
-            guard destination == room, let rawBody = body, !rawBody.isEmpty,
+            guard inRoom, let rawBody = body, !rawBody.isEmpty,
                   let rawLogin = prefix.split(separator: "!", maxSplits: 1).first,
                   let login = normalizedLogin(String(rawLogin)), let id = identifier(tags["id"]) else { return nil }
             let text = rawBody.hasPrefix("\u{1}ACTION ") && rawBody.hasSuffix("\u{1}")
@@ -86,10 +88,10 @@ enum TwitchChatMessages {
             return .message(TwitchChatMessage(id: id, login: login, displayName: displayName(tags["display-name"] ?? ""),
                                               color: color(tags["color"]), body: String(text)))
         case "CLEARMSG":
-            guard destination == room, let id = identifier(tags["target-msg-id"]) else { return nil }
+            guard inRoom, let id = identifier(tags["target-msg-id"]) else { return nil }
             return .removeMessage(id)
         case "CLEARCHAT":
-            guard destination == room else { return nil }
+            guard inRoom else { return nil }
             guard let body else { return .clear(login: nil) }
             return normalizedLogin(String(body)).map { .clear(login: $0) }
         default: return nil

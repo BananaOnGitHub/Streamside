@@ -23,9 +23,10 @@ from probes import generate_header
 FRAMEWORK = "StreamsideNativeProof"
 LOAD = f"@rpath/{FRAMEWORK}.framework/{FRAMEWORK}"
 MODES = ("baseline", "native")
-# Native includes all six coordinate suites. The baseline runs only shared
-# fixtures. Keep both worker limits inside apple_ci.py's 3000-second stage.
-WORKER_TIMEOUT_SECONDS = {"native": 2250, "baseline": 600}
+# The native worker also runs the coordinate suites, each with its own
+# startup, execution, and result-finalization limits.
+WORKER_TIMEOUT_SECONDS = {"native": 2700, "baseline": 600}
+COMPONENT_BUILD_TIMEOUT_SECONDS = sum(WORKER_TIMEOUT_SECONDS.values()) + 120
 ARTWORK = {path.name for path in (ROOT / "native/assets").glob("*.png")}
 FILES = {"SSNBuild.h", "SSNSwiftUI-Swift.h", "apple-abi.o", "compiler.json", "build.log",
          f"{FRAMEWORK}.framework/{FRAMEWORK}", f"{FRAMEWORK}.framework/Info.plist",

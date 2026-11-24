@@ -13,6 +13,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'tools'), str(ROOT / 'tools/native_frontend')]
 from build_progress import run_logged
+from components import COMPONENT_BUILD_TIMEOUT_SECONDS
 from workspace_paths import ARTIFACTS_DIR
 
 
@@ -38,8 +39,9 @@ def main():
     try:
         for index, (label, command) in enumerate(commands):
             started = time.monotonic()
+            timeout = COMPONENT_BUILD_TIMEOUT_SECONDS if index == 2 else 3000
             try:
-                run_logged(command, cwd=ROOT, log_path=out / f'stage-{index}.log', timeout=3000,
+                run_logged(command, cwd=ROOT, log_path=out / f'stage-{index}.log', timeout=timeout,
                            label=label, group=True, heartbeat=True, summary=True)
             except Exception:
                 result['stages'].append(dict(name=label, passed=False, seconds=round(time.monotonic()-started, 3)))

@@ -17,3 +17,9 @@ An Ubuntu probe against Twitch returned a guest welcome, tag capability acknowle
 ### Initial Swift compiler failure
 
 [GitHub run 45328037839](https://github.com/BananaOnGitHub/Streamside/actions/runs/45328037839) for `5aedc14d9e823bc29a60a172785ad36861c49d08` failed in the iPhone SwiftUI build. The compiler rejected direct comparisons of a parsed optional `Substring` with the expected room's `String`. The parser now compares two `Substring` values and treats a missing destination as an empty token. The model fixtures check a missing room and both IRC keepalive forms. The failed job log is retained beside the local build ticket. Linking, model execution and simulator validation were not reached.
+
+### Verified chat test package
+
+Source `9f2505e1b284054894cf0b18d20137fdc8a620d2` passed the Apple and ABI jobs in [GitHub run 45329795140](https://github.com/BananaOnGitHub/Streamside/actions/runs/45329795140). The Swift chat parser fixtures, seven existing simulator coordinate tests and all 78 local component checks passed. The simulator profile gate checked that the back button was absent while both artwork viewers were open and that Done returned to the same profile. The verified Xcode 26.6 component archive has SHA-256 `6f5b24c9f771bc1a1a7cd8e601a1c016a4267ef7a7dc1072ba1632014300e9b7`.
+
+Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/native-chat-9f2505e/StreamsideNativeProof-Twitch32-native.ipa`, 197,437,463 bytes, SHA-256 `a5d3f293aa21e9e8b9ddff51da8dc9c6a634fae6639141826841f583b4bc9b44`. Archive integrity passed. Live theatre chat, scroll behavior, and the Liquid Glass response still need iPhone confirmation.

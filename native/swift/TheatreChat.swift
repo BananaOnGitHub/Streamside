@@ -41,7 +41,6 @@ struct StreamChatTranscript: View {
     let listening: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @State private var userScrolling = false
     @GestureState private var legacyDragging = false
     @State private var legacyBottom: CGFloat = 0
     private let bottomTolerance: CGFloat = 12
@@ -63,50 +62,36 @@ struct StreamChatTranscript: View {
                 Text(statusText).font(.footnote).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollViewReader { reader in
-                    trackedScroll(reader)
-                        .onAppear { scrollToBottom(reader) }
-                        .onChange(of: followTarget) { id in
-                            if id != nil { scrollToBottom(reader) }
-                        }
-                        .overlay(alignment: .bottom) { catchUpPill }
-                        .clipped()
-                }
+                trackedScroll
+                    .overlay(alignment: .bottom) { catchUpPill }
+                    .clipped()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    @ViewBuilder private func trackedScroll(_ reader: ScrollViewProxy) -> some View {
+    @ViewBuilder private var trackedScroll: some View {
         if #available(iOS 18.0, *) {
             transcriptScroll(measureBottom: false)
-                .defaultScrollAnchor(timeline.isPaused ? nil : .bottom, for: .sizeChanges)
-                .onScrollPhaseChange { _, phase, context in
-                    if phase == .interacting {
-                        userScrolling = true
-                        timeline.pause()
-                    } else if phase == .idle, userScrolling {
-                        userScrolling = false
-                        if context.geometry.contentSize.height - context.geometry.visibleRect.maxY <= bottomTolerance {
-                            timeline.resume()
-                        }
-                    }
-                }
+                .modifier(ChatLiveScrollPosition(followTarget: followTarget, bottomTolerance: bottomTolerance,
+                                                 pause: { timeline.pause() }, resume: { timeline.resume() }))
         } else {
-            GeometryReader { viewport in
-                transcriptScroll(measureBottom: true)
-                    .coordinateSpace(name: "chat.viewport")
-                    .onPreferenceChange(ChatBottomEdge.self) { legacyBottom = $0 }
-                    .simultaneousGesture(DragGesture(minimumDistance: 4).updating($legacyDragging) { value, dragging, _ in
-                        if abs(value.translation.height) > abs(value.translation.width) { dragging = true }
-                    })
-                    .onChange(of: legacyDragging) { dragging in
-                        if dragging { timeline.pause() }
-                        else if legacyBottom - viewport.size.height <= bottomTolerance { timeline.resume() }
-                    }
-                    .onChange(of: viewport.size.height) { _ in
-                        if !timeline.isPaused { scrollToBottom(reader) }
-                    }
+            ScrollViewReader { reader in
+                GeometryReader { viewport in
+                    transcriptScroll(measureBottom: true)
+                        .coordinateSpace(name: "chat.viewport")
+                        .onPreferenceChange(ChatBottomEdge.self) { legacyBottom = $0 }
+                        .simultaneousGesture(DragGesture(minimumDistance: 4).updating($legacyDragging) { value, dragging, _ in
+                            if abs(value.translation.height) > abs(value.translation.width) { dragging = true }
+                        })
+                        .onChange(of: legacyDragging) { dragging in
+                            if dragging { timeline.pause() }
+                            else if legacyBottom - viewport.size.height <= bottomTolerance { timeline.resume() }
+                        }
+                        .onChange(of: viewport.size.height) { _ in scrollToBottom(reader) }
+                }
+                .onAppear { scrollToBottom(reader) }
+                .onChange(of: followTarget) { _ in scrollToBottom(reader) }
             }
         }
     }
@@ -120,6 +105,10 @@ struct StreamChatTranscript: View {
                         row(message)
                     }
                     .id(message.id)
+                }
+                if measureBottom {
+                    Color.clear.frame(height: 1).id(ChatBottomEdge.target)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(.horizontal, 14)
@@ -194,14 +183,53 @@ struct StreamChatTranscript: View {
     }
 
     private func scrollToBottom(_ reader: ScrollViewProxy) {
-        guard let id = timeline.messages.last?.id else { return }
+        guard followTarget != nil else { return }
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
-        withTransaction(transaction) { reader.scrollTo(id, anchor: .bottom) }
+        withTransaction(transaction) { reader.scrollTo(ChatBottomEdge.target, anchor: .bottom) }
+    }
+}
+
+// Scrolling to a row during a viewport resize can align it under the home
+// indicator. Position the actual scroll edge so the system includes its insets.
+@available(iOS 18.0, *)
+private struct ChatLiveScrollPosition: ViewModifier {
+    let followTarget: String?
+    let bottomTolerance: CGFloat
+    let pause: () -> Void
+    let resume: () -> Void
+    @State private var position = ScrollPosition(idType: String.self, edge: .bottom)
+    @State private var userScrolling = false
+
+    func body(content: Content) -> some View {
+        content
+            .scrollPosition($position)
+            .defaultScrollAnchor(.bottom, for: .initialOffset)
+            .defaultScrollAnchor(followTarget == nil ? nil : .bottom, for: .sizeChanges)
+            .onChange(of: followTarget) { _, latest in
+                guard latest != nil else { return }
+                var transaction = Transaction(animation: nil)
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { position.scrollTo(edge: .bottom) }
+            }
+            .onScrollPhaseChange { _, phase, context in
+                if phase == .interacting {
+                    userScrolling = true
+                    pause()
+                } else if phase == .idle, userScrolling {
+                    userScrolling = false
+                    let geometry = context.geometry
+                    let distance = geometry.contentSize.height + geometry.contentInsets.bottom
+                        - geometry.contentOffset.y - geometry.containerSize.height
+                    if distance <= bottomTolerance { resume() }
+                }
+            }
     }
 }
 
 private struct ChatBottomEdge: PreferenceKey {
+    enum Target: Hashable { case bottom }
+    static let target = Target.bottom
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }

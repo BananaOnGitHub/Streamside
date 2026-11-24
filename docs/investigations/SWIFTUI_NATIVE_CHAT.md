@@ -31,3 +31,9 @@ Device testing confirmed live chat delivery. With the first transcript, each arr
 The portrait stream info pane now receives the same linear progress transaction as the controls, including their deferred reveal after being remounted. Both use the cubic fly curve or the smooth fade curve with the configured duration. The panel clips upward into the bottom of the video and gives the space to chat. Reduce Motion uses the fade curve. Content consent, local tests, and playback errors keep their info accessible.
 
 The Apple model fixtures cover paused retention, duplicate and deleted unread messages, capacity and marker placement. A separate simulator fixture checks the reading position, count and marker, returning to live chat, and the viewport growing and shrinking with the control animation. The live-device animation timing, glass and chat scrolling remain device checks.
+
+### Align live chat to the visible bottom edge
+
+[GitHub run 45359907026](https://github.com/BananaOnGitHub/Streamside/actions/runs/45359907026) for `a145ee1520775d295a14cbe1b888e3c2ca604a4f` passed compilation, the Swift chat model checks and the seven existing simulator cases. The new catch-up simulator case failed at its first live-follow assertion. The screenshot showed rows through 57 of 60, and the accessibility tree placed row 59 outside the visible content area while the scroll bar reported 92%. The job log and screenshot remain beside the local build ticket. The screenshot SHA-256 is `ae86143e2b76e739fdc1d510fe8b840eafed9fb733c2efa8a54a6f3154c440c8`.
+
+On iOS 18 and later, live follow and catch-up now target SwiftUI's scroll bottom edge instead of aligning the last row while the viewport resizes. The scroll phase uses bottom content insets when deciding whether a manual scroll has returned to live. iOS 16 and 17 use a tail anchor. The simulator gate still requires the latest row to be physically hittable at launch, after catch-up and after more live messages arrive.

@@ -10,8 +10,15 @@ private struct TheatreContent: View {
     @State private var controls = PlayerControlsVisibility()
     @State private var overlayPresented = false
     @State private var voiceOver = UIAccessibility.isVoiceOverRunning
+    @State private var chatActive = UIApplication.shared.applicationState == .active
     private var currentChannel: FollowedChannel {
         services.presentationChannels.first { $0.id == channel.id } ?? channel
+    }
+    private var chatChannel: String? {
+        guard chatActive, account != nil, services.state.account == account,
+              services.state.session == .authenticated, channel.playbackAllowed,
+              playback.contentGate == nil, [2, 3, 4, 8].contains(playback.phase) else { return nil }
+        return channel.username
     }
     private func interact() { controls.reveal(now: ProcessInfo.processInfo.systemUptime) }
     init(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback, close: @escaping () -> Void) {
@@ -65,9 +72,15 @@ private struct TheatreContent: View {
                 }
             }.padding()
             Divider()
-            Spacer()
-            Text("Chat is not available yet").font(.footnote).foregroundStyle(.secondary)
-            Spacer()
+            if playback.localTest != nil {
+                Text("Chat is unavailable for local test streams.").font(.footnote).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if playback.contentGate != nil {
+                Text("Chat opens after you continue.").font(.footnote).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                TheatreChat(channel: chatChannel)
+            }
         }
         .background(Color(uiColor: .systemBackground))
         .onAppear { playback.startIfNeeded(); interact() }
@@ -84,7 +97,11 @@ private struct TheatreContent: View {
             if session != .authenticated { playback.stop(); close() }
         }
         .onChange(of: services.state.account) { if $0 != account { playback.stop(); close() } }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            chatActive = true
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            chatActive = false
             if playback.contentGate != nil { playback.stop(); close() }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIAccessibility.voiceOverStatusDidChangeNotification)) { _ in

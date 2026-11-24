@@ -61,8 +61,10 @@ def main():
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
     run(['codesign','--verify','--strict',binary], label='Verify ad-hoc component signature')
-    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/LocalTestStream.swift','native/swift/StreamQualityPreferences.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests']+development)
+    run(['xcrun','swiftc','-O','native/swift/NativeModels.swift','native/swift/TwitchChatMessages.swift','native/swift/LocalTestStream.swift','native/swift/StreamQualityPreferences.swift','native/swift/MarkedContentGate.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','tests/native_frontend/swift/ModelsTests.swift','-o','output/models-tests']+development)
     info['model_tests']=run([str(output/'models-tests')], label='Test account, feed, repeated render direction and presentation models')
+    if 'PASS: read-only chat parsing' not in info['model_tests']:
+        raise ValueError('Read-only chat parser validation missing')
     if 'PASS: per-channel quality persistence' not in info['model_tests']:
         raise ValueError('Per-channel quality/account avatar model evidence missing')
     if 'PASS: local test data' not in info['model_tests']:

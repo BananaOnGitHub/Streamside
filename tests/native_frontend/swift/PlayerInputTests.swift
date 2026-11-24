@@ -212,7 +212,7 @@ final class PlayerInputTests: XCTestCase {
             XCTAssertGreaterThan(canvas.frame.height, 0)
             XCTAssertTrue(share.isHittable, "The image viewer must offer a visible Share control")
             XCTAssertTrue(done.isHittable, "The image viewer must offer a visible Done control")
-            XCTAssertFalse(back.isHittable, "The underlying profile back button must not receive touches")
+            XCTAssertFalse(back.exists, "The underlying glass back button must be removed while viewing artwork")
             done.tap()
             assertDismissed(canvas)
             assertDismissed(done)

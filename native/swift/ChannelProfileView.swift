@@ -64,14 +64,15 @@ struct ChannelProfileView<Video: View>: View {
                     }
                 }
                 .overlay(alignment: .topLeading) {
-                    Button {
-                        if !artworkViewerActive { close() }
-                    } label: {
-                        Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36)
+                    if !artworkViewerActive {
+                        Button {
+                            if !artworkViewerActive { close() }
+                        } label: {
+                            Image(systemName: "chevron.left").font(.headline).frame(width: 36, height: 36)
+                        }
+                        .modifier(ProfileGlass()).padding(.leading, 16).padding(.top, 6)
+                        .accessibilityLabel("Close profile")
                     }
-                    .modifier(ProfileGlass()).padding(.leading, 16).padding(.top, 6).accessibilityLabel("Close profile")
-                    .allowsHitTesting(!artworkViewerActive)
-                    .accessibilityHidden(artworkViewerActive)
                 }
         }.background(Color(uiColor: .systemBackground)).tint(accent)
             .fullScreenCover(item: $artworkFile, onDismiss: { artworkViewerActive = false }) { file in
@@ -84,7 +85,7 @@ struct ChannelProfileView<Video: View>: View {
     }
     private func openArtwork(_ file: ProfileArtworkFile) {
         guard !artworkViewerActive else { return }
-        // Keep the back button inactive until the cover has finished dismissing.
+        // Unmount the glass control until the cover has finished dismissing.
         artworkViewerActive = true
         artworkFile = file
     }

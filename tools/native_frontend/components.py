@@ -112,6 +112,8 @@ def verify(directory, revision=None):
             raise ValueError("Development tool build isolation missing or incorrect")
         if not compiler.get("model_tests", "").startswith("PASS:") or compiler.get("codesign") != "ad-hoc; IPA still requires device-authorized re-signing":
             raise ValueError("Apple model/signature validation missing")
+        if "PASS: read-only chat parsing" not in compiler["model_tests"]:
+            raise ValueError("Read-only chat parser validation missing")
         if compiler.get("marked_content_tests") != dict(passed=True,consent=True,preferences=True,cancellation=True,native_request=True,inline_admission=True):
             raise ValueError("Marked-content validation missing or failed")
         if compiler.get("profile_tests") != dict(native=True,model=True):

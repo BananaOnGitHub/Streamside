@@ -122,8 +122,49 @@ import Foundation
         precondition(native.localTest == nil, "Native snapshots cannot claim local origin")
         print("PASS: local test data, saved metadata, removal, typed origin and development isolation")
     }
+    static func chatMessages() {
+        let input = [
+            ":tmi.twitch.tv 001 guest :Welcome",
+            ":tmi.twitch.tv ROOMSTATE #fixture",
+            "@id=one;color=#AB09cd;display-name=艺术家 :artist_user!user@host PRIVMSG #fixture :Hello: **plain text**",
+            #"@id=two;color=;display-name=Some\sName\: :other_user!user@host PRIVMSG #fixture :你好"#,
+            "@id=three;color=#12XYZ9;display-name=Fixture :fixture!user@host PRIVMSG #fixture :\u{1}ACTION waves\u{1}",
+            "@id=four;color=#112233;display-name=Outside :outside!user@host PRIVMSG #elsewhere :Ignore",
+            "@display-name=Missing :missing!user@host PRIVMSG #fixture :No stable ID",
+            "PING :tmi.twitch.tv",
+            ":tmi.twitch.tv RECONNECT"
+        ].joined(separator: "\r\n")
+        let events = TwitchChatMessages.parse(input, channel: "Fixture")
+        precondition(events.count == 7 && events.prefix(2).elementsEqual([.welcome, .joined]))
+        precondition(events.suffix(2).elementsEqual([.ping("tmi.twitch.tv"), .reconnect]))
+        var transcript = TwitchChatTranscript()
+        transcript.apply(events)
+        transcript.apply(events)
+        precondition(transcript.messages.map(\.author) == ["艺术家 (artist_user)", "Some Name; (other_user)", "Fixture"])
+        precondition(transcript.messages.map(\.body) == ["Hello: **plain text**", "你好", "waves"])
+        precondition(transcript.messages.map(\.color) == [0xAB09CD, nil, nil])
+        let removals = TwitchChatMessages.parse(
+            "@target-msg-id=one :tmi.twitch.tv CLEARMSG #fixture :removed\r\n:tmi.twitch.tv CLEARCHAT #fixture :other_user",
+            channel: "fixture")
+        transcript.apply(removals)
+        precondition(transcript.messages.map(\.id) == ["three"])
+        transcript.apply(TwitchChatMessages.parse(":tmi.twitch.tv CLEARCHAT #fixture", channel: "fixture"))
+        precondition(transcript.messages.isEmpty)
+        precondition(TwitchChatMessages.parse(":tmi.twitch.tv NOTICE * :Login unsuccessful", channel: "fixture") == [.unavailable])
+        precondition(TwitchChatMessages.parse("PING :sample", channel: "fixture\r\nextra").isEmpty)
+        precondition(TwitchChatMessages.parse(String(repeating: "x", count: 65537), channel: "fixture").isEmpty)
+        for id in 0...220 {
+            transcript.apply([.message(.init(id: String(id), login: "fixture", displayName: "",
+                                             color: nil, body: "Owned fixture"))])
+        }
+        precondition(transcript.messages.count == 200 && transcript.messages.first?.id == "21")
+        precondition(transcript.messages.last?.author == "fixture")
+        print("PASS: read-only chat parsing, display names, colors, moderation, and bounded transcript")
+    }
+
     @MainActor static func main() async {
         localTestData()
+        chatMessages()
         let suite = "dev.streamside.quality-models-fixture"
         let defaults = UserDefaults(suiteName: suite)!; defaults.removePersistentDomain(forName: suite)
         defer { defaults.removePersistentDomain(forName: suite) }

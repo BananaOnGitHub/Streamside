@@ -379,13 +379,56 @@ private struct InputTestContent: View {
         }
     }
 }
+private struct ChatReadingFixture: View {
+    @State private var timeline: TwitchChatTimeline = {
+        var initial = TwitchChatTimeline()
+        initial.apply(ChatReadingFixture.messages(1...60))
+        return initial
+    }()
+    @State private var latest = 60
+    @State private var controlsVisible = true
+    @State private var infoProgress = 0.0
+    private let channel = FollowedChannel(username: "fixture", displayName: "Fixture channel")
+    private let clock = StreamClock()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 18) {
+                Button("Toggle controls") { controlsVisible.toggle() }
+                Button("Receive 3 messages") {
+                    timeline.apply(Self.messages((latest + 1)...(latest + 3)))
+                    latest += 3
+                }
+            }.padding(8)
+            Color.black.frame(height: 150).overlay {
+                PlayerControls(visible: controlsVisible, channel: channel, clock: clock, paused: false,
+                    muted: false, close: {}, pause: {}, mute: {}, interact: {}, presentationChanged: { _ in },
+                    motionTargetChanged: { infoProgress = $0 })
+            }
+            Text("Fixture stream info").padding(24)
+                .modifier(PlayerInfoReveal(progress: infoProgress, style: .vertical))
+                .accessibilityHidden(!controlsVisible)
+            StreamChatTranscript(timeline: $timeline, statusText: "Waiting for messages…", listening: true)
+        }
+    }
+
+    nonisolated private static func messages(_ indices: ClosedRange<Int>) -> [TwitchChatEvent] {
+        indices.map { index in
+            .message(.init(id: String(index), login: "reader", displayName: "Reader", color: 0x00AF99,
+                           body: "Message \(index)"))
+        }
+    }
+}
+
 @main @MainActor final class InputTestDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("--plain"), forKey: PlayerPreferences.glassButtonsKey)
         UserDefaults.standard.set(PlayerControlAnimation.vertical.rawValue, forKey: PlayerPreferences.animationKey)
         let window = UIWindow(frame: UIScreen.main.bounds)
-        if ProcessInfo.processInfo.arguments.contains("--profile") {
+        if ProcessInfo.processInfo.arguments.contains("--chat-reading") {
+            window.rootViewController = UIHostingController(rootView: ChatReadingFixture())
+        } else if ProcessInfo.processInfo.arguments.contains("--profile") {
             window.rootViewController = UIHostingController(rootView: ProfileFixture())
         } else if ProcessInfo.processInfo.arguments.contains("--local-test-editor") {
             window.rootViewController = UIHostingController(rootView: LocalTestEditorFixture())

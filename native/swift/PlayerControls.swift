@@ -18,6 +18,7 @@ struct PlayerControls: View {
     var preferredQuality = "auto"
     var effectiveQuality = "auto"
     var selectQuality: (String) -> Void = { _ in }
+    var motionTargetChanged: (Double) -> Void = { _ in }
     var motionSample: PlayerMotionSample? = nil
     // Owned fixture input; normal app callers use the read-only system value.
     var motionReductionOverride: Bool? = nil
@@ -56,24 +57,24 @@ struct PlayerControls: View {
         let duration = PlayerControlMotion.duration(style: animationStyle) * motionDurationScale
         if requested {
             if motionMounted {
-                withAnimation(.linear(duration: duration)) { motionProgress = 1 }
+                withAnimation(.linear(duration: duration)) { setMotionProgress(1) }
             } else {
                 // Mount hidden first; a separate render update prevents a jump.
                 withTransaction(Transaction(animation: nil)) { motionMounted = true }
                 motionTask = Task { @MainActor in
                     do { try await Task.sleep(nanoseconds: 20_000_000) } catch { return }
                     guard generation == motionGeneration, motionRequestedVisible, !Task.isCancelled else { return }
-                    withAnimation(.linear(duration: duration)) { motionProgress = 1 }
+                    withAnimation(.linear(duration: duration)) { setMotionProgress(1) }
                 }
             }
         } else if #available(iOS 17.0, *) {
             withAnimation(.linear(duration: duration), completionCriteria: .removed) {
-                motionProgress = 0
+                setMotionProgress(0)
             } completion: {
                 finishHiding(generation: generation)
             }
         } else {
-            withAnimation(.linear(duration: duration)) { motionProgress = 0 }
+            withAnimation(.linear(duration: duration)) { setMotionProgress(0) }
             // iOS 16 lacks animation completion. Allow a final frame before
             // cleanup; a new request cancels this compatibility task.
             motionTask = Task { @MainActor in
@@ -82,6 +83,10 @@ struct PlayerControls: View {
                 finishHiding(generation: generation)
             }
         }
+    }
+    private func setMotionProgress(_ progress: Double) {
+        motionProgress = progress
+        motionTargetChanged(progress)
     }
     private func finishHiding(generation: UInt64) {
         guard generation == motionGeneration, !motionRequestedVisible else { return }

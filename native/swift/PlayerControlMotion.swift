@@ -35,3 +35,41 @@ struct PlayerControlMotionEffect: AnimatableModifier {
             .offset(x: CGFloat(value.x), y: CGFloat(value.y))
     }
 }
+
+// The info panel and the video overlay receive the same progress change in
+// the same animation transaction. Measure the panel at its natural height.
+struct PlayerInfoReveal: AnimatableModifier {
+    var progress: Double
+    let style: PlayerControlAnimation
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let fraction = PlayerControlMotion.frame(progress: progress, style: style, region: .center,
+                                                 width: 0, height: 0).opacity
+        return PlayerInfoRevealLayout(fraction: CGFloat(fraction), slideContent: style != .fade) { content }
+            .clipped()
+            .opacity(style == .fade ? fraction : (fraction > 0 ? 1 : 0))
+    }
+}
+
+private struct PlayerInfoRevealLayout: Layout {
+    let fraction: CGFloat
+    let slideContent: Bool
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil }
+        let natural = content.sizeThatFits(ProposedViewSize(width: width, height: nil))
+        return CGSize(width: natural.width, height: natural.height * fraction)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let point = CGPoint(x: bounds.minX, y: slideContent ? bounds.maxY : bounds.minY)
+        subviews.first?.place(at: point, anchor: slideContent ? .bottomLeading : .topLeading,
+                              proposal: ProposedViewSize(width: bounds.width, height: nil))
+    }
+}

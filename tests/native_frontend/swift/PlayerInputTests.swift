@@ -224,6 +224,62 @@ final class PlayerInputTests: XCTestCase {
         print("PROFILE_PREVIEWS PASS: short social tap, long hold and WebKit preview commit, banner and avatar system viewer with Share")
     }
 
+    func testChatCatchUp() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        testedApp = app
+        app.launchArguments = ["--chat-reading"]
+        app.launch()
+
+        let chat = app.scrollViews["chat.transcript"]
+        let info = app.staticTexts["Fixture stream info"]
+        XCTAssertTrue(chat.waitForExistence(timeout: 5))
+        XCTAssertTrue(info.waitForExistence(timeout: 5))
+        let last = app.staticTexts["Reader: Message 60"]
+        let live = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: last)
+        XCTAssertEqual(XCTWaiter.wait(for: [live], timeout: 5), .completed)
+        let expandedTop = chat.frame.minY
+
+        chat.swipeDown()
+        XCTAssertFalse(last.isHittable, "Scrolling up must show previous messages")
+        let pill = app.buttons["chat.catch-up"]
+        XCTAssertFalse(pill.exists, "Scrolling alone must not show a notification")
+
+        let receive = app.buttons["Receive 3 messages"]
+        receive.tap()
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        wait(pill, label: "3 new messages")
+        XCTAssertFalse(last.isHittable, "Receiving messages must leave the current reading position alone")
+
+        let toggle = app.buttons["Toggle controls"]
+        toggle.tap()
+        let collapsed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            chat.frame.minY < expandedTop - 40
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [collapsed], timeout: 5), .completed)
+        XCTAssertTrue(pill.isHittable)
+        pill.tap()
+        assertDismissed(pill)
+        let newest = app.staticTexts["Reader: Message 63"]
+        let caughtUp = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: newest)
+        XCTAssertEqual(XCTWaiter.wait(for: [caughtUp], timeout: 5), .completed)
+        let marker = app.descendants(matching: .any)["chat.new-messages"].firstMatch
+        XCTAssertTrue(marker.isHittable)
+        XCTAssertLessThan(marker.frame.minY, newest.frame.minY)
+
+        receive.tap()
+        let following = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"),
+                                                    object: app.staticTexts["Reader: Message 66"])
+        XCTAssertEqual(XCTWaiter.wait(for: [following], timeout: 5), .completed)
+        XCTAssertFalse(pill.exists)
+        toggle.tap()
+        let expanded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            abs(chat.frame.minY - expandedTop) < 2
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed)
+        print("CHAT_CATCH_UP PASS: read position, unread count, catch-up line, live follow, and synchronized info layout")
+    }
+
     func testMarkedContentConsent() {
         continueAfterFailure = false
         let editor = XCUIApplication(); testedApp = editor

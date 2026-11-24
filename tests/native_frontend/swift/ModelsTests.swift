@@ -161,7 +161,26 @@ import Foundation
         }
         precondition(transcript.messages.count == 200 && transcript.messages.first?.id == "21")
         precondition(transcript.messages.last?.author == "fixture")
-        print("PASS: read-only chat parsing, display names, colors, moderation, and bounded transcript")
+        var timeline = TwitchChatTimeline()
+        timeline.apply(events)
+        timeline.pause()
+        precondition(timeline.isPaused && timeline.unreadCount == 0)
+        func message(_ id: String) -> TwitchChatEvent {
+            .message(.init(id: id, login: "fixture", displayName: "", color: nil, body: "Owned fixture"))
+        }
+        timeline.apply([message("four"), message("five"), message("four")])
+        precondition(timeline.messages.map(\.id) == ["one", "two", "three"] && timeline.unreadCount == 2)
+        timeline.apply([.removeMessage("four"), .removeMessage("two")])
+        precondition(timeline.messages.map(\.id) == ["one", "three"] && timeline.unreadCount == 1)
+        timeline.resume()
+        precondition(!timeline.isPaused && timeline.unreadCount == 0 && timeline.firstNewMessageID == "five")
+        precondition(timeline.messages.map(\.id) == ["one", "three", "five"])
+        timeline.pause()
+        timeline.apply((0...220).map { message("burst-\($0)") })
+        precondition(timeline.messages.map(\.id) == ["one", "three", "five"] && timeline.unreadCount == 200)
+        timeline.resume()
+        precondition(timeline.firstNewMessageID == "burst-21" && timeline.messages.last?.id == "burst-220")
+        print("PASS: read-only chat parsing, display names, colors, moderation, bounded transcript, and unread catch-up")
     }
 
     @MainActor static func main() async {

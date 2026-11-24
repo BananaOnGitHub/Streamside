@@ -7,11 +7,11 @@ import plistlib
 import re
 import zipfile
 
-SOURCES = ['native/swift/ChannelProfileModel.swift','native/swift/ChannelProfileView.swift','native/swift/PanelMarkdown.swift','native/swift/PanelMarkdownView.swift','native/swift/PanelMarkdownLinkText.swift','native/swift/PanelLinkPreview.swift','native/swift/ProfileTabSwipe.swift','native/swift/ProfileAccent.swift','native/swift/ProfileNavigationController.swift','native/swift/ChannelImages.swift','native/swift/ProfileArtworkMenu.swift','native/swift/FollowedChannelRows.swift','native/swift/LiveRing.swift','native/swift/MeasuredStreamTitle.swift','native/swift/TitleHaptics.swift','tests/native_frontend/swift/ProfileFixture.swift','native/swift/StreamQualityPreferences.swift','native/swift/LocalTestStream.swift','native/swift/LocalTestStreamViews.swift','tests/native_frontend/swift/LocalTestEditorFixture.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
+SOURCES = ['native/swift/TheatreChat.swift','native/swift/TwitchChatMessages.swift','native/swift/TwitchGuestChat.swift','native/swift/ChannelProfileModel.swift','native/swift/ChannelProfileView.swift','native/swift/PanelMarkdown.swift','native/swift/PanelMarkdownView.swift','native/swift/PanelMarkdownLinkText.swift','native/swift/PanelLinkPreview.swift','native/swift/ProfileTabSwipe.swift','native/swift/ProfileAccent.swift','native/swift/ProfileNavigationController.swift','native/swift/ChannelImages.swift','native/swift/ProfileArtworkMenu.swift','native/swift/FollowedChannelRows.swift','native/swift/LiveRing.swift','native/swift/MeasuredStreamTitle.swift','native/swift/TitleHaptics.swift','tests/native_frontend/swift/ProfileFixture.swift','native/swift/StreamQualityPreferences.swift','native/swift/LocalTestStream.swift','native/swift/LocalTestStreamViews.swift','tests/native_frontend/swift/LocalTestEditorFixture.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
            'tests/native_frontend/swift/PlayerInputTests.swift']
-EXPECTED = dict(passed=True, tests=7, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True,inline_consent=True,pending_watch=True,resolution_selection=True,channel_profile=True,profile_previews=True)
+EXPECTED = dict(passed=True, tests=8, styles=['glass', 'plain'], motion_frames=True,motion_sampling_scale=3,motion_pixels=True,motion_synchronized=True,motion_all_regions=True,motion_shared_travel=True,thumbnail_coordinates=True,preview_panel=True,source_anchored_preview=True,source_animation=True,hold_feedback=True,swipe_dismissal=True,verification_settings=True,real_video_clipping=True,marked_content=True,inline_consent=True,pending_watch=True,resolution_selection=True,channel_profile=True,profile_previews=True,chat_catch_up=True)
 
 
 def project(root, stage):
@@ -117,7 +117,7 @@ def run_controls_ui(root, stage, device, run):
           '-parallel-testing-enabled','NO','CODE_SIGNING_ALLOWED=NO']
     run(base+['build-for-testing'], label='Build player controls coordinate-test app')
     names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
-             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews']
+             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews', 'testChatCatchUp']
     outputs = []
     # Separate result bundles let xcodebuild finalize the failing test's evidence.
     # A single 900s deadline could kill the entire suite after an assertion,
@@ -174,4 +174,6 @@ def run_controls_ui(root, stage, device, run):
         raise ValueError('Production channel profile interaction checks must pass')
     if 'PROFILE_PREVIEWS PASS:' not in observed:
         raise ValueError('Profile link and artwork previews must pass')
+    if 'CHAT_CATCH_UP PASS:' not in observed:
+        raise ValueError('Chat reading, catch-up and player info layout validation must pass')
     return dict(EXPECTED)

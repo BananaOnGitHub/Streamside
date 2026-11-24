@@ -8,6 +8,9 @@ private struct TheatreContent: View {
     let account: StreamsideAccount?
     @StateObject private var playback: TheatrePlayback
     @State private var controls = PlayerControlsVisibility()
+    @State private var infoProgress = 0.0
+    @AppStorage(PlayerPreferences.animationKey) private var storedAnimation = PlayerControlAnimation.vertical.rawValue
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var overlayPresented = false
     @State private var voiceOver = UIAccessibility.isVoiceOverRunning
     @State private var chatActive = UIApplication.shared.applicationState == .active
@@ -20,6 +23,10 @@ private struct TheatreContent: View {
               playback.contentGate == nil, [2, 3, 4, 8].contains(playback.phase) else { return nil }
         return channel.username
     }
+    private var infoAlwaysVisible: Bool {
+        playback.native == nil || playback.contentGate != nil || playback.phase == 6 || playback.phase == 7
+    }
+
     private func interact() { controls.reveal(now: ProcessInfo.processInfo.systemUptime) }
     init(channel: FollowedChannel, services: NativeServices, playback: TheatrePlayback, close: @escaping () -> Void) {
         self.channel = channel; self.services = services; self.close = close; self.account = services.state.account
@@ -49,7 +56,8 @@ private struct TheatreContent: View {
                                    mute: playback.toggleMuted, interact: interact,
                                    presentationChanged: { overlayPresented = $0 },
                                    qualities: playback.qualities, preferredQuality: playback.preferredQuality,
-                                   effectiveQuality: playback.effectiveQuality, selectQuality: playback.selectQuality)
+                                   effectiveQuality: playback.effectiveQuality, selectQuality: playback.selectQuality,
+                                   motionTargetChanged: { infoProgress = $0 })
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -67,10 +75,16 @@ private struct TheatreContent: View {
                     Text(playback.contentGate == nil ? playback.message : "Review the content warning to continue.").font(.footnote).foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                     if playback.phase == 6 || playback.phase == 7 {
-                        Button("Retry") { playback.start() }.disabled(playback.error == 1)
+                        Button("Retry") { interact(); playback.start() }.disabled(playback.error == 1)
                     }
                 }
-            }.padding()
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .modifier(PlayerInfoReveal(progress: infoAlwaysVisible ? 1 : infoProgress,
+                                       style: PlayerControlAnimation.effective(stored: storedAnimation, reduceMotion: reduceMotion)))
+            .allowsHitTesting(infoAlwaysVisible || controls.visible)
+            .accessibilityHidden(!infoAlwaysVisible && !controls.visible)
             Divider()
             if playback.localTest != nil {
                 Text("Chat is unavailable for local test streams.").font(.footnote).foregroundStyle(.secondary)

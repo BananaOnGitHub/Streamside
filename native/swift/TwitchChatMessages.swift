@@ -153,3 +153,45 @@ struct TwitchChatTranscript {
         }
     }
 }
+
+struct TwitchChatTimeline {
+    private var live = TwitchChatTranscript()
+    private var held: TwitchChatTranscript?
+    private(set) var firstNewMessageID: String?
+
+    var messages: [TwitchChatMessage] { (held ?? live).messages }
+    var isPaused: Bool { held != nil }
+    var unreadCount: Int { unread.count }
+
+    private var unread: [TwitchChatMessage] {
+        guard let held else { return [] }
+        let seen = Set(held.messages.map(\.id))
+        return live.messages.filter { !seen.contains($0.id) }
+    }
+
+    mutating func pause() {
+        guard held == nil, !live.messages.isEmpty else { return }
+        held = live
+    }
+
+    mutating func resume() {
+        guard held != nil else { return }
+        if let first = unread.first { firstNewMessageID = first.id }
+        held = nil
+    }
+
+    mutating func apply(_ events: [TwitchChatEvent]) {
+        live.apply(events)
+        if held != nil {
+            // Apply moderation immediately without moving older rows out of
+            // the reader's viewport as the live window fills and trims.
+            held?.apply(events.filter {
+                switch $0 {
+                case .removeMessage, .clear: return true
+                default: return false
+                }
+            })
+            if held?.messages.isEmpty == true { resume() }
+        }
+    }
+}

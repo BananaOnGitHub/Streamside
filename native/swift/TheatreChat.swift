@@ -98,7 +98,9 @@ struct StreamChatTranscript: View {
 
     private func transcriptScroll(measureBottom: Bool) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 5) {
+            // The transcript is bounded. Measure all rows so the bottom
+            // offset is exact even when none of the newest rows are visible.
+            VStack(alignment: .leading, spacing: 5) {
                 ForEach(timeline.messages) { message in
                     VStack(alignment: .leading, spacing: 5) {
                         if message.id == timeline.firstNewMessageID { unreadMarker }
@@ -199,6 +201,7 @@ private struct ChatLiveScrollPosition: ViewModifier {
     let pause: () -> Void
     let resume: () -> Void
     @State private var position = ScrollPosition(idType: String.self, edge: .bottom)
+    @State private var latestOffset: CGFloat?
     @State private var userScrolling = false
 
     func body(content: Content) -> some View {
@@ -206,11 +209,12 @@ private struct ChatLiveScrollPosition: ViewModifier {
             .scrollPosition($position)
             .defaultScrollAnchor(.bottom, for: .initialOffset)
             .defaultScrollAnchor(followTarget == nil ? nil : .bottom, for: .sizeChanges)
-            .onChange(of: followTarget) { _, latest in
-                guard latest != nil else { return }
-                var transaction = Transaction(animation: nil)
-                transaction.disablesAnimations = true
-                withTransaction(transaction) { position.scrollTo(edge: .bottom) }
+            .onScrollGeometryChange(for: CGFloat.self, of: Self.bottomOffset) { _, offset in
+                latestOffset = offset
+                follow(offset)
+            }
+            .onChange(of: followTarget) { _, _ in
+                if let latestOffset { follow(latestOffset) }
             }
             .onScrollPhaseChange { _, phase, context in
                 if phase == .interacting {
@@ -219,11 +223,21 @@ private struct ChatLiveScrollPosition: ViewModifier {
                 } else if phase == .idle, userScrolling {
                     userScrolling = false
                     let geometry = context.geometry
-                    let distance = geometry.contentSize.height + geometry.contentInsets.bottom
-                        - geometry.contentOffset.y - geometry.containerSize.height
-                    if distance <= bottomTolerance { resume() }
+                    if Self.bottomOffset(geometry) - geometry.contentOffset.y <= bottomTolerance { resume() }
                 }
             }
+    }
+
+    nonisolated private static func bottomOffset(_ geometry: ScrollGeometry) -> CGFloat {
+        max(-geometry.contentInsets.top,
+            geometry.contentSize.height + geometry.contentInsets.bottom - geometry.containerSize.height)
+    }
+
+    private func follow(_ offset: CGFloat) {
+        guard followTarget != nil, !userScrolling else { return }
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { position.scrollTo(y: offset) }
     }
 }
 

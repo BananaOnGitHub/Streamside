@@ -116,8 +116,8 @@ def run_controls_ui(root, stage, device, run):
           '-destination','id='+device,'-derivedDataPath',str(folder.parent/'DerivedData'),
           '-parallel-testing-enabled','NO','CODE_SIGNING_ALLOWED=NO']
     run(base+['build-for-testing'], label='Build player controls coordinate-test app')
-    names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
-             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews', 'testChatCatchUp']
+    names = ['testChatCatchUp', 'testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
+             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews']
     outputs = []
     # Separate result bundles let xcodebuild finalize the failing test's evidence.
     # A single 900s deadline could kill the entire suite after an assertion,

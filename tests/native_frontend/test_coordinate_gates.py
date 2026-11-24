@@ -11,8 +11,8 @@ from controls_ui import EXPECTED, SELECTED_SUITE_FINISHED, SELECTED_SUITE_PASSED
 
 
 class CoordinateGates(unittest.TestCase):
-    names = ['testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
-             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews', 'testChatCatchUp']
+    names = ['testChatCatchUp', 'testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
+             'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews']
     markers = {
         'testChannelProfile': ['CHANNEL_PROFILE_UI'],
         'testProfilePreviews': ['PROFILE_PREVIEWS'],
@@ -65,7 +65,7 @@ class CoordinateGates(unittest.TestCase):
         self.assertEqual(selections, self.names)
         bundles = [args[args.index('-resultBundlePath') + 1] for args, _ in tests]
         self.assertEqual(len(set(bundles)), 8)
-        self.assertEqual([opts['timeout'] for _, opts in tests], [300, 300, 300, 600, 300, 300, 300, 300])
+        self.assertEqual([opts['timeout'] for _, opts in tests], [300, 300, 300, 300, 600, 300, 300, 300])
         self.assertTrue(all(opts['finalization'] == (SELECTED_SUITE_FINISHED, 120) for _, opts in tests))
         for name, (_, opts) in zip(self.names, tests):
             pattern, seconds = opts['startup']
@@ -90,7 +90,7 @@ class CoordinateGates(unittest.TestCase):
     def test_failed_gate_exports_its_own_evidence_without_retry_or_later_tests(self):
         calls = self.exercise(fail='testPlainControls')
         tests = [args for args, _ in calls if 'test-without-building' in args]
-        self.assertEqual(len(tests), 3)
+        self.assertEqual(len(tests), 4)
         export = next(args for args, _ in calls if 'xcresulttool' in args)
         self.assertEqual(Path(export[export.index('--path') + 1]).name, 'testPlainControls.xcresult')
 

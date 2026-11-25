@@ -28,6 +28,11 @@ __attribute__((objc_runtime_name("_TtC6PMHTTP11HTTPManager")))
 id ssn_profile_request(id channel,unsigned operation,id setting) {
     (void)setting;NSCAssert([channel isEqual:@"123"]&&operation<=4,@"Native query identity");requests++;return [FakeProfile new];
 }
+id ssn_profile_avatar_request(uint32_t user_id) {
+    NSCAssert(user_id==123&&authorized,@"Authorized numeric avatar lookup");
+    requests++;
+    return [FakeProfile new];
+}
 @interface FixtureNotificationValue : NSObject
 @end
 @implementation FixtureNotificationValue
@@ -97,6 +102,16 @@ int main(void) { @autoreleasepool {
     r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];id previous=identity;identity=[NSObject new];[r poll];
     NSCAssert(r.phase==2,@"Account replacement cancels");[r release];[previous release];
     r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];authorized=NO;[r poll];NSCAssert(r.phase==2,@"Account loss cancels");[r release];[identity release];
+    before=requests;
+    r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];
+    NSCAssert(r.phase==2&&requests==before,@"Signed-out chat does not resolve avatars");[r release];
+    authorized=YES;identity=[NSObject new];pending=NO;value=@{@"avatarURL":@"https://example.invalid/small.png"};
+    r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];[r poll];
+    NSCAssert(requests==before+1&&r.phase==1&&[r.result isEqual:value],@"Avatar result crosses the native bridge");[r release];
+    pending=YES;r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];
+    previous=identity;identity=[NSObject new];before=cancels;[r poll];
+    NSCAssert(r.phase==2&&cancels==before+1&&r.result.count==0,@"Account switch cancels pending avatar lookup");
+    [r release];[previous release];[identity release];
     for(unsigned op=0;op<5;op++) NSCAssert(stages[op][SSN_PROFILE_STARTED]>0&&stages[op][SSN_PROFILE_COMPLETED]==1,@"Each native operation reports request and completion");
     NSCAssert(stages[0][SSN_PROFILE_CANCELLED]>0&&stages[0][SSN_PROFILE_SESSION_CHANGED]==2,@"Cancellation and account boundaries are numeric");
     puts("PROFILE_NATIVE PASS: whitelist, bounds, five native operations, invalid setting, pending, errors, single cancellation, account replacement/loss");

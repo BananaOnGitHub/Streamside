@@ -1,14 +1,25 @@
 import SwiftUI
 import UIKit
 
+@MainActor
 struct TheatreChat: View {
     let channel: String?
     @State private var status: TwitchGuestChat.Status = .connecting
     @State private var timeline = TwitchChatTimeline()
     @State private var connectionID = UUID()
+    @StateObject private var avatars: ChatAvatars
+
+    init(channel: String?, images: ChannelImageCache, resolveAvatar: @escaping ChatAvatars.Resolver) {
+        self.channel = channel
+        _avatars = StateObject(wrappedValue: ChatAvatars(cache: images, resolve: resolveAvatar))
+    }
 
     var body: some View {
-        StreamChatTranscript(timeline: $timeline, statusText: statusText, listening: status == .listening)
+        StreamChatTranscript(timeline: $timeline, statusText: statusText, listening: status == .listening,
+                             avatars: avatars.images, requestAvatars: avatars.updateVisible)
+            .onAppear { avatars.setActive(channel != nil) }
+            .onChange(of: channel) { avatars.setActive($0 != nil) }
+            .onDisappear { avatars.setActive(false) }
             .task(id: channel) {
                 let id = UUID()
                 connectionID = id
@@ -39,6 +50,8 @@ struct StreamChatTranscript: View {
     @Binding var timeline: TwitchChatTimeline
     let statusText: String
     let listening: Bool
+    let avatars: [UInt32: UIImage]
+    let requestAvatars: ([UInt32]) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @GestureState private var legacyDragging = false
@@ -73,6 +86,12 @@ struct StreamChatTranscript: View {
     @ViewBuilder private var trackedScroll: some View {
         if #available(iOS 18.0, *) {
             transcriptScroll(measureBottom: false)
+                .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.1) { visibleRows in
+                    let visible = Set(visibleRows)
+                    requestAvatars(timeline.messages.reversed().compactMap {
+                        visible.contains($0.id) ? $0.userID : nil
+                    })
+                }
                 .modifier(ChatLiveScrollPosition(followTarget: followTarget, bottomTolerance: bottomTolerance,
                                                  pause: { timeline.pause() }, resume: { timeline.resume() }))
         } else {
@@ -90,8 +109,14 @@ struct StreamChatTranscript: View {
                         }
                         .onChange(of: viewport.size.height) { _ in scrollToBottom(reader) }
                 }
-                .onAppear { scrollToBottom(reader) }
-                .onChange(of: followTarget) { _ in scrollToBottom(reader) }
+                .onAppear {
+                    scrollToBottom(reader)
+                    requestRecentAvatars()
+                }
+                .onChange(of: followTarget) { _ in
+                    scrollToBottom(reader)
+                    requestRecentAvatars()
+                }
             }
         }
     }
@@ -100,31 +125,48 @@ struct StreamChatTranscript: View {
         ScrollView {
             // The transcript is bounded. Measure all rows so the bottom
             // offset is exact even when none of the newest rows are visible.
-            VStack(alignment: .leading, spacing: 5) {
-                ForEach(timeline.messages) { message in
-                    VStack(alignment: .leading, spacing: 5) {
-                        if message.id == timeline.firstNewMessageID { unreadMarker }
-                        row(message)
-                    }
-                    .id(message.id)
-                }
-                if measureBottom {
-                    Color.clear.frame(height: 1).id(ChatBottomEdge.target)
-                        .accessibilityHidden(true)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 4)
-            .background {
-                if measureBottom {
-                    GeometryReader { geometry in
-                        Color.clear.preference(key: ChatBottomEdge.self,
-                            value: geometry.frame(in: .named("chat.viewport")).maxY)
+            rows(measureBottom: measureBottom)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 4)
+                .background {
+                    if measureBottom {
+                        GeometryReader { geometry in
+                            Color.clear.preference(key: ChatBottomEdge.self,
+                                value: geometry.frame(in: .named("chat.viewport")).maxY)
+                        }
                     }
                 }
-            }
         }
         .accessibilityIdentifier("chat.transcript")
+    }
+
+    @ViewBuilder private func rows(measureBottom: Bool) -> some View {
+        if #available(iOS 18.0, *) {
+            messageStack(measureBottom: measureBottom).scrollTargetLayout()
+        } else {
+            messageStack(measureBottom: measureBottom)
+        }
+    }
+
+    private func messageStack(measureBottom: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(timeline.messages) { message in
+                VStack(alignment: .leading, spacing: 5) {
+                    if message.id == timeline.firstNewMessageID { unreadMarker }
+                    row(message)
+                }
+                .id(message.id)
+            }
+            if measureBottom {
+                Color.clear.frame(height: 1).id(ChatBottomEdge.target)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private func requestRecentAvatars() {
+        guard !timeline.isPaused else { return }
+        requestAvatars(timeline.messages.suffix(24).reversed().compactMap { $0.userID })
     }
 
     private var catchUpPill: some View {
@@ -137,6 +179,7 @@ struct StreamChatTranscript: View {
                     pillSurface(unread == 1 ? "1 new message" : "\(unread) new messages")
                 }
                 .buttonStyle(.plain)
+                .contentShape(.interaction, Capsule())
                 .accessibilityIdentifier("chat.catch-up")
                 .accessibilityHint("Jump to the latest messages")
                 .padding(.bottom, 10)
@@ -151,6 +194,8 @@ struct StreamChatTranscript: View {
             .font(.footnote.weight(.semibold))
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .contentShape(.interaction, Capsule())
         if reduceTransparency {
             label.background(Color(uiColor: .secondarySystemBackground), in: Capsule())
         } else if #available(iOS 26.0, *) {
@@ -178,10 +223,28 @@ struct StreamChatTranscript: View {
                   blue: Double(rgb & 255) / 255)
         } ?? .primary
         let author = Text(verbatim: message.author).bold().foregroundColor(color)
-        return Text("\(author): \(Text(verbatim: message.body))")
-            .font(.subheadline)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .fixedSize(horizontal: false, vertical: true)
+        return HStack(alignment: .top, spacing: 6) {
+            avatar(message.userID.flatMap { avatars[$0] })
+            Text("\(author): \(Text(verbatim: message.body))")
+                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func avatar(_ image: UIImage?) -> some View {
+        Circle()
+            .fill(Color.secondary.opacity(0.12))
+            .frame(width: 18, height: 18)
+            .overlay {
+                if let image {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    Image(systemName: "person.fill").font(.system(size: 9)).foregroundStyle(.secondary)
+                }
+            }
+            .clipShape(Circle())
+            .accessibilityHidden(true)
     }
 
     private func scrollToBottom(_ reader: ScrollViewProxy) {

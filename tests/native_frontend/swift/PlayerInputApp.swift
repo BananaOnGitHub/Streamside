@@ -408,14 +408,16 @@ private struct ChatReadingFixture: View {
             Text("Fixture stream info").padding(24)
                 .modifier(PlayerInfoReveal(progress: infoProgress, style: .vertical))
                 .accessibilityHidden(!controlsVisible)
-            StreamChatTranscript(timeline: $timeline, statusText: "Waiting for messages…", listening: true)
+            StreamChatTranscript(timeline: $timeline, statusText: "Waiting for messages…", listening: true,
+                                 avatars: [1: UIImage(systemName: "person.crop.circle.fill")].compactMapValues { $0 },
+                                 requestAvatars: { _ in })
         }
     }
 
     nonisolated private static func messages(_ indices: ClosedRange<Int>) -> [TwitchChatEvent] {
         indices.map { index in
             .message(.init(id: String(index), login: "reader", displayName: "Reader", color: 0x00AF99,
-                           body: "Message \(index)"))
+                           body: "Message \(index)", userID: index.isMultiple(of: 2) ? 1 : nil))
         }
     }
 }

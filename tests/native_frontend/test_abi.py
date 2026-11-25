@@ -69,6 +69,8 @@ class SwiftCalls(unittest.TestCase):
         self.assertEqual(seen,[True]);return u
 
     def test_current_user_indirect_result_and_native_self(self):self.call('call_current',[0x1234,0x5678],[],context=0x5678,out=0x1234)
+    def test_chat_avatar_user_id_native_self_and_indirect_result(self):
+        self.call('call_avatar',[0x1234,0xF1234567,0x5678],[0xF1234567],context=0x5678,out=0x1234)
     def test_followed_users_limit_cursor_set_self_and_result(self):
         self.call('call_follows',[0x1234,0x5678,11,22,33,44],[50,11,22,33,44],context=0x5678,out=0x1234)
     def test_promise_mapping_closures_metadata_and_self(self):

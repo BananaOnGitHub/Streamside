@@ -19,6 +19,7 @@ typedef SW id (*Map)(const void*,void * CTX);
 typedef SW id (*Bridge)(const void*,const void*);
 typedef SW id (*PromiseObjC)(Map,void*,Map,void*,const void*,const void*,const void*,const void * CTX);
 typedef SW void (*CurrentRequest)(void * OUT,id CTX);
+typedef SW void (*AvatarRequest)(void * OUT,uint32_t,id CTX);
 typedef SW void (*FollowRequest)(void * OUT,intptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,id CTX);
 typedef SW void (*Destroy)(void*,const void*);
 typedef SW unsigned (*GetTag)(const void*,unsigned,const void*);

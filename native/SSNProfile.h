@@ -4,6 +4,7 @@ NS_ASSUME_NONNULL_BEGIN
  * All writes are explicit user actions. No credentials/SDK models leave here. */
 @interface SSNProfileRequest : NSObject
 - (instancetype)initWithChannelID:(NSString *)channelID operation:(NSInteger)operation setting:(NSString *)setting;
+- (instancetype)initWithAvatarUserID:(uint32_t)userID NS_SWIFT_NAME(init(avatarUserID:));
 @property(nonatomic,readonly) NSInteger phase;
 @property(nonatomic,readonly) NSDictionary<NSString *,id> *result;
 - (void)poll;

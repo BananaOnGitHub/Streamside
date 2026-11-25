@@ -126,9 +126,9 @@ import Foundation
         let input = [
             ":tmi.twitch.tv 001 guest :Welcome",
             ":tmi.twitch.tv ROOMSTATE #fixture",
-            "@id=one;color=#AB09cd;display-name=艺术家 :artist_user!user@host PRIVMSG #fixture :Hello: **plain text**",
+            "@id=one;user-id=123;color=#AB09cd;display-name=艺术家 :artist_user!user@host PRIVMSG #fixture :Hello: **plain text**",
             #"@id=two;color=;display-name=Some\sName\: :other_user!user@host PRIVMSG #fixture :你好"#,
-            "@id=three;color=#12XYZ9;display-name=Fixture :fixture!user@host PRIVMSG #fixture :\u{1}ACTION waves\u{1}",
+            "@id=three;user-id=4294967296;color=#12XYZ9;display-name=Fixture :fixture!user@host PRIVMSG #fixture :\u{1}ACTION waves\u{1}",
             "@id=four;color=#112233;display-name=Outside :outside!user@host PRIVMSG #elsewhere :Ignore",
             "@display-name=Missing :missing!user@host PRIVMSG #fixture :No stable ID",
             "PING :tmi.twitch.tv",
@@ -143,6 +143,7 @@ import Foundation
         precondition(transcript.messages.map(\.author) == ["艺术家 (artist_user)", "Some Name; (other_user)", "Fixture"])
         precondition(transcript.messages.map(\.body) == ["Hello: **plain text**", "你好", "waves"])
         precondition(transcript.messages.map(\.color) == [0xAB09CD, nil, nil])
+        precondition(transcript.messages.map(\.userID) == [123, nil, nil])
         let removals = TwitchChatMessages.parse(
             "@target-msg-id=one :tmi.twitch.tv CLEARMSG #fixture :removed\r\n:tmi.twitch.tv CLEARCHAT #fixture :other_user",
             channel: "fixture")

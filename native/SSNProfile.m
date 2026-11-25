@@ -98,13 +98,24 @@ unsigned ssn_profile_panel_stage(id result) {
     NSTimeInterval _deadline;
 }
 @synthesize phase=_phase,result=_result;
+- (void)prepareOperation:(unsigned)operation {
+    NSAssert(NSThread.isMainThread,@"Profile requests belong to main");
+    _operation=operation;
+    ssn_profile_event(_operation,SSN_PROFILE_STARTED);
+    _result=[@{} retain];_deadline=NSProcessInfo.processInfo.systemUptime+15;
+    _auth=[m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth") retain];
+}
+- (instancetype)initWithAvatarUserID:(uint32_t)userID {
+    if((self=[super init])) {
+        [self prepareOperation:5]; // Avatar cache activity is excluded from profile diagnostics.
+        if(userID&&ssn_playback_authorized())_promise=ssn_profile_avatar_request(userID);
+        if(!_promise)_phase=2;
+    }
+    return self;
+}
 - (instancetype)initWithChannelID:(NSString *)channelID operation:(NSInteger)operation setting:(NSString *)setting {
     if((self=[super init])) {
-        NSAssert(NSThread.isMainThread,@"Profile requests belong to main");
-        _operation=operation>=0&&operation<=4?(unsigned)operation:5;
-        ssn_profile_event(_operation,SSN_PROFILE_STARTED);
-        _result=[@{} retain];_deadline=NSProcessInfo.processInfo.systemUptime+15;
-        _auth=[m0(m0(c("_TtC6PMHTTP11HTTPManager"),"defaultManager"),"defaultAuth") retain];
+        [self prepareOperation:operation>=0&&operation<=4?(unsigned)operation:5];
         if(operation>=0&&operation<=4&&([@[@"PERSONALIZED",@"ALWAYS",@"LIVE_UP_ONLY",@"NEVER"] containsObject:setting]||operation!=4))
             _promise=ssn_profile_request(channelID,(unsigned)operation,setting);
         if(!_promise)_phase=2;

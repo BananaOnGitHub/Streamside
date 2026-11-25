@@ -6,6 +6,7 @@ struct TwitchChatMessage: Identifiable, Equatable, Sendable {
     let displayName: String
     let color: UInt32?
     let body: String
+    var userID: UInt32? = nil
 
     var author: String {
         if displayName.isEmpty { return login }
@@ -85,8 +86,9 @@ enum TwitchChatMessages {
             let text = rawBody.hasPrefix("\u{1}ACTION ") && rawBody.hasSuffix("\u{1}")
                 ? rawBody.dropFirst(8).dropLast() : rawBody
             guard !text.isEmpty else { return nil }
+            let userID = tags["user-id"].flatMap { UInt32($0) }.flatMap { $0 == 0 ? nil : $0 }
             return .message(TwitchChatMessage(id: id, login: login, displayName: displayName(tags["display-name"] ?? ""),
-                                              color: color(tags["color"]), body: String(text)))
+                                              color: color(tags["color"]), body: String(text), userID: userID))
         case "CLEARMSG":
             guard inRoom, let id = identifier(tags["target-msg-id"]) else { return nil }
             return .removeMessage(id)

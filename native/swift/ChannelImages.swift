@@ -61,17 +61,25 @@ actor ChannelImageCache {
         cache.totalCostLimit = 24 * 1024 * 1024
         cache.countLimit = 96
     }
-    private func key(url: URL, generation: UInt64, avatar: Bool) -> NSString {
-        "\(generation)|\(avatar)|\(url.absoluteString)" as NSString
+    private func key(url: URL, generation: UInt64, maxPixels: Int) -> NSString {
+        "\(generation)|\(maxPixels)|\(url.absoluteString)" as NSString
     }
 
     func cachedImage(url: URL, generation: UInt64, avatar: Bool) -> UIImage? {
-        cache.object(forKey: key(url: url, generation: generation, avatar: avatar))
+        cache.object(forKey: key(url: url, generation: generation, maxPixels: avatar ? 80 : 480))
     }
 
     func load(url: URL, generation: UInt64, avatar: Bool) async -> UIImage? {
+        await load(url: url, generation: generation, maxPixels: avatar ? 80 : 480)
+    }
+
+    func loadChatAvatar(url: URL) async -> UIImage? {
+        await load(url: url, generation: 0, maxPixels: 54)
+    }
+
+    private func load(url: URL, generation: UInt64, maxPixels: Int) async -> UIImage? {
         guard ChannelImagePolicy.allowed(url), !Task.isCancelled else { return nil }
-        let key = key(url: url, generation: generation, avatar: avatar)
+        let key = key(url: url, generation: generation, maxPixels: maxPixels)
         if let image = cache.object(forKey: key) { return image }
         var request = URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 5)
         request.httpShouldHandleCookies = false
@@ -84,7 +92,7 @@ actor ChannelImageCache {
                   let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
             let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
                                            kCGImageSourceCreateThumbnailWithTransform: true,
-                                           kCGImageSourceThumbnailMaxPixelSize: avatar ? 80 : 480,
+                                           kCGImageSourceThumbnailMaxPixelSize: maxPixels,
                                            kCGImageSourceShouldCacheImmediately: true]
             guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary),
                   !Task.isCancelled else { return nil }

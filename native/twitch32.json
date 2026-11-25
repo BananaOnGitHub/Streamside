@@ -255,6 +255,11 @@
       "address": 2909180,
       "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
     },
+    "_$s9TwitchKit9TKGraphQLC25fetchSmallProfileImageURL13forUserWithID12Tomorrowland7PromiseVy10Foundation0I0VSg0A6Apollo0A12GraphQLErrorVGs6UInt32V_tF": {
+      "image": "TwitchKit",
+      "address": 2914500,
+      "bytes": "fc6fbaa9fa6701a9f85f02a9f65703a9"
+    },
     "+[_TtC9TwitchKit9TKGraphQL sharedInstance]": {
       "image": "TwitchKit",
       "address": 2939316,

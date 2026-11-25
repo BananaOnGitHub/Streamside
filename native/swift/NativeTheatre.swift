@@ -23,6 +23,22 @@ private struct TheatreContent: View {
               playback.contentGate == nil, [2, 3, 4, 8].contains(playback.phase) else { return nil }
         return channel.username
     }
+    @MainActor
+    private func resolveChatAvatar(_ userID: UInt32) async -> URL? {
+        guard chatChannel != nil else { return nil }
+        let request = SSNProfileRequest(avatarUserID: userID)
+        defer { request.cancel() }
+        while !Task.isCancelled, chatChannel != nil {
+            request.poll()
+            if request.phase == 1 {
+                guard let text = request.result["avatarURL"] as? String else { return nil }
+                return URL(string: text)
+            }
+            if request.phase != 0 { return nil }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        return nil
+    }
     private var infoAlwaysVisible: Bool {
         playback.native == nil || playback.contentGate != nil || playback.phase == 6 || playback.phase == 7
     }
@@ -93,7 +109,7 @@ private struct TheatreContent: View {
                 Text("Chat opens after you continue.").font(.footnote).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                TheatreChat(channel: chatChannel)
+                TheatreChat(channel: chatChannel, images: services.images, resolveAvatar: resolveChatAvatar)
             }
         }
         .background(Color(uiColor: .systemBackground))

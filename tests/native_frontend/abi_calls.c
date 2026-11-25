@@ -1,5 +1,6 @@
 #include "SSNSwiftABI.h"
 void call_current(CurrentRequest fn,void *out,id self) { fn(out,self); }
+void call_avatar(AvatarRequest fn,void *out,uint32_t user_id,id self) { fn(out,user_id,self); }
 void call_follows(FollowRequest fn,void *out,id self,uintptr_t a,uintptr_t b,uintptr_t d,uintptr_t set) {
     fn(out,50,a,b,d,set,self);
 }

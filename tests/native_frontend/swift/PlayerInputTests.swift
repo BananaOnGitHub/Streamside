@@ -258,7 +258,7 @@ final class PlayerInputTests: XCTestCase {
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [collapsed], timeout: 5), .completed)
         XCTAssertTrue(pill.isHittable)
-        pill.tap()
+        pill.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5)).tap()
         assertDismissed(pill)
         let newest = app.staticTexts["Reader: Message 63"]
         let caughtUp = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: newest)

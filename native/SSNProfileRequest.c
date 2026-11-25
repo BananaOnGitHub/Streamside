@@ -211,3 +211,48 @@ id ssn_profile_request(id channel,unsigned operation,id setting) {
     id mapped=promise_objc(value_maps[operation],NULL,error_maps[operation],NULL,op->promise,objc_type,objc_type,&result);destroy(&result,op->promise);
     if(!kind(mapped,"TWLPromise")){objc_release(mapped);return nil;}return mapped;
 }
+
+/* TwitchKit's bounded small-image lookup. The mapping receives a borrowed
+ * Optional<URL> and bridges it with the system Swift metadata for that type. */
+static const void *avatar_url_type;
+
+static id SW map_avatar(const void *value,void *context CTX) {
+    (void)context;
+    id url=bridge(value,avatar_url_type);
+    id text=kind(url,"NSURL")?m0(url,"absoluteString"):nil;
+    id result=m0(c("NSMutableDictionary"),"new");
+    if(kind(text,"NSString")&&num(text,"length")<=2048)put(result,"avatarURL",text);
+    objc_release(url);
+    return result;
+}
+
+static id SW error_avatar(const void *value,void *context CTX) {
+    (void)value;(void)context;
+    return failed();
+}
+
+id ssn_profile_avatar_request(uint32_t user_id) {
+    if(!user_id||!ssn_playback_authorized()||!initialize())return nil;
+    AvatarRequest request=(void*)ssn_resolve("$s9TwitchKit9TKGraphQLC25fetchSmallProfileImageURL13forUserWithID12Tomorrowland7PromiseVy10Foundation0I0VSg0A6Apollo0A12GraphQLErrorVGs6UInt32V_tF");
+    id graph=m0(c("_TtC9TwitchKit9TKGraphQL"),"sharedInstance");
+    if(!request||!graph)return nil;
+
+    if(!avatar_url_type) {
+        Meta url_meta=dlsym(RTLD_DEFAULT,"$s10Foundation3URLVMa");
+        GenericMeta optional=dlsym(RTLD_DEFAULT,"$sSqMa");
+        Response url=url_meta?url_meta(0):(Response){0};
+        if(!optional||url.state||!url.value)return nil;
+        Response type=optional(0,url.value);
+        if(type.state||!type.value)return nil;
+        avatar_url_type=type.value;
+    }
+    Response promise=promise_meta(0,avatar_url_type,error_type);
+    if(promise.state||!sized(promise.value,8))return nil;
+
+    uintptr_t result=0;
+    request(&result,user_id,graph);
+    id mapped=promise_objc(map_avatar,NULL,error_avatar,NULL,promise.value,objc_type,objc_type,&result);
+    destroy(&result,promise.value);
+    if(!kind(mapped,"TWLPromise")) { objc_release(mapped);return nil; }
+    return mapped;
+}

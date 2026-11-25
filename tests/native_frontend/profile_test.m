@@ -101,10 +101,14 @@ int main(void) { @autoreleasepool {
     [r cancel];[r cancel];[r poll];NSCAssert(r.phase==2&&cancels==before+1,@"Cancel exactly once");[r release];
     r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];id previous=identity;identity=[NSObject new];[r poll];
     NSCAssert(r.phase==2,@"Account replacement cancels");[r release];[previous release];
-    r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];authorized=NO;[r poll];NSCAssert(r.phase==2,@"Account loss cancels");[r release];[identity release];
+    r=[[SSNProfileRequest alloc] initWithChannelID:@"123" operation:0 setting:@""];
+    authorized=NO;
+    previous=identity;identity=nil;[previous release];
+    [r poll];NSCAssert(r.phase==2,@"Account loss cancels");[r release];
+
     before=requests;
     r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];
-    NSCAssert(r.phase==2&&requests==before,@"Signed-out chat does not resolve avatars");[r release];
+    NSCAssert(r.phase==2&&r.result.count==0&&requests==before,@"Signed-out chat does not resolve avatars");[r release];
     authorized=YES;identity=[NSObject new];pending=NO;value=@{@"avatarURL":@"https://example.invalid/small.png"};
     r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];[r poll];
     NSCAssert(requests==before+1&&r.phase==1&&[r.result isEqual:value],@"Avatar result crosses the native bridge");[r release];

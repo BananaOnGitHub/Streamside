@@ -65,3 +65,9 @@ The 18-point circle reserves room for every sender and uses a placeholder while 
 All 127 host tests passed, including exact donor admission and the new adapter calling-convention test. The Apple fixtures cover IRC user IDs, request authorization and account replacement, and the edge tap. Live avatar loading, visual fit and hit behavior still require an iPhone check.
 
 [GitHub run 45516895210](https://github.com/BananaOnGitHub/Streamside/actions/runs/45516895210) compiled the native component and stopped before simulator validation when the Objective-C account-lifetime fixture exited with SIGSEGV. The fixture released its fake default auth object after the account-loss test but left the shared pointer set. The next test, the signed-out avatar lookup, tried to retain that stale pointer. The fixture now clears the fake default auth before polling the account-loss request and checks that a signed-out avatar request submits no network work and returns no data. The production bridge and all existing gates are unchanged.
+
+### Verified avatar and pill test package
+
+Source `8912dadb5c2d0307587b15d17253add0f38d3f50` passed the Apple and ABI jobs in [GitHub run 45519019091](https://github.com/BananaOnGitHub/Streamside/actions/runs/45519019091). The account fixture and all eight simulator coordinate cases passed, including the tap near the edge of the glass unread pill. Local retrieval passed all 79 component checks. The verified Xcode 26.6 component archive has SHA-256 `774ff8b1ee7d8df2d9ce13fb31f087c4cc3da60e758082f998d156b97f6e50d5`.
+
+Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/chat-avatars-8912dad/StreamsideNativeProof-Twitch32-native.ipa`, 197,512,331 bytes, SHA-256 `2c80bf3df099d5d64753b0aa47ea860faa6538ba354f4522f284416c09d779d2`. Archive integrity passed. The live native avatar response and image loading, including on chat scrollback, still need physical-device testing.

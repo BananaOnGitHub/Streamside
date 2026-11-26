@@ -66,3 +66,26 @@ The device review on 2026-11-26 confirmed that the new native build was fully fu
 - At export, 17.151 seconds after launch, the first-active measurement was 501 ms and the physical footprint was 87.5 MiB. These are an individual launch's observations, not a controlled performance comparison.
 
 The report is an authenticated feed/launch snapshot: playback and profile event counters are zero and no background transition is included. The broader functional confirmation is device feedback rather than coverage demonstrated by that snapshot. Matching 32.2 original-startup positive-control calibration (`baseline_calibrated = false` at export), post-playback counters, and lifecycle comparison still require their own reports; the 32.0 calibration cannot establish the relocated 32.2 probe contract.
+
+
+## Matching 32.2 original-startup positive control
+
+The matching one-shot original-UI report has source, proof, donor, probe contract and device/OS identifiers identical to the native launch report. It is preserved locally as `device-validation/baseline-latest.json` beside the candidate (SHA-256 `e2d315975d3441eb233f2d01183cacb3e220840ef42648c3c913f008794fdb36`). All required positive-control entries were observed. All three images were armed (mask 7), with zero failures, original navigation ownership and no native frontend hook, account or playback activity.
+
+| Observation | Native | Original-startup control |
+| --- | ---: | ---: |
+| Native holder entry | 1 | 1 |
+| Twitch warmup | 0 | 1 |
+| RN factory | 0 | 1 |
+| RN host | 0 | 1 |
+| RN root-surface entries | 0 | 3 |
+| Hermes runtime entries | 0 | 2 |
+| Hermes evaluation entries | 0 | 11 |
+| Worklet runtime entries | 0 | 1 |
+| Physical footprint at export | 87.5 MiB | 357.1 MiB |
+| Constructor-to-active | 501 ms | 539 ms |
+| Uptime at export | 17.151 s | 55.423 s |
+
+The holder observation is not unprecedented. [The earlier 32.0 device review](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md#why-twitch_holder1-is-distinct) documented one holder entry after visiting a stream/chat in the donor-native interface, with all guarded runtime entries still zero. The 32.2 report observes the holder earlier in an authenticated feed launch. Its exact triggering dependency is not established. The corresponding original-startup report exercises actual RN/Hermes/worklets, distinguishing the holder from runtime entry activity.
+
+The matching positive control establishes that the new contract observes actual runtime entries under the original path. The earlier native report precedes calibration; a subsequent native launch export is needed to confirm calibration persistence and return to native routing. Memory and startup values describe separate launch snapshots at different uptimes, not a controlled benchmark; no claim of complete lifecycle coverage is made.

@@ -97,3 +97,11 @@ Theatre chat now owns the composer focus. A tap in the transcript, including the
 The Send button keeps a fixed-size glass-backed ZStack throughout delivery. Its arrow and progress indicator crossfade over 200 ms (120 ms with Reduce Motion). The pending write continues to use the existing single-submission guard, so changing to the loading indicator does not disable or replace the pressed glass surface. The existing fly-out runs after confirmation. A draft edited during delivery keeps its Send control.
 
 The simulator fixture checks that a transcript tap removes editing focus, dismisses a visible keyboard and preserves the typed text. It holds a synthetic acknowledgement while inspecting the Send button after a long press, checking its enabled state and dimensions, then confirms delivery. Actual optical release and animation smoothness remain device checks.
+
+### Verified chat polish package
+
+Source `e4989167852e1d8230c9d69ea6da3732ed7cd41a` passed both jobs in [GitHub run 45770014026](https://github.com/BananaOnGitHub/Streamside/actions/runs/45770014026). All eight simulator coordinate cases passed, including transcript tap focus dismissal, draft retention and inspection of the glass Send button after a held press. The 80 local component checks passed. Component archive SHA-256 is `7fd39ccbcbe998a653e6e217175d07c0bb59a00840319543ca5b29c796162b36`.
+
+Local assembly produced `artifacts/native-frontend/chat-polish-e498916/StreamsideNativeProof-Twitch32-native.ipa`, 197,545,766 bytes, SHA-256 `2e15074f8a26227ac9447074eb72da113774252cfa485417164b3dbe52813482`. Archive integrity passed. Physical-device keyboard dismissal and visual transition quality remain pending.
+
+The confirmed composer package is retained for rollback. The superseded avatar package and its CI outputs were selected for retirement after confirming their original hashes. Twenty original evidence files and a full inventory are preserved privately in `artifacts/archive/chat-avatar-retired/` with evidence archive SHA-256 `efa49acf51515cfd5e10f15cf0b8203aaec8fecaa5bdbeba86de83e4337528f6`. The previous native-only validation ticket is included there.

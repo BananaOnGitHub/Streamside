@@ -1,108 +1,49 @@
-# Active investigations
+# Active native investigations
 
-This directory holds records made during active work: investigations,
-implementation trials, per-build findings, failures, and testing evidence.
-Reusable maintainer guidance belongs in [development guides](../development/),
-not here.
+This index covers the native frontend experiment and its build and device evidence. Supporting manifests and sanitized diagnostic records remain beside the investigations.
 
-- [Workspace cleanup and build history](WORKSPACE_CLEANUP.md): generated-output relocation, preserved build records, retained packages and validation.
+The pre-cleanup tree, including the separate React Native and diagnostic-runtime investigations, is preserved at [archive/pre-native-only](https://github.com/BananaOnGitHub/Streamside/tree/eb4d30f761e75921913451293b76a92d39eaa2d5/docs/investigations).
 
-- [SwiftUI CI and tooling audit](SWIFTUI_CI_AND_TOOLING_AUDIT.md): hosted compiler proof, tooling classification, recoverable archive and local packaging boundary.
-
-- [Codemagic-preferred Apple build routing](APPLE_BUILD_ROUTING.md): quota-aware Ubuntu dispatch, shared Apple gates, verified retrieval and GitHub fallback.
-
-- [Apple build environment timing trial](APPLE_BUILD_BENCHMARK.md): GitHub Actions, manual Codemagic and optional Intel VM measurements, test evidence and cleanup.
-
-- [SwiftUI device review: logout presentation takeover](SWIFTUI_NATIVE_DEVICE_REVIEW_1.md): successful account/list/refresh observations, pre-logout zero probes and the post-logout diagnostic gap.
-
-- [SwiftUI device review: native logout/login sequence](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md): measured root replacement, signed-out/reauthenticated native requests, restored session after restart, zero guarded runtimes and the permitted holder entry.
-
-- [Development-only original Twitch cold launch](SWIFTUI_NATIVE_ONE_SHOT_LAUNCH.md): one-shot selection, playback device evidence, original-startup isolation and one-time independent control validation.
-
-- [One-shot device review and export isolation correction](SWIFTUI_NATIVE_EXPORT_ISOLATION_REVIEW.md): independent/original runtime comparison, automatic Native return, duplicate report mapping and mode-specific sharing.
-
-- [Development-only local test stream](SWIFTUI_LOCAL_TEST_STREAM.md): editable local follow, synthetic marked-content/status testing, no playback facade, build isolation and validation scope.
-
-- [Native marked-stream consent](SWIFTUI_MARKED_CONTENT.md): native content-label query, shared theatre/preview warning, independent thumbnail preferences and validation boundaries. [Inline video-area successor](SWIFTUI_MARKED_CONTENT_INLINE.md).
-
-- [Native frontend VAFT integration](SWIFTUI_NATIVE_VAFT.md): shared playlist engine, native authenticated alternate tokens, default-on player toggle, cancellation and scoped validation.
-
-- [Account avatar and per-channel resolution](SWIFTUI_ACCOUNT_AVATAR_RESOLUTION.md): settings header cleanup, current-user native profile images, IVS quality selection, saved preferences and validation boundaries.
-
-- [Native read-only stream chat](SWIFTUI_NATIVE_CHAT.md): Twitch guest transport, SwiftUI transcript, account and playback admission, and validation scope.
-
-- [Native portrait player controls](SWIFTUI_NATIVE_PLAYER_CONTROLS.md): auto-hide overlay, local IVS pause/mute, live information, compact sharing, Settings pages, and the casting handoff blocker.
-
-- [Preview dismissal work and cold audio setup](SWIFTUI_PREVIEW_LIFETIME_AUDIO.md): device defects, asynchronous SDK/audio retirement, first-preview audio policy, timing evidence and required validation.
-
-## Native frontend trial
-
-- [Twitch 32.0 phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md): recovered development base, native lifecycle/authentication/backend paths, RN warmup and Hermes isolation requirements. Static evidence only; device proof remains open.
-
-- [Twitch 32.0 phase 2](NATIVE_FRONTEND_TWITCH_32_PHASE2.md): guarded UIKit candidate, admitted native account/GraphQL bridge, paired diagnostic packages, host evidence and pending physical-device acceptance. [Device instructions](NATIVE_FRONTEND_PHASE2_DEVICE_TEST.md). [First signed-in device review and Settings obstruction](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_1.md). [Export separation follow-up](NATIVE_FRONTEND_PHASE2_EXPORT_ISOLATION.md). [Signed-out device review](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_2.md).
-
-- [SwiftUI native foundation and authentication boundaries](SWIFTUI_NATIVE_FOUNDATION_TWITCH_32.md): SwiftUI shell, preserved services/guards, validated logout adapter, exact-donor auth findings and Apple SDK build path. [Device checklist](SWIFTUI_NATIVE_DEVICE_TEST.md).
-
-## 3.1.0 trials
-
-- [Secure investigation updates v2 plan](SECURE_INVESTIGATION_UPDATES_V2_PLAN.md): required future GitHub-backed configuration updates, independent TUF/Ed25519 authorization, trust/cache/activation boundaries and finite implementation gates.
-
-- [Diagnostic v1 hardening acceptance](DIAGNOSTIC_V1_HARDENING_ACCEPTANCE.md): F1–F4 implementation, focused/integration evidence, bounded resource accounting and pending F5/F6 device acceptance.
-
-- [Diagnostic infrastructure completion audit](DIAGNOSTIC_INFRASTRUCTURE_COMPLETION_AUDIT.md): original-brief conformance, implementation/host/device evidence, closure blockers, and the finite F1–F6 completion plan.
-
-- [Modular diagnostics implementation](MODULAR_DIAGNOSTICS_IMPLEMENTATION.md): checkpoint evidence, strict registry/coordinator, runtime admission, and remaining verification.
-
-- [Local diagnostic runtime baseline](LOCAL_DIAGNOSTIC_RUNTIME_BASELINE.md): WSL checkout recovery audit, verified build/test baseline, artifact identities, and missing implementation inputs.
-
-- [Diagnostic categories](DIAGNOSTIC_CATEGORIES.md): launch-applied presets, verbosity, category collection/retention/export, and branch integration.
-
-- [App-icon trial](APP_ICON_TRIAL.md): flat Streamside icon packaging and automatic Liquid Glass appearance observations, build 1.
-- [RN composer emote holds](RN_COMPOSER_HOLDS.md): provider attachment holds, native menu fallback, host checks, and device observations, build 2.
-- [RN composer cursor requests](RN_COMPOSER_CURSOR.md): build-3 queued-selection guard and build-6 follow-up for late native requests on 31.6.
-- [Native emoticon proportions](NATIVE_EMOTICON_PROPORTIONS.md): image-aspect sizing and cold-load layout refresh for classic Twitch emoticons, build 4.
-- [Twitch 31.6 compatibility](TWITCH_31_6_COMPATIBILITY.md): build-4 donor inspection, build-5 Hermes port, native ABI comparison, packaging, and pending 31.6 device acceptance.
-
-At feature freeze, reconcile the completed implementation with its owning
-[feature documents](../features/). Preserve closed investigation evidence in
-[History](../HISTORY.md) or the [archive](../archive/README.md), retaining its
-original scope, outcomes, and artifact identities. Follow
-[Documentation maintenance](../development/DOCUMENTATION.md) when moving records
-and updating navigation.
-
-- [Provider WebP animation trial](WEBP_ANIMATION_TRIAL.md) — build 14 passed RN checks; build 15 restores legacy animation and addresses taps/picker focus; build 16 fast-emote speeds confirmed in legacy; build 17 restores the native compact transition after extended-library selection.
-
-- [Twitch 31.6 hotfix comparison](TWITCH_31_6_HOTFIX_COMPARISON.md): read-only 31.6.1/31.6.2 donor identities, RN chat/reward behavior, patch admission and native/WebP/playback boundaries.
-- [Twitch 31.6.2 candidate](TWITCH_31_6_2_CANDIDATE.md): build 18 uses the unchanged exact-body integration; host/package checks and unsigned IPA identity, pending device validation.
-
-- [SwiftUI authentication ownership trial](SWIFTUI_AUTHENTICATION_OWNERSHIP.md): persistent window ownership and native account-state handoff. [Device review](SWIFTUI_NATIVE_DEVICE_REVIEW_3.md) records the successful native login return, zero monitored runtime entries, restart restoration, and subsequent background/foreground evidence.
-
-- [Native followed-stream list trial](SWIFTUI_FOLLOWED_STREAMS.md): authenticated live/offline feed, compact SwiftUI rows, bounded image refresh and accessible duration pills.
-
-- [Native feed continuity and title controls](SWIFTUI_FEED_CONTINUITY.md) — timer/background fixes, device evidence, and title preferences.
-
-- [Silent account updates and compact title popover](SWIFTUI_SILENT_REFRESH.md) — follow-up to the failed background-continuity device check.
-
-- [Native live-list interaction polish](SWIFTUI_LIVE_LIST_POLISH.md) — truncation-aware haptics, Settings and configurable live-ring animation.
-
-- [Cycle slider endpoint feedback correction](SWIFTUI_CYCLE_SLIDER_FIX.md) — deduplicated selection ticks and endpoint/midpoint jitter regression checks.
-
-- [Portrait native playback trial](SWIFTUI_NATIVE_PLAYBACK.md) — existing authenticated GraphQL token path, bundled IVS UIKit theatre, lifecycle evidence and pending device playback/runtime validation.
-
-- [Native player input correction](SWIFTUI_PLAYER_INPUT.md) — failed device taps, display-only media surface, coordinate UI tests and bounded control/mute evidence.
-
-- [Native followed-stream tags](SWIFTUI_STREAM_TAGS.md): exact-donor tag access, maximum-count single-line packing and Liquid Glass pills.
-
-- [Artifact cleanup, 2026-11-15](ARTIFACT_CLEANUP_2026_11_15.md): retained current/rollback packages, archived evidence and superseded binary removal.
-
-- [Native stream Quick Look](SWIFTUI_QUICK_LOOK.md): muted thumbnail preview, full metadata and shared-player theatre fade.
-
-- [Quick Look preview styling follow-up](SWIFTUI_QUICK_LOOK_STYLE.md): prior-candidate device observations and separate content-sized card/glass action menu.
-
-- [System context preview trial](SWIFTUI_SYSTEM_CONTEXT_PREVIEW.md): genuine UIKit lift/menu/dismissal, guarded media handoff, decoded-video prototype and pending Apple/device acceptance.
-
-- [Interactive source-anchored preview](SWIFTUI_ANCHORED_PREVIEW.md): fallback after the system scrolling limitation, interactive full details and retained media/animation gates.
-
-- [Preview swipes and channel verification](SWIFTUI_PREVIEW_SWIPES_VERIFICATION.md): directional dismissal, stream avatar, inspected native eligibility, bundled official/custom artwork and General settings.
-
-- [Native channel profile prototype](SWIFTUI_CHANNEL_PROFILE.md): authenticated Home/About, native follow/notification operations, muted inline playback and video-only resolutions.
+- [Apple build environment timing trial](APPLE_BUILD_BENCHMARK.md)
+- [Codemagic-preferred Apple build routing](APPLE_BUILD_ROUTING.md)
+- [Artifact cleanup — 2026-11-15](ARTIFACT_CLEANUP_2026_11_15.md)
+- [Native frontend — first signed-in device review](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_1.md)
+- [Native frontend — signed-out device review](NATIVE_FRONTEND_PHASE2_DEVICE_REVIEW_2.md)
+- [Native frontend candidate — device test](NATIVE_FRONTEND_PHASE2_DEVICE_TEST.md)
+- [Native frontend — separate baseline and native exports](NATIVE_FRONTEND_PHASE2_EXPORT_ISOLATION.md)
+- [Native frontend feasibility: Twitch 32.0, phase 1](NATIVE_FRONTEND_TWITCH_32_PHASE1.md)
+- [Twitch 32.0 native frontend — Phase 2 candidate](NATIVE_FRONTEND_TWITCH_32_PHASE2.md)
+- [Account avatar and per-channel stream resolution](SWIFTUI_ACCOUNT_AVATAR_RESOLUTION.md)
+- [Interactive source-anchored preview](SWIFTUI_ANCHORED_PREVIEW.md)
+- [SwiftUI account transitions and navigation ownership trial](SWIFTUI_AUTHENTICATION_OWNERSHIP.md)
+- [Native channel profile prototype](SWIFTUI_CHANNEL_PROFILE.md)
+- [SwiftUI CI and conservative tooling audit](SWIFTUI_CI_AND_TOOLING_AUDIT.md)
+- [Cycle slider endpoint feedback correction](SWIFTUI_CYCLE_SLIDER_FIX.md)
+- [Native feed continuity and title controls](SWIFTUI_FEED_CONTINUITY.md)
+- [Native followed-stream list trial](SWIFTUI_FOLLOWED_STREAMS.md)
+- [Native live-list interaction polish](SWIFTUI_LIVE_LIST_POLISH.md)
+- [Development-only local test stream](SWIFTUI_LOCAL_TEST_STREAM.md)
+- [Native marked-stream consent trial](SWIFTUI_MARKED_CONTENT.md)
+- [Marked-stream consent inside the video area](SWIFTUI_MARKED_CONTENT_INLINE.md)
+- [Inline marked-content warning polish](SWIFTUI_MARKED_CONTENT_INLINE_POLISH.md)
+- [Native read-only stream chat](SWIFTUI_NATIVE_CHAT.md)
+- [SwiftUI device review: account success and logout root takeover](SWIFTUI_NATIVE_DEVICE_REVIEW_1.md)
+- [SwiftUI device review: donor-native logout and login](SWIFTUI_NATIVE_DEVICE_REVIEW_2.md)
+- [SwiftUI device review: persistent ownership during authentication](SWIFTUI_NATIVE_DEVICE_REVIEW_3.md)
+- [SwiftUI native foundation — device test](SWIFTUI_NATIVE_DEVICE_TEST.md)
+- [One-shot launch device review and export isolation correction](SWIFTUI_NATIVE_EXPORT_ISOLATION_REVIEW.md)
+- [Streamside Native: SwiftUI foundation and authentication boundaries](SWIFTUI_NATIVE_FOUNDATION_TWITCH_32.md)
+- [Development-only original Twitch cold launch](SWIFTUI_NATIVE_ONE_SHOT_LAUNCH.md)
+- [Portrait native playback trial](SWIFTUI_NATIVE_PLAYBACK.md)
+- [Native portrait player controls](SWIFTUI_NATIVE_PLAYER_CONTROLS.md)
+- [Native frontend VAFT integration trial](SWIFTUI_NATIVE_VAFT.md)
+- [Native player input correction](SWIFTUI_PLAYER_INPUT.md)
+- [Preview dismissal work and cold audio setup](SWIFTUI_PREVIEW_LIFETIME_AUDIO.md)
+- [Preview swipes and channel verification](SWIFTUI_PREVIEW_SWIPES_VERIFICATION.md)
+- [Native stream Quick Look trial](SWIFTUI_QUICK_LOOK.md)
+- [Quick Look preview styling follow-up](SWIFTUI_QUICK_LOOK_STYLE.md)
+- [Silent account updates and compact title popover](SWIFTUI_SILENT_REFRESH.md)
+- [Native followed-stream tags](SWIFTUI_STREAM_TAGS.md)
+- [System context preview trial](SWIFTUI_SYSTEM_CONTEXT_PREVIEW.md)
+- [Workspace cleanup and preserved build history](WORKSPACE_CLEANUP.md)
+- [Native-only branch and artifact cleanup](SWIFTUI_NATIVE_ONLY_CLEANUP.md)

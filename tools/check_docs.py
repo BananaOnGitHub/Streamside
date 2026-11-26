@@ -305,44 +305,32 @@ def check_links(root: Path, paths: list[Path]) -> tuple[list[Issue], int]:
 
 
 def check_versions(root: Path) -> list[Issue]:
-    issues = []
-    def read(path: str) -> str:
-        try:
-            return (root / path).read_text(encoding='utf-8')
-        except (OSError, UnicodeError) as exc:
-            issues.append(Issue(path, 1, f'cannot read version metadata: {exc}'))
-            return ''
-    version = read('VERSION').strip()
-    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version):
-        issues.append(Issue('VERSION', 1, 'expected public release identity X.Y.Z'))
-    path = 'packaging/StreamsideFramework-Info.plist'
-    text = read(path)
-    def key_line(key: str) -> int:
-        pos = text.find(f'<key>{key}</key>')
-        return text.count('\n', 0, max(pos, 0)) + 1
+    path = 'native/framework-info.plist'
     try:
-        info = plistlib.loads(text.encode('utf-8'))
-        short = info.get('CFBundleShortVersionString')
-        bundle = info.get('CFBundleVersion')
-        if short != version:
-            issues.append(Issue(path, key_line('CFBundleShortVersionString'), f'CFBundleShortVersionString {short!r} differs from VERSION {version!r}'))
-        if (not isinstance(bundle, str) or not re.fullmatch(re.escape(version) + r'\.[0-9]+', bundle)
-                or int(bundle.rsplit('.', 1)[-1]) <= 0):
-            issues.append(Issue(path, key_line('CFBundleVersion'), f'CFBundleVersion {bundle!r} must be VERSION plus a positive internal build number'))
-    except (ValueError, plistlib.InvalidFileException, AttributeError) as exc:
-        issues.append(Issue(path, 1, f'invalid framework plist: {exc}'))
-        bundle = None
-    path = 'src/TASDiagnostics.c'
-    text = read(path)
-    matches = list(re.finditer(r'^\s*#define\s+TAS_REPORT_VERSION\s+"([^"\n]+)"', text, re.M))
-    if len(matches) != 1:
-        issues.append(Issue(path, 1, 'expected one literal TAS_REPORT_VERSION definition'))
-    else:
-        match = matches[0]
-        expected = f'{version}-build.{bundle.rsplit(".", 1)[-1]}' if isinstance(bundle, str) else None
-        if match[1] != expected:
-            issues.append(Issue(path, text.count('\n', 0, match.start()) + 1,
-                                f'TAS_REPORT_VERSION {match[1]!r} differs from framework identity {expected!r}'))
+        info = plistlib.loads((root / path).read_bytes())
+    except (OSError, ValueError, plistlib.InvalidFileException) as exc:
+        return [Issue(path, 1, f'cannot read native framework metadata: {exc}')]
+    if not isinstance(info, dict):
+        return [Issue(path, 1, 'expected native framework metadata dictionary')]
+    issues = []
+    expected = {
+        'CFBundleExecutable': 'StreamsideNativeProof',
+        'CFBundleName': 'StreamsideNativeProof',
+        'CFBundleIdentifier': 'dev.streamside.nativeproof',
+        'CFBundlePackageType': 'FMWK',
+        'SSNFrontend': 'swiftui',
+    }
+    for key, value in expected.items():
+        if info.get(key) != value:
+            issues.append(Issue(path, 1, f'{key} must be {value!r}'))
+    for key, pattern in {
+        'CFBundleShortVersionString': r'[0-9]+\.[0-9]+(?:\.[0-9]+)?',
+        'CFBundleVersion': r'[1-9][0-9]*',
+        'MinimumOSVersion': r'[0-9]+\.[0-9]+',
+    }.items():
+        value = info.get(key)
+        if not isinstance(value, str) or not re.fullmatch(pattern, value):
+            issues.append(Issue(path, 1, f'invalid {key}'))
     return issues
 
 
@@ -361,7 +349,7 @@ def main() -> int:
         return 1
     for issue in issues:
         print(issue.annotation() if args.github_actions else f'{issue.path}:{issue.line}: {issue.reason}')
-    print(f'Checked {len(paths)} Markdown files, {count} explicit references, and current version metadata: {len(issues)} error(s).')
+    print(f'Checked {len(paths)} Markdown files, {count} explicit references, and native framework metadata: {len(issues)} error(s).')
     return bool(issues)
 
 

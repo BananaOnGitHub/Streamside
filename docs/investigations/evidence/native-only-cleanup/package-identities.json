@@ -1,0 +1,2664 @@
+{
+  "schema": 1,
+  "packages": [
+    {
+      "proof_id": "87bd90f69b550be0fbd7ff3e5dc6ead4d53ecf4921ae651a7204a1d9d2cbcb23",
+      "source_revision": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+      "packaging_revision": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "6d84f67a45ae4a471a030f487d05ea5980b61566951cff629f3dfc7b7c913b74",
+      "manifest": "native-frontend/account-avatar-resolution-533e3f0/artifacts.json",
+      "manifest_sha256": "e31807ffbf927485b7f5ab1741d476e53e4aa0beb80578c65b423c553b65c88e",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/account-avatar-resolution-533e3f0/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197089832,
+          "sha256": "132cbded32a491313f5730ac9cba928f5f94b5d430babfb68841ecf576ad61ac",
+          "framework_sha256": "905ab57c495d05e09d7686c055d1e35d5e149852b26cab6269ca748fa3734dcd",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "e0a68edb664626e4dc36a680b58512b00a46bd931e66fc7ffcdde770ef64e43a",
+      "source_revision": "009e16ff8951e95ac2539cc20237d7ed4760188e",
+      "packaging_revision": "009e16ff8951e95ac2539cc20237d7ed4760188e",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "60b08fe4603dd750364e5c2142c9820cc1bcf3e0fdbab6f151958779bee709e5",
+      "manifest": "native-frontend/channel-profile-009e16f/artifacts.json",
+      "manifest_sha256": "63a9d5fa3f67e62936c7a359e1245e17dda1c11779e63ebe77b9be34a6974aaa",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-009e16f/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197392536,
+          "sha256": "ee7f0e81ef40e43a64f93f43441878696a3c63192a8c1087293ffab592c1e742",
+          "framework_sha256": "67c8f2170eb1ca346af23da779315bbe4f04e8feb2ee82e5712661455031c451",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "4306bd27bf578a6ff3ca83b2ed124506a353c1a89890f4516d30409385695f50",
+      "source_revision": "156eb857fc87ed382367294b6522a3585bf3ce0e",
+      "packaging_revision": "156eb857fc87ed382367294b6522a3585bf3ce0e",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "f2011f81df503cc1dc472e7261fb9195a3187cd6756f8646ddad9a7ae776f028",
+      "manifest": "native-frontend/channel-profile-156eb85/artifacts.json",
+      "manifest_sha256": "a51dca292045053b0f3be56ef4fd3ead7c08d6acc5f937973c8dca754d945219",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-156eb85/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197291232,
+          "sha256": "0e9bfd7c0aa0d720607d7557eead0169cbc0d84f0dc5db26bd55dd22624cfc0e",
+          "framework_sha256": "1ab1138c0c9ac637abad01ab571addbe7778fef9c97d5e2d71d6c2a16b5259c9",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "50cb503223ba63bd1fae0b731058737791b1cf93340b194eddee70bb5e1ef08c",
+      "source_revision": "3adb20dd1ecf59ace6262a94522db45d0ecbaf71",
+      "packaging_revision": "3adb20dd1ecf59ace6262a94522db45d0ecbaf71",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "90384d0ca1511ec56ce521179cc5c6c50b28f4f6f27b0850485035d27134af99",
+      "manifest": "native-frontend/channel-profile-3adb20d/artifacts.json",
+      "manifest_sha256": "e05aacce7c5911ce6bd5cd68426b01d0585b1b1cd3789581fbbaaab724e33601",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-3adb20d/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197340563,
+          "sha256": "e94732c515936a73d327a16ac372e814418a56f620cada4337240d2b122841d5",
+          "framework_sha256": "725858ee966538544f895855b4401f8eb05bc2bbdf389a71bfe75ec7c2d53620",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "284a807a984887457b1cd614496842d50da7251cd24b5ac39280dd6f72e69e29",
+      "source_revision": "5e355f90b06aa7a5cefd206788a53e9b45f2c05f",
+      "packaging_revision": "5e355f90b06aa7a5cefd206788a53e9b45f2c05f",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "7aaa93f74f235553f5703f8e3f4ae6bee1cf0c40aff689867217d0a1bf57de9d",
+      "manifest": "native-frontend/channel-profile-5e355f9/artifacts.json",
+      "manifest_sha256": "8c74ad02b1f9f3584575642c3683a970994ff2164c0a81c85e1b708e5efc3d4d",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-5e355f9/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197209119,
+          "sha256": "132b1a9895cdf73a0a36a31b182692d4e74ab9237966d8d2b1a3cd5f52579a63",
+          "framework_sha256": "b031c9e7965ba91886e05c189c567661cb2ae191ca933d80e29c64beae25a7c1",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "2688d03af990ccd04a695247779b9735cca7b191759b665a5b8ac55bb7e05a56",
+      "source_revision": "6116a79d81bc908daf5add49db791118958b0141",
+      "packaging_revision": "6116a79d81bc908daf5add49db791118958b0141",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "ea5096917a0e9f68f528684adb61afe4df958a08551f362a063b071969901835",
+      "manifest": "native-frontend/channel-profile-6116a79/artifacts.json",
+      "manifest_sha256": "89c351b45de63b2ac3940e2ae2e7eb354bb23b819f9ca5801bf12c6ff6f1d059",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-6116a79/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197313598,
+          "sha256": "42387b4b4243a80ec96c18f5d560a18adc6ad9f091db878ece4dd2affe3dfd50",
+          "framework_sha256": "4dee56051f832c2817e5ce78771918afa33c915911c1f1d73821fda560a644ca",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "0a79089f6c070916afafbb2e35c85e767526e1bf4578967eb8053b4f2e7c0a8d",
+      "source_revision": "69dedc8426128fb9ac97827250df66ae5e08a683",
+      "packaging_revision": "69dedc8426128fb9ac97827250df66ae5e08a683",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "56718677097201dafbca14127c9d58bf963c2298f13e36ff279ccdb98a26b6c2",
+      "manifest": "native-frontend/channel-profile-69dedc8/artifacts.json",
+      "manifest_sha256": "223197f8fc41f9c95741c88249fb4c898dc2accc46d95b52a6e6c19c608292ca",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-69dedc8/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197393660,
+          "sha256": "3a374cb688199214d09a63a72856c2962e76a786f47657f8b3768c7e24d6ff41",
+          "framework_sha256": "7e930443d06ceca1cecc18085fbec078ef1541117c46cc8af12b88af539b4771",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "55104cf8e7c9a14b12b73792e3cba725513811e76ac6485ff3d37adc227f42cd",
+      "source_revision": "9b8e5ebfc414f40876b8a6df66b63ccf2fed7ef1",
+      "packaging_revision": "9b8e5ebfc414f40876b8a6df66b63ccf2fed7ef1",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "52bf585f4ffff9347478363e9e867203d2af4a9efb981e8515ae7e8278ec8c4a",
+      "manifest": "native-frontend/channel-profile-9b8e5eb/artifacts.json",
+      "manifest_sha256": "b46ca883b3a3cb7a69c201890b4f775abdbf61aef7851b5419c0c7e4d937c183",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-9b8e5eb/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197334876,
+          "sha256": "1918bcc208b6e45da3eac5b490530b8757f92b974327ac6c8706664f612a5f56",
+          "framework_sha256": "afa898d3e4e8198acd77a5e6cce5296b008a2b3adb25c23c7560bfa4b06790c4",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "10380c638c1474913174117977c6f3636631e5642ead2c50422392ae727253d0",
+      "source_revision": "bfdabb800fa2cf6bca28f38dc509218969048349",
+      "packaging_revision": "bfdabb800fa2cf6bca28f38dc509218969048349",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "7ea20e94d35ee9da7159139cdb91781edf680d52e1decfb8532bcaeb41c53e4e",
+      "manifest": "native-frontend/channel-profile-bfdabb8/artifacts.json",
+      "manifest_sha256": "1d5e7cac67098f3d0ee42fc9f5b32b025ca5e5ca3a9162e8421035eca95e97da",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-bfdabb8/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197239673,
+          "sha256": "0b55613f44b3679665a078625059702f51cc692ecb974ad91e8fd18eddcdb5e4",
+          "framework_sha256": "f9f479b56ac011cf756ebaf8683c4c7f26c0f39f662f8a772cbbf0f9c2837e53",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "374657d1f7eeceed06b409c4c2002d5bd052b9614dc94b6fdfecd21e5db999dc",
+      "source_revision": "d3c96a775b0fb0935ca0395180d01edf6dec02f6",
+      "packaging_revision": "d3c96a775b0fb0935ca0395180d01edf6dec02f6",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "1072117534ad33ace94e3dcee64f0dbad08ba7c2b9d22faa17065b71f638844b",
+      "manifest": "native-frontend/channel-profile-d3c96a7/artifacts.json",
+      "manifest_sha256": "32364bd712fda6d685632ae9202f7e49222a82177bac2a49805d0f9b31f5f16d",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-d3c96a7/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197207757,
+          "sha256": "210c898fa81a8ff8efa5da18e5b0b787315b5551bbc6feb1c5f59d6745edc5ba",
+          "framework_sha256": "9b837fd137c5a1a8f7c04cd017592445abed26cd8e107c537816f591f8a600fc",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "0afc4bff3be905350f5e551d1fa7a55eae928d83a642ecf2c8b7dfd1d5099d0f",
+      "source_revision": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+      "packaging_revision": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "fc8a0f12775c094a920ea3bad2fee25b1bf68abb12795154ec53819f61e73027",
+      "manifest": "native-frontend/channel-profile-d50c38e/artifacts.json",
+      "manifest_sha256": "81f9dea6db6b4be7ae698384d9f9094d7226139d0ae51968087be7533f9df235",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-d50c38e/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197250652,
+          "sha256": "d199aa52364f8d51e477fbac696f4764db5749496d24194c3ba72ffe3eaff6fd",
+          "framework_sha256": "33f78d3b62f6747e34afea0dedd17c583d9b5391bb4fbc81ae018f8d8343db8f",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "dfd9aca9a9528d74baf96d54db9a3ee70304d6d6bbe6c790083a115dc4e750f3",
+      "source_revision": "d73e602ee1d7f3ceeb626f42df13cf2044cfc003",
+      "packaging_revision": "d73e602ee1d7f3ceeb626f42df13cf2044cfc003",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "8854d793f31fe33592279ca00d93d3fed69c97c2380afa494cb953cac72879f7",
+      "manifest": "native-frontend/channel-profile-d73e602/artifacts.json",
+      "manifest_sha256": "aca1e0ab9816488e940c9691909e219f269b6281b79f573090bc910f9ff99475",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-d73e602/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197322374,
+          "sha256": "bde5c849377caa30bffa5e7a9ff5d5ea247702f796d5cf6867f7e58c26039c87",
+          "framework_sha256": "abcdbf85d79f4ed9ded5073bd3e320d347e52e255a5a73f36ac310dda55c754b",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "98d4549fbb5f412e5c97d3c26c80d0ef0d62b24cc933f82952479f77450bbe8e",
+      "source_revision": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+      "packaging_revision": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "b73082d050162d384018bb15ea4688f7f94e4ac12b546a38b8917b6fbc446534",
+      "manifest": "native-frontend/channel-profile-ea8b0d9/artifacts.json",
+      "manifest_sha256": "eb0da7bdde1fb73dd1cecfae8568579402353486dec54eefe99e6af69b240782",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-ea8b0d9/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197213705,
+          "sha256": "ce2eb58101f3f33976e05fde125cbbd54ec98aae18263d63703cf56102572efb",
+          "framework_sha256": "322bba3c7ee25ff76fbafd8918ceb8557410984a69150c7754909f7902cd220c",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "db552cc23b1183eab60a50629d40b62ac8fd5a632bd846b5f8536d0981bd0485",
+      "source_revision": "a14ea060e78fb6c40c91c6a7d2902bf179017910",
+      "packaging_revision": "a14ea060e78fb6c40c91c6a7d2902bf179017910",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "3a53ae6556b59904844950c50409c25714db6ddb943f995f188e5aecd674d319",
+      "manifest": "native-frontend/channel-profile-links/artifacts.json",
+      "manifest_sha256": "8966297b3ba6290e07026c8add1567b64277909f8bf0e895029ca214c1951e15",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/channel-profile-links/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197265476,
+          "sha256": "0e08c3868392b573693e95bfdc68577fdb02ce7a27c37e4fb640fabe4c831da3",
+          "framework_sha256": "0af65d9916ed0ca4a3b9db2c5dc393cfe25d3eb40a45e1e02792ae0bf7dad2a2",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "0b59c17d42e3e3fbe816c414ac6b012f7ea43048bff4f2fa8d6f005358dc53c7",
+      "source_revision": "8912dadb5c2d0307587b15d17253add0f38d3f50",
+      "packaging_revision": "8912dadb5c2d0307587b15d17253add0f38d3f50",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "f3364af7836361e3dafdbfd5773a67c27afd52c1426099c5ddc6d591c5e333f3",
+      "manifest": "native-frontend/chat-avatars-8912dad/artifacts.json",
+      "manifest_sha256": "6dd1cf3ddd6de7af57a0aad7ff2a5047dec901d8c128d497c6d4ba5b7cb8c879",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/chat-avatars-8912dad/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197512331,
+          "sha256": "2c80bf3df099d5d64753b0aa47ea860faa6538ba354f4522f284416c09d779d2",
+          "framework_sha256": "fccdfdef82257229f1757707d568e33b958bb4f554acd0e6a26cab0c3f0c04fd",
+          "retained": true
+        }
+      ]
+    },
+    {
+      "proof_id": "db86b58f4ca5c8e40b5b39c584f43aacf53c4dafda35fcd08d003fc3f10f4fa5",
+      "source_revision": "9bbbe826656fa194ac31c42bb31b8e47102b9cd1",
+      "packaging_revision": "9bbbe826656fa194ac31c42bb31b8e47102b9cd1",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "cb3a4c1f1ae6acf8d4d0f5013bb67f455f53d1aea8378d2edaf01a2fbbc09e33",
+      "manifest": "native-frontend/chat-catch-up-9bbbe82/artifacts.json",
+      "manifest_sha256": "0c434990715abd2f99ae0a1329c48c2c0ed97d0a366cc0409d62efdd607c9aa9",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/chat-catch-up-9bbbe82/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197484435,
+          "sha256": "9c6c748e3e5c6f58d5d54d2256219ec7fcae5f038678255a13aae2af50942053",
+          "framework_sha256": "e75493ec929c7d7b66dc574412959db53a64d5fd78d088a3ba154ad1214aa531",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "d0c5b142819c31e7c97d40b71760d007b00b4712d30736a810601a3692ddf850",
+      "source_revision": "b4ea5a869363bc207bd05b0b6fce9d1198abfc8c",
+      "packaging_revision": "b4ea5a869363bc207bd05b0b6fce9d1198abfc8c",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "cea38692102dc4df393dff87634a642dad4ed996e3c8dfd540dcdb14758b3dd7",
+      "manifest": "native-frontend/chat-composer-b4ea5a8/artifacts.json",
+      "manifest_sha256": "4d825e232db2262a4c5afa9e2f3988ef483f42b6538b7efa0121a65daf6ad7dd",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/chat-composer-b4ea5a8/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197543934,
+          "sha256": "78df234b2affa7a9e5e03e7dd9c1beb522add35edee5b622c190b92c957c038d",
+          "framework_sha256": "f1cc354274ee573a2f16e7ef7063a1c6b86230a6589d3f98de23cf2b9d0c9f76",
+          "retained": true
+        }
+      ]
+    },
+    {
+      "proof_id": "c7016056e24bef78e9b9a140d434475efdd4cf744f2d0b2086d1e257bc09451b",
+      "source_revision": "714c61c0d75e7ae6cc61132d5993cfe45784d343",
+      "packaging_revision": "714c61c0d75e7ae6cc61132d5993cfe45784d343",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "7d1b3dfdf583323a64485e653c7bf1f201d9cc9bfd9cdd10110908caeff7d77e",
+      "manifest": "native-frontend/local-test-stream-714c61c/artifacts.json",
+      "manifest_sha256": "87a6edfcc44b28274bb56a86d48bcd014ae433d9be636b634565d9212dcc552c",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/local-test-stream-714c61c/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197064592,
+          "sha256": "49844210184c6d08aaefcfc4cef3b7d059d439428068aab412cba1876fe03b8d",
+          "framework_sha256": "703ca45838000c5214e0a127dae14d7e897d89d2611571a63e2f6e3525efae25",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "e0aedebf474b21411d8479cbd5c980d0745468a497baac6d78bbd95a4e37cb1b",
+      "source_revision": "f6d279ca48790d3960c40dced53360242fd591c0",
+      "packaging_revision": "f6d279ca48790d3960c40dced53360242fd591c0",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "9d9e788745c1aa6c0c3e8f7dd9bcf50493cb4ebca678d9811e99fac61a64e552",
+      "manifest": "native-frontend/marked-content-f6d279c/artifacts.json",
+      "manifest_sha256": "744c0dbc2a49aa6ed6acfcb980069ee01417f9b20c9a898bb8f0f03d5efd6da0",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/marked-content-f6d279c/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196989200,
+          "sha256": "84b086d4c1cd7ee430b497a0e856c004a7dcf366c7bb2ba0649b1e599d4525b7",
+          "framework_sha256": "f74f545bf246a815928c849da9dcc7dca9347e17b1eefa889e3fdc61ac77c023",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "6a9a5a86ef6845389cb1ab004e8a8d607539767ecfdd98c6a7d0b18afbf25b5e",
+      "source_revision": "6ef88b01dd1025a1e2c41c8234d9da1e5550913c",
+      "packaging_revision": "6ef88b01dd1025a1e2c41c8234d9da1e5550913c",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "8402245c41ad3134e01ed7535f3606c16080439be94a8e65cb0d89eebaaeef8c",
+      "manifest": "native-frontend/marked-content-inline-6ef88b0/artifacts.json",
+      "manifest_sha256": "b318fd9da916b3c362022167a0b19d2eab03ade287d1cafacf4d87e8b569462c",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/marked-content-inline-6ef88b0/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196994653,
+          "sha256": "45e53bb90fa7e2a11722b7dd3e0cc82f2e404da91ad631530b0371a2c421f346",
+          "framework_sha256": "739f7452311d50f73ba461bebc611b40801d2e018a19dd712fd65cccc1af396e",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "4c102284b78f49386cd7f6d5643760f1d03e52f636a5ff74196e3447aeee7b10",
+      "source_revision": "91630d004b260f0e27775af29616da6a1da552f9",
+      "packaging_revision": "91630d004b260f0e27775af29616da6a1da552f9",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "d847a862e7d7e298ed25bf612e190cf9e28570d3ee22bdfd2359bc63d7213731",
+      "manifest": "native-frontend/marked-content-polish-91630d0/artifacts.json",
+      "manifest_sha256": "897283d838617286d1ce95a9d008c7c9f7fdaca2bb7e28de8d111926516cea23",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/marked-content-polish-91630d0/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197005113,
+          "sha256": "2bcc02b80e2783223ed06cc204adf8c93e9d81f5f265cb6d0e14bbeda935dd71",
+          "framework_sha256": "6e5be10efc668899058f7e2cc67ae03f48517aaa1369f0cd042b8b89657006da",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "2f97d8e6b9bd349e5a06c371bfd89364f26064cf18a89a093a4832e6795561c1",
+      "source_revision": "9f2505e1b284054894cf0b18d20137fdc8a620d2",
+      "packaging_revision": "9f2505e1b284054894cf0b18d20137fdc8a620d2",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "d03bbacc888116719162357d344cbf96453e16384318ee325dc6d56be19b85ba",
+      "manifest": "native-frontend/native-chat-9f2505e/artifacts.json",
+      "manifest_sha256": "b3f9e3a26664a6b9ed172ed517f110a6c65ce887c2fe8d03f116d0e40ee5ad90",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/native-chat-9f2505e/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 197437463,
+          "sha256": "a5d3f293aa21e9e8b9ddff51da8dc9c6a634fae6639141826841f583b4bc9b44",
+          "framework_sha256": "4d332266f207ca9e1862ef19412ffc961589d5168ca3e68583335124ad312686",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "17571820a5e5027c92c5087f1e3b57f2b0377f63877f7c1af5f5c7d60b182f34",
+      "source_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+      "packaging_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "f5d26f71561cac1c40f5d882ad5f46014045fb28ab9dd469de81ab0b21b3c95a",
+      "manifest": "native-frontend/native-vaft-a3d98aa/artifacts.json",
+      "manifest_sha256": "9b7959792abcd8dc4bb34829f82d79c9da6927d7354d2af741fa9ce5d0a6a24c",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/native-vaft-a3d98aa/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196945932,
+          "sha256": "0985e2b7ecde74b1201ce214f70b81bd4ad21b6fce58e5560887054dc78c6cf0",
+          "framework_sha256": "85625053a73fc8984a06df5922ab70cd19dff485a251b316be397e5c6d1c1c91",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "034998374d268032eeda7c62c2b455d96eba5c884b7390c5b7f65e5de74f6d00",
+      "source_revision": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+      "packaging_revision": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "4a61d147212b1339fb24ed41189e34799d0979fbe4ec5f8d19a9f53998293051",
+      "manifest": "native-frontend/preview-lifetime-audio-54ff64b/artifacts.json",
+      "manifest_sha256": "0c2015fed0a914030a22910a2e9c41ceff1337add6be7dcc15aafe8f4617d0dc",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/preview-lifetime-audio-54ff64b/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196925870,
+          "sha256": "7afe36c4c2558b757fb80f4c4f999ff67a77558b5c37163da0d6017cdebbfd0b",
+          "framework_sha256": "cd283020459cb2c710d12baf5e50433e88baf7ead0997f7483ae704f33c00146",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "3776a2b98c2677aa053a383b0fddd20bf919e15147550a9f6cce6d41b73ab54c",
+      "source_revision": "c03d67de6aed0d81b89d601b2db3671261c92333",
+      "packaging_revision": "c03d67de6aed0d81b89d601b2db3671261c92333",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "a32e56db14d5e54587316621f05cd626942f80fae69175b2347dc15885306a7c",
+      "manifest": "native-frontend/preview-swipes-verification-c03d67d/artifacts.json",
+      "manifest_sha256": "591651c158e504830788c208d5f6e823918c1f56ee9174fb65141afe8d940c0c",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/preview-swipes-verification-c03d67d/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196921256,
+          "sha256": "60f24c3f22dfdac3fb9f977e12abdb508ac02b184461f72ea99efde44e26a134",
+          "framework_sha256": "3a53cf2a0b5e5bede9df3cff698c44c41a2e2cb4da640a4495047d3fc9bf7f04",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "d5e6c41c13506d788ff5079051903ba7181c14b698836ae26a06567e459c824c",
+      "source_revision": "5ada9ea64f1e3a777f71bab68a83018ce9b4ca40",
+      "packaging_revision": "5ada9ea64f1e3a777f71bab68a83018ce9b4ca40",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "6144938a87cf114b8097634106be402c18de88e22bde173dec4459d0ad1e1fbc",
+      "manifest": "native-frontend/preview-unblocked-return-5ada9ea/artifacts.json",
+      "manifest_sha256": "d2898621845d2252bf2ac3b1a2e845df4ce29002cba686ca1345cacc75e2b8aa",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/preview-unblocked-return-5ada9ea/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196923072,
+          "sha256": "3ef6f357f07c79c9742345498e572c9924677f0affd3b6b34be23c2eb50c98c8",
+          "framework_sha256": "03d23684e86db37e51aa4d473ccac85d8c748e4492bb20ecd3a3036a68022c6c",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "0338255c13ec4e894956ecf7c860901b084ad3988894767bc516d90a1662ef79",
+      "source_revision": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+      "packaging_revision": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "c14e35a81b20ddac0129999f79ccd68f9a4dc4aef91b714b9f63734b7551547a",
+      "manifest": "native-frontend/quick-look-anchored-e883ecf/artifacts.json",
+      "manifest_sha256": "e25adf440cca4b5b53c5dfd2d74b17406d68d52fd8e8b16ad9d9815d67e290f8",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/quick-look-anchored-e883ecf/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196885011,
+          "sha256": "415fdf9b6b52267b8c25ce11d28c5aaa57c6d3d279b928f55b23412d13d9b2d3",
+          "framework_sha256": "b918edb609b572188bcda415c932e332298a4bc01d1f0ffd51328ee1473b5ab0",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "0e8825bc1dd7715f60e51fa9c3c59fd94e9f329752e894a5ae2af4dc2898263f",
+      "source_revision": "b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb",
+      "packaging_revision": "b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "339977d95b4ea331487c3b36204a13f85ea19bb26b12e64bb7b94c4037c5b500",
+      "manifest": "native-frontend/quick-look-b89c3f3/artifacts.json",
+      "manifest_sha256": "b1610a1d2092dc8aca913331aeaf12313cebfb67066218b25e7e0d39a451397a",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/quick-look-b89c3f3/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196850156,
+          "sha256": "7cbe4d14d4e2be0e56960d805f21f982aa58448cd791d1ac352d5fa360d3cc7b",
+          "framework_sha256": "23270f2f93da562e62152922b75465253a96f147d51e1443bc0299180bcf051f",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "a61c1da7ed2b78cc72b5d0cf79c68c6d4c5375b13fe2de33505b51c6c644bcd6",
+      "source_revision": "d14c369a5e2def1ea0e5bd53d2165156ce20a858",
+      "packaging_revision": "d14c369a5e2def1ea0e5bd53d2165156ce20a858",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "d0682699b7eb477f5338cf7542d6876b783cb0c7c9202d10ec76fcb27af80303",
+      "manifest": "native-frontend/quick-look-centered-hold-d14c369/artifacts.json",
+      "manifest_sha256": "21916cb62a743e480dfe99ac114dd74027f047ca08e31aa9000c62c32042241f",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/quick-look-centered-hold-d14c369/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196890327,
+          "sha256": "3879d296d5940476c459b111b6ec52816672e6fa10693dfa7f5cd07405a7f428",
+          "framework_sha256": "2a4f60ffe9abc72958ce0dd263ec567d86ccc1e2f888c88795929a4f8df96591",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "cc3c73c86e5d0bd8ef1a517c1fa467d5227dcf8421f3db83b2e99c0d19aaf0ec",
+      "source_revision": "e50bcc2d0fa03590f84d7c50233b4a96d43411a0",
+      "packaging_revision": "e50bcc2d0fa03590f84d7c50233b4a96d43411a0",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "cf78be8af36d1dbaba1ff6e13c42267f9d8828e18f2efb65281ab804c536f774",
+      "manifest": "native-frontend/quick-look-motion-audio-e50bcc2/artifacts.json",
+      "manifest_sha256": "1cdccae6a01ba456b7921adc6622334ac2327555e3546bb503bb23df53a2a3d5",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/quick-look-motion-audio-e50bcc2/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196888792,
+          "sha256": "64f69e934afc5a6b82f68f5de2de4f7bf8df3291eae6635f3178d8ebae12d113",
+          "framework_sha256": "7cbfb22fe4384f26fca91eaa06159806cb7b69bfad78e460217cfb5e7d3292bf",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "6a29f9763e26021e05b91a34faae16b942294785c470e4b3be7a78d3b0ea566d",
+      "source_revision": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+      "packaging_revision": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "9ac6fdcec3e4fe68feebcc75ed110e91fb73f8bb43931440e3554ae7a3b2ee7f",
+      "manifest": "native-frontend/quick-look-outward-hold-5ea0a88/artifacts.json",
+      "manifest_sha256": "aad1618e6f368104767383b8c9cebde8dc7f533f1882b5da6f9b4f614ae2d794",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/quick-look-outward-hold-5ea0a88/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196890116,
+          "sha256": "da234fe9ec5f3ee009ec0790e45ba5182d8c22f431173fde48cc780e9d8f3cd3",
+          "framework_sha256": "52ec2dee5cfcb07eb991a829f4ff19e420945c122a7acbe2df246642e0854c1d",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "e8c215c9b67db6ac4e84cc497ae7bdcfc5d97e825a67765f6c3b1c04fa821b9d",
+      "source_revision": "acd5911b89fcf2cc1c76690015cd6332fa797cae",
+      "packaging_revision": "acd5911b89fcf2cc1c76690015cd6332fa797cae",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "299edb7b8f13a72a99733c909727722f4a8ef41018051c3abb5d9035ed77fbf8",
+      "manifest": "native-frontend/quick-look-style-acd5911/artifacts.json",
+      "manifest_sha256": "10f4e10699c074670830a9fde6ff97de4ad7e0557efd8ffa1fe06a427109d07a",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/quick-look-style-acd5911/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196865834,
+          "sha256": "2f0fd4d2ad9563771d3cd6e88dbb7ce5dbdab9c23056cbf5dec04648e2245cc8",
+          "framework_sha256": "623f57721c01411ef59b4bbba54d95eadf7f31f8f832f7e41cb2b72013af5780",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "9c721587e0edd223476442bbac7e63195ebc111ec978c3934f6bddd3c68a0aba",
+      "source_revision": "b3fbef1197c2435dbe34cf7eb8d1ff674333e286",
+      "packaging_revision": "b3fbef1197c2435dbe34cf7eb8d1ff674333e286",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "0c6d4401385d0a55be1f57b2a624604590ee2dc75fd5fdfcd30a29590a48822a",
+      "manifest": "native-frontend/stream-tags-b3fbef1/artifacts.json",
+      "manifest_sha256": "d4de416d01482ae1e9ad41cbdb9258200055e5626d52e42029ab00084a268e17",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/stream-tags-b3fbef1/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196803512,
+          "sha256": "9dc6e887c1f466d75711c4d3842e709ce5f5f3ab92ee4c8581960341a34a6d9a",
+          "framework_sha256": "aaef271fe54d0fe97961fd2f05d1dfbafc354b24494a32191e4d588dde4bcf2b",
+          "retained": false
+        }
+      ]
+    },
+    {
+      "proof_id": "0de6d7a66be34cdb5a1e6c3045e154cd76a4d0a64dc95b86478c7efb74b4e13e",
+      "source_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+      "packaging_revision": "28eb9bc800865373e906ed28eab0f885ccc97331",
+      "donor_sha256": "076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129",
+      "frontend": "swiftui",
+      "device_validation": "not performed",
+      "component_manifest_sha256": "0dab3c9c7c2ac344beecdc86c6fc07cbbeb17a77cef709df5d48e489b6dd8e2c",
+      "manifest": "native-frontend/swiftui/player-shared-travel-28eb9bc/artifacts.json",
+      "manifest_sha256": "b16bfa0e265cf822eb7ca4d61040a1919974639acae504b870dbd53e52869ba9",
+      "artifacts": [
+        {
+          "mode": "native",
+          "path": "native-frontend/swiftui/player-shared-travel-28eb9bc/StreamsideNativeProof-Twitch32-native.ipa",
+          "bytes": 196785237,
+          "sha256": "0bf4c14869c4759d4ed28a7819ab784700fb60c953a3475d745c21fa4cf3b1fc",
+          "framework_sha256": "5245b1df2c823e346d0160e3e205eabd84939a716e627d173b842b98a5fac154",
+          "retained": false
+        }
+      ]
+    }
+  ],
+  "ci": [
+    {
+      "provider": "github",
+      "source_revision": "007d1085d0cb4b28e979183168ecbb57d62292a5",
+      "submission": "accepted",
+      "directory": "007d1085d0cb4b28e979183168ecbb57d62292a5",
+      "retained": false,
+      "ticket_sha256": "37875e2080aefcb5a6bf630d4ebd20fad8e7b2cee96675fb014f683a20b85bd0"
+    },
+    {
+      "provider": "github",
+      "source_revision": "009e16ff8951e95ac2539cc20237d7ed4760188e",
+      "build_id": "45126479528",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "040731fc064597cdd1491206ab174448c0c126ad37f5c1f80c63cc62745f337b",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "009e16ff8951e95ac2539cc20237d7ed4760188e",
+      "retained": false,
+      "ticket_sha256": "acedb7e380977cf51a2a99bfee158988f976aae1c6de1bae404d2bbb3214b3e1",
+      "receipt_sha256": "a655756bcf012dab19c248c94dfdb85ef3702cc54769c697e25d512497ed6f83",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.721
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.138
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2238.524
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 13.276
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.328
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.493
+          }
+        ],
+        "archive_bytes": 2088263,
+        "archive_sha256": "040731fc064597cdd1491206ab174448c0c126ad37f5c1f80c63cc62745f337b"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "0d2c8ae7d313bd6a9e2276f4235834aa3306bedb",
+      "build_id": "6afd4cc0d133a39c4a128b55",
+      "submission": "accepted",
+      "directory": "0d2c8ae7d313bd6a9e2276f4235834aa3306bedb",
+      "retained": false,
+      "ticket_sha256": "764f93f7870439bdfde2885a3b0cfc256f11ee6fa7459fff5e7fcd890ad3e973"
+    },
+    {
+      "provider": "github",
+      "source_revision": "0d315526cb80ca8e267e01e406d4569ca8df73bd",
+      "submission": "accepted",
+      "directory": "0d315526cb80ca8e267e01e406d4569ca8df73bd",
+      "retained": false,
+      "ticket_sha256": "e2bc3477a5e40f7eb88cf8235f747230ef3efc19e10a488124265024a6d0a0d8"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "0fe2c11adc0decd4439c6973a4d55ff1447e9e07",
+      "build_id": "6aff38b78f52ca275128fc9d",
+      "submission": "accepted",
+      "directory": "0fe2c11adc0decd4439c6973a4d55ff1447e9e07",
+      "retained": false,
+      "ticket_sha256": "63ff5c33b1cf8422f39f76031b66c858a934bdc9515b64042a7fa6941ccd96cc"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "1225f0e156e8f17cbf54a1a83eac19e71cb84f57",
+      "build_id": "6afb722101609fea8f6921ba",
+      "submission": "accepted",
+      "directory": "1225f0e156e8f17cbf54a1a83eac19e71cb84f57",
+      "retained": false,
+      "ticket_sha256": "944bd8bf03a57d7ad8b4a84c269e9af30ab8903f91f2f89c47c650deb52b1a17"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "13ecef3ffb853cd13308ca60e11ae6089e852ef2",
+      "build_id": "6afad8c990e83b09c4faef78",
+      "status": "building",
+      "successful": false,
+      "submission": "accepted",
+      "directory": "13ecef3ffb853cd13308ca60e11ae6089e852ef2",
+      "retained": false,
+      "ticket_sha256": "65b371aa684753abb248306866220dba09b2bc225f5ec4c8fe1353e3402acdec"
+    },
+    {
+      "provider": "github",
+      "source_revision": "156eb857fc87ed382367294b6522a3585bf3ce0e",
+      "build_id": "44854539551",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "3a5f78f8e4a183817f17d40d0d9172ac8612866b62335e0ad9995cc1779d7265",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "156eb857fc87ed382367294b6522a3585bf3ce0e",
+      "retained": false,
+      "ticket_sha256": "b35364e53551b2bbf013977509041ea768a62293bb9d8e84d5b518741ea6a784",
+      "receipt_sha256": "3f93c1bef6e1ecee4f0b716856a2074c13f8e04d324a1b4c1516b178a6a92de9",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.201
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 3.22
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1971.285
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 13.614
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.122
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.393
+          }
+        ],
+        "archive_bytes": 1879636,
+        "archive_sha256": "3a5f78f8e4a183817f17d40d0d9172ac8612866b62335e0ad9995cc1779d7265"
+      }
+    },
+    {
+      "directory": "28eb9bc800865373e906ed28eab0f885ccc97331",
+      "retained": false
+    },
+    {
+      "provider": "github",
+      "source_revision": "2bbd3e86629e9d80ab38b1dc490fa7740bf0f75d",
+      "submission": "accepted",
+      "directory": "2bbd3e86629e9d80ab38b1dc490fa7740bf0f75d",
+      "retained": false,
+      "ticket_sha256": "2749fb8d14918ea9f6f3b0b13206ed7daafe8cb2261ffe39b3d4a5bd2c0a06af"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "315ebbe702d219aec055b66578954e4fe8cf2b7f",
+      "build_id": "6afe08f9d133a39c4a12da23",
+      "submission": "accepted",
+      "directory": "315ebbe702d219aec055b66578954e4fe8cf2b7f",
+      "retained": false,
+      "ticket_sha256": "f55f5ef9498efcb4fc736d1296cd417280595bae312137c72c51a77efea000f9"
+    },
+    {
+      "provider": "github",
+      "source_revision": "319d4773b75d932c08170edd2cff72fc02068782",
+      "submission": "accepted",
+      "directory": "319d4773b75d932c08170edd2cff72fc02068782",
+      "retained": false,
+      "ticket_sha256": "eff59c087b832bdc2a4b0cb7b74916d9a2aaf98ccda98c326c76fe2a3d123d89"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "39316301b2b71929520379bbf7d871b669189e94",
+      "build_id": "6afd2915d133a39c4a12816b",
+      "status": "failed",
+      "successful": false,
+      "submission": "accepted",
+      "directory": "39316301b2b71929520379bbf7d871b669189e94",
+      "retained": false,
+      "ticket_sha256": "2ea45cb9b3bdd42ddf67d0dc32e425aac2c2d39711faad10cd04e7764e732885"
+    },
+    {
+      "provider": "github",
+      "source_revision": "3adb20dd1ecf59ace6262a94522db45d0ecbaf71",
+      "build_id": "45107061678",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "de7f733bd888036c8a40c33500500619c15f6b8aadbb6fad052fcdc185a5d2e5",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "3adb20dd1ecf59ace6262a94522db45d0ecbaf71",
+      "retained": false,
+      "ticket_sha256": "a7fbfa3de9396f08ff383ca0643327067c721a79f2067b824ebad242587f617c",
+      "receipt_sha256": "c0ab920a165424d2f9e0f825c811a04c9ec23a5ef92cf0474ea9a9bb2c055497",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.732
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.964
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1939.725
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 14.701
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.135
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.373
+          }
+        ],
+        "archive_bytes": 1982173,
+        "archive_sha256": "de7f733bd888036c8a40c33500500619c15f6b8aadbb6fad052fcdc185a5d2e5"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "3fca3b985d785642b826c4e944208df1121d5658",
+      "submission": "accepted",
+      "directory": "3fca3b985d785642b826c4e944208df1121d5658",
+      "retained": false,
+      "ticket_sha256": "1cbeae86e21b79d2c4f1b04884c26793a7056f51691b54fe4f81c39323359e9d"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "4fb27e83589b6903155ad83ec4fc14d469da6588",
+      "build_id": "6afcc54ad133a39c4a126307",
+      "submission": "accepted",
+      "directory": "4fb27e83589b6903155ad83ec4fc14d469da6588",
+      "retained": false,
+      "ticket_sha256": "1a7b6cdb5a067ea8786e58aaddf608dc58a29099626d739742ac955c1e51e337"
+    },
+    {
+      "provider": "github",
+      "source_revision": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+      "build_id": "44600451526",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "d6504d86dc7bad0a84f153841554751689aaf776042298abd59ac4884a3a60f5",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "533e3f0e587a5d9336a7944c3c5868fdab2d6fbb",
+      "retained": false,
+      "ticket_sha256": "8b7ee3e836e49d0e36294145085037a9fab478f5f106af76d8b8efe51db32e1b",
+      "receipt_sha256": "91dbb7cddc6cf85a5aea985072c44763b0b9b7038e433f7f4c3280011d5a37e6",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 3.161
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.33
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1806.791
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 17.067
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.159
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.405
+          }
+        ],
+        "archive_bytes": 1467904,
+        "archive_sha256": "d6504d86dc7bad0a84f153841554751689aaf776042298abd59ac4884a3a60f5"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+      "build_id": "6afd0e43d133a39c4a1279f5",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "27046e1ef894c7f50622788bedf1ba5b656e20a935987200fd39b5d65f05c96f",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "54ff64b3e4fa21bc09d19cdc9d1aee1e857872ee",
+      "retained": false,
+      "ticket_sha256": "49a76e42de5d7d167d29eead2b853bf1e76c497d4d1e772b2d9770892fde9d06",
+      "receipt_sha256": "0a12740155450d8ab23fc1362c64ddbcef32dda76eb1c7a664e88735df47de34",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.731
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1016.589
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 10.847
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.09
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.205
+          }
+        ],
+        "archive_bytes": 1125774,
+        "archive_sha256": "27046e1ef894c7f50622788bedf1ba5b656e20a935987200fd39b5d65f05c96f"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "56a0d6269eb3ae46da1eda5a4e2ba74391214bbc",
+      "build_id": "6afd52cfd133a39c4a128d72",
+      "submission": "accepted",
+      "directory": "56a0d6269eb3ae46da1eda5a4e2ba74391214bbc",
+      "retained": false,
+      "ticket_sha256": "053287362b6b20853d45640f6824de771d24573528a29a2f997ece09ef06b618"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "5ada9ea64f1e3a777f71bab68a83018ce9b4ca40",
+      "build_id": "6afcf115d133a39c4a12716d",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "77f440bde07e00224b84c0f4967e3bf285c1a3444f5cc4bb0b6fe48d9d0cc914",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "5ada9ea64f1e3a777f71bab68a83018ce9b4ca40",
+      "retained": false,
+      "ticket_sha256": "a21fb803a1726b2abc791ac9d7279208cb3f717e1f5fc5b43c434c2e7c317f20",
+      "receipt_sha256": "07cf45ed3973f3a7d8fa12a44e465c86efbd70d6e45c27dfca5d4fbdc5416086",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.722
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 907.566
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 10.408
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.066
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.242
+          }
+        ],
+        "archive_bytes": 1118501,
+        "archive_sha256": "77f440bde07e00224b84c0f4967e3bf285c1a3444f5cc4bb0b6fe48d9d0cc914"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "5aedc14d9e823bc29a60a172785ad36861c49d08",
+      "submission": "accepted",
+      "directory": "5aedc14d9e823bc29a60a172785ad36861c49d08",
+      "retained": false,
+      "ticket_sha256": "1777d3babefb2661fb5ae8161fa2e9c9f4b4307ac4d5b42b440f78da46bc7f65"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "5afb9f968a32ee5a739a0c8daff4f94f8d0ba493",
+      "build_id": "6afad00790e83b09c4faec35",
+      "status": "failed",
+      "successful": false,
+      "submission": "accepted",
+      "directory": "5afb9f968a32ee5a739a0c8daff4f94f8d0ba493",
+      "retained": false,
+      "ticket_sha256": "4bbf182ee14d8f281c58669ad570508b2b003ddf5e6835e9737b19592b73b4c7"
+    },
+    {
+      "provider": "github",
+      "source_revision": "5e355f90b06aa7a5cefd206788a53e9b45f2c05f",
+      "build_id": "44684010749",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "b372f3d3d196b3779aea4db12901594ea69eb28ac1c9149ce3659fa415ac9a0c",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "5e355f90b06aa7a5cefd206788a53e9b45f2c05f",
+      "retained": false,
+      "ticket_sha256": "4aa1a4094ceebb1d130ccae0c429457da27f822cb693461ccfbea802a2a0336b",
+      "receipt_sha256": "257a2640573318d6e19b035c46fd38a11beba7bbac34839906287919cffc9470",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.869
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.099
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2041.029
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 14.308
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.486
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 1.426
+          }
+        ],
+        "archive_bytes": 1715006,
+        "archive_sha256": "b372f3d3d196b3779aea4db12901594ea69eb28ac1c9149ce3659fa415ac9a0c"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+      "build_id": "6afbfea401609fea8f694bb5",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "7c2b4744a0ae856e802bbb164b8fff7232cc9ca1bf91adfaa1b173743c4872ff",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "5ea0a8836d6b0fc1cb79f8d6ae867ffe7777be99",
+      "retained": false,
+      "ticket_sha256": "052ea46fda67805c22cdf37867e5b9cb793334f3168b82db454765b60d1cce26",
+      "receipt_sha256": "8625df74f4c0309ed1a0213325ab36afeb35a41ebd6506b63645469ab8345ea7",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.811
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 990.898
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 9.175
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.049
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.148
+          }
+        ],
+        "archive_bytes": 1053752,
+        "archive_sha256": "7c2b4744a0ae856e802bbb164b8fff7232cc9ca1bf91adfaa1b173743c4872ff"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "5f9310bd09812fed96e27811d3896a961219b2c7",
+      "build_id": "6afab05090e83b09c4fae114",
+      "status": "failed",
+      "successful": false,
+      "submission": "accepted",
+      "directory": "5f9310bd09812fed96e27811d3896a961219b2c7",
+      "retained": false,
+      "ticket_sha256": "feaebe8b285bf3c8d4c0df536f88aacf5bf908105a70fc00edc481b52b917b3c"
+    },
+    {
+      "provider": "github",
+      "source_revision": "6116a79d81bc908daf5add49db791118958b0141",
+      "build_id": "44917030520",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "46e16c084534e38950b50de9b99c87c155323f49546493e7116310e84b70198c",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "6116a79d81bc908daf5add49db791118958b0141",
+      "retained": false,
+      "ticket_sha256": "91847da6623a48bae15c1f3b7cf03177d35512fa7c8ca147e23c797666e0950e",
+      "receipt_sha256": "5f93b4f33ebc97fdcc8eae2650fce3cb673afc11c0a8a4e376579f0900c63fa5",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.534
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.928
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2405.604
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 48.565
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.209
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.788
+          }
+        ],
+        "archive_bytes": 1928535,
+        "archive_sha256": "46e16c084534e38950b50de9b99c87c155323f49546493e7116310e84b70198c"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "6268c7f44620b034d1e561643e67056d796f6bfb",
+      "submission": "accepted",
+      "directory": "6268c7f44620b034d1e561643e67056d796f6bfb",
+      "retained": false,
+      "ticket_sha256": "c4b3701cbdf1ab060ae287128dca0ab216564d5e8755d42c67eaf21ef02cce12"
+    },
+    {
+      "provider": "github",
+      "source_revision": "66b4fd5bd2822b6361be8c4abc8b1a5e549a1a9f",
+      "submission": "accepted",
+      "directory": "66b4fd5bd2822b6361be8c4abc8b1a5e549a1a9f",
+      "retained": false,
+      "ticket_sha256": "eba9a7c9b18d4f0f13f150ebe281f430f4994b08a768f5b85f7b94ea0c37e36a"
+    },
+    {
+      "provider": "github",
+      "source_revision": "69dedc8426128fb9ac97827250df66ae5e08a683",
+      "build_id": "45138480837",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "5666c786fe4180e27e346d2621f8d63ae51236d999c99a41c170a623a846b2fe",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "69dedc8426128fb9ac97827250df66ae5e08a683",
+      "retained": false,
+      "ticket_sha256": "89d65ed0eda621a9809519752d1813a8851cc13cad374316cba1faa1c6c10511",
+      "receipt_sha256": "d5b97555943c6fa806961fc137460d479780e877aa4bd62874e67f1442eb09dd",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.038
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.58
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2419.447
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 14.546
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.198
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.55
+          }
+        ],
+        "archive_bytes": 2091234,
+        "archive_sha256": "5666c786fe4180e27e346d2621f8d63ae51236d999c99a41c170a623a846b2fe"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "6a5716454ce18a1427a1979f0c82c8f9381d3664",
+      "submission": "accepted",
+      "directory": "6a5716454ce18a1427a1979f0c82c8f9381d3664",
+      "retained": false,
+      "ticket_sha256": "1bb3d72580718cb6c821021b9f0bb7d66adc39ea88b7cf61e851b7f117cafddd"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "6ef88b01dd1025a1e2c41c8234d9da1e5550913c",
+      "build_id": "6afe11c7d133a39c4a12ddec",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "c4d24769bf2ac93dfb4dc93907b6d48464e1e1f1adeb0fce788422543654f68f",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "6ef88b01dd1025a1e2c41c8234d9da1e5550913c",
+      "retained": false,
+      "ticket_sha256": "8743ddb660be2b255ad226af17d26f280782232d618b093e3f549922d36ee052",
+      "receipt_sha256": "2e53525e19af625d35b26ce07258359ef97b224d84913f5e16a0979a91428ed1",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.686
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.401
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1112.466
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.287
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.065
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.122
+          }
+        ],
+        "archive_bytes": 1272630,
+        "archive_sha256": "c4d24769bf2ac93dfb4dc93907b6d48464e1e1f1adeb0fce788422543654f68f"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "714c61c0d75e7ae6cc61132d5993cfe45784d343",
+      "build_id": "6afe9b58d133a39c4a13054f",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "882205ce1587d119463b485e7f0b9f9d594930480ef9b09b59ec1efd519b8f54",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "714c61c0d75e7ae6cc61132d5993cfe45784d343",
+      "retained": false,
+      "ticket_sha256": "7385b83d983a3d9acf741591ffe067ff3a1f19257d67b9dbb7e5614ce033f7b6",
+      "receipt_sha256": "7765da66d1564868c7926cfd5b51ae1b6afcdb2e19008e80a00453967e88129e",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.69
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.241
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1138.342
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 7.726
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.068
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.111
+          }
+        ],
+        "archive_bytes": 1411557,
+        "archive_sha256": "882205ce1587d119463b485e7f0b9f9d594930480ef9b09b59ec1efd519b8f54"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "82bdcb11b1986f8b679c8033de7e42499a1f0737",
+      "build_id": "6afdf185d133a39c4a12d0b3",
+      "submission": "accepted",
+      "directory": "82bdcb11b1986f8b679c8033de7e42499a1f0737",
+      "retained": false,
+      "ticket_sha256": "3f7d43fbbc82c833a7a2b8bc176a6d7f2ac3808cb8d810254beaca4f2905afef"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "875f77e8ca65c72f9bdb3845ac547d5a32aef2d3",
+      "build_id": "6afdfe97d133a39c4a12d5de",
+      "submission": "accepted",
+      "directory": "875f77e8ca65c72f9bdb3845ac547d5a32aef2d3",
+      "retained": false,
+      "ticket_sha256": "4f1344f441ec13c7bba86a2b700d4167889225640b8648b72140e4b3a577c574"
+    },
+    {
+      "provider": "github",
+      "source_revision": "8900bba584116e80631de5edcbb31c0011278e0e",
+      "submission": "accepted",
+      "directory": "8900bba584116e80631de5edcbb31c0011278e0e",
+      "retained": false,
+      "ticket_sha256": "acd40b9716f6021ea904a307df0a2735f5fccd2a9a1ce98dbd02c75195d7dfc4"
+    },
+    {
+      "provider": "github",
+      "source_revision": "8912dadb5c2d0307587b15d17253add0f38d3f50",
+      "build_id": "45519019091",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "774ff8b1ee7d8df2d9ce13fb31f087c4cc3da60e758082f998d156b97f6e50d5",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "8912dadb5c2d0307587b15d17253add0f38d3f50",
+      "retained": true,
+      "ticket_sha256": "76f74aa6f38c8086eda1251299773228a6b3fbbc8861ba3f4446af401564aaad",
+      "receipt_sha256": "e9950df073fe65e14fd5496365144b6dbedcb4039f8a120615dea8fe50d38efe",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.999
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.552
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2305.681
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 12.837
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.144
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.325
+          }
+        ],
+        "archive_bytes": 2329536,
+        "archive_sha256": "774ff8b1ee7d8df2d9ce13fb31f087c4cc3da60e758082f998d156b97f6e50d5"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "8bacfc875a81cee83c4db96a5dc451c73ad8a4ec",
+      "submission": "accepted",
+      "directory": "8bacfc875a81cee83c4db96a5dc451c73ad8a4ec",
+      "retained": false,
+      "ticket_sha256": "f2772b2ba344dce8eab70b38d7f63e7d2e8e91da01d1b93674f68c0efcdc7ed9"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "91630d004b260f0e27775af29616da6a1da552f9",
+      "build_id": "6afe46efd133a39c4a12f044",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "b463e90f73ead26b973140fb02f64f3342dc5a6218b6f49682910063d0040164",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "91630d004b260f0e27775af29616da6a1da552f9",
+      "retained": false,
+      "ticket_sha256": "20b4ad46b2c55d480111aac12497699c272b3ccad9eb62a4967e5d3754967de8",
+      "receipt_sha256": "ccdb30354db94b33527ae0e14eb2279cc7e87a38a0c3a2e097b746754f9c69b6",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.648
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.041
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1004.061
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.196
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.07
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.113
+          }
+        ],
+        "archive_bytes": 1296761,
+        "archive_sha256": "b463e90f73ead26b973140fb02f64f3342dc5a6218b6f49682910063d0040164"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "952cf7ba9d15b6c893cdf048ca69051c99279ff2",
+      "submission": "accepted",
+      "directory": "952cf7ba9d15b6c893cdf048ca69051c99279ff2",
+      "retained": false,
+      "ticket_sha256": "1653a0aab60f00cc7b878b362814a92b7b7f3615398f3daab21186855b448c06"
+    },
+    {
+      "provider": "github",
+      "source_revision": "9b8e5ebfc414f40876b8a6df66b63ccf2fed7ef1",
+      "build_id": "45002682355",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "eebd8ac2a2f6592d0e3bb1ca4e4dce29c0e1dfe542338bbdf67f8ebabdfe256d",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "9b8e5ebfc414f40876b8a6df66b63ccf2fed7ef1",
+      "retained": false,
+      "ticket_sha256": "3223ad5e3f0aabd136a694d24cbcb8788cc63d4d8bd8be9fd9c75159dc2252da",
+      "receipt_sha256": "65ed3b6168b313320fa502ccd2709f9ed5a91a585a102ec04f8e3f2b86502cfe",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.065
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.466
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2159.515
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 15.277
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.193
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.488
+          }
+        ],
+        "archive_bytes": 1971206,
+        "archive_sha256": "eebd8ac2a2f6592d0e3bb1ca4e4dce29c0e1dfe542338bbdf67f8ebabdfe256d"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "9bbbe826656fa194ac31c42bb31b8e47102b9cd1",
+      "build_id": "45480946438",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "6221e1f9811c8d7e5896dddf925c673943aaeff47b6ceca5ea60703c9c32111a",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "9bbbe826656fa194ac31c42bb31b8e47102b9cd1",
+      "retained": false,
+      "ticket_sha256": "b4ca12b0902cb11fd1b7a7707b117577fb0b4dff3a9974b2c53a1e0db07eefdd",
+      "receipt_sha256": "524b98f031760cab13b87cf3e88e7b129d8f2d1078ac5fdd12b8e4fa636bcc33",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.021
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.501
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2569.187
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 14.626
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.17
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.509
+          }
+        ],
+        "archive_bytes": 2275359,
+        "archive_sha256": "6221e1f9811c8d7e5896dddf925c673943aaeff47b6ceca5ea60703c9c32111a"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "9d5e1ebb95daf76bc5e79e80bd8d3174aad495b5",
+      "build_id": "6afe3befd133a39c4a12ed22",
+      "submission": "accepted",
+      "directory": "9d5e1ebb95daf76bc5e79e80bd8d3174aad495b5",
+      "retained": false,
+      "ticket_sha256": "48104fff35422b9c068f891f11a6b81da1109804ac999bf51a63e087b35a6a46"
+    },
+    {
+      "provider": "github",
+      "source_revision": "9f2505e1b284054894cf0b18d20137fdc8a620d2",
+      "build_id": "45329795140",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "6f5b24c9f771bc1a1a7cd8e601a1c016a4267ef7a7dc1072ba1632014300e9b7",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "9f2505e1b284054894cf0b18d20137fdc8a620d2",
+      "retained": false,
+      "ticket_sha256": "2d0709c0bc7875cd965bb30d8e62c1d6849c2f5da2df9a53c08f598d90341119",
+      "receipt_sha256": "08b6bc409d6e1b9277b2544d14d0ad11b726872c9888ef5e278536eecb01d5c2",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.795
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.645
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2307.866
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 14.071
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.205
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.497
+          }
+        ],
+        "archive_bytes": 2179386,
+        "archive_sha256": "6f5b24c9f771bc1a1a7cd8e601a1c016a4267ef7a7dc1072ba1632014300e9b7"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "a145ee1520775d295a14cbe1b888e3c2ca604a4f",
+      "submission": "accepted",
+      "directory": "a145ee1520775d295a14cbe1b888e3c2ca604a4f",
+      "retained": false,
+      "ticket_sha256": "300c33bf31b2564de3a427a75721793fdc7e59ea90029b988896c7ad1575a30a"
+    },
+    {
+      "provider": "github",
+      "source_revision": "a14ea060e78fb6c40c91c6a7d2902bf179017910",
+      "build_id": "44841547565",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "cc14e7c5b3aa0b0ab959071f733fc20fc77885ba6f3a06d857a3688cf7e9fedf",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "a14ea060e78fb6c40c91c6a7d2902bf179017910",
+      "retained": false,
+      "ticket_sha256": "a48884249e852ea0220b78caf3a01b10fa82dc83659551a7f2cd471cd91e5cf5",
+      "receipt_sha256": "65fd3ad405a20678d58d4dd8d47f4f377ca9ece99da6b1b40d1f6c614d80adb5",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.069
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 3.049
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2394.913
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 16.266
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.651
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 1.142
+          }
+        ],
+        "archive_bytes": 1826958,
+        "archive_sha256": "cc14e7c5b3aa0b0ab959071f733fc20fc77885ba6f3a06d857a3688cf7e9fedf"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+      "build_id": "6afd38d2d133a39c4a12855b",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "5f0459270649472d3b1883a2f38e6df1c2f800a6b31736620537fede2396e001",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "a3d98aaab409c137de6e5dd651bae6c638da1fb8",
+      "retained": false,
+      "ticket_sha256": "4c23abeedc1b177959a67700312808e7144d4f0ff546c4274daaa7d2bd4a4f99",
+      "receipt_sha256": "5f087a5174c61c2146327bba135257963bc3d3fa7ac4fc308db1a8f23a3fa1ca",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.662
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.139
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1039.62
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.158
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.047
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.11
+          }
+        ],
+        "archive_bytes": 1166213,
+        "archive_sha256": "5f0459270649472d3b1883a2f38e6df1c2f800a6b31736620537fede2396e001"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "a7c8e4a42476b96a401dfc8029e07f21f2d36033",
+      "submission": "accepted",
+      "directory": "a7c8e4a42476b96a401dfc8029e07f21f2d36033",
+      "retained": false,
+      "ticket_sha256": "46959cbadebb44de4c33085ecc025230a2cac0b21b6e33ba9416815221c060b6"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "acd5911b89fcf2cc1c76690015cd6332fa797cae",
+      "build_id": "6afab43790e83b09c4fae23a",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "8ef26e5e444ac0bdbbb34798ee9be2343c0b02cb80d6e7c584a37d749e60aec5",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "acd5911b89fcf2cc1c76690015cd6332fa797cae",
+      "retained": false,
+      "ticket_sha256": "51474bf3d64ce9e50ef2f04f06f7cac60625e54b12dafe235871337d5c6d90a6",
+      "receipt_sha256": "02f4e61d4fb36c5f6368960ada19596df322a3227d1c727a22bcee12e96c0a29",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.671
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 999.757
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.882
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.105
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.215
+          }
+        ],
+        "archive_bytes": 1001549,
+        "archive_sha256": "8ef26e5e444ac0bdbbb34798ee9be2343c0b02cb80d6e7c584a37d749e60aec5"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "b3fbef1197c2435dbe34cf7eb8d1ff674333e286",
+      "build_id": "6af967d590e83b09c4fa7bdc",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "c8a7821d189ff27851543c0c5d3591dd7e2775195c94208b3d67f2da825af2b3",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "b3fbef1197c2435dbe34cf7eb8d1ff674333e286",
+      "retained": false,
+      "ticket_sha256": "080df16e336dee8bf9e94583407232b03bfc76ddf7296177b224eeb134035459",
+      "receipt_sha256": "67af38b62ffbeb5236f17fcdd5996acf3c652c6c65474ea45733d98db7732429",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.698
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 622.614
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 7.683
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.063
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.098
+          }
+        ],
+        "archive_bytes": 870923,
+        "archive_sha256": "c8a7821d189ff27851543c0c5d3591dd7e2775195c94208b3d67f2da825af2b3"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "b4ea5a869363bc207bd05b0b6fce9d1198abfc8c",
+      "build_id": "45745741192",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "ba294f5dfc2e8edc85bd20a08ee60245cbd695c56ccc9f110a9855d9cbcfb6ce",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "b4ea5a869363bc207bd05b0b6fce9d1198abfc8c",
+      "retained": true,
+      "ticket_sha256": "56376a43cc19ffcf08e61e2c86bf98ea329b0be0215a33f2ce26f53418536318",
+      "receipt_sha256": "b43f110ba1d8c0d2ec791e3f667a9a1cda901fb84ec5ae3d6a9006f523a8f0fe",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.644
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 3.97
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1756.435
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 52.753
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.23
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.615
+          }
+        ],
+        "archive_bytes": 2399737,
+        "archive_sha256": "ba294f5dfc2e8edc85bd20a08ee60245cbd695c56ccc9f110a9855d9cbcfb6ce"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "b6b6109c9b993099d303345e8c365c65b2eb668e",
+      "submission": "accepted",
+      "directory": "b6b6109c9b993099d303345e8c365c65b2eb668e",
+      "retained": false,
+      "ticket_sha256": "2cbe252d92c46449bf5b745b7cf93bcc20e067bf3d9b0b715fc594518a464a52"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb",
+      "build_id": "6afaa4ba90e83b09c4fadda0",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "0e8f965762ff7a3fd091bdaee77a059780297005d3b79476d3047f530e7b78b1",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "b89c3f3b7d1e76013b12e2a1b09a9d3cd47130bb",
+      "retained": false,
+      "ticket_sha256": "ba24df53dafdbcd18500e3ac5c198d980d6398a8e6db2bbdca1bccd9c4c8b474",
+      "receipt_sha256": "971f5084ffcb3321080897c88ae2b0ae67707c3edc78fff5fa605fd774151fae",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.694
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 661.651
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.668
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.052
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.122
+          }
+        ],
+        "archive_bytes": 965428,
+        "archive_sha256": "0e8f965762ff7a3fd091bdaee77a059780297005d3b79476d3047f530e7b78b1"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "bfdabb800fa2cf6bca28f38dc509218969048349",
+      "build_id": "44758634903",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "83f5463b8a7c76a1bf020e701ac18611809247b1136657d13f1239784bbc86de",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "bfdabb800fa2cf6bca28f38dc509218969048349",
+      "retained": false,
+      "ticket_sha256": "2fb998abf39f0af2a7818eae34754a790cd8adde9b2926a79a9279c5788900aa",
+      "receipt_sha256": "a1ae89bb53a7e68e12f146c20f7132acd3e743a9c8f864fddf7c4e4084c44503",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.978
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.68
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1724.55
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 18.956
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.154
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.449
+          }
+        ],
+        "archive_bytes": 1781181,
+        "archive_sha256": "83f5463b8a7c76a1bf020e701ac18611809247b1136657d13f1239784bbc86de"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "c03d67de6aed0d81b89d601b2db3671261c92333",
+      "build_id": "6afccb7fd133a39c4a126579",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "dacf1e1b08d044a0c36b2753c9689e378ccf3a4dabba6ab604b925f2bf0046bd",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "c03d67de6aed0d81b89d601b2db3671261c92333",
+      "retained": false,
+      "ticket_sha256": "2acdf2736c0f9d134560d75bb4ff90a1b591c3bf1b584b9234b9d1da23fbf108",
+      "receipt_sha256": "54abcdf7ac4337e07b96d71245d245dd76c859e926a8c26909a5f457ab581960",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.674
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 927.466
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.629
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.072
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.115
+          }
+        ],
+        "archive_bytes": 1116108,
+        "archive_sha256": "dacf1e1b08d044a0c36b2753c9689e378ccf3a4dabba6ab604b925f2bf0046bd"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "c4ec52c4df9a85a25fdf92be7caef49587b77a75",
+      "build_id": "6afceb3ed133a39c4a126fb9",
+      "submission": "accepted",
+      "directory": "c4ec52c4df9a85a25fdf92be7caef49587b77a75",
+      "retained": false,
+      "ticket_sha256": "3fc43ce010ca1cac3cd79341199fa417d64bce3f8c81a94ada08e047eaede222"
+    },
+    {
+      "provider": "github",
+      "source_revision": "c775729acdab35e63ccca3142bebe5235ea1d493",
+      "submission": "accepted",
+      "directory": "c775729acdab35e63ccca3142bebe5235ea1d493",
+      "retained": false,
+      "ticket_sha256": "57c4814573249b5b817d5cce5294aba0a91ef644502db7ecb787fc0cd3a176d3"
+    },
+    {
+      "provider": "github",
+      "source_revision": "c93ae13530cffdc42966c8d4d705d1a5593c54ad",
+      "submission": "accepted",
+      "directory": "c93ae13530cffdc42966c8d4d705d1a5593c54ad",
+      "retained": false,
+      "ticket_sha256": "79d3d436302469b1589f31d0641933418339234f484ad0c3586e9d9b8b503e8c"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "c94867e2824b9c419b9c36ea212d6f3560e9522c",
+      "build_id": "6afad35590e83b09c4faed77",
+      "status": "failed",
+      "successful": false,
+      "submission": "accepted",
+      "directory": "c94867e2824b9c419b9c36ea212d6f3560e9522c",
+      "retained": false,
+      "ticket_sha256": "be0dd47f20e80871c4f9e263e06ef6977b11543d70a56722b19e3f045eedafb6"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "cc38c6c42ea333c0a67ba612b183f13dff690057",
+      "build_id": "6afe37bcd133a39c4a12ebec",
+      "submission": "accepted",
+      "directory": "cc38c6c42ea333c0a67ba612b183f13dff690057",
+      "retained": false,
+      "ticket_sha256": "35b13049befdb8578e788cfedc2b4c01ae02061ccf803d6c4415ac5f7b93d849"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "d14c369a5e2def1ea0e5bd53d2165156ce20a858",
+      "build_id": "6afc0b4b01609fea8f694ff9",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "52281a4d2f90231526bf7df3d3a40ddd854755ff708467e025439f151eedcf7e",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "d14c369a5e2def1ea0e5bd53d2165156ce20a858",
+      "retained": false,
+      "ticket_sha256": "eb40dafdbd923895c1a9855c46e169abed988ff7c965f3ca17343a820eb779c5",
+      "receipt_sha256": "e7e3eadbfb8ca173a79db76a52056a41718e90995610f5574262477b3d1a9cb3",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.646
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 851.418
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 8.691
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.056
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.12
+          }
+        ],
+        "archive_bytes": 1054340,
+        "archive_sha256": "52281a4d2f90231526bf7df3d3a40ddd854755ff708467e025439f151eedcf7e"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "d3c96a775b0fb0935ca0395180d01edf6dec02f6",
+      "build_id": "44663919920",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "2d0aed512eb215f2de71ca2d8ee05b6a2c1d715d4c377fa579131cd313232f7e",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "d3c96a775b0fb0935ca0395180d01edf6dec02f6",
+      "retained": false,
+      "ticket_sha256": "f471fd904ed0e1b7c871cc0a1dafb094df91a6c83dcf9359197df3aea3b79cd8",
+      "receipt_sha256": "8fe4a1fa764609b19a9362b1e6c7869b2d1358b54d150a202d2a6f8823daccfb",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 3.045
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.427
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1765.28
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 16.565
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.223
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.46
+          }
+        ],
+        "archive_bytes": 1712566,
+        "archive_sha256": "2d0aed512eb215f2de71ca2d8ee05b6a2c1d715d4c377fa579131cd313232f7e"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+      "build_id": "44821693367",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "92983ef6b4710ce66b22df58e11b4a6c8ecd5fbd691924f42ff0734e4ebdff51",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "d50c38ec41c5875080fcf83f579c7bb4104f53ce",
+      "retained": false,
+      "ticket_sha256": "2b1ae6665610bc9ff2f22f1465064246b24ce5e392713b9b0efac3aa0a4bfacc",
+      "receipt_sha256": "a34bce23ffc127ece0e2383c6ce02a5f69eba3079212a13a042490241d7c59a3",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 10.012
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 1.961
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2061.988
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 18.909
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.184
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.611
+          }
+        ],
+        "archive_bytes": 1800884,
+        "archive_sha256": "92983ef6b4710ce66b22df58e11b4a6c8ecd5fbd691924f42ff0734e4ebdff51"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "d73e602ee1d7f3ceeb626f42df13cf2044cfc003",
+      "build_id": "44974608274",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "9dfbc00e45d4a2cbaeaf7d1ea8bc4bc77521545b9b77a371aeaeb0245132d4c5",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "d73e602ee1d7f3ceeb626f42df13cf2044cfc003",
+      "retained": false,
+      "ticket_sha256": "71f00362b335bc397f644979a5c5216d3d95661b35e70e7b410dd34415e55ce2",
+      "receipt_sha256": "68b99827325d83d7ff4bb426d0a7509e974eab30df8f44d8288a46774e32ee36",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 9.963
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 3.452
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 2067.038
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 13.423
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.11
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.332
+          }
+        ],
+        "archive_bytes": 1947036,
+        "archive_sha256": "9dfbc00e45d4a2cbaeaf7d1ea8bc4bc77521545b9b77a371aeaeb0245132d4c5"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "e50bcc2d0fa03590f84d7c50233b4a96d43411a0",
+      "build_id": "6afb784001609fea8f69241c",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "b0175e3d50844a63bfad84e1b0baf2a880370436f9fee0b732f110cb35087165",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "e50bcc2d0fa03590f84d7c50233b4a96d43411a0",
+      "retained": false,
+      "ticket_sha256": "5db403212f2d8bbcdc3614e72a67759345cb1e7645cf694d41eebc8262eeca3e",
+      "receipt_sha256": "2c40478400029d24d314e183ce98f676cc55cdabf8efe2e72512afc2b7f46731",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.71
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1274.656
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 9.79
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.084
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.215
+          }
+        ],
+        "archive_bytes": 1051919,
+        "archive_sha256": "b0175e3d50844a63bfad84e1b0baf2a880370436f9fee0b732f110cb35087165"
+      }
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+      "build_id": "6afb259c01609fea8f690184",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "f1cfc39f828a7036b6749b05360abc2a6e5b5ae4db86887787bad2d04de68479",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "e883ecfb7e7b3113f36fea4b8fd9ded2d67c8d4c",
+      "retained": false,
+      "ticket_sha256": "c7396efd212e6e69b1e61a7e8e51526f547c09e971ffa00aee081372a4f5b0de",
+      "receipt_sha256": "e69a957105830ec9999c75674d92ca369c06635cdd49524919c46a4ddc80223b",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.72
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1046.638
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 9.58
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.065
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.169
+          }
+        ],
+        "archive_bytes": 1040355,
+        "archive_sha256": "f1cfc39f828a7036b6749b05360abc2a6e5b5ae4db86887787bad2d04de68479"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "e8bbd47123d40ee426032ecd3f3a85b14b0d970f",
+      "submission": "accepted",
+      "directory": "e8bbd47123d40ee426032ecd3f3a85b14b0d970f",
+      "retained": false,
+      "ticket_sha256": "730d59fdf4f49a05f219abdf5b25827894c03d3910c75f2d0f4cba9b7469690d"
+    },
+    {
+      "provider": "github",
+      "source_revision": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+      "build_id": "44701442860",
+      "status": "completed",
+      "successful": true,
+      "archive_sha256": "5c251af45abf74138bf4fc9043bb2070d0e1ad0c61d8997bf2c90b5bdca01c03",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "ea8b0d9b7911f03cf8747804c33c5f7dc66db02f",
+      "retained": false,
+      "ticket_sha256": "ae61eb96db8808eb2d9d37d1f0ff0eedf5ef64fa85d5df5a70c0c320c2b43c6a",
+      "receipt_sha256": "5905658ba7fdc635fe957679fdc73348bf95d82fa6a2dfd3b6f2eae03af3e39d",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 8.244
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 2.415
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1879.243
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 12.922
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.194
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.512
+          }
+        ],
+        "archive_bytes": 1725599,
+        "archive_sha256": "5c251af45abf74138bf4fc9043bb2070d0e1ad0c61d8997bf2c90b5bdca01c03"
+      }
+    },
+    {
+      "provider": "github",
+      "source_revision": "eb280a53864d6fe8be132e1f7bd4f46d432e2277",
+      "submission": "accepted",
+      "directory": "eb280a53864d6fe8be132e1f7bd4f46d432e2277",
+      "retained": false,
+      "ticket_sha256": "7de9be311c4f520de76a1d9cbf85a37087e5cbaccaa83393a021815f68c8250e"
+    },
+    {
+      "provider": "codemagic",
+      "source_revision": "f6d279ca48790d3960c40dced53360242fd591c0",
+      "build_id": "6afd583bd133a39c4a128f4d",
+      "status": "finished",
+      "successful": true,
+      "archive_sha256": "0c4ece876566e6383d3eea44aaa6ca39e962c5512c1f28719aab361a190a2cdc",
+      "download_verified": true,
+      "submission": "accepted",
+      "directory": "f6d279ca48790d3960c40dced53360242fd591c0",
+      "retained": false,
+      "ticket_sha256": "1b35a7b501e071a69dbf1c35c3fc3f3a63173232280cf3b2327d6a2c2c009b88",
+      "receipt_sha256": "9392731efd7c4f2db90ae56fe121131712e98b4a3ec71ffcb73aa47f1d12d735",
+      "validation": {
+        "passed": true,
+        "stages": [
+          {
+            "name": "Build logging tests",
+            "passed": true,
+            "seconds": 2.706
+          },
+          {
+            "name": "Shared VAFT playlist engine",
+            "passed": true,
+            "seconds": 0.977
+          },
+          {
+            "name": "SwiftUI, interoperability and simulator gates",
+            "passed": true,
+            "seconds": 1003.377
+          },
+          {
+            "name": "Foundation networking integration",
+            "passed": true,
+            "seconds": 9.472
+          },
+          {
+            "name": "Report comparison tests",
+            "passed": true,
+            "seconds": 0.057
+          },
+          {
+            "name": "Build provider routing tests",
+            "passed": true,
+            "seconds": 0.19
+          }
+        ],
+        "archive_bytes": 1255778,
+        "archive_sha256": "0c4ece876566e6383d3eea44aaa6ca39e962c5512c1f28719aab361a190a2cdc"
+      }
+    }
+  ]
+}

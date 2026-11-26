@@ -38,7 +38,7 @@ def main():
                             repository=os.environ.get('GITHUB_REPOSITORY'))
     (output/'compiler.json').write_text(json.dumps(info,indent=2)+'\n')
     common=['-target','arm64-apple-ios16.4','-isysroot',sdk,'-Os','-fblocks','-Wall','-Wextra','-Werror',
-            '-fvisibility=hidden','-DSSN_SWIFTUI=1','-DSSN_DEV_LAUNCH_SELECTOR='+str(int(config['mode']=='native')),'-Inative','-Isrc','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
+            '-fvisibility=hidden','-DSSN_DEV_LAUNCH_SELECTOR='+str(int(config['mode']=='native')),'-Inative','-Inative/shared','-Igenerated','-Ioutput','-DSSN_NATIVE='+str(int(config['mode']=='native'))]
     development=['-DSSN_DEVELOPMENT'] if config['mode']=='native' else []
     info['development_tools']=bool(development)
     swift=['native/swift/'+p.name for p in sorted((root/'native/swift').glob('*.swift'))]
@@ -73,7 +73,7 @@ def main():
         raise ValueError('Existing thumbnail preference regression evidence missing')
     if 'PASS: duplicate render direction' not in info['model_tests']:
         raise ValueError('Repeated render direction regression evidence missing')
-    run(['xcrun','clang','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-Inative','-Isrc','-Igenerated',
+    run(['xcrun','clang','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-Inative','-Inative/shared','-Igenerated',
          'native/SSNAdBlock.m','tests/native_frontend/adblock_test.m','-framework','Foundation','-o','output/adblock-tests'], label='Build shared VAFT and native transport fixture')
     for selection in ['baseline','native']:
         run([str(output/'adblock-tests'),selection],label='Test VAFT '+selection+' token routing, manifests, cancellation and preference')

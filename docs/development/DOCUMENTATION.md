@@ -6,18 +6,13 @@ Streamside's documentation describes the maintained implementation and preserves
 
 | Document | Owns |
 | --- | --- |
-| [README](../../README.md) | Features, installation, setup, updates, and removal. |
-| [Changelog](../../CHANGELOG.md) | Changes in published releases. A clearly marked unreleased entry may collect completed changes for the next release. |
-| [Architecture](../ARCHITECTURE.md) | System design, subsystem relationships, state ownership, and integration boundaries. |
-| [Feature documents](../features/) | Current implementation details, algorithms, lifecycle, fallback behavior, and feature-specific limitations. The [third-party emote guides](../features/third-party-emotes/README.md) divide that subsystem into its individual features. |
-| [Compatibility](../COMPATIBILITY.md) | Supported Twitch versions and configurations, validation scope, and known compatibility limits. |
-| [Troubleshooting](../TROUBLESHOOTING.md) | Practical diagnosis, recovery, and useful bug reports. |
-| [Development guides](../README.md#developing-streamside) | Reusable maintainer guidance for building, testing, packaging, and investigation methods. `docs/development/` is for development guidance, not records of active work. |
-| [Investigations](../investigations/README.md) | Active investigations, implementation trials, per-build findings, and their testing evidence. |
-| [History](../HISTORY.md) and [archive](../archive/README.md) | Development chronology, experiments, failures, superseded approaches, and supporting technical evidence. |
+| [README](../../README.md) | Current branch and development entry points. |
+| [Development guides](../README.md#native-development-documentation) | Reusable build, testing, packaging and investigation methods. |
+| [Investigations](../investigations/README.md) | Technical findings, per-build records and sanitized validation evidence. |
+| [Previous implementation](https://github.com/BananaOnGitHub/Streamside/tree/eb4d30f761e75921913451293b76a92d39eaa2d5/docs) | Historical release guides, changelog and earlier investigations. |
 | [Documentation index](../README.md) | Navigation between the current guides and historical records. |
 
-Put each substantial explanation in its owning document and link to it from other layers. The README can summarize a feature without duplicating its implementation guide. Historical records provide evidence for a current explanation; they do not define current behavior.
+Put each substantial explanation in its owning document and link to it from other layers. The README can summarize the branch without duplicating implementation records. Historical records provide evidence for a current explanation; they do not define current behavior.
 
 ## When to update
 
@@ -29,7 +24,7 @@ Correct inaccurate security or compatibility information immediately, even durin
 
 ## Preserve development evidence
 
-Never silently erase failed experiments, superseded approaches, or unique technical findings. At feature freeze, carry maintained implementation details into the owning feature documents. Preserve the remaining investigation evidence in History or the archive when closing the work; update links rather than deleting records or silently replacing their outcomes.
+Never silently erase failed experiments, superseded approaches, or unique technical findings. At feature freeze, carry maintained implementation details into the owning feature documents. Preserve remaining investigation evidence in Git history or an identified archive revision when closing the work. Update links to the retained records.
 
 Historical records should retain their original scope and outcome. Add a clearly separated correction or supersession note when later evidence changes the conclusion. Identify the relevant build, Twitch donor, source revision, successor document, and validation limits where available.
 
@@ -49,7 +44,7 @@ Use exact version and build identities when the distinction matters. Do not infe
 
 ## Mechanical validation
 
-Run `make docs-check` when changing documentation, moving linked files, or updating current version metadata. The separate Documentation CI check validates local links, anchors, assets, and the relationship between current release/build labels. It includes archived Markdown records and does not generate or rewrite documentation. [Testing](TESTING.md#documentation-integrity) defines its rules and exclusions.
+Run `make docs-check` when changing documentation, moving linked files, or updating current version metadata. The separate Documentation CI check validates local links, anchors, assets, and the native framework metadata. It includes retained investigation Markdown and does not generate or rewrite documentation. [Testing](TESTING.md#documentation-integrity) defines its rules and exclusions.
 
 Passing this check does not establish implementation accuracy, compatibility, device acceptance, feature readiness, or changelog completeness. Public documentation is still reconciled with completed work at feature freeze.
 

@@ -6,7 +6,7 @@ Streamside contains a pinned source copy and native adaptation of VAFT from [pix
 
 The pin is solution 24 at `c51ef2fe8f667f9dc9216eb550924cf0d732ce27`. VAFT is MIT-licensed, with copyright credited to TwitchAdSolutions Contributors. [Upstream](UPSTREAM.md) records the exact source, hash, native differences, and maintenance procedure.
 
-## Third-party emote integration
+## Historical third-party emote integration
 
 The 7TV, BTTV, and FFZ integration was developed using [gunnerkidBT/TwitchAdBlock](https://github.com/gunnerkidBT/TwitchAdBlock) as an implementation reference. That project retains upstream work from [level3tjg/TwitchAdBlock](https://github.com/level3tjg/TwitchAdBlock).
 

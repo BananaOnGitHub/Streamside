@@ -167,46 +167,33 @@ class VersionTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        (self.root / 'packaging').mkdir()
-        (self.root / 'src').mkdir()
-        self.metadata()
+        self.path = self.root / 'native/framework-info.plist'
+        self.path.parent.mkdir()
+        self.metadata = plistlib.loads((ROOT / 'native/framework-info.plist').read_bytes())
 
-    def metadata(self, version='3.0.0', short='3.0.0', bundle='3.0.0.92', report='3.0.0-build.92'):
-        (self.root / 'VERSION').write_text(version + '\n')
-        (self.root / 'packaging/StreamsideFramework-Info.plist').write_bytes(plistlib.dumps({
-            'CFBundleShortVersionString': short, 'CFBundleVersion': bundle, 'MinimumOSVersion': '15.0'}))
-        (self.root / 'src/TASDiagnostics.c').write_text(f'// header\n#define TAS_REPORT_VERSION "{report}"\n')
+    def write(self, **overrides):
+        self.path.write_bytes(plistlib.dumps(dict(self.metadata, **overrides)))
 
     def test_current_metadata_agrees(self):
+        self.write()
         self.assertEqual(check_versions(self.root), [])
 
-    def test_distinct_build_number_is_not_public_version(self):
-        self.metadata(bundle='3.0.0.100', report='3.0.0-build.100')
+    def test_metadata_rejects_legacy_or_invalid_values(self):
+        for key, value in [('SSNFrontend', 'uikit'), ('CFBundleVersion', '0'),
+                           ('CFBundleShortVersionString', 'development'),
+                           ('CFBundleIdentifier', 'wrong'), ('MinimumOSVersion', 16.4)]:
+            with self.subTest(key=key, value=value):
+                self.write(**{key: value})
+                self.assertTrue(check_versions(self.root))
+
+    def test_historical_release_labels_do_not_participate(self):
+        self.write()
+        (self.root / 'README.md').write_text('Published 2.3.0; upcoming 3.1.0; Twitch 32.0')
         self.assertEqual(check_versions(self.root), [])
 
-    def test_short_bundle_and_report_drift_are_errors(self):
-        for overrides, origin in [({'short': '2.3.0'}, 'packaging/StreamsideFramework-Info.plist'),
-                                  ({'bundle': '2.3.0.92'}, 'packaging/StreamsideFramework-Info.plist'),
-                                  ({'report': '3.0.0-build.91'}, 'src/TASDiagnostics.c')]:
-            with self.subTest(overrides=overrides):
-                self.metadata(**overrides)
-                self.assertIn(origin, [i.path for i in check_versions(self.root)])
-
-    def test_historical_donor_release_and_artifact_labels_do_not_participate(self):
-        (self.root / 'README.md').write_text('Published 2.3.0; upcoming 3.1.0; Twitch 31.5; iOS 16.4')
-        (self.root / 'old.plist').write_bytes(plistlib.dumps({'CFBundleShortVersionString': '1.0.0'}))
-        self.assertEqual(check_versions(self.root), [])
-
-    def test_missing_invalid_and_nonstring_metadata_fail_cleanly(self):
-        self.metadata(bundle='3.0.0.0', report='3.0.0-build.0')
+    def test_missing_and_invalid_metadata_fail_cleanly(self):
         self.assertTrue(check_versions(self.root))
-        self.metadata(bundle=92)
-        self.assertTrue(check_versions(self.root))
-        (self.root / 'packaging/StreamsideFramework-Info.plist').write_text('invalid')
-        self.assertTrue(check_versions(self.root))
-        (self.root / 'VERSION').unlink()
-        self.assertTrue(check_versions(self.root))
-        (self.root / 'src/TASDiagnostics.c').write_text('// absent')
+        self.path.write_text('invalid')
         self.assertTrue(check_versions(self.root))
 
 

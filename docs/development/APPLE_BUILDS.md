@@ -3,7 +3,7 @@
 Use Ubuntu to select one hosted provider for `feat/native-frontend`. Codemagic
 M2 is preferred while its verified personal free-minutes budget is sufficient;
 GitHub Actions is the fallback. No local Mac or signing credential is required.
-Linux/Zig CI remains automatic. Apple builds are explicitly requested so a push
+Donor-free native Linux CI remains automatic. Apple builds are explicitly requested so a push
 does not start duplicate macOS jobs.
 
 Commit and push source first, then run:
@@ -56,7 +56,7 @@ the check. No subscription or paid billing is enabled by this tooling.
 Both providers validate the exact requested checkout before compiling. Xcode
 26.6 / 17F113 and iPhoneOS SDK 26.5 remain strictly checked by the Apple worker.
 The shared runner compiles both component modes, runs simulator/model tests,
-Foundation integration and host comparison/routing tests, then publishes only
+native Foundation transport and host comparison/routing tests, then publishes only
 owned components, logs and a source-bound validation receipt. Retrieval verifies
 the archive hash, every component hash, source/toolchain/test receipts, and runs
 the existing Ubuntu ARM64 ABI/admission/runtime-policy tests. The local ABI tests

@@ -33,7 +33,6 @@ def main():
         ('Build logging tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests/native_frontend', '-p', 'test_build_progress.py', '-v']),
         ('Shared VAFT playlist engine', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests/native_frontend', '-p', 'test_vaft_core.py', '-v']),
         ('SwiftUI, interoperability and simulator gates', [sys.executable, '-u', 'tools/native_frontend/components.py', 'build', '--output', str(out / 'components')]),
-        ('Foundation networking integration', ['make', 'test-foundation-cache']),
         ('Report comparison tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests/native_frontend', '-p', 'test_comparison.py', '-v']),
         ('Build provider routing tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_apple_builds.py', '-v'])]
     try:

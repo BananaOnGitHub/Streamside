@@ -51,8 +51,8 @@ defines download, verification, local packaging and optional fallback use.
 
 The annotated tag `archive/workspace-build-records-2026-11` was published and
 verified before removing anything. It targets the exact starting revision above.
-[The recovery index](../archive/WORKSPACE_BUILD_RECORDS.md) and
-[172-file inventory](../archive/WORKSPACE_BUILD_RECORDS.json) retain retrieval
+[The recovery index](https://github.com/BananaOnGitHub/Streamside/blob/eb4d30f761e75921913451293b76a92d39eaa2d5/docs/archive/WORKSPACE_BUILD_RECORDS.md) and
+[172-file inventory](https://github.com/BananaOnGitHub/Streamside/blob/eb4d30f761e75921913451293b76a92d39eaa2d5/docs/archive/WORKSPACE_BUILD_RECORDS.json) retain retrieval
 instructions and SHA-256 identities for 2,097,341 bytes removed from the active
 tree: 161 copied record files, raw cleanup logs, the old local workspace note,
 and `tools/stage_r5_production.py`. That R5 tool reproduces an old binary candidate;

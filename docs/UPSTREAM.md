@@ -26,35 +26,14 @@ The port retains the alternate player order embed → popout → autoplay, popou
 
 The browser source's internal solution number is not Streamside's release number. “VAFT solution 24” and “Streamside 3.0.0” identify different version domains.
 
-## Native differences
+## Native implementation
 
-| Browser mechanism | Native implementation |
-| --- | --- |
-| Worker/fetch interception | Foundation session/task adapters and URL protocol |
-| Browser player/DOM actions | Not ported as DOM operations; Twitch's native player remains responsible for UI |
-| Browser stream maps | Bounded generation-bearing `TASStreamContext` and exact URL route tables |
-| Browser blank-media fetch | Native synthetic response for remembered ad-segment requests |
-| Browser visibility/player reload logic | Not equivalent to native lifecycle; no claim of a complete browser-player port |
-| Browser headers/state | Transient observed Twitch headers; sanitized diagnostics exclude them |
+The shared native VAFT engine lives in [TASVAFT.h](../native/shared/TASVAFT.h) and is used through the SwiftUI frontend's [native playback adapter](../native/SSNAdBlock.m). Stream ownership, native token requests and playlist decisions are tested through the shared engine and Apple transport fixtures. See the [native VAFT investigation](investigations/SWIFTUI_NATIVE_VAFT.md).
 
-AVFoundation retains a custom-scheme resource-loader path. Amazon IVS uses the Foundation interception route. Native multi-player ownership is a significant correction: a global slot was insufficient for PiP and profile previews.
-
-The provider-emote system, composer, Hermes grafts, shared image cache, and native settings are Streamside features, not VAFT script behavior.
-
-## Updating the pin
-
-1. Select an explicit upstream commit and inspect its diff from the current pin.
-2. Record the immutable URL, solution version, retrieval provenance, Git blob, SHA-256, and license/copyright notices.
-3. Review each strategy change against [Streamside.c](../src/Streamside.c): token variables/query, markers, alternate order, matching, fallback, and manifest URL handling.
-4. Port relevant behavior rather than executing browser script in Twitch's native process.
-5. Run host protocol/privacy tests, native build/package guards, and focused device playback checks.
-6. Exercise main playback, PiP, profile previews, unknown routes, alternate failure, cancellation, and an actual ad-bearing case.
-7. Update this document, [Adblock](features/ADBLOCK.md), [Changelog](../CHANGELOG.md), and [third-party notices](THIRD_PARTY_NOTICES.md) together.
-
-Do not treat an upstream bump as proof of iOS compatibility. The exact RN donor admission is an independent emote concern.
+When updating the pin, preserve the upstream revision, hashes, notices and exact strategy changes. Validate the shared engine, native playback transport, local packaging, and actual device playback including ad-bearing streams and cancellation.
 
 ## Attribution
 
 VAFT is MIT-licensed. Its notice is retained in [MIT notices](licenses/MIT-NOTICES.txt). Streamside's native implementation remains under the root [Apache-2.0 license](../LICENSE).
 
-[Architecture](ARCHITECTURE.md) · [Adblock](features/ADBLOCK.md) · [History](HISTORY.md)
+[Native investigations](investigations/README.md)

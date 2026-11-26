@@ -4,7 +4,7 @@ The portrait theatre shows public live chat beneath the player. Messages appear 
 
 ## Transport and lifecycle
 
-The verified Twitch 32.0 donor (SHA-256 `076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`) contains `KMPMobileChat` with exported WebSocket setup and channel-join selectors. Static names establish the presence of native chat infrastructure. They leave the factory dependencies, account ownership and callback lifetime unverified. The [older chat investigation](../archive/investigations/RN_CHAT_BOUNDARY_PROBE.md) documents a different donor's IRC ingress and RN presentation.
+The verified Twitch 32.0 donor (SHA-256 `076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129`) contains `KMPMobileChat` with exported WebSocket setup and channel-join selectors. Static names establish the presence of native chat infrastructure. They leave the factory dependencies, account ownership and callback lifetime unverified. The [older chat investigation](https://github.com/BananaOnGitHub/Streamside/blob/eb4d30f761e75921913451293b76a92d39eaa2d5/docs/archive/investigations/RN_CHAT_BOUNDARY_PROBE.md) documents a different donor's IRC ingress and RN presentation.
 
 The new listener uses Foundation's WebSocket and Twitch's public guest IRC login. The standard tagged message fields are documented in [Twitch IRC](https://dev.twitch.tv/docs/chat/irc/). Guest access was verified separately and can change at the service. The socket uses TLS and an ephemeral session without account credentials or cookies. The client negotiates tags, joins the selected room and replies to keepalives. It has no chat-send command. The last 200 messages live only in memory and Twitch's delete and clear events remove affected rows. Diagnostics record no transcript or user names.
 
@@ -87,3 +87,5 @@ The host ABI fixture checks the eight input words and exact donor admission. App
 [Attempt 2](https://github.com/BananaOnGitHub/Streamside/actions/runs/45745741192/attempts/2) passed the Apple and ABI jobs on the identical source revision with unchanged sampling and all eight coordinate gates. The 80 local component checks passed. The verified Xcode 26.6 component archive has SHA-256 `ba294f5dfc2e8edc85bd20a08ee60245cbd695c56ccc9f110a9855d9cbcfb6ce`.
 
 Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/chat-composer-b4ea5a8/StreamsideNativeProof-Twitch32-native.ipa`, 197,543,934 bytes, SHA-256 `78df234b2affa7a9e5e03e7dd9c1beb522add35edee5b622c190b92c957c038d`. Archive integrity passed. Actual Twitch chat delivery and composer animations with the device keyboard remain physical-device checks.
+
+Physical-device review of the composer package confirmed chat delivery. The preceding chat-avatar build also had working avatars and a full-width unread pill hit target.

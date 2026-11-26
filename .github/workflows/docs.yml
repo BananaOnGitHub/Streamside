@@ -10,8 +10,7 @@ on:
       - '.github/workflows/docs.yml'
       - 'tools/check_docs.py'
       - 'tests/test_docs.py'
-      - 'VERSION'
-      - 'packaging/StreamsideFramework-Info.plist'
+      - 'native/framework-info.plist'
   workflow_dispatch:
 
 permissions:
@@ -30,5 +29,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test documentation validator
         run: python3 -m unittest discover -s tests -p test_docs.py -v
-      - name: Validate documentation and current version metadata
+      - name: Validate documentation and native framework metadata
         run: python3 tools/check_docs.py --github-actions

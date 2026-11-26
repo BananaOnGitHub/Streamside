@@ -1,22 +1,16 @@
-name: Build
+name: Native host tests
 
 on:
   push:
-    branches: ["**"]
-    tags: ["[0-9]*"]
+    branches: ["feat/native-frontend"]
     paths:
       - '.github/workflows/build.yml'
-      - 'build.sh'
       - 'Makefile'
-      - 'VERSION'
-      - 'entitlements.plist'
-      - 'src/**'
-      - 'stubs/**'
-      - 'packaging/**'
+      - 'native/**'
       - 'tools/**'
       - 'tests/**'
-      - 'diagnostics/**'
   pull_request:
+    branches: ["feat/native-frontend"]
   workflow_dispatch:
 
 permissions:
@@ -59,23 +53,12 @@ jobs:
           echo "/tmp/zig" >> "$GITHUB_PATH"
           echo "ZIG=/tmp/zig/zig" >> "$GITHUB_ENV"
 
-      - name: Verify version tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          version="$(cat VERSION)"
-          test "$version" = "$GITHUB_REF_NAME" || test "$version-jb" = "$GITHUB_REF_NAME"
-
-      - name: Build, enforce Mach-O contracts, and test
-        run: make verify test deb
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          name: Streamside-${{ github.sha }}
-          path: |
-            ${{ env.STREAMSIDE_ARTIFACTS_DIR }}/build/Streamside.framework/
-            ${{ env.STREAMSIDE_ARTIFACTS_DIR }}/build/Streamside.framework.macho.json
-            ${{ env.STREAMSIDE_ARTIFACTS_DIR }}/build/Streamside.dylib
-            ${{ env.STREAMSIDE_ARTIFACTS_DIR }}/build/Streamside.dylib.macho.json
-            ${{ env.STREAMSIDE_ARTIFACTS_DIR }}/dist/*.deb
-          if-no-files-found: error
+          python-version: '3.12'
+
+      - name: Install pinned ARM64 emulation test dependency
+        run: python3 -m pip install unicorn==2.1.4
+
+      - name: Run donor-free native host tests
+        run: make test-host

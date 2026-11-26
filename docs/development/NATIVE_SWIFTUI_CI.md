@@ -19,10 +19,7 @@ JavaScript bundles and donor frameworks are not uploaded.
 
 Both baseline and native arm64 iOS 16.4 frameworks are compiled and linked with
 SwiftUI, UIKit, Foundation and Combine. The worker verifies ad-hoc signatures and
-runs the pure Swift model tests. The Apple job also runs the real Foundation HTTP
-fixture and synthetic report comparisons. Ubuntu retrieval checks every hash/source identity and runs 17 calling-convention
-tests against the Apple-compiled ABI fixture, component admission and native core
-tests. The GitHub fallback additionally runs those gates in its Linux job.
+runs the pure Swift model tests, native Foundation playback transport tests, request lifecycle fixtures and synthetic report comparisons. Ubuntu retrieval checks every hash/source identity and runs calling-convention tests against the Apple-compiled ABI fixture, component admission and native core tests. The GitHub fallback additionally runs those gates in its Linux job.
 No Twitch account, network service or iOS application executes in these tests.
 
 The component archive contains only owned frameworks, the generated Objective-C
@@ -36,8 +33,7 @@ before device packaging. Keep meaningful findings and identities in development
 records rather than copying raw outputs into the source tree.
 
 Apple compilation is requested explicitly to avoid duplicate provider jobs.
-The existing Linux/Zig workflow remains independent and automatic. Both providers
-run the Foundation check in the Apple job. Neither uses the local VM routinely.
+Linux CI runs donor-free native host checks, including the Zig cross-compiled ABI fixtures. Both Apple providers validate the native Foundation playback transport in the component worker.
 
 ## Download and assemble on Ubuntu
 
@@ -81,7 +77,7 @@ For interactive debugging, an independently configured Mac may run
 with the pinned Xcode selected through `DEVELOPER_DIR`. The existing generic SSH
 adapter remains available only when explicitly requested with `--apple-build-host`.
 Per-machine SSH aliases and key files live outside the repository. No previous VM
-or alias is required or assumed available. The UIKit/Zig recovery path is unchanged.
+or alias is required or assumed available. The earlier UIKit-only package path is retained in the pre-cleanup archive branch.
 
 This pins/validates the Apple toolchain and inputs; it does not promise identical
 Mach-O UUIDs or bytes across arbitrary runner images. Every delivered output has

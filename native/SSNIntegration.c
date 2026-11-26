@@ -115,9 +115,7 @@ void ssn_integration_start(void) {
     if(!created||!path) { ssn_failure(9); return; }
     ssn_core_start(path);
     _dyld_register_func_for_add_image(added);
-#if SSN_SWIFTUI
     if(ssn_native_mode()) ssn_adblock_install();
-#endif
     if(ssn_native_mode()) {
     Class scene=objc_getClass("_TtC6Twitch13SceneDelegate");
     if(!method_is(scene,"scene:willConnectToSession:options:","v40@0:8@16@24@32",false)||!method_is(scene,"window","@16@0:8",false)) { ssn_failure(2); return; }

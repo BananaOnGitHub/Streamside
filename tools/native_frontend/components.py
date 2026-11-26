@@ -45,10 +45,8 @@ def external(path):
 
 
 def framework_info(mode, proof, revision):
-    return dict(CFBundleExecutable=FRAMEWORK, CFBundleIdentifier="dev.streamside.nativeproof",
-                CFBundleName=FRAMEWORK, CFBundlePackageType="FMWK", CFBundleVersion="3",
-                CFBundleShortVersionString="0.3", MinimumOSVersion="16.4", SSNProofID=proof,
-                SSNSourceRevision=revision, SSNMode=mode, SSNFrontend="swiftui")
+    info = plistlib.loads((ROOT / "native/framework-info.plist").read_bytes())
+    return dict(info, SSNProofID=proof, SSNSourceRevision=revision, SSNMode=mode)
 
 
 def check_binary(binary):

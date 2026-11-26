@@ -1,37 +1,11 @@
-# Documentation
+# Native development documentation
 
-Start at the level that answers your question. Each guide links to the deeper implementation and historical evidence behind it.
+- [Hosted build and assembly](development/NATIVE_SWIFTUI_CI.md)
+- [Build provider routing](development/APPLE_BUILDS.md)
+- [Workspace](development/WORKSPACE.md)
+- [Testing](development/TESTING.md)
+- [Documentation maintenance](development/DOCUMENTATION.md)
+- [Native investigations](investigations/README.md)
+- [VAFT upstream](UPSTREAM.md) and [third-party notices](THIRD_PARTY_NOTICES.md)
 
-## Using Streamside
-
-- [README and installation](../README.md#installation): features, setup, updates, and removal.
-- [Compatibility](COMPATIBILITY.md): Twitch/iOS targets, installation evidence, both chat architectures, and limitations.
-- [Troubleshooting](TROUBLESHOOTING.md): practical checks and useful reports.
-- [Release changes](../CHANGELOG.md): public-release summaries.
-
-## Understanding Streamside
-
-- [Architecture](ARCHITECTURE.md): subsystem relationships, ownership, platform integration, and failure handling.
-- [Adblock](features/ADBLOCK.md): VAFT request interception and per-stream playback state.
-- [Third-party emotes](features/third-party-emotes/README.md): the feature map and substantial technical deep dives.
-- [Diagnostics](features/DIAGNOSTICS.md): counters, logs, privacy, probes, and evidence limits.
-- [Upstream](UPSTREAM.md) and [Third-party notices](THIRD_PARTY_NOTICES.md): provenance, maintenance, and attribution.
-
-## Developing Streamside
-
-- [Building](BUILDING.md): ordinary builds, donor tooling, and diagnostic variants.
-- [Contributing](../CONTRIBUTING.md): workflow and issue-reporting requirements.
-- [Documentation maintenance](development/DOCUMENTATION.md): ownership, update timing, historical preservation, and mechanical validation.
-- [Testing](development/TESTING.md): host, Foundation, Hermes, packaging, and device checks.
-- [Twitch internals](development/TWITCH_INTERNALS.md): runtime/ABI admission and donor-porting methodology.
-- [Native SwiftUI CI](development/NATIVE_SWIFTUI_CI.md): hosted Apple compilation, verified components and local donor assembly.
-- [Workspace layout](development/WORKSPACE.md): source, donors, toolchains and generated outputs.
-- [Packaging](development/PACKAGING.md): binary fingerprints, IPA/DEB contracts, and developer bundles.
-
-## Project history
-
-- [Active investigations](investigations/README.md): implementation trials, per-build findings, and testing evidence; separate from reusable development guides.
-- [History](HISTORY.md): release/build chronology, failures, corrections, and validation.
-- [Research archive](archive/README.md): an indexed record of investigations and experiments.
-
-The current-system guides describe the implementation at `7754dd9`, released version 3.0.0 / internal bundle 3.0.0.92. Archive records retain their original build scope; a historical “pending” statement does not describe the current feature.
+The former release documentation, older investigations and source remain at the [pre-cleanup revision](https://github.com/BananaOnGitHub/Streamside/tree/eb4d30f761e75921913451293b76a92d39eaa2d5/docs).

@@ -16,22 +16,22 @@ class WorkspacePathsTests(unittest.TestCase):
         if override is not None:
             env["STREAMSIDE_ARTIFACTS_DIR"] = str(override)
         return subprocess.run([sys.executable, "-c",
-            "import json; from tools.workspace_paths import BUILD_DIR, DIST_DIR; "
-            "print(json.dumps([str(BUILD_DIR), str(DIST_DIR)]))"],
+            "import json; from tools.workspace_paths import NATIVE_ARTIFACTS_DIR, CI_ARTIFACTS_DIR; "
+            "print(json.dumps([str(NATIVE_ARTIFACTS_DIR), str(CI_ARTIFACTS_DIR)]))"],
             cwd=ROOT, env=env, capture_output=True, text=True)
 
     def test_default_is_sibling_artifacts(self):
         result = self.run_paths()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout),
-            [str(ROOT.parent / "artifacts/build"), str(ROOT.parent / "artifacts/dist")])
+            [str(ROOT.parent / "artifacts/native-frontend"), str(ROOT.parent / "artifacts/ci")])
 
     def test_external_override_with_spaces(self):
         with tempfile.TemporaryDirectory(prefix="streamside artifacts ") as directory:
             result = self.run_paths(directory)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout),
-                [str(Path(directory) / "build"), str(Path(directory) / "dist")])
+                [str(Path(directory) / "native-frontend"), str(Path(directory) / "ci")])
 
     def test_checkout_and_symlink_into_checkout_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -46,7 +46,7 @@ class WorkspacePathsTests(unittest.TestCase):
     def test_generated_outputs_and_signing_files_are_ignored_but_source_is_not(self):
         generated = ["artifacts/compiler.json", "donors/package", "toolchains/compiler",
                      "nested/candidate.ipa", "nested/key.p8", "native/output.o", "native/output.log"]
-        source = ["native/SSNCore.h", "src/TASRNInvestigationLayout.h", "diagnostics/validation/hermes-v1.json"]
+        source = ["native/SSNCore.h", "native/shared/TASVAFT.h", "native/twitch32.json"]
         result = subprocess.run(["git", "check-ignore", "--no-index", "--stdin"], cwd=ROOT,
                                 input="\n".join(generated + source) + "\n", capture_output=True, text=True)
         self.assertEqual(set(result.stdout.splitlines()), set(generated))

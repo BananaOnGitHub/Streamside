@@ -1,5 +1,5 @@
-name: Playback bug
-description: Report an ad-blocking, playback, PiP, preview, or launch regression
+name: Native frontend bug
+description: Report a native frontend, playback, chat, preview, or launch regression
 title: "[Bug] "
 labels: [bug]
 body:
@@ -11,7 +11,7 @@ body:
     id: twitch-version
     attributes:
       label: Twitch version
-      placeholder: "30.4.2"
+      placeholder: "32.0"
     validations:
       required: true
   - type: input
@@ -26,10 +26,9 @@ body:
       label: Installation method
       options:
         - LiveContainer
-        - KravaSigner/Other personal certificate signing tool
+        - Feather / other personal certificate signing tool
         - AltStore / SideStore
         - TrollStore
-        - Jailbreak tweak injection
         - Other
     validations:
       required: true
@@ -46,7 +45,7 @@ body:
     id: behavior
     attributes:
       label: What happened?
-      description: Include whether this involved a preroll, midroll, PiP, profile preview, launch, or signing.
+      description: Include the development build identity and whether this involved playback, chat, profile previews, launch, or signing.
     validations:
       required: true
   - type: textarea

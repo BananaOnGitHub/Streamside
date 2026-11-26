@@ -21,7 +21,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'tools'), str(ROOT / 'tools/native_frontend')]
-from workspace_paths import ARTIFACTS_DIR
+from workspace_paths import CI_ARTIFACTS_DIR
 
 CONFIG = json.loads((ROOT / 'tools/apple-builds.json').read_text())
 TERMINAL = {'finished', 'failed', 'canceled', 'cancelled', 'timeout', 'skipped'}
@@ -335,7 +335,7 @@ def main():
             print(json.dumps(select(client) if client else dict(provider='github', reason='No usable local Codemagic credential'), indent=2))
             return
         revision = current_source()
-        out = ARTIFACTS_DIR / 'ci' / revision
+        out = CI_ARTIFACTS_DIR / revision
         out.mkdir(parents=True, exist_ok=True)
         ticket = out / 'build.json'
         with (out.parent / '.dispatch.lock').open('a') as lock:

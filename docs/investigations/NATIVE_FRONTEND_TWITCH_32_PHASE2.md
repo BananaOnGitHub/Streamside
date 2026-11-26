@@ -21,7 +21,7 @@ The original JS bundle and all retained donor entries outside the four probe ima
 
 ## Implementation
 
-[SSNIntegration.c](../../native/SSNIntegration.c) contains donor lifecycle and symbol admission. [SSNAccount.c](../../native/SSNAccount.c) contains native service calls. [SSNFrontend.c](../../native/SSNFrontend.c) is a small UIKit table with diagnostics, account identity, up to 50 followed channels, refresh and export. It contains no donor class names, offsets, request operations or credential access. The dedicated `StreamsideNativeProof.framework` links System, Objective-C, Foundation and UIKit; the build rejects other link dependencies.
+[SSNIntegration.c](../../native/SSNIntegration.c) contains donor lifecycle and symbol admission. [SSNAccount.c](../../native/SSNAccount.c) contains native service calls. [SSNFrontend.c](https://github.com/BananaOnGitHub/Streamside/blob/eb4d30f761e75921913451293b76a92d39eaa2d5/native/SSNFrontend.c) is a small UIKit table with diagnostics, account identity, up to 50 followed channels, refresh and export. It contains no donor class names, offsets, request operations or credential access. The dedicated `StreamsideNativeProof.framework` links System, Objective-C, Foundation and UIKit; the build rejects other link dependencies.
 
 The frontend is selected by the compiled package mode before app launch. The native package changes the inspected Ultralight/RN eligibility function at `0x1033e5a80` to return false. The baseline retains the original gate. There is no in-app switch that enables RN in the native candidate.
 

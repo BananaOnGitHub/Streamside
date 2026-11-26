@@ -14,7 +14,7 @@ filtering lease. Off uses the original iOS/site token parameters and unfiltered
 Foundation loading for subsequent playback.
 
 The playlist engine is extracted from `src/Streamside.c` into
-[`TASVAFT.h`](../../src/TASVAFT.h), used by both the legacy and native frontends.
+[`TASVAFT.h`](../../native/shared/TASVAFT.h), used by both the legacy and native frontends.
 The alternate order embed → popout → autoplay, exact generation-bearing stream
 ownership, rendition matching, clean-variant reuse, stitched/MIDROLL markers,
 relative URL rewriting and remembered ad-segment fallback are retained. The

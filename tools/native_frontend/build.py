@@ -3,7 +3,6 @@
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import plistlib
 import shutil
@@ -13,8 +12,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
-from workspace_paths import ARTIFACTS_DIR
-from macho import inject_load_dylib, loaded_dylibs, encryption_ids, dylib_id
+from workspace_paths import NATIVE_ARTIFACTS_DIR
+from macho import inject_load_dylib, loaded_dylibs, encryption_ids
 from probes import patch, generate_header
 from validate import validate_abi
 from identity import source_identity
@@ -47,59 +46,29 @@ def donor(ipa, plan):
         return images
 
 
-def compile_framework(mode, output, proof, revision, zig, frontend="swiftui", apple_host=None, components=None):
+def compile_framework(mode, output, proof, revision, apple_host=None, components=None):
+    from components import check_binary, framework_info, verify
     directory = output / mode
     framework = directory / (FRAMEWORK+'.framework')
     framework.mkdir(parents=True, exist_ok=True)
     plan = json.loads((ROOT/'native/twitch32.json').read_text())
     generate_header(plan, proof, revision, directory/'SSNBuild.h')
-    if frontend=='swiftui':
-        if components:
-            from components import verify
-            identity=verify(components)
-            if (identity['proof_id'],identity['source_revision'])!=(proof,revision):
-                raise ValueError('Component compilation and packaging identity mismatch')
-            shutil.copytree(components/mode/(FRAMEWORK+'.framework'),framework,dirs_exist_ok=True)
-            for name in ['SSNSwiftUI-Swift.h','apple-abi.o','compiler.json','build.log']:
-                shutil.copy2(components/mode/name,directory/name)
-        else:
-            if not apple_host: raise ValueError('Use --components from a successful Native SwiftUI Actions run; --apple-build-host is optional fallback')
-            from apple_build import compile_apple
-            compile_apple(ROOT,directory,mode,proof,revision,apple_host)
-            shutil.copyfile(directory/FRAMEWORK,framework/FRAMEWORK)
-        binary=(framework/FRAMEWORK).read_bytes()
-        for dependency in loaded_dylibs(binary):
-            if dependency in {'/usr/lib/libSystem.B.dylib','/usr/lib/libobjc.A.dylib'}: continue
-            if dependency.startswith('/System/Library/Frameworks/'): continue
-            if dependency.startswith(('/usr/lib/swift/libswift','@rpath/libswift')) and dependency.endswith('.dylib'): continue
-            raise ValueError('Unexpected SwiftUI framework dependency: '+dependency)
+    if components:
+        identity=verify(components)
+        if (identity['proof_id'],identity['source_revision'])!=(proof,revision):
+            raise ValueError('Component compilation and packaging identity mismatch')
+        shutil.copytree(components/mode/(FRAMEWORK+'.framework'),framework,dirs_exist_ok=True)
+        for name in ['SSNSwiftUI-Swift.h','apple-abi.o','compiler.json','build.log']:
+            shutil.copy2(components/mode/name,directory/name)
     else:
-        zig = Path(zig).resolve(); ziglib = zig.parent/'lib'
-        args = [str(zig), 'build-lib', '-target','aarch64-ios-none','-O','ReleaseSmall',
-                '-dynamic','-fPIC','-fno-stack-protector','-isystem',str(ziglib/'libc/include/any-macos-any'),
-                '-I'+str(directory), '-I'+str(ROOT/'native'), '-L'+str(ROOT/'native/stubs'),
-                '-lSystem','-lobjc','-lFoundation','-lUIKit','-install_name',LOAD,'-dead_strip','-headerpad','4000',
-                '--entitlements',str(ROOT/'entitlements.plist'),'--name',FRAMEWORK,'-femit-bin='+str(framework/FRAMEWORK),
-                '-cflags','-Wall','-Wextra','-Werror','-fblocks','-fvisibility=hidden',
-                '-DSSN_NATIVE='+('1' if mode=='native' else '0'),'--']
-        args += [str(ROOT/'native'/f) for f in ['SSNLaunch.c','SSNCore.c','SSNIntegration.c','SSNAccount.c','SSNFrontend.c']]
-        env = dict(os.environ, ZIG_LOCAL_CACHE_DIR=str(output/'cache'), ZIG_GLOBAL_CACHE_DIR=str(output/'global-cache'))
-        subprocess.run(args, check=True, env=env)
-        for tool in ['align_macho_segments.py','shrink_adhoc_signature.py']:
-            subprocess.run([sys.executable,str(ROOT/'tools'/tool),str(framework/FRAMEWORK)],check=True)
-        binary=(framework/FRAMEWORK).read_bytes()
-        expected_loads={'/usr/lib/libSystem.B.dylib','/usr/lib/libobjc.A.dylib',
-                        '/System/Library/Frameworks/Foundation.framework/Foundation',
-                        '/System/Library/Frameworks/UIKit.framework/UIKit'}
-        if set(loaded_dylibs(binary))!=expected_loads:
-            raise ValueError('Unexpected runtime dependency in the native framework')
-    if dylib_id((framework/FRAMEWORK).read_bytes()) != LOAD:
-        raise ValueError('Unexpected framework install name')
-    (framework/'Info.plist').write_bytes(plistlib.dumps(dict(
-        CFBundleExecutable=FRAMEWORK,CFBundleIdentifier='dev.streamside.nativeproof',
-        CFBundleName=FRAMEWORK,CFBundlePackageType='FMWK',CFBundleVersion='3' if frontend=='swiftui' else '2',
-        CFBundleShortVersionString='0.3' if frontend=='swiftui' else '0.2',MinimumOSVersion='16.4',
-        SSNProofID=proof,SSNSourceRevision=revision,SSNMode=mode,SSNFrontend=frontend)))
+        if not apple_host: raise ValueError('Use --components from a successful Native SwiftUI Actions run; --apple-build-host is optional fallback')
+        from apple_build import compile_apple
+        compile_apple(ROOT,directory,mode,proof,revision,apple_host)
+        shutil.copyfile(directory/FRAMEWORK,framework/FRAMEWORK)
+        for asset in (ROOT/'native/assets').glob('*.png'):
+            shutil.copy2(asset,framework/asset.name)
+    check_binary(framework/FRAMEWORK)
+    (framework/'Info.plist').write_bytes(plistlib.dumps(framework_info(mode,proof,revision)))
     return framework
 
 
@@ -151,45 +120,41 @@ def package(ipa, images, framework, plan, proof, mode, output):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--donor',type=Path,required=True)
-    parser.add_argument('--zig',default=os.environ.get('ZIG'))
-    parser.add_argument('--frontend',choices=['swiftui','uikit'],default='swiftui')
+    parser.add_argument('--frontend',choices=['swiftui'],default='swiftui')
     compilation=parser.add_mutually_exclusive_group()
     compilation.add_argument('--components',type=Path,help='Downloaded Native SwiftUI Actions component directory (normal build path)')
     compilation.add_argument('--apple-build-host',help='Optional fallback SSH alias; no host is assumed available')
     parser.add_argument('--output',type=Path,help='Output directory outside the repository; defaults under ../artifacts/native-frontend')
     parser.add_argument('--mode',choices=['baseline','native','both'],default='native')
     args=parser.parse_args()
-    if args.frontend=='uikit':
-        if not args.zig: parser.error('--zig or ZIG is required (0.14.0) for the UIKit checkpoint')
-        if subprocess.check_output([args.zig,'version'],text=True).strip()!='0.14.0': raise ValueError('Zig 0.14.0 required')
-    elif not args.components and not args.apple_build_host: parser.error('SwiftUI requires --components from Actions, or an explicit --apple-build-host fallback')
-    if args.frontend=='uikit' and (args.components or args.apple_build_host): parser.error('Apple components/build host apply only to SwiftUI')
+    if not args.components and not args.apple_build_host:
+        parser.error('SwiftUI requires --components from Actions, or an explicit --apple-build-host fallback')
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=ROOT,text=True).strip()
     if branch!='feat/native-frontend': raise ValueError('Build only on feat/native-frontend')
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     if subprocess.check_output(['git','status','--porcelain','--untracked-files=normal'],cwd=ROOT,text=True).strip(): revision+='-dirty'
     packaging_revision=revision
-    proof=source_identity(args.frontend);plan=json.loads((ROOT/'native/twitch32.json').read_text())
+    proof=source_identity();plan=json.loads((ROOT/'native/twitch32.json').read_text())
     component_manifest=None
     if args.components:
         from components import verify
         args.components=args.components.resolve()
         component_manifest=verify(args.components)
         revision=component_manifest['source_revision']
-    if args.output is None: args.output=ARTIFACTS_DIR/'native-frontend'/args.frontend/(revision[:12]+'-'+proof[:12])
+    if args.output is None: args.output=NATIVE_ARTIFACTS_DIR/(revision[:12]+'-'+proof[:12])
     args.output=args.output.resolve()
     if args.output==ROOT or ROOT in args.output.parents: parser.error('--output must be outside the repository')
     if args.output.exists() and any(args.output.iterdir()): parser.error('Output must be empty; choose a new artifact directory')
     images=donor(args.donor,plan);args.output.mkdir(parents=True,exist_ok=True)
     manifest=dict(schema=1,proof_id=proof,source_revision=revision,packaging_revision=packaging_revision,donor_sha256=plan['donor_sha256'],
-                  frontend=args.frontend,zig='0.14.0' if args.frontend=='uikit' else None,inspection=dict(abi_entries=len(plan['abi']),probe_entries=len(plan['probes']),
+                  frontend='swiftui',zig=None,inspection=dict(abi_entries=len(plan['abi']),probe_entries=len(plan['probes']),
                   all_retained_donor_entries_verified=True,original_hbc_unchanged=True),
                   device_validation='not performed',artifacts={})
     if component_manifest: manifest['component_manifest_sha256']=sha((args.components/'components.json').read_bytes())
     for mode in (['baseline','native'] if args.mode=='both' else [args.mode]):
-        framework=compile_framework(mode,args.output,proof,revision,args.zig,args.frontend,args.apple_build_host,args.components)
+        framework=compile_framework(mode,args.output,proof,revision,args.apple_build_host,args.components)
         manifest['artifacts'][mode]=package(args.donor,images,framework,plan,proof,mode,args.output)
-        if args.frontend=='swiftui': manifest['artifacts'][mode]['apple_compilation']=json.loads((args.output/mode/'compiler.json').read_text())
+        manifest['artifacts'][mode]['apple_compilation']=json.loads((args.output/mode/'compiler.json').read_text())
     (args.output/'artifacts.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print(json.dumps(manifest,indent=2))
 

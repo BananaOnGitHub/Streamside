@@ -12,7 +12,7 @@ import struct
 import uuid
 import zipfile
 
-from inspect_investigation_channel import Image as MetadataImage
+from macho_metadata import Image as MetadataImage
 from macho import encryption_ids, load_commands, loaded_dylibs
 
 EXPECTED = {

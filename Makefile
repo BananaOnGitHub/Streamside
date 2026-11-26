@@ -1,66 +1,37 @@
 STREAMSIDE_ARTIFACTS_DIR ?= $(abspath ../artifacts)
 export STREAMSIDE_ARTIFACTS_DIR
-NATIVE_BUILD_DIR := $(STREAMSIDE_ARTIFACTS_DIR)/build
-NATIVE_DIST_DIR := $(STREAMSIDE_ARTIFACTS_DIR)/dist
-
-.PHONY: all build test test-rn-virtualization test-foundation-cache verify clean deb release ipa docs-check
-
-all: build
-
-build:
-	./build.sh
-
-docs-check:
-	python3 tools/check_docs.py
-
-test:
-	python3 -m unittest discover -s tests -v
-
-# Mandatory Apple HTTP integration: unlike ordinary Linux tests, cannot skip.
-test-foundation-cache:
-	@python3 -c 'import platform,shutil; assert platform.system()=="Darwin" and shutil.which("xcrun"), "Apple Foundation/Xcode required; this gate cannot skip"'
-	python3 -m unittest discover -s tests -p test_foundation_cache.py -v
-
-# Required donor/Hermes regression check for RN library changes or Twitch ports.
-# Unlike the optional unittest, this target cannot silently skip missing inputs.
-test-rn-virtualization:
-	@test -n "$(TAS_RN_DONOR)" -a -n "$(ZIG)" -a -n "$(TAS_HERMESC)" -a -n "$(TAS_HERMES_SNAPSHOT_RUNNER)" -a -n "$(TAS_HERMES_SOURCE)" || (echo 'set TAS_RN_DONOR, ZIG, TAS_HERMESC, TAS_HERMES_SNAPSHOT_RUNNER and TAS_HERMES_SOURCE' >&2; exit 1)
-	python3 tools/validate_rn_snapshot.py --donor "$(TAS_RN_DONOR)" --zig "$(ZIG)" --hermesc "$(TAS_HERMESC)" --runner "$(TAS_HERMES_SNAPSHOT_RUNNER)" --runtime-source "$(TAS_HERMES_SOURCE)"
-
-verify: build
-	python3 tools/artifact_guard.py check "$(NATIVE_BUILD_DIR)/Streamside.dylib"
-	python3 tools/artifact_guard.py check "$(NATIVE_BUILD_DIR)/Streamside.framework" --framework
-
-deb: verify
-	python3 tools/build_deb.py
-
-# Local unsigned preparation only; no tag, workflow dispatch, or publication.
-ipa: verify test
-	@test -n "$(INPUT_IPA)" || (echo 'set INPUT_IPA=/path/to/decrypted.ipa' >&2; exit 1)
-	@test -n "$(OUTPUT_IPA)" || (echo 'set OUTPUT_IPA=/path/to/output.ipa' >&2; exit 1)
-	python3 tools/patch_ipa.py "$(INPUT_IPA)" --framework "$(NATIVE_BUILD_DIR)/Streamside.framework" --output "$(OUTPUT_IPA)"
-	python3 tools/verify_ipa.py "$(OUTPUT_IPA)" --framework "$(NATIVE_BUILD_DIR)/Streamside.framework"
-
-clean:
-	python3 -c 'import shutil; from tools.workspace_paths import BUILD_DIR, DIST_DIR; [shutil.rmtree(p) for p in (BUILD_DIR, DIST_DIR) if p.exists()]'
-
-release: verify test deb
-	python3 tools/package_release.py
-
-# Mandatory startup graft validation; builds fail if its receipt is stale.
-test-investigation-runtime:
-	@test -n "$(TAS_RN_DONOR)" -a -n "$(ZIG)" -a -n "$(TAS_HERMESC)" -a -n "$(TAS_HERMES_SNAPSHOT_RUNNER)" -a -n "$(TAS_HERMES_SOURCE)" || (echo 'set the pinned donor/Hermes toolchain inputs' >&2; exit 1)
-	python3 tools/validate_investigation_runtime.py --donor "$(TAS_RN_DONOR)" --zig "$(ZIG)" --hermesc "$(TAS_HERMESC)" --runner "$(TAS_HERMES_SNAPSHOT_RUNNER)" --runtime-source "$(TAS_HERMES_SOURCE)"
-
-# Select exactly one hosted Apple provider using current quota and build history.
+PYTHONDONTWRITEBYTECODE ?= 1
+export PYTHONDONTWRITEBYTECODE
 NATIVE_CI_PYTHON ?= python3
 NATIVE_CI_TEST_PATH ?= $(abspath ../toolchains/python)
-.PHONY: native-ci-plan native-ci native-ci-status native-ci-fetch
+export PYTHONPATH := $(NATIVE_CI_TEST_PATH):$(PYTHONPATH)
+
+# Zig is used as a cross-compiler for the Ubuntu ABI/header fixtures.
+HOST_TESTS := abi build_progress comparison components context_preview_evidence coordinate_gates core launch launch_comparison playback_header probes vaft_core
+DONOR_TESTS := admission content_labels cursor_witness feed_contract profile_contract
+
+.PHONY: all test test-host test-donor docs-check native-ci-plan native-ci native-ci-status native-ci-fetch
+
+all: test
+
+docs-check:
+	$(NATIVE_CI_PYTHON) tools/check_docs.py
+
+test: test-host test-donor
+
+test-host:
+	$(NATIVE_CI_PYTHON) -m unittest discover -s tests -v
+	@set -e; for suite in $(HOST_TESTS); do $(NATIVE_CI_PYTHON) -m unittest discover -s tests/native_frontend -p "test_$$suite.py" -v; done
+
+test-donor:
+	@set -e; for suite in $(DONOR_TESTS); do $(NATIVE_CI_PYTHON) -m unittest discover -s tests/native_frontend -p "test_$$suite.py" -v; done
+
+# Select exactly one hosted Apple provider using current quota and build history.
 native-ci-plan:
-	python3 tools/apple_builds.py plan
+	$(NATIVE_CI_PYTHON) tools/apple_builds.py plan
 native-ci:
-	python3 tools/apple_builds.py start
+	$(NATIVE_CI_PYTHON) tools/apple_builds.py start
 native-ci-status:
-	python3 tools/apple_builds.py status
+	$(NATIVE_CI_PYTHON) tools/apple_builds.py status
 native-ci-fetch:
-	PYTHONPATH="$(NATIVE_CI_TEST_PATH):$(PYTHONPATH)" $(NATIVE_CI_PYTHON) tools/apple_builds.py fetch
+	$(NATIVE_CI_PYTHON) tools/apple_builds.py fetch

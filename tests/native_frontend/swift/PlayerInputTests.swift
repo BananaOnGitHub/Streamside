@@ -284,9 +284,24 @@ final class PlayerInputTests: XCTestCase {
         input.tap()
         input.typeText("Hello chat")
         XCTAssertTrue(send.waitForExistence(timeout: 5))
-        send.tap()
+        XCTAssertEqual(toggle.value as? String, "Editing chat")
+        let keyboard = app.keyboards.firstMatch
+        let keyboardWasVisible = keyboard.exists
+        chat.tap()
+        let dismissedKeyboard = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Reading chat"), object: toggle)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissedKeyboard], timeout: 5), .completed)
+        if keyboardWasVisible { assertDismissed(keyboard) }
+        XCTAssertEqual(input.value as? String, "Hello chat", "Dismissal keeps the draft")
+        let buttonSize = send.frame.size
+        send.press(forDuration: 0.6)
+        let loading = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Sending"), object: send)
+        XCTAssertEqual(XCTWaiter.wait(for: [loading], timeout: 5), .completed)
+        XCTAssertTrue(send.isEnabled, "The glass button retains its interaction state while awaiting delivery")
+        XCTAssertEqual(send.frame.width, buttonSize.width, accuracy: 1)
+        XCTAssertEqual(send.frame.height, buttonSize.height, accuracy: 1)
+        app.buttons["Confirm delivery"].tap()
         assertDismissed(send)
-        print("CHAT_CATCH_UP PASS: read position, unread count, catch-up line, live follow, synchronized info layout, and composer send")
+        print("CHAT_CATCH_UP PASS: read position, unread count, catch-up line, live follow, synchronized info layout, tap keyboard dismissal, and stable composer send")
     }
 
     func testMarkedContentConsent() {

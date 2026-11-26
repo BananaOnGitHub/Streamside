@@ -28,3 +28,5 @@ Source restructuring and package identities were published in `49339965176f81edf
 The old Twitch 31.6.2 donor and inspected extracted inputs moved to `donors/legacy-rn/`. Hermes source and compiler outputs moved to `toolchains/legacy-rn/`, with their original paths recorded in the private relocation map and local workspace notes. The pinned Twitch 32.0 donor, native ABI cross-compiler and Python tools remained in place. Restore the previous Hermes paths if reproducing an archived build that depends on them.
 
 Documentation validation passed with 55 Markdown files and 591 explicit references. The final Ubuntu check suite passed 172 tests. The retained composer IPA remains the device-confirmed candidate while fresh Apple validation of the reorganized tree runs.
+
+[GitHub run 45759112983](https://github.com/BananaOnGitHub/Streamside/actions/runs/45759112983) passed both Apple and ABI jobs for the reorganized source `840e6c5770c07c3070f6f66a4e64d737dd14ffac`.

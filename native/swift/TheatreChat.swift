@@ -9,6 +9,7 @@ struct TheatreChat: View {
     @State private var status: TwitchGuestChat.Status = .connecting
     @State private var timeline = TwitchChatTimeline()
     @State private var connectionID = UUID()
+    @FocusState private var composerFocused: Bool
     @StateObject private var avatars: ChatAvatars
 
     init(channel: String?, images: ChannelImageCache, resolveAvatar: @escaping ChatAvatars.Resolver,
@@ -22,8 +23,9 @@ struct TheatreChat: View {
     var body: some View {
         VStack(spacing: 0) {
             StreamChatTranscript(timeline: $timeline, statusText: statusText, listening: status == .listening,
-                                 avatars: avatars.images, requestAvatars: avatars.updateVisible)
-            ChatComposer(available: canSend, send: send)
+                                 avatars: avatars.images, requestAvatars: avatars.updateVisible,
+                                 dismissKeyboard: { composerFocused = false })
+            ChatComposer(available: canSend, focus: $composerFocused, send: send)
                 .layoutPriority(1)
         }
         .onAppear { avatars.setActive(channel != nil) }
@@ -61,6 +63,7 @@ struct StreamChatTranscript: View {
     let listening: Bool
     let avatars: [UInt32: UIImage]
     let requestAvatars: ([UInt32]) -> Void
+    let dismissKeyboard: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @GestureState private var legacyDragging = false
@@ -90,6 +93,8 @@ struct StreamChatTranscript: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .contentShape(Rectangle())
+        .simultaneousGesture(TapGesture().onEnded { dismissKeyboard() })
     }
 
     @ViewBuilder private var trackedScroll: some View {

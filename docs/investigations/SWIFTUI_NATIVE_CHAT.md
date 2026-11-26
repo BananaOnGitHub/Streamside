@@ -89,3 +89,11 @@ The host ABI fixture checks the eight input words and exact donor admission. App
 Local assembly from the pinned Twitch 32.0 donor produced `artifacts/native-frontend/chat-composer-b4ea5a8/StreamsideNativeProof-Twitch32-native.ipa`, 197,543,934 bytes, SHA-256 `78df234b2affa7a9e5e03e7dd9c1beb522add35edee5b622c190b92c957c038d`. Archive integrity passed. Actual Twitch chat delivery and composer animations with the device keyboard remain physical-device checks.
 
 Physical-device review of the composer package confirmed chat delivery. The preceding chat-avatar build also had working avatars and a full-width unread pill hit target.
+
+## Keyboard dismissal and stable Send surface
+
+Theatre chat now owns the composer focus. A tap in the transcript, including the header and empty area, clears that focus while leaving the composer draft intact. The simultaneous tap gesture preserves the scroll gesture and unread-pill action. The composer also clears focus on teardown and account loss.
+
+The Send button keeps a fixed-size glass-backed ZStack throughout delivery. Its arrow and progress indicator crossfade over 200 ms (120 ms with Reduce Motion). The pending write continues to use the existing single-submission guard, so changing to the loading indicator does not disable or replace the pressed glass surface. The existing fly-out runs after confirmation. A draft edited during delivery keeps its Send control.
+
+The simulator fixture checks that a transcript tap removes editing focus, dismisses a visible keyboard and preserves the typed text. It holds a synthetic acknowledgement while inspecting the Send button after a long press, checking its enabled state and dimensions, then confirms delivery. Actual optical release and animation smoothness remain device checks.

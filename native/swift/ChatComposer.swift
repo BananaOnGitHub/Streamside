@@ -8,11 +8,11 @@ enum ChatDelivery {
 @MainActor
 struct ChatComposer: View {
     let available: Bool
+    let focus: FocusState<Bool>.Binding
     let send: @MainActor (String) async -> ChatDelivery
     @State private var draft = ""
     @State private var feedback: String?
     @State private var sending: Task<Void, Never>?
-    @FocusState private var focused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -42,17 +42,22 @@ struct ChatComposer: View {
         .onChange(of: draft) { _ in if sending == nil { feedback = nil } }
         .onChange(of: available) { enabled in
             if !enabled {
-                focused = false
+                focus.wrappedValue = false
                 cancelSend()
             }
         }
-        .onDisappear { cancelSend() }
+        .onDisappear {
+            focus.wrappedValue = false
+            cancelSend()
+        }
     }
 
     private func controls(text: String, tooLong: Bool) -> some View {
-        HStack(spacing: 8) {
+        let sendingMessage = sending != nil
+        let showSend = sendingMessage || !text.isEmpty
+        return HStack(spacing: 8) {
             TextField(available ? "Send a message" : "Chat is unavailable", text: $draft)
-                .focused($focused)
+                .focused(focus)
                 .textFieldStyle(.plain)
                 .submitLabel(.send)
                 .onSubmit { submit() }
@@ -62,25 +67,36 @@ struct ChatComposer: View {
                 .accessibilityIdentifier("chat.message-input")
                 .modifier(ChatComposerSurface(shape: Capsule(), interactive: false))
 
-            if !text.isEmpty {
+            if showSend {
                 Button(action: submit) {
-                    Group {
-                        if sending != nil { ProgressView() }
-                        else { Image(systemName: "arrow.up").font(.body.weight(.semibold)) }
+                    // Maintain one glass surface through the press/release and
+                    // delivery phases. Only the contents of the circle change.
+                    ZStack {
+                        if sendingMessage {
+                            ProgressView().transition(.opacity)
+                        } else {
+                            Image(systemName: "arrow.up")
+                                .font(.body.weight(.semibold))
+                                .transition(.opacity)
+                        }
                     }
+                    .animation(.easeInOut(duration: reduceMotion ? 0.12 : 0.20), value: sendingMessage)
                     .frame(width: 44, height: 44)
                     .contentShape(.interaction, Circle())
                     .modifier(ChatComposerSurface(shape: Circle(), interactive: true))
                 }
                 .buttonStyle(.plain)
                 .contentShape(.interaction, Circle())
-                .disabled(!available || tooLong || sending != nil)
+                // submit() rejects another in-flight send. Keeping the
+                // button enabled lets glass finish its natural release.
+                .disabled(!available || (tooLong && !sendingMessage))
                 .accessibilityLabel("Send message")
+                .accessibilityValue(sendingMessage ? "Sending" : "Ready")
                 .accessibilityIdentifier("chat.send")
                 .transition(reduceMotion ? .opacity : .offset(x: 58).combined(with: .opacity))
             }
         }
-        .animation(.easeOut(duration: reduceMotion ? 0.16 : 0.25), value: text.isEmpty)
+        .animation(.easeOut(duration: reduceMotion ? 0.16 : 0.25), value: showSend)
     }
 
     private func submit() {

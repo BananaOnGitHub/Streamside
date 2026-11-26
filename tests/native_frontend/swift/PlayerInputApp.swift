@@ -386,6 +386,8 @@ private struct ChatReadingFixture: View {
         return initial
     }()
     @State private var latest = 60
+    @State private var deliveryPending = false
+    @FocusState private var composerFocused: Bool
     @State private var controlsVisible = true
     @State private var infoProgress = 0.0
     private let channel = FollowedChannel(username: "fixture", displayName: "Fixture channel")
@@ -395,9 +397,14 @@ private struct ChatReadingFixture: View {
         VStack(spacing: 0) {
             HStack(spacing: 18) {
                 Button("Toggle controls") { controlsVisible.toggle() }
-                Button("Receive 3 messages") {
-                    timeline.apply(Self.messages((latest + 1)...(latest + 3)))
-                    latest += 3
+                    .accessibilityValue(composerFocused ? "Editing chat" : "Reading chat")
+                Button(deliveryPending ? "Confirm delivery" : "Receive 3 messages") {
+                    if deliveryPending {
+                        deliveryPending = false
+                    } else {
+                        timeline.apply(Self.messages((latest + 1)...(latest + 3)))
+                        latest += 3
+                    }
                 }
             }.padding(8)
             Color.black.frame(height: 150).overlay {
@@ -410,9 +417,16 @@ private struct ChatReadingFixture: View {
                 .accessibilityHidden(!controlsVisible)
             StreamChatTranscript(timeline: $timeline, statusText: "Waiting for messages…", listening: true,
                                  avatars: [1: UIImage(systemName: "person.crop.circle.fill")].compactMapValues { $0 },
-                                 requestAvatars: { _ in })
-            ChatComposer(available: true) { text in
+                                 requestAvatars: { _ in }, dismissKeyboard: { composerFocused = false })
+            ChatComposer(available: true, focus: $composerFocused) { text in
                 guard text == "Hello chat" else { return .rejected }
+                deliveryPending = true
+                // Hold the synthetic server reply until the test has inspected
+                // the sending state, so CI timing does not hide that state.
+                while deliveryPending {
+                    do { try await Task.sleep(nanoseconds: 100_000_000) }
+                    catch { return .unconfirmed }
+                }
                 return .sent
             }
             .layoutPriority(1)

@@ -48,6 +48,18 @@ class AccountAdapterAdmission(unittest.TestCase):
                 plan=copy.deepcopy(self.plan);plan['objc_services'][name][key]=value
                 with self.assertRaises(ValueError):validate_abi(self.images,plan)
 
+    def test_latency_selectors_are_admitted_with_exact_bool_and_cmtime_abi(self):
+        for selector,encoding in [('setLiveLowLatencyEnabled:','v20@0:8B16'),
+                                  ('setRebufferToLive:','v20@0:8B16'),
+                                  ('isLiveLowLatency','B16@0:8'),
+                                  ('liveLatency','{?=qiIq}16@0:8'),
+                                  ('buffered','{?=qiIq}16@0:8')]:
+            name='playback_IVSPlayer_'+selector
+            self.assertEqual(self.plan['objc_services'][name]['encoding'],encoding)
+            with self.subTest(selector=selector):
+                plan=copy.deepcopy(self.plan);plan['objc_services'][name]['encoding']='v16@0:8'
+                with self.assertRaises(ValueError):validate_abi(self.images,plan)
+
     def test_all_native_adapter_literal_dependencies_are_admitted(self):
         names=set()
         for filename in ['SSNProfileRequest.c','SSNContentLabels.c','SSNAccount.c','SSNFeed.c','SSNPlaybackRequest.c','SSNIntegration.c']:

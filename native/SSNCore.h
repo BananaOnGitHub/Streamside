@@ -50,6 +50,11 @@ void ssn_playback_mute(bool known,bool requested,bool reported);
 /* Fixed numeric work stages: pause, view detach, SDK disposal, audio setup,
  * audio restoration. Values are microseconds, clamped to one minute. */
 void ssn_playback_work(unsigned stage,uint64_t microseconds);
+/* Fixed numeric latency telemetry, by requested normal/low-latency mode.
+ * A negative duration is unobserved; never interpret it as zero delay. */
+void ssn_playback_latency_config(unsigned mode);
+void ssn_playback_latency_rebuffer(bool low);
+void ssn_playback_latency_sample(bool low,bool effective,int64_t latency_ms,int64_t buffered_ms);
 
 /* VAFT: numeric observations only. Same fixed eleven metric indices as the
  * shared engine; counters do not establish suppression without an ad case. */

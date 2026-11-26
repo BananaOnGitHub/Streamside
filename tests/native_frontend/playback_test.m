@@ -3,6 +3,7 @@
 #import <UIKit/UIKit.h>
 #import "SSNPlayback.h"
 #import <AVFAudio/AVFAudio.h>
+#import <CoreMedia/CMTime.h>
 #include "SSNPlaybackRequest.h"
 #include <stdlib.h>
 #include <stdatomic.h>
@@ -22,6 +23,14 @@ static atomic_bool deallocationOffMain=true,retirementHeartbeat;
 static BOOL firstPlayerAmbient=NO;
 static BOOL sourceEncoding,lastMuted,mutedBeforeLoad,mixingBeforeLoad;
 static unsigned muteCalls;
+static unsigned latencyConfigs[3],latencySamples[2];
+static BOOL latencyConfiguredBeforeLoad=YES,sampleValuesCorrect=YES;
+void ssn_playback_latency_config(unsigned mode) { if(mode<3) latencyConfigs[mode]++; }
+void ssn_playback_latency_rebuffer(bool low) { (void)low; }
+void ssn_playback_latency_sample(bool low,bool effective,int64_t delay,int64_t buffer) {
+    latencySamples[low]++;
+    sampleValuesCorrect=sampleValuesCorrect&&effective==low&&delay==2250&&buffer==750;
+}
 static id identity;
 bool ssn_playback_authorized(void) { return authorized; }
 bool ssn_navigation_guarded(void) { return true; }
@@ -62,13 +71,20 @@ static unsigned qualitySwitches;
 @implementation IVSQuality
 - (void)dealloc { [_name release];[super dealloc]; }
 @end
-@interface IVSPlayer : NSObject
+@interface IVSPlayer : NSObject {
+    BOOL _lowEnabled,_rebufferToLive,_lowConfigured,_rebufferConfigured;
+}
 @property(nonatomic) NSInteger state;
 @property(nonatomic) BOOL muted;
 @property(nonatomic,readonly) id error;
 @property(nonatomic,readonly) NSArray *qualities;
 @property(nonatomic,retain) IVSQuality *quality;
 - (void)setQuality:(IVSQuality *)quality adaptive:(BOOL)adaptive;
+- (void)setLiveLowLatencyEnabled:(BOOL)value;
+- (void)setRebufferToLive:(BOOL)value;
+- (BOOL)isLiveLowLatency;
+- (CMTime)liveLatency;
+- (CMTime)buffered;
 - (void)load:(NSURL *)url;
 - (void)play;
 - (void)pause;
@@ -96,8 +112,17 @@ static unsigned qualitySwitches;
 }
 - (id)error { return nil; }
 - (void)setMuted:(BOOL)value { _muted=value;lastMuted=value;muteCalls++; }
+- (void)setLiveLowLatencyEnabled:(BOOL)value { _lowConfigured=YES;_lowEnabled=value; }
+- (void)setRebufferToLive:(BOOL)value { _rebufferConfigured=YES;_rebufferToLive=value; }
+- (BOOL)isLiveLowLatency { return _lowEnabled; }
+- (CMTime)liveLatency { return (CMTime){2250,1000,kCMTimeFlags_Valid,0}; }
+- (CMTime)buffered { return (CMTime){750,1000,kCMTimeFlags_Valid,0}; }
 - (void)load:(NSURL *)url {
     NSAssert(NSThread.isMainThread,@"IVS load must remain on main");
+    NSUserDefaults *defaults=NSUserDefaults.standardUserDefaults;
+    NSString *key=@"dev.streamside.player.lowLatency";
+    BOOL expected=[defaults objectForKey:key]==nil||[defaults boolForKey:key];
+    latencyConfiguredBeforeLoad=latencyConfiguredBeforeLoad&&_lowConfigured&&_rebufferConfigured&&_lowEnabled==expected&&_rebufferToLive==expected;
     mutedBeforeLoad=self.muted;
     mixingBeforeLoad=[AVAudioSession.sharedInstance.category isEqual:AVAudioSessionCategoryAmbient];
     NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
@@ -189,6 +214,7 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
         BOOL pendingPromotion=[waiting enterTheatre];waiting.muted=NO;
         [self record:@"pending_consent_promotion" passed:pendingPromotion&&!waiting.isMuted&&waiting.phase==0&&created==0&&requests==0&&activationCalls==0&&[audio.category isEqual:self->_originalCategory]];
         [waiting stop];[waiting release];
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"dev.streamside.player.lowLatency"];
         self->_playback=[[SSNPlayback alloc] initWithChannel:@"synthetic_channel" preview:YES];
         self->_playback.muted=NO;[self->_playback start];
         waitPlaying(self->_playback,1,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed){[self initial:observed];});
@@ -229,6 +255,7 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
     BOOL paused=_playback.phase==8&&_playback.isPaused&&created==beforeCreated&&requests==beforeRequests;
     _playback.paused=NO;[_playback performSelector:@selector(tick:) withObject:nil];
     [self record:@"local_pause_resume" passed:paused&&_playback.phase==3&&!_playback.isPaused&&requests==beforeRequests];
+    [NSUserDefaults.standardUserDefaults setBool:NO forKey:@"dev.streamside.player.lowLatency"];
     _playback.paused=YES;[NSNotificationCenter.defaultCenter postNotificationName:UIApplicationWillResignActiveNotification object:nil];
     BOOL background=_playback.phase==5&&pauses>0;
     [self waitRetired:^(BOOL retired){
@@ -243,6 +270,9 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
     _playback.paused=NO;
     waitPlaying(_playback,3,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed){
         [self record:@"background_resume" passed:observed&&self->_playback.phase==3&&requests==3&&[self->_results[@"background_resume"] boolValue]];
+        [self record:@"latency_policy" passed:latencyConfiguredBeforeLoad&&latencyConfigs[0]==1&&latencyConfigs[1]==2&&latencyConfigs[2]==0];
+        [self record:@"latency_sampling" passed:sampleValuesCorrect&&latencySamples[1]>0&&latencySamples[0]>0];
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"dev.streamside.player.lowLatency"];
         self->_playback.paused=YES;authorized=NO;
         [NSNotificationCenter.defaultCenter postNotificationName:@"SSNNativeServiceDidChange" object:nil];
         BOOL rejected=self->_playback.phase==7&&self->_playback.errorCode==1;

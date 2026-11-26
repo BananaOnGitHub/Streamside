@@ -1011,6 +1011,46 @@
       "encoding": "q16@0:8",
       "address": 445660,
       "bytes": "00bc80b9c0035fd6f85fbca9f65701a9"
+    },
+    "playback_IVSPlayer_setLiveLowLatencyEnabled:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setLiveLowLatencyEnabled:",
+      "encoding": "v20@0:8B16",
+      "address": 393300,
+      "bytes": "e10302aa003440f9080040f902b940f9"
+    },
+    "playback_IVSPlayer_setRebufferToLive:": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "setRebufferToLive:",
+      "encoding": "v20@0:8B16",
+      "address": 393280,
+      "bytes": "e10302aa003440f9080040f902bd40f9"
+    },
+    "playback_IVSPlayer_isLiveLowLatency": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "isLiveLowLatency",
+      "encoding": "B16@0:8",
+      "address": 393428,
+      "bytes": "003440f9080040f901b140f920001fd6"
+    },
+    "playback_IVSPlayer_liveLatency": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "liveLatency",
+      "encoding": "{?=qiIq}16@0:8",
+      "address": 393892,
+      "bytes": "ffc300d1f44f01a9fd7b02a9fd830091"
+    },
+    "playback_IVSPlayer_buffered": {
+      "image": "AmazonIVSPlayer",
+      "class_name": "IVSPlayer",
+      "selector": "buffered",
+      "encoding": "{?=qiIq}16@0:8",
+      "address": 393676,
+      "bytes": "ffc300d1f44f01a9fd7b02a9fd830091"
     }
   },
   "feed_contract": {

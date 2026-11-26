@@ -84,6 +84,19 @@ class CoreEvidence(unittest.TestCase):
             self.assertEqual(report['failures'],0)
             self.assertTrue(all(value==0 for value in report['probes'].values()))
 
+    def test_latency_telemetry_separates_modes_rejects_invalid_samples_and_is_native_only(self):
+        for mode in [0,1]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as d:
+                _,report=self.run_core(mode,'latency',Path(d))
+                self.assertEqual(report['playback_latency_config'],[1,1,1] if mode else [0]*3)
+                self.assertEqual(report['playback_rebuffers'],[0,1] if mode else [0,0])
+                self.assertEqual(report['playback_latency_samples'], [
+                    [1,0,1,4500,4500,4500,1,2000,2000,2000],
+                    [3,2,2,1800,2200,4000,2,750,1000,1750]
+                ] if mode else [[0]*10,[0]*10])
+                self.assertTrue(all(v==0 for v in report['probes'].values()))
+                self.assertEqual(report['failures'],0)
+
     def test_replaced_root_is_reported_separately_from_runtime_activity(self):
         with tempfile.TemporaryDirectory() as d:
             _,report=self.run_core(1,'replaced',Path(d))

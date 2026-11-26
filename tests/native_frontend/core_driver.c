@@ -40,6 +40,14 @@ int main(int argc,char **argv) {
         ssn_playback_status(7,6);ssn_playback_status(0,0);
     }
     if(!strcmp(argv[2],"work")) { ssn_playback_work(0,200);ssn_playback_work(0,30);ssn_playback_work(4,UINT64_MAX);ssn_playback_work(99,1); }
+    if(!strcmp(argv[2],"latency")) {
+        ssn_playback_latency_config(0);ssn_playback_latency_config(1);ssn_playback_latency_config(2);ssn_playback_latency_config(99);
+        ssn_playback_latency_rebuffer(true);
+        ssn_playback_latency_sample(true,true,2200,1000);
+        ssn_playback_latency_sample(true,true,1800,750);
+        ssn_playback_latency_sample(true,false,-1,120001);
+        ssn_playback_latency_sample(false,false,4500,2000);
+    }
     if(!strcmp(argv[2],"adblock")) { ssn_adblock_state(true,true);ssn_adblock_metric(0,3);ssn_adblock_metric(4,2);ssn_adblock_metric(10,UINT64_MAX);ssn_adblock_metric(99,1); }
     ssn_service(SSN_READY,2);ssn_scaffold_ready();ssn_transition(true);ssn_transition(false);ssn_transition(true);ssn_report();
     return 0;

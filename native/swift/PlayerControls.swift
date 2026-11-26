@@ -356,6 +356,15 @@ struct PlayerAnimationOptions: View {
     }
 }
 
+struct PlayerLatencyOptions: View {
+    @AppStorage("dev.streamside.player.lowLatency") private var enabled = true
+    var body: some View {
+        Toggle("Low latency", isOn: $enabled)
+        Text("Prefer low-latency playback and catch up after buffering. May skip some video while catching up. Applies when opening a stream or preview.")
+            .font(.footnote).foregroundStyle(.secondary)
+    }
+}
+
 struct PlayerAdBlockOptions: View {
     @AppStorage("dev.streamside.player.adblock") private var enabled = true
     var body: some View {
@@ -375,6 +384,7 @@ struct PlayerSettings: View {
     var body: some View {
         Form {
             Section("Playback") {
+                PlayerLatencyOptions()
                 PlayerAdBlockOptions()
                 PlayerContentWarningOptions()
             }

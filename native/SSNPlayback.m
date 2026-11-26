@@ -1,6 +1,7 @@
 #import "SSNPlayback.h"
 #import "SSNAdBlock.h"
 #import <AVFAudio/AVFAudio.h>
+#import <CoreMedia/CMTime.h>
 #include "SSNPlaybackRequest.h"
 #include "SSNIntegration.h"
 #include "SSNCore.h"
@@ -30,6 +31,19 @@ static BOOL qualityABI(void) {
         method_is(p,"setQuality:","v24@0:8@16",false)&&
         method_is(p,"setQuality:adaptive:","v28@0:8@16B24",false)&&
         method_is(q,"name","@16@0:8",false)&&method_is(q,"width","q16@0:8",false)&&method_is(q,"height","q16@0:8",false);
+}
+static BOOL latencyABI(void) {
+    Class p=NSClassFromString(@"IVSPlayer");
+    return method_is(p,"setLiveLowLatencyEnabled:","v20@0:8B16",false)&&
+        method_is(p,"setRebufferToLive:","v20@0:8B16",false)&&
+        method_is(p,"isLiveLowLatency","B16@0:8",false)&&
+        method_is(p,"liveLatency","{?=qiIq}16@0:8",false)&&
+        method_is(p,"buffered","{?=qiIq}16@0:8",false);
+}
+static int64_t durationMillis(CMTime time) {
+    if(!CMTIME_IS_NUMERIC(time)||time.timescale<=0||time.value<0) return -1;
+    double ms=(double)time.value*1000.0/time.timescale;
+    return ms<=120000?(int64_t)llround(ms):-1;
 }
 // SDK calls and UIKit detachment stay on main. Final SDK disposal is isolated
 // from audio mutations; SDK >=1.45 explicitly permits off-main deallocation.
@@ -115,7 +129,8 @@ static void reportPlayback(void) {
     UIView *_view,*_playerView;
     NSString *_channel,*_preferredQuality,*_appliedQuality;
     NSArray *_qualities;
-    BOOL _qualitySupported,_qualityReady;
+    BOOL _qualitySupported,_qualityReady,_latencySupported,_lowLatency;
+    NSTimeInterval _nextLatencySample;
     SSNPlaybackAudio *_audio;
     NSUInteger _generation;
     uint64_t _adblockLease;
@@ -190,7 +205,7 @@ static void reportPlayback(void) {
     _phase=phase;_errorCode=code;ssn_playback_status((unsigned)phase,(unsigned)code);reportPlayback();
 }
 - (void)releaseMedia {
-    _generation++;_preparingAudio=NO;_qualityReady=NO;_qualitySupported=NO;
+    _generation++;_preparingAudio=NO;_qualityReady=NO;_qualitySupported=NO;_latencySupported=NO;_nextLatencySample=0;
     [_qualities release];_qualities=nil;
     [_appliedQuality release];_appliedQuality=nil;
     ssn_adblock_end(_adblockLease);_adblockLease=0;
@@ -302,6 +317,18 @@ static void reportPlayback(void) {
     _playerView.autoresizingMask=UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
     [_view addSubview:_playerView];v1(_playerView,"setVideoGravity:",@"AVLayerVideoGravityResizeAspect");v1(_playerView,"setPlayer:",_player);
     ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setMuted:"),_muted);
+    // The SDK defaults to low latency on compatible streams. Make the chosen
+    // mode explicit and recover toward live after rebuffer, rather than keep
+    // accumulating delay. Keep the SDK's initial buffer and ABR defaults.
+    NSUserDefaults *defaults=NSUserDefaults.standardUserDefaults;
+    NSString *latencyKey=@"dev.streamside.player.lowLatency";
+    _lowLatency=[defaults objectForKey:latencyKey]==nil||[defaults boolForKey:latencyKey];
+    _latencySupported=latencyABI();
+    if(_latencySupported) {
+        ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setLiveLowLatencyEnabled:"),_lowLatency);
+        ((void(*)(id,SEL,BOOL))objc_msgSend)(_player,ss("setRebufferToLive:"),_lowLatency);
+    }
+    ssn_playback_latency_config(_latencySupported?(_lowLatency?1:0):2);
     ssn_playback_event(2);[self setPhase:2 error:0];
     _deadline=NSProcessInfo.processInfo.systemUptime+30;
     v1(_player,"load:",source);
@@ -343,9 +370,22 @@ static void reportPlayback(void) {
         if(!_decoded&&((NSInteger(*)(id,SEL))objc_msgSend)(_player,ss("videoFramesDecoded"))>0) {
             _decoded=YES;ssn_playback_event(4);reportPlayback();
         }
+        // Sample actual SDK server-to-player delay and remaining buffer only
+        // while decoded theatre video is playing (not preloads or pauses).
+        NSTimeInterval now=NSProcessInfo.processInfo.systemUptime;
+        if(_latencySupported&&_decoded&&!_preview&&now>=_nextLatencySample) {
+            _nextLatencySample=now+2;
+            BOOL effective=((BOOL(*)(id,SEL))objc_msgSend)(_player,ss("isLiveLowLatency"));
+            CMTime latency=((CMTime(*)(id,SEL))objc_msgSend)(_player,ss("liveLatency"));
+            CMTime buffer=((CMTime(*)(id,SEL))objc_msgSend)(_player,ss("buffered"));
+            ssn_playback_latency_sample(_lowLatency,effective,durationMillis(latency),durationMillis(buffer));
+        }
     } else if(state==4) { [self releaseMedia];[self setPhase:6 error:0]; }
     else if(NSProcessInfo.processInfo.systemUptime>=_deadline) [self fail:6];
-    else if(state==2&&_phase!=4) [self setPhase:4 error:0];
+    else if(state==2&&_phase!=4) {
+        if(_latencySupported&&_wasPlaying&&!_preview) ssn_playback_latency_rebuffer(_lowLatency);
+        [self setPhase:4 error:0];
+    }
     else if(state<0||state>4) [self fail:2];
 }
 - (void)background:(NSNotification *)note {

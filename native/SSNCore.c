@@ -23,6 +23,9 @@ static _Atomic unsigned playback_phase,playback_error,playback_last_error;
 static _Atomic uint64_t playback_events[9],player_control_events[7],mute_mismatches;
 static _Atomic unsigned mute_flags;
 static _Atomic uint64_t playback_work[5][3];
+static _Atomic uint64_t latency_config[3], latency_rebuffers[2];
+/* Samples, active-low samples, valid/last/max/sum delay, valid/last/max/sum buffer. */
+static _Atomic uint64_t latency_samples[2][10];
 static _Atomic uint64_t frontend_events[4];
 static _Atomic uint64_t profile_events[5][SSN_PROFILE_STAGE_COUNT];
 static _Atomic unsigned adblock_flags;
@@ -97,6 +100,26 @@ void ssn_playback_work(unsigned stage,uint64_t microseconds) {
     uint64_t maximum=atomic_load(&playback_work[stage][2]);
     while(microseconds>maximum&&!atomic_compare_exchange_weak(&playback_work[stage][2],&maximum,microseconds)) {}
 }
+void ssn_playback_latency_config(unsigned mode) {
+    if(ssn_native_mode()&&mode<3) atomic_fetch_add(&latency_config[mode],1);
+}
+void ssn_playback_latency_rebuffer(bool low) {
+    if(ssn_native_mode()) atomic_fetch_add(&latency_rebuffers[low],1);
+}
+static void latency_duration(_Atomic uint64_t *row,int64_t ms) {
+    if(ms<0||ms>120000) return;
+    uint64_t value=(uint64_t)ms;
+    atomic_fetch_add(&row[0],1);atomic_store(&row[1],value);atomic_fetch_add(&row[3],value);
+    uint64_t maximum=atomic_load(&row[2]);
+    while(value>maximum&&!atomic_compare_exchange_weak(&row[2],&maximum,value)) {}
+}
+void ssn_playback_latency_sample(bool low,bool effective,int64_t latency_ms,int64_t buffered_ms) {
+    if(!ssn_native_mode()) return;
+    _Atomic uint64_t *row=latency_samples[low];
+    atomic_fetch_add(&row[0],1);
+    if(effective) atomic_fetch_add(&row[1],1);
+    latency_duration(row+2,latency_ms);latency_duration(row+6,buffered_ms);
+}
 void ssn_profile_event(unsigned operation,unsigned stage) {
     if(ssn_native_mode() && operation<5 && stage<SSN_PROFILE_STAGE_COUNT)
         atomic_fetch_add(&profile_events[operation][stage],1);
@@ -167,6 +190,16 @@ void ssn_report(void) {
     ADD("\"player_mute_state\":[%u,%u,%u],\"player_mute_mismatched_samples\":%llu,",mute&1,(mute>>1)&1,(mute>>2)&1,(unsigned long long)atomic_load(&mute_mismatches));
     ADD("\"player_control_events\":[");
     for(unsigned i=0;i<7;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&player_control_events[i]));
+    ADD("],");
+    ADD("\"playback_latency_config\":[%llu,%llu,%llu],\"playback_rebuffers\":[%llu,%llu],",
+        (unsigned long long)atomic_load(&latency_config[0]),(unsigned long long)atomic_load(&latency_config[1]),(unsigned long long)atomic_load(&latency_config[2]),
+        (unsigned long long)atomic_load(&latency_rebuffers[0]),(unsigned long long)atomic_load(&latency_rebuffers[1]));
+    ADD("\"playback_latency_samples\":[");
+    for(unsigned mode=0;mode<2;mode++) {
+        ADD("%s[",mode?",":"");
+        for(unsigned i=0;i<10;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&latency_samples[mode][i]));
+        ADD("]");
+    }
     ADD("],");
     ADD("\"profile_events\":[");
     for(unsigned op=0;op<5;op++) {

@@ -56,7 +56,7 @@ def main():
     run(['xcrun','clang']+common+['-c','tests/native_frontend/abi_calls.c','-o','output/apple-abi.o'])
     binary='output/StreamsideNativeProof'
     run(['xcrun','swiftc','-target','arm64-apple-ios16.4','-sdk',sdk,'-emit-library','-o',binary]+objects+
-        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics','-framework','AVFAudio','-framework','WebKit','-framework','QuickLook',
+        ['-framework','SwiftUI','-framework','UIKit','-framework','Foundation','-framework','Combine','-framework','ImageIO','-framework','CoreHaptics','-framework','AVFAudio','-framework','CoreMedia','-framework','WebKit','-framework','QuickLook',
          '-Xlinker','-install_name','-Xlinker','@rpath/StreamsideNativeProof.framework/StreamsideNativeProof',
          '-Xlinker','-rpath','-Xlinker','/usr/lib/swift','-Xlinker','-dead_strip'], label='Link native interoperability and SwiftUI framework')
     run(['codesign','--force','--sign','-','--timestamp=none',binary])
@@ -165,7 +165,7 @@ def run_window_ownership(root, output, config, run):
     run(['xcrun','clang','-target',architecture+'-apple-ios16.4-simulator','-isysroot',simulator_sdk,
          '-fblocks','-Wall','-Wextra','-Werror','-DSSN_NATIVE=1','-Inative','-Igenerated',
          'native/SSNPlayback.m','tests/native_frontend/playback_test.m','-framework','UIKit','-framework','Foundation',
-         '-framework','AVFAudio','-o',str(playback_bundle/'PlaybackTest')])
+         '-framework','AVFAudio','-framework','CoreMedia','-o',str(playback_bundle/'PlaybackTest')])
     run(['codesign','--force','--sign','-','--timestamp=none',str(playback_bundle)])
     launch_bundle=stage/'LaunchTest.app';launch_bundle.mkdir()
     launch_id='dev.streamside.launchtest'
@@ -210,7 +210,7 @@ def run_window_ownership(root, output, config, run):
         run(['xcrun','simctl','launch','--console',device,playback_id], label='Test cold preview audio, responsive retirement, ordered restoration, playback lifecycle and mute')
         playback_container=Path(run(['xcrun','simctl','get_app_container',device,playback_id,'data']))
         playback=json.loads((playback_container/'Documents/playback-test.json').read_text())
-        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion','quality_selection','quality_restoration','quality_teardown']}
+        expected_playback={k:True for k in ['passed','background_resume','account_stop','cancellation','teardown','source_encoding','playing_observed','local_pause_resume','stream_only_mute','control_intent_retained','preview_muted_before_load','preview_mixes_audio','theatre_audio_promotion','preview_cold_audio','async_retirement','audio_preparation_cancellation','audio_retirement_ordering','vaft_lifetime','pending_consent_promotion','quality_selection','quality_restoration','quality_teardown','latency_policy','latency_sampling']}
         if playback!=expected_playback:raise ValueError('Synthetic UIKit playback lifecycle failed: '+str(playback))
         run(['xcrun','simctl','install',device,str(launch_bundle)])
         for index in range(3):

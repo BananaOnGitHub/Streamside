@@ -7,6 +7,7 @@ from unittest.mock import patch
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/native_frontend'))
+from build_progress import StartupTimeout
 from controls_ui import EXPECTED, SELECTED_SUITE_FINISHED, SELECTED_SUITE_PASSED, run_controls_ui
 
 
@@ -24,18 +25,22 @@ class CoordinateGates(unittest.TestCase):
         'testThumbnailHoldAndTap': ['THUMBNAIL_COORDINATES', 'THUMBNAIL_LIFT', 'VERIFICATION_SETTINGS'],
     }
 
-    def exercise(self, fail=None, missing_count=False, missing_clipboard=False):
+    def exercise(self, fail=None, missing_count=False, missing_clipboard=False,
+                 startup_stalls=None, expect_startup_failure=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / 'output').mkdir()
             folder = root / 'PlayerInput.xcodeproj'
             calls = []
+            stalls = {name: list(outputs) for name, outputs in (startup_stalls or {}).items()}
 
             def run(args, **options):
                 calls.append((args, options))
                 selected = [a.rsplit('/', 1)[-1] for a in args if a.startswith('-only-testing:')]
                 if selected:
                     name = selected[0]
+                    if stalls.get(name):
+                        raise StartupTimeout("Startup deadline exceeded", stalls[name].pop(0))
                     if name == fail:
                         raise RuntimeError('Actual coordinate gate failed')
                     count = '0 tests' if missing_count else '1 test'
@@ -48,7 +53,7 @@ class CoordinateGates(unittest.TestCase):
                 return ''
 
             with patch('controls_ui.project', return_value=folder):
-                if fail or missing_count:
+                if fail or missing_count or expect_startup_failure:
                     with self.assertRaises((RuntimeError, ValueError)):
                         run_controls_ui(root, root, 'owned-device', run)
                     with zipfile.ZipFile(root / 'output/player-input-failure.zip') as archive:
@@ -93,6 +98,34 @@ class CoordinateGates(unittest.TestCase):
         self.assertEqual(len(tests), 4)
         export = next(args for args, _ in calls if 'xcresulttool' in args)
         self.assertEqual(Path(export[export.index('--path') + 1]).name, 'testPlainControls.xcresult')
+
+    def test_silent_startup_stall_reboots_once_and_runs_every_gate(self):
+        calls = self.exercise(startup_stalls={'testMarkedContentConsent': ['Writing result bundle']})
+        tests = [args for args, _ in calls if 'test-without-building' in args]
+        self.assertEqual(len(tests), 9)
+        recovery = [args for args, _ in calls if 'simctl' in args]
+        self.assertEqual(recovery, [
+            ['xcrun', 'simctl', 'shutdown', 'owned-device'],
+            ['xcrun', 'simctl', 'boot', 'owned-device'],
+            ['xcrun', 'simctl', 'bootstatus', 'owned-device', '-b'],
+        ])
+        bundles = [Path(args[args.index('-resultBundlePath') + 1]).name for args in tests]
+        self.assertEqual(len(set(bundles)), 9)
+        self.assertEqual(bundles[1:3], ['testMarkedContentConsent.xcresult', 'testMarkedContentConsent-startup-recovery.xcresult'])
+
+    def test_second_startup_stall_fails_without_another_reboot(self):
+        calls = self.exercise(startup_stalls={'testMarkedContentConsent': ['', '']}, expect_startup_failure=True)
+        self.assertEqual(sum('test-without-building' in args for args, _ in calls), 3)
+        self.assertEqual(sum('bootstatus' in args for args, _ in calls), 1)
+        export = next(args for args, _ in calls if 'xcresulttool' in args)
+        self.assertEqual(Path(export[export.index('--path') + 1]).name, 'testMarkedContentConsent-startup-recovery.xcresult')
+
+    def test_any_test_execution_evidence_prevents_startup_retry(self):
+        calls = self.exercise(startup_stalls={
+            'testMarkedContentConsent': ["Test Suite 'Selected tests' started at 2026-11-20 08:12:46.650.\n"]
+        }, expect_startup_failure=True)
+        self.assertEqual(sum('test-without-building' in args for args, _ in calls), 2)
+        self.assertFalse(any('simctl' in args for args, _ in calls))
 
     def test_pass_marker_without_actual_test_count_is_rejected(self):
         calls = self.exercise(missing_count=True)

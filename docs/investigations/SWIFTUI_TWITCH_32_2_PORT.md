@@ -32,3 +32,12 @@ After assembly and local Feather signing, repeat the [native device checks](SWIF
 - Diagnostic counters remaining zero for RN/Hermes/worklet runtime creation in native mode, with positive observations on the original-startup control.
 
 Retain the known working 32.0 build until these checks succeed. Do not infer device compatibility merely from donor admission.
+
+
+## Apple validation attempt 1 and startup recovery
+
+[Run 45809548028](https://github.com/BananaOnGitHub/Streamside/actions/runs/45809548028) compiled the native framework and coordinate-test fixture successfully. `testChatCatchUp` passed, exercising the composer, scroll-follow and keyboard behavior. The immediately following `testMarkedContentConsent` command wrote the result-bundle path and then stopped emitting progress. After 150 seconds, the startup deadline expired without a test suite or case start; the incomplete result bundle had no `Info.plist`. This was an infrastructure startup timeout, not an observed marked-content assertion failure. The exact cause within the hosted simulator is unconfirmed.
+
+The runner now distinguishes startup from execution and result finalization. One recovery is allowed across the coordinate suite when the startup deadline expires with no observed XCTest suite or case output: reboot only the owned simulator, wait for readiness, and start that same mandatory gate with a different result-bundle path. Preserve the original timeout log. If recovery fails, any subsequent startup stall occurs, or XCTest has begun, the normal failure path remains in force. No test assertions, case selection, receipt requirements, individual case timeouts or outer workflow limits were changed.
+
+All 178 Ubuntu tests passed, including the exact 32.2 donor checks. Local regression coverage checks successful startup recovery, failure when recovery stalls, rejection of recovery after execution evidence and the distinct execution-timeout classification. The next Apple run must pass all eight coordinate cases and existing component gates before IPA assembly. See the original [bounded CI evidence](https://github.com/BananaOnGitHub/Streamside/actions/runs/45809548028/artifacts/15113921491).

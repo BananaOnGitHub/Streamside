@@ -7,6 +7,8 @@ import plistlib
 import re
 import zipfile
 
+from build_progress import StartupTimeout
+
 SOURCES = ['native/swift/TheatreChat.swift','native/swift/ChatComposer.swift','native/swift/ChatAvatars.swift','native/swift/TwitchChatMessages.swift','native/swift/TwitchGuestChat.swift','native/swift/ChannelProfileModel.swift','native/swift/ChannelProfileView.swift','native/swift/PanelMarkdown.swift','native/swift/PanelMarkdownView.swift','native/swift/PanelMarkdownLinkText.swift','native/swift/PanelLinkPreview.swift','native/swift/ProfileTabSwipe.swift','native/swift/ProfileAccent.swift','native/swift/ProfileNavigationController.swift','native/swift/ChannelImages.swift','native/swift/ProfileArtworkMenu.swift','native/swift/FollowedChannelRows.swift','native/swift/LiveRing.swift','native/swift/MeasuredStreamTitle.swift','native/swift/TitleHaptics.swift','tests/native_frontend/swift/ProfileFixture.swift','native/swift/StreamQualityPreferences.swift','native/swift/LocalTestStream.swift','native/swift/LocalTestStreamViews.swift','tests/native_frontend/swift/LocalTestEditorFixture.swift','tests/native_frontend/swift/RenderedFrameDirection.swift','native/swift/TheatrePlayback.swift','tests/native_frontend/swift/MarkedWarningFixture.swift','native/swift/MarkedContentGate.swift','native/swift/MarkedContentWarning.swift','native/swift/VerificationBadge.swift','native/swift/AnchoredPreviewController.swift', 'native/swift/ContextPreviewSession.swift', 'native/swift/QuickLookController.swift', 'tests/native_frontend/swift/ContextPreviewFixture.swift', 'native/swift/QuickLookPanel.swift', 'native/swift/StreamTags.swift', 'native/swift/ThumbnailActions.swift', 'native/swift/PlayerControls.swift', 'native/swift/PlayerCanvas.swift', 'native/swift/PlayerControlMotion.swift',
            'native/swift/NativeModels.swift', 'native/swift/StreamClock.swift',
            'tests/native_frontend/swift/PlayerInputApp.swift',
@@ -119,18 +121,36 @@ def run_controls_ui(root, stage, device, run):
     names = ['testChatCatchUp', 'testMarkedContentConsent', 'testGlassControls', 'testPlainControls',
              'testPreviewPanelLayoutAndActions', 'testThumbnailHoldAndTap', 'testChannelProfile', 'testProfilePreviews']
     outputs = []
-    # Separate result bundles let xcodebuild finalize the failing test's evidence.
-    # A single 900s deadline could kill the entire suite after an assertion,
-    # discard its screenshots and obscure the actual failure. No retries/skips.
+    # Keep completed assertions, per-case deadlines and result bundles intact.
+    # A single simulator reboot is allowed for a silent pre-execution stall,
+    # not for a case failure, execution timeout or result-finalization timeout.
+    recovered_startup = False
     for name in names:
         result_bundle=folder.parent/(name+'.xcresult')
-        try:
-            observed=run(base+['test-without-building', '-only-testing:PlayerInputTests/PlayerInputTests/'+name,
-                              '-resultBundlePath', str(result_bundle)],
+        def execute(bundle):
+            return run(base+['test-without-building', '-only-testing:PlayerInputTests/PlayerInputTests/'+name,
+                              '-resultBundlePath', str(bundle)],
                          timeout=600 if name=='testPreviewPanelLayoutAndActions' else 300,
                          label='Coordinate gate: '+name,
                          startup=(case_started(name), TEST_STARTUP_SECONDS),
                          finalization=(SELECTED_SUITE_FINISHED, RESULT_FINALIZATION_SECONDS))
+        try:
+            try:
+                observed=execute(result_bundle)
+            except StartupTimeout as error:
+                # Any XCTest suite/case output means execution may have begun.
+                # Never retry it, even if the expected start marker was missing.
+                if recovered_startup or re.search(r"^\s*Test (?:Suite|Case) |\*\* TEST EXECUTE ", error.output, re.MULTILINE):
+                    raise
+                recovered_startup = True
+                print('Silent XCTest startup timeout; rebooting owned simulator once before '+name, flush=True)
+                run(['xcrun','simctl','shutdown',device], timeout=60, label='Recover stalled coordinate-test simulator: shutdown')
+                run(['xcrun','simctl','boot',device], timeout=60, label='Recover stalled coordinate-test simulator: boot')
+                run(['xcrun','simctl','bootstatus',device,'-b'], timeout=150, label='Recover stalled coordinate-test simulator: readiness')
+                # Leave the incomplete first bundle untouched and retain the
+                # original timeout in the streamed log.
+                result_bundle=folder.parent/(name+'-startup-recovery.xcresult')
+                observed=execute(result_bundle)
             if not re.search(r"Test Case .*"+name+r".* passed", observed):
                 raise ValueError('Player coordinate test did not pass: '+name)
             if not SELECTED_SUITE_PASSED.search(observed + "\n"):

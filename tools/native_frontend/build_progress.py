@@ -10,6 +10,13 @@ import sys
 import time
 
 
+class StartupTimeout(RuntimeError):
+    """A command reached its setup deadline without its execution marker."""
+    def __init__(self, message, output):
+        super().__init__(message)
+        self.output = output
+
+
 def command_title(args):
     if "-c" in args:
         return "Compile " + Path(args[args.index("-c") + 1]).name
@@ -55,7 +62,10 @@ def run_logged(args, *, cwd, log_path, timeout=240, label=None, summary=False,
                 while selector.get_map() or process.poll() is None:
                     now = time.monotonic()
                     if now >= deadline:
-                        raise RuntimeError(f"Command timed out after {limit:g}s{phase}: {title}")
+                        message = f"Command timed out after {limit:g}s{phase}: {title}"
+                        if startup:
+                            raise StartupTimeout(message, b"".join(chunks).decode("utf-8", errors="replace"))
+                        raise RuntimeError(message)
                     for key, _ in selector.select(min(0.5, deadline - now)):
                         data = os.read(key.fd, 65536)
                         if data:

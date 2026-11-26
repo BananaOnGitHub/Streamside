@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/native_frontend"))
-from build_progress import run_logged
+from build_progress import StartupTimeout, run_logged
 
 
 class BuildProgressTests(unittest.TestCase):
@@ -108,9 +108,19 @@ class BuildProgressTests(unittest.TestCase):
         self.assertIn("Test started: allowing up to 1s", sink.getvalue())
         hang = "import time; print('no test case yet'); time.sleep(10)"
         with contextlib.redirect_stdout(io.StringIO()):
-            with self.assertRaisesRegex(RuntimeError, "after 0.5s during startup"):
+            with self.assertRaisesRegex(StartupTimeout, "after 0.5s during startup") as failure:
                 run_logged([sys.executable, "-u", "-c", hang], cwd=self.root,
                            log_path=self.log, timeout=5, startup=(marker, .5))
+            self.assertIn("no test case yet", failure.exception.output)
+
+    def test_execution_timeout_is_not_a_startup_timeout(self):
+        marker = re.compile(r"^case started\n", re.MULTILINE)
+        script = "import time; print('case started'); time.sleep(10)"
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(RuntimeError, "during execution") as failure:
+                run_logged([sys.executable, "-u", "-c", script], cwd=self.root,
+                           log_path=self.log, timeout=.5, startup=(marker, 2))
+        self.assertNotIsInstance(failure.exception, StartupTimeout)
 
     def test_missing_executable_closes_group_and_records_failure(self):
         with contextlib.redirect_stdout(io.StringIO()) as sink:

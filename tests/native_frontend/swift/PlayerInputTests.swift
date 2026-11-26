@@ -277,7 +277,16 @@ final class PlayerInputTests: XCTestCase {
             abs(chat.frame.minY - expandedTop) < 2
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed)
-        print("CHAT_CATCH_UP PASS: read position, unread count, catch-up line, live follow, and synchronized info layout")
+        let input = app.textFields["chat.message-input"]
+        let send = app.buttons["chat.send"]
+        XCTAssertTrue(input.isHittable)
+        XCTAssertFalse(send.exists, "The send button starts out hidden")
+        input.tap()
+        input.typeText("Hello chat")
+        XCTAssertTrue(send.waitForExistence(timeout: 5))
+        send.tap()
+        assertDismissed(send)
+        print("CHAT_CATCH_UP PASS: read position, unread count, catch-up line, live follow, synchronized info layout, and composer send")
     }
 
     func testMarkedContentConsent() {

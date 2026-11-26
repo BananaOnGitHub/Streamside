@@ -129,6 +129,9 @@ class SwiftCalls(unittest.TestCase):
     def test_profile_follow_and_notification_inputs(self):
         self.call('call_profile_follow',[],[0,11,22])
         self.call('call_profile_notify',[],[11,22,33,44,55])
+    def test_chat_input_expands_all_four_values(self):
+        u=self.call('call_chat_input',[],[11,22,33,44,55,66,77,88])
+        self.assertEqual(u.reg_read(UC_ARM64_REG_X0),0xabcdef01)
     def test_profile_native_enum_initializer(self):
         self.call('call_profile_enum',[0x1234,0x5678,0x9abc],[11,22,0x5678,0x9abc],out=0x1234)
     def test_profile_mutation_unwrap_and_closure(self):

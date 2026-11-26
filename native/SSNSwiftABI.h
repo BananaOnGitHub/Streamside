@@ -20,6 +20,8 @@ typedef SW id (*Bridge)(const void*,const void*);
 typedef SW id (*PromiseObjC)(Map,void*,Map,void*,const void*,const void*,const void*,const void * CTX);
 typedef SW void (*CurrentRequest)(void * OUT,id CTX);
 typedef SW void (*AvatarRequest)(void * OUT,uint32_t,id CTX);
+/* Two Strings and two GraphQLNullable<String> values, two words apiece. */
+typedef SW uintptr_t (*ChatInput)(uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t);
 typedef SW void (*FollowRequest)(void * OUT,intptr_t,uintptr_t,uintptr_t,uintptr_t,uintptr_t,id CTX);
 typedef SW void (*Destroy)(void*,const void*);
 typedef SW unsigned (*GetTag)(const void*,unsigned,const void*);

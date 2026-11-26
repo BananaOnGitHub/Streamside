@@ -245,6 +245,31 @@
     }
   ],
   "abi": {
+    "_$s16TwitchGraphQLAPI20SendChatMessageInputV9channelID7message5nonce011replyParentfI0ACSS_SS9ApolloAPI0B10QLNullableOySSGAKtcfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 7786608,
+      "bytes": "ffc305d1fc6f11a9fa6712a9f85f13a9"
+    },
+    "_$s16TwitchGraphQLAPI23SendChatMessageMutationCMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 3058076,
+      "bytes": "fd7bbfa9fd030091004900f000803c91"
+    },
+    "_$s16TwitchGraphQLAPI23SendChatMessageMutationC4DataVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 3059176,
+      "bytes": "004200b000e02c91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI23SendChatMessageMutationC5inputAcA0deF5InputV_tcfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 2290128,
+      "bytes": "f44fbea9fd7b01a9fd430091f30300aa"
+    },
+    "_$s16TwitchGraphQLAPI23SendChatMessageMutationC4DataV6__data9ApolloAPI0H4DictVvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 423984,
+      "bytes": "9573fe17804600d00040099161438052"
+    },
     "_$s9TwitchKit9TKGraphQLC11currentUser12Tomorrowland7PromiseVy0A8Identity07CurrentF0V0A6Apollo0A12GraphQLErrorVGyF": {
       "image": "TwitchKit",
       "address": 2905020,

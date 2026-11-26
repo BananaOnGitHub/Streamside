@@ -411,6 +411,11 @@ private struct ChatReadingFixture: View {
             StreamChatTranscript(timeline: $timeline, statusText: "Waiting for messages…", listening: true,
                                  avatars: [1: UIImage(systemName: "person.crop.circle.fill")].compactMapValues { $0 },
                                  requestAvatars: { _ in })
+            ChatComposer(available: true) { text in
+                guard text == "Hello chat" else { return .rejected }
+                return .sent
+            }
+            .layoutPriority(1)
         }
     }
 

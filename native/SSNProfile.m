@@ -90,6 +90,27 @@ unsigned ssn_profile_panel_stage(id result) {
     return [panels count]?SSN_PROFILE_PANELS_AVAILABLE:SSN_PROFILE_PANELS_EMPTY;
 }
 
+// Native Apollo selection sets can store a nested DataDict as a Swift box.
+id ssn_chat_send_result(id object) {
+    if(![object isKindOfClass:NSDictionary.class])return nil;
+    id payload=object[@"sendChatMessage"];
+    id unboxed=[payload isKindOfClass:NSDictionary.class]?nil:ssn_profile_unbox(payload);
+    if(unboxed)payload=unboxed;
+    NSDictionary *result=nil;
+    if([payload isKindOfClass:NSDictionary.class]) {
+        id message=payload[@"message"];
+        id messageData=[message isKindOfClass:NSDictionary.class]?nil:ssn_profile_unbox(message);
+        if(messageData)message=messageData;
+        id identifier=[message isKindOfClass:NSDictionary.class]?message[@"id"]:nil;
+        id reason=payload[@"dropReason"];
+        if([identifier isKindOfClass:NSString.class]&&[identifier length])result=@{@"sent":@YES};
+        else if(reason&&reason!=NSNull.null)result=@{@"sent":@NO};
+        [messageData release];
+    }
+    [unboxed release];
+    return [result retain];
+}
+
 @implementation SSNProfileRequest {
     id _promise,_auth;
     NSDictionary *_result;
@@ -109,6 +130,17 @@ unsigned ssn_profile_panel_stage(id result) {
     if((self=[super init])) {
         [self prepareOperation:5]; // Avatar cache activity is excluded from profile diagnostics.
         if(userID&&ssn_playback_authorized())_promise=ssn_profile_avatar_request(userID);
+        if(!_promise)_phase=2;
+    }
+    return self;
+}
+- (instancetype)initWithChatChannelID:(NSString *)channelID message:(NSString *)message {
+    if((self=[super init])) {
+        [self prepareOperation:5]; // Chat writes are excluded from profile diagnostics.
+        NSCharacterSet *nonDigits=[[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet];
+        if(channelID.length&&channelID.length<=32&&[channelID rangeOfCharacterFromSet:nonDigits].location==NSNotFound&&
+           message.length&&message.length<=500&&ssn_playback_authorized())
+            _promise=ssn_chat_send_request(channelID,message);
         if(!_promise)_phase=2;
     }
     return self;

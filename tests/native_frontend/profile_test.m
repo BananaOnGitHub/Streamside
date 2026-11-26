@@ -33,6 +33,11 @@ id ssn_profile_avatar_request(uint32_t user_id) {
     requests++;
     return [FakeProfile new];
 }
+id ssn_chat_send_request(id channel,id message) {
+    NSCAssert(authorized&&[channel isEqual:@"123"]&&[message isEqual:@"Hello chat"],@"Authorized chat write targets the active room");
+    requests++;
+    return [FakeProfile new];
+}
 @interface FixtureNotificationValue : NSObject
 @end
 @implementation FixtureNotificationValue
@@ -115,7 +120,28 @@ int main(void) { @autoreleasepool {
     pending=YES;r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];
     previous=identity;identity=[NSObject new];before=cancels;[r poll];
     NSCAssert(r.phase==2&&cancels==before+1&&r.result.count==0,@"Account switch cancels pending avatar lookup");
-    [r release];[previous release];[identity release];
+    [r release];[previous release];
+
+    before=requests;
+    r=[[SSNProfileRequest alloc] initWithChatChannelID:@"invalid" message:@"Hello chat"];
+    NSCAssert(r.phase==2&&requests==before,@"Invalid channel never submits a chat write");[r release];
+    authorized=NO;
+    r=[[SSNProfileRequest alloc] initWithChatChannelID:@"123" message:@"Hello chat"];
+    NSCAssert(r.phase==2&&requests==before,@"Signed-out chat never submits a write");[r release];
+
+    NSDictionary *sent=@{@"sendChatMessage":@{@"message":@{@"id":@"fixture-id"},@"dropReason":NSNull.null}};
+    NSDictionary *dropped=@{@"sendChatMessage":@{@"message":NSNull.null,@"dropReason":@"SLOW_MODE"}};
+    id rejected=ssn_chat_send_result(dropped);
+    NSCAssert([rejected[@"sent"] isEqual:@NO]&&[rejected count]==1,@"Drop reason stays inside the native bridge");[rejected release];
+    NSCAssert(!ssn_chat_send_result(@{@"sendChatMessage":NSNull.null}),@"No delivery confirmation without the result payload");
+    authorized=YES;pending=YES;value=ssn_chat_send_result(sent);
+    r=[[SSNProfileRequest alloc] initWithChatChannelID:@"123" message:@"Hello chat"];
+    [r poll];NSCAssert(r.phase==0,@"Pending write never claims delivery");
+    pending=NO;[r poll];
+    NSCAssert(r.phase==1&&[r.result[@"sent"] isEqual:@YES]&&r.result.count==1,@"Only the confirmed status crosses the bridge");
+    NSCAssert(requests==before+1,@"One chat submission");
+    [r release];[value release];value=nil;
+    [identity release];identity=nil;
     for(unsigned op=0;op<5;op++) NSCAssert(stages[op][SSN_PROFILE_STARTED]>0&&stages[op][SSN_PROFILE_COMPLETED]==1,@"Each native operation reports request and completion");
     NSCAssert(stages[0][SSN_PROFILE_CANCELLED]>0&&stages[0][SSN_PROFILE_SESSION_CHANGED]==2,@"Cancellation and account boundaries are numeric");
     puts("PROFILE_NATIVE PASS: whitelist, bounds, five native operations, invalid setting, pending, errors, single cancellation, account replacement/loss");

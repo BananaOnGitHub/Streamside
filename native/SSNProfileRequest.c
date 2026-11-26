@@ -33,7 +33,7 @@ static const void *meta(const char *name) { Meta fn=(Meta)ssn_resolve(name);if(!
 static id failed(void) { return m0(c("NSNull"),"new"); }
 id ssn_profile_unbox(id object) {
     uintptr_t raw=0;
-    if(!available||!cast(&raw,&object,objc_type,data_type,0)) return nil;
+    if(!object||!available||!cast(&raw,&object,objc_type,data_type,0)) return nil;
     uintptr_t dict=dict_getter(raw);destroy(&raw,data_type);
     id result=bridge(&dict,dict_type);destroy(&dict,dict_type);return result;
 }
@@ -252,6 +252,67 @@ id ssn_profile_avatar_request(uint32_t user_id) {
     uintptr_t result=0;
     request(&result,user_id,graph);
     id mapped=promise_objc(map_avatar,NULL,error_avatar,NULL,promise.value,objc_type,objc_type,&result);
+    destroy(&result,promise.value);
+    if(!kind(mapped,"TWLPromise")) { objc_release(mapped);return nil; }
+    return mapped;
+}
+
+/* Reuse the authenticated Apollo client and its native mutation adapter.
+ * SwiftUI receives a delivery result only. */
+static const void *chat_mutation_result;
+
+static void SW unwrap_chat(void * OUT out,const void *value,void *context CTX) {
+    (void)context;
+    unwrap(out,chat_mutation_result,value);
+}
+
+static id SW map_chat(const void *value,void *context CTX) {
+    (void)context;
+    PlaybackField root=(void*)ssn_resolve("$s16TwitchGraphQLAPI23SendChatMessageMutationC4DataV6__data9ApolloAPI0H4DictVvg");
+    if(!root)return failed();
+    uintptr_t raw=root(*(const uintptr_t*)value);
+    uintptr_t dict=dict_getter(raw);
+    destroy(&raw,data_type);
+    id boxed=bridge(&dict,dict_type);
+    destroy(&dict,dict_type);
+    id result=ssn_chat_send_result(boxed);
+    objc_release(boxed);
+    return result?:failed();
+}
+
+id ssn_chat_send_request(id channel,id message) {
+    if(!ssn_playback_authorized()||!initialize()||
+       !kind(channel,"NSString")||!num(channel,"length")||num(channel,"length")>32||
+       !kind(message,"NSString")||!num(message,"length")||num(message,"length")>500)return nil;
+
+    id graph=m0(c("_TtC9TwitchKit9TKGraphQL"),"sharedInstance");
+    const void *query_type=meta("$s16TwitchGraphQLAPI23SendChatMessageMutationCMa"),*data=meta("$s16TwitchGraphQLAPI23SendChatMessageMutationC4DataVMa");
+    const void *mutation_protocol=ssn_resolve("$s9ApolloAPI15GraphQLMutationMp");
+    const void *root_protocol=ssn_resolve("$s9ApolloAPI16RootSelectionSetMp");
+    const void *(*conforms)(const void*,const void*)=dlsym(RTLD_DEFAULT,"swift_conformsToProtocol");
+    ChatInput input=(void*)ssn_resolve("$s16TwitchGraphQLAPI20SendChatMessageInputV9channelID7message5nonce011replyParentfI0ACSS_SS9ApolloAPI0B10QLNullableOySSGAKtcfC");
+    SW uintptr_t (*make)(uintptr_t,const void* CTX)=(void*)ssn_resolve("$s16TwitchGraphQLAPI23SendChatMessageMutationC5inputAcA0deF5InputV_tcfC");
+    if(!graph||!sized(query_type,8)||!sized(data,8)||!conforms||!mutation_protocol||!root_protocol||
+       !input||!make||!ssn_resolve("$s16TwitchGraphQLAPI23SendChatMessageMutationC4DataV6__data9ApolloAPI0H4DictVvg"))return nil;
+    const void *witness=conforms(query_type,mutation_protocol),*data_witness=conforms(data,root_protocol);
+    Response promise=promise_meta(0,data,error_type);
+    if(!witness||!data_witness||promise.state||!sized(promise.value,8))return nil;
+    if(!chat_mutation_result) {
+        const void *arguments[]={data,error_type,data_witness,error_witness};
+        Response result=result_meta(0,arguments);
+        if(result.state||!vw(result.value)||vw(result.value)[8]>65536)return nil;
+        chat_mutation_result=result.value;
+    }
+
+    _Alignas(16) Words2 nonce={0},reply={0};
+    if(!none_value(string_type,16,&nonce)||!none_value(string_type,16,&reply))return nil;
+    Words2 channel_id=from_string(channel),body=from_string(message);
+    uintptr_t query=make(input(channel_id.a,channel_id.b,body.a,body.b,nonce.a,nonce.b,reply.a,reply.b),query_type);
+    Words2 client=client_getter(graph);
+    uintptr_t result=0;
+    perform(&result,query,(id)dispatch_get_main_queue(),unwrap_chat,NULL,client.a,client.b,query_type,data,error_type,witness,error_witness);
+    release_object(query);release_object(client.a);release_object(client.b);
+    id mapped=promise_objc(map_chat,NULL,error_avatar,NULL,promise.value,objc_type,objc_type,&result);
     destroy(&result,promise.value);
     if(!kind(mapped,"TWLPromise")) { objc_release(mapped);return nil; }
     return mapped;

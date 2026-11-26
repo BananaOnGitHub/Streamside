@@ -4,35 +4,44 @@ import UIKit
 @MainActor
 struct TheatreChat: View {
     let channel: String?
+    let canSend: Bool
+    let send: @MainActor (String) async -> ChatDelivery
     @State private var status: TwitchGuestChat.Status = .connecting
     @State private var timeline = TwitchChatTimeline()
     @State private var connectionID = UUID()
     @StateObject private var avatars: ChatAvatars
 
-    init(channel: String?, images: ChannelImageCache, resolveAvatar: @escaping ChatAvatars.Resolver) {
+    init(channel: String?, images: ChannelImageCache, resolveAvatar: @escaping ChatAvatars.Resolver,
+         canSend: Bool, send: @escaping @MainActor (String) async -> ChatDelivery) {
         self.channel = channel
+        self.canSend = canSend
+        self.send = send
         _avatars = StateObject(wrappedValue: ChatAvatars(cache: images, resolve: resolveAvatar))
     }
 
     var body: some View {
-        StreamChatTranscript(timeline: $timeline, statusText: statusText, listening: status == .listening,
-                             avatars: avatars.images, requestAvatars: avatars.updateVisible)
-            .onAppear { avatars.setActive(channel != nil) }
-            .onChange(of: channel) { avatars.setActive($0 != nil) }
-            .onDisappear { avatars.setActive(false) }
-            .task(id: channel) {
-                let id = UUID()
-                connectionID = id
-                guard let channel else { return }
-                await TwitchGuestChat.listen(channel: channel) { update in
-                    guard connectionID == id, !Task.isCancelled else { return }
-                    switch update {
-                    case .status(let next): if next != status { status = next }
-                    case .events(let events):
-                        withTransaction(Transaction(animation: nil)) { timeline.apply(events) }
-                    }
+        VStack(spacing: 0) {
+            StreamChatTranscript(timeline: $timeline, statusText: statusText, listening: status == .listening,
+                                 avatars: avatars.images, requestAvatars: avatars.updateVisible)
+            ChatComposer(available: canSend, send: send)
+                .layoutPriority(1)
+        }
+        .onAppear { avatars.setActive(channel != nil) }
+        .onChange(of: channel) { avatars.setActive($0 != nil) }
+        .onDisappear { avatars.setActive(false) }
+        .task(id: channel) {
+            let id = UUID()
+            connectionID = id
+            guard let channel else { return }
+            await TwitchGuestChat.listen(channel: channel) { update in
+                guard connectionID == id, !Task.isCancelled else { return }
+                switch update {
+                case .status(let next): if next != status { status = next }
+                case .events(let events):
+                    withTransaction(Transaction(animation: nil)) { timeline.apply(events) }
                 }
             }
+        }
     }
 
     private var statusText: String {
@@ -137,6 +146,7 @@ struct StreamChatTranscript: View {
                     }
                 }
         }
+        .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("chat.transcript")
     }
 

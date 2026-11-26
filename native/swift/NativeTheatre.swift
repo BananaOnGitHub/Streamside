@@ -39,6 +39,24 @@ private struct TheatreContent: View {
         }
         return nil
     }
+    private var chatSendAvailable: Bool {
+        chatChannel != nil && !currentChannel.channelID.isEmpty
+    }
+
+    @MainActor
+    private func sendChatMessage(_ message: String) async -> ChatDelivery {
+        guard !Task.isCancelled, chatSendAvailable, SSNNavigationPermitted(),
+              UIApplication.shared.applicationState == .active else { return .unconfirmed }
+        let request = SSNProfileRequest(chatChannelID: currentChannel.channelID, message: message)
+        defer { request.cancel() }
+        while !Task.isCancelled, chatSendAvailable {
+            request.poll()
+            if request.phase == 1, let sent = request.result["sent"] as? Bool { return sent ? .sent : .rejected }
+            if request.phase != 0 { return .unconfirmed }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        return .unconfirmed
+    }
     private var infoAlwaysVisible: Bool {
         playback.native == nil || playback.contentGate != nil || playback.phase == 6 || playback.phase == 7
     }
@@ -109,7 +127,8 @@ private struct TheatreContent: View {
                 Text("Chat opens after you continue.").font(.footnote).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                TheatreChat(channel: chatChannel, images: services.images, resolveAvatar: resolveChatAvatar)
+                TheatreChat(channel: chatChannel, images: services.images, resolveAvatar: resolveChatAvatar,
+                            canSend: chatSendAvailable, send: sendChatMessage)
             }
         }
         .background(Color(uiColor: .systemBackground))

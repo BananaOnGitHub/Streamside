@@ -5,6 +5,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface SSNProfileRequest : NSObject
 - (instancetype)initWithChannelID:(NSString *)channelID operation:(NSInteger)operation setting:(NSString *)setting;
 - (instancetype)initWithAvatarUserID:(uint32_t)userID NS_SWIFT_NAME(init(avatarUserID:));
+- (instancetype)initWithChatChannelID:(NSString *)channelID message:(NSString *)message NS_SWIFT_NAME(init(chatChannelID:message:));
 @property(nonatomic,readonly) NSInteger phase;
 @property(nonatomic,readonly) NSDictionary<NSString *,id> *result;
 - (void)poll;

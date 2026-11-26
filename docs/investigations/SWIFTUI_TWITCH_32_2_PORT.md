@@ -54,3 +54,15 @@ All 178 Ubuntu tests passed, including the exact 32.2 donor checks. Local regres
 Local donor admission and assembly passed, validating 117 ABI entries, all 25 runtime probes, all retained donor entries and the unchanged original HBC. The native-only device candidate is `artifacts/native-frontend/twitch-32.2-7538e89/StreamsideNativeProof-Twitch32-native.ipa` (workspace-relative, outside the repository), 196,647,706 bytes, SHA-256 `4da9eb3a696a2bd88abe84b2b4eed8c9a20d514edab3ea9e5339ae5257e5c46e`. Its source and packaging revisions are both the successful Apple revision above. The full assembly manifest lives beside the IPA locally. No donor or IPA was uploaded to GitHub.
 
 This candidate requires Feather signing and physical iPhone acceptance. Device behavior on Twitch 32.2, including real account, playback, chat and RN/Hermes/Worklets isolation, is not yet established. The previous 32.0 build remains available.
+
+
+## First 32.2 physical-device review
+
+The device review on 2026-11-26 confirmed that the new native build was fully functional in ordinary use. The attached native launch report matches source `7538e89`, proof ID and exact donor, and its probe contract matches the current plan. The raw report is preserved locally beside the candidate in `device-validation/native-latest.json` (SHA-256 `e7bcd3c32e12fbedc61287f2bc7d3cb286bbc542440551b4dc656ae9e79e3ead`).
+
+- Native root ownership and navigation guard were active; the report recorded successful account/follow loading with 100 returned channels.
+- All three instrumented images were armed (mask 7), with zero instrumentation failures and a complete set of 25 observations. All 24 guarded runtime entry counts were zero.
+- The sole nonzero entry was `twitch_holder = 1`. This is the permitted native holder singleton initialization, not an RN host, surface or Hermes runtime. It was deliberately classified as unguarded in both donor plans; the holder and actual runtime entry observations are distinct. No change to its treatment is needed.
+- At export, 17.151 seconds after launch, the first-active measurement was 501 ms and the physical footprint was 87.5 MiB. These are an individual launch's observations, not a controlled performance comparison.
+
+The report is an authenticated feed/launch snapshot: playback and profile event counters are zero and no background transition is included. The broader functional confirmation is device feedback rather than coverage demonstrated by that snapshot. Matching 32.2 original-startup positive-control calibration (`baseline_calibrated = false` at export), post-playback counters, and lifecycle comparison still require their own reports; the 32.0 calibration cannot establish the relocated 32.2 probe contract.

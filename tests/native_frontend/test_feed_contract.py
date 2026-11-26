@@ -43,7 +43,7 @@ class NativeFeedContract(unittest.TestCase):
             spec=next(v for k,v in self.plan['abi'].items() if 'PersonalSectionsResponseV'+('4live' if property=='live' else '7offline') in k)
             seen=[]
             def hook(vm,pc,size,unused):
-                if pc==0x43fe9c: # Inspected swift_bridgeObjectRetain import stub.
+                if pc==0x447004: # Inspected swift_bridgeObjectRetain import stub.
                     seen.append(vm.reg_read(UC_ARM64_REG_X0));vm.reg_write(UC_ARM64_REG_PC,0x1200000)
             u.hook_add(UC_HOOK_CODE,hook);u.emu_start(spec['address'],0x1200000,count=40)
             self.assertEqual(seen,[expected])
@@ -75,7 +75,7 @@ class NativeFeedContract(unittest.TestCase):
                     u.mem_write(metadata+0x3c,struct.pack('<i',offset));u.mem_write(user+offset,struct.pack('<I',roles))
                     u.reg_write(UC_ARM64_REG_X20,user)
                     def hook(vm,pc,size,unused):
-                        if pc==0x67b18:
+                        if pc==0x69818:
                             vm.reg_write(UC_ARM64_REG_X0,metadata)
                             vm.reg_write(UC_ARM64_REG_PC,vm.reg_read(UC_ARM64_REG_X30))
                     u.hook_add(UC_HOOK_CODE,hook)

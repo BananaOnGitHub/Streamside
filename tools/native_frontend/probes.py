@@ -105,26 +105,28 @@ def launch_gate_layout(plan):
     return cave,code
 
 
-def validate_launch_slot(data,plan):
-    # The existing observer uses the penultimate word of a verified unused DATA
-    # tail. Admit both words, including the selector, beyond every section.
+def validate_monitor_slot(data,plan,name):
+    # All observers live beyond the last section in unused writable DATA.
+    # The main image also owns the one-shot selection word.
     from macho import load_commands
-    slot=plan['layout']['Twitch']['slot']
+    slot=plan['layout'][name]['slot']
+    width=16 if name=='Twitch' else 8
     for c in load_commands(data):
         if c.command!=0x19:continue
         vm,size,off,filesize=struct.unpack_from('<4Q',data,c.offset+24)
         if not vm<=slot<vm+size:continue
         _,protection,count=struct.unpack_from('<3I',data,c.offset+56)
         end=max((sum(struct.unpack_from('<2Q',data,c.offset+72+i*80+32)) for i in range(count)),default=vm)
-        if not protection&2 or slot<end or slot+16>vm+size:raise ValueError('Launch slot is not unused writable DATA tail')
-        if slot<vm+filesize and any(data[off+slot-vm:off+min(slot+16-vm,filesize)]):raise ValueError('Launch slot is not zero')
+        if not protection&2 or slot<end or slot+width>vm+size:raise ValueError('Monitor slot is not unused writable DATA tail')
+        if slot<vm+filesize and any(data[off+slot-vm:off+min(slot+width-vm,filesize)]):raise ValueError('Monitor slot is not zero')
         return
-    raise ValueError('Launch slot is not mapped')
+    raise ValueError('Monitor slot is not mapped')
 
 
 def patch(data, plan, name, proof_id, native):
     if hashlib.sha256(data).hexdigest() != plan['images'][name]:
         raise ValueError('Exact donor image required: ' + name)
+    validate_monitor_slot(data,plan,name)
     out = bytearray(data)
     item = plan['layout'][name]
     at = item['code_offset']
@@ -141,7 +143,6 @@ def patch(data, plan, name, proof_id, native):
         gate = plan['gate']; pos = file_offset(out, gate['address'])
         if out[pos:pos+16].hex() != gate['bytes']:
             raise ValueError('Eligibility gate prefix mismatch')
-        validate_launch_slot(data,plan)
         cave,code=launch_gate_layout(plan)
         out[pos:pos+4]=struct.pack('<I',branch(gate['address'],item['base']+cave))
         out[cave:cave+len(code)]=code
@@ -152,6 +153,9 @@ def generate_header(plan, proof_id, revision, destination):
     lines = ['/* Generated from native/twitch32.json by the dedicated build. */',
              '#define SSN_PROOF_ID ' + json.dumps(proof_id),
              '#define SSN_REVISION ' + json.dumps(revision),
+             '#define SSN_DONOR_SHA256 ' + json.dumps(plan['donor_sha256']),
+             '#define SSN_TWITCH_VERSION ' + json.dumps(plan['twitch_version']),
+             '#define SSN_TWITCH_BUILD ' + json.dumps(plan['twitch_build']),
              '#define SSN_PROBE_COUNT ' + str(len(plan['probes'])),
              'static const SSNProbeSpec ssn_specs[] = {']
     for probe in plan['probes']:
@@ -165,7 +169,7 @@ def generate_header(plan, proof_id, revision, destination):
     for name, item in plan['layout'].items():
         lines.append('{%s,0x%x,0x%x},' %
                      (json.dumps(name), item['code_offset'], item['slot'] - item['base']))
-    lines += ['};', '#define SSN_IMAGE_COUNT 4',
+    lines += ['};', '#define SSN_IMAGE_COUNT '+str(len(plan['layout'])),
               'typedef struct { const char *name,*image; uintptr_t offset; unsigned char prefix[16]; } SSNABISpec;',
               'static const SSNABISpec ssn_abi[] = {']
     bases = {n: item['base'] for n, item in plan['layout'].items()}

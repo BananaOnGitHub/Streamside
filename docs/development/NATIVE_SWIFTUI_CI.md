@@ -45,7 +45,7 @@ resumable tickets and failure handling.
 Pass the verified components path printed by retrieval to local packaging:
 
 ```sh
-python3 tools/native_frontend/build.py --frontend swiftui --components /external/path/printed/by/fetch --donor ../donors/tv.twitch-32.0.ipa
+python3 tools/native_frontend/build.py --frontend swiftui --components /external/path/printed/by/fetch --donor ../donors/tv.twitch-32.2.ipa
 ```
 
 Component verification rejects corrupted or unexpected files, symlinks, changed
@@ -55,7 +55,7 @@ component built from an ancestor with the same source/proof; the compiled
 revision remains the component revision, and the local assembly revision is
 recorded separately. No stale component is silently recompiled via SSH.
 
-Local packaging verifies the exact inspected Twitch 32.0 donor and native ABI
+Local packaging verifies the exact inspected Twitch 32.2 donor and native ABI
 boundaries before mutation. It preserves all unrelated donor entries and original
 HBC, adds probes/guarding and assembles the diagnostic IPA under external artifacts. An independent original-startup
 control remains an explicit optional packaging mode.

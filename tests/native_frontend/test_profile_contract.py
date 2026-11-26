@@ -23,15 +23,17 @@ class ProfileContract(unittest.TestCase):
     def test_profile_query_actual_allocator_consumes_exact_lowering(self):
         u=self.machine('TwitchGraphQLAPI');allocated=0x4000100;metatype=0x4000500
         for index,arg in enumerate([11,22,33,44,55,66,77]):u.reg_write(UC_ARM64_REG_X0+index,arg)
+        u.reg_write(UC_ARM64_REG_X0+7,88)
+        u.mem_write(u.reg_read(UC_ARM64_REG_SP),struct.pack("<2Q",99,111))
         u.reg_write(UC_ARM64_REG_X20,metatype);calls=[]
         def hook(vm,pc,size,unused):
-            if pc==0x816ec4:
+            if pc==0xa83f6c:
                 calls.append([vm.reg_read(UC_ARM64_REG_X0+i) for i in range(3)])
                 vm.reg_write(UC_ARM64_REG_X0,allocated);vm.reg_write(UC_ARM64_REG_PC,vm.reg_read(UC_ARM64_REG_X30))
-        u.hook_add(UC_HOOK_CODE,hook);u.emu_start(0x54bd94,0x4200000,count=100)
-        self.assertEqual(calls,[[metatype,65,7]])
+        u.hook_add(UC_HOOK_CODE,hook);u.emu_start(0x6f4b38,0x4200000,count=100)
+        self.assertEqual(calls,[[metatype,89,7]])
         self.assertEqual(struct.unpack('<2Q',u.mem_read(allocated+16,16)),(11,22))
-        for offset,value,width in [(32,33,1),(40,44,8),(48,55,1),(56,66,8),(64,77,1)]:
+        for offset,value,width in [(32,33,1),(40,44,8),(48,55,1),(56,66,8),(64,77,1),(72,88,8),(80,99,8),(88,111,1)]:
             self.assertEqual(int.from_bytes(u.mem_read(allocated+offset,width),'little'),value)
         self.assertEqual(u.reg_read(UC_ARM64_REG_X0),allocated)
     def test_actual_nullable_initializer_delegates_to_payload_value_witness(self):
@@ -42,7 +44,7 @@ class ProfileContract(unittest.TestCase):
             if pc==callback:
                 calls.append([vm.reg_read(UC_ARM64_REG_X0+i) for i in range(4)])
                 vm.reg_write(UC_ARM64_REG_PC,0x4200000)
-        u.hook_add(UC_HOOK_CODE,hook);u.emu_start(0xcb88,0x4200000,count=40)
+        u.hook_add(UC_HOOK_CODE,hook);u.emu_start(0xcdd0,0x4200000,count=40)
         self.assertEqual(calls,[[out,1,2,metadata]])
     def test_profile_descriptor_changes_are_rejected(self):
         for field,value in [('generic_parameters',3),('key_arguments',3)]:
@@ -71,7 +73,7 @@ class ProfileContract(unittest.TestCase):
             u.mem_map(page,4096);u.mem_write(slide+spec['address'],prefix)
             end=0x500000000;u.mem_map(end,4096);u.reg_write(UC_ARM64_REG_X30,end)
             u.emu_start(slide+spec['address'],end,count=10)
-            self.assertEqual(u.reg_read(UC_ARM64_REG_X0),slide+0x14a20)
+            self.assertEqual(u.reg_read(UC_ARM64_REG_X0),slide+0x145a0)
             self.assertEqual(u.reg_read(UC_ARM64_REG_X1),0)
 
     def test_notification_raw_value_accessor_uses_metadata_and_swift_context(self):
@@ -80,65 +82,53 @@ class ProfileContract(unittest.TestCase):
             with self.subTest(known=known):
                 vm = self.machine('ApolloAPI')
                 value, metadata, payload = 0x4000100, 0x4000200, 0x4000300
-                enum_vwt, payload_vwt, conformance = 0x4000400, 0x4000500, 0x4000600
-                copy, project, destroy = 0x4000700, 0x4000800, 0x4000900
-                getter = 0x4000A00
+                conformance, getter = 0x4000600, 0x4000A00
                 words = struct.pack('<2Q', 0x1234, 0x5678)
                 vm.mem_write(value, words + b'\x00')
-                for addr, word in (
-                    (metadata - 8, enum_vwt), (metadata + 16, payload), (metadata + 24, conformance),
-                    (enum_vwt + 16, copy), (enum_vwt + 64, 17), (payload - 8, payload_vwt),
-                    (payload_vwt + 8, destroy), (payload_vwt + 32, project), (payload_vwt + 64, 16),
-                    (conformance + 32, getter),
-                ):
-                    vm.mem_write(addr, struct.pack('<Q', word))
+                vm.mem_write(metadata+16,struct.pack('<2Q',payload,conformance))
+                vm.mem_write(conformance+32,struct.pack('<Q',getter))
                 vm.reg_write(UC_ARM64_REG_X0, metadata)
                 vm.reg_write(UC_ARM64_REG_X20, value)
-                calls = []
+                calls=[]
 
                 def hook(machine, pc, size, _):
-                    x0, x1, x2 = (machine.reg_read(register) for register in
-                                  (UC_ARM64_REG_X0, UC_ARM64_REG_X1, UC_ARM64_REG_X2))
-                    if pc == copy:
-                        self.assertEqual((x1, x2), (value, metadata))
-                        machine.mem_write(x0, bytes(machine.mem_read(x1, 17)))
-                    elif pc == 0x256EC:
-                        self.assertEqual(x1, metadata)
-                        machine.reg_write(UC_ARM64_REG_X0, 0 if known else 1)
-                    elif pc == project:
-                        self.assertEqual(x2, payload)
-                        machine.mem_write(x0, bytes(machine.mem_read(x1, 16)))
-                    elif pc == 0x2511C:
-                        self.assertEqual((x0, x1), (payload, getter))
-                        self.assertEqual(bytes(machine.mem_read(machine.reg_read(UC_ARM64_REG_X20), 16)), words)
-                        machine.mem_write(machine.reg_read(UC_ARM64_REG_X8), words)
-                    elif pc == destroy:
-                        self.assertEqual(x1, payload)
+                    x0, x1 = (machine.reg_read(register) for register in (UC_ARM64_REG_X0, UC_ARM64_REG_X1))
+                    if pc == 0x237f4: # swift_getEnumCaseMultiPayload
+                        self.assertEqual((x0,x1),(value,metadata))
+                        machine.reg_write(UC_ARM64_REG_X0,0 if known else 1)
+                    elif pc == 0x2374c: # swift_bridgeObjectRetain
+                        self.assertEqual(x0,0x5678)
+                    elif pc == 0x23320: # RawRepresentable.rawValue dispatch
+                        self.assertEqual((x0,x1),(payload,getter))
+                        self.assertEqual(machine.reg_read(UC_ARM64_REG_X20),value)
+                        machine.mem_write(machine.reg_read(UC_ARM64_REG_X8),words)
                     else:
                         return
                     calls.append(pc)
                     machine.reg_write(UC_ARM64_REG_PC, machine.reg_read(UC_ARM64_REG_X30))
 
                 vm.hook_add(UC_HOOK_CODE, hook)
-                vm.emu_start(spec['address'], 0x4200000, count=100)
-                self.assertEqual(vm.reg_read(UC_ARM64_REG_PC), 0x4200000)
-                self.assertEqual((vm.reg_read(UC_ARM64_REG_X0), vm.reg_read(UC_ARM64_REG_X1)), (0x1234, 0x5678))
-                self.assertEqual(calls, [copy, 0x256EC, project, 0x2511C, destroy] if known else [copy, 0x256EC])
+                vm.emu_start(spec['address'],0x4200000,count=100)
+                self.assertEqual(vm.reg_read(UC_ARM64_REG_PC),0x4200000)
+                self.assertEqual((vm.reg_read(UC_ARM64_REG_X0),vm.reg_read(UC_ARM64_REG_X1)),(0x1234,0x5678))
+                self.assertEqual(calls,[0x237f4,0x23320] if known else [0x237f4,0x2374c])
 
     def test_profile_fragment_selects_panels_and_subscription_with_typed_panel_data(self):
         image = 'TwitchGraphQLAPI'
         donor_data = self.images[image][1]
         fragment_offset = donor_data.index(b'fragment ProfileInfoFragment on User {')
         fragment = donor_data[fragment_offset:fragment_offset + 2048].split(b'\0', 1)[0]
-        self.assertIn(b'currentUser: self { __typename subscriptionBenefit { __typename id } }', fragment)
+        self.assertIn(b'currentUser: self @include(if: $includeViewerState) { __typename subscriptionBenefit { __typename ...SubscriptionBenefitFragment }', fragment)
+        self.assertIn(b'fragment SubscriptionBenefitFragment on SubscriptionBenefit { __typename id ',donor_data)
+        self.assertIn(b'$includeViewerState: Boolean = false',donor_data)
         self.assertIn(b'panels { __typename ... on DefaultPanel { title linkURL imageURL description } }', fragment)
         metadata = self.plan['abi']['_$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelVMa']['address']
         getter = self.plan['abi']['_$s16TwitchGraphQLAPI19ProfileInfoFragmentV5PanelV6__data9ApolloAPI8DataDictVvg']['address']
         vm = self.machine(image)
         vm.emu_start(metadata, 0x4200000, count=12)
-        self.assertEqual((vm.reg_read(UC_ARM64_REG_X0), vm.reg_read(UC_ARM64_REG_X1)), (0xB03A80, 0))
+        self.assertEqual((vm.reg_read(UC_ARM64_REG_X0), vm.reg_read(UC_ARM64_REG_X1)), (0xD89610, 0))
         return_data = 0x4000180
         vm.reg_write(UC_ARM64_REG_X0, return_data)
-        vm.emu_start(getter, 0x4684, count=2)
-        self.assertEqual(vm.reg_read(UC_ARM64_REG_PC), 0x4684)
+        vm.emu_start(getter, 0x206540, count=2)
+        self.assertEqual(vm.reg_read(UC_ARM64_REG_PC), 0x206540)
         self.assertEqual(vm.reg_read(UC_ARM64_REG_X0), return_data)

@@ -32,7 +32,7 @@ uint8_t call_bool(BoolGetter fn,const void *value) { return fn(value); }
 
 uintptr_t call_labels_query(LabelsQueryInit fn,const void *type) { return fn(11,22,type); }
 
-uintptr_t call_profile_init(ProfileInit fn,const void *type) { return fn(11,22,33,44,55,66,77,type); }
+uintptr_t call_profile_init(ProfileInit fn,const void *type) { return fn(11,22,33,44,55,66,77,88,99,111,type); }
 void call_profile_nil(NilValue fn,void *out,const void *type) { fn(out,type); }
 Response call_profile_packed(PackedMeta fn,const void *args) { return fn(0,args); }
 uintptr_t call_profile_follow(FollowInput fn) { return fn(0,11,22); }

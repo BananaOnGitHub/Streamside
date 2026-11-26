@@ -22,8 +22,8 @@ PLAN=json.loads((ROOT/'native/twitch32.json').read_text())
 class CursorWitness(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        donor=Path(os.environ.get('SSN_DONOR',ROOT.parent/'donors/tv.twitch-32.0.ipa'))
-        if not donor.exists():raise AssertionError('Set SSN_DONOR to the exact Twitch 32.0 IPA')
+        donor=Path(os.environ.get('SSN_DONOR',ROOT.parent/f'donors/tv.twitch-{PLAN["twitch_version"]}.ipa'))
+        if not donor.exists():raise AssertionError('Set SSN_DONOR to the exact pinned Twitch IPA')
         if hashlib.sha256(donor.read_bytes()).hexdigest()!=PLAN['donor_sha256']:raise AssertionError('Wrong donor identity')
         with zipfile.ZipFile(donor) as z:cls.data=z.read('Payload/Twitch.app/Frameworks/TwitchKit.framework/TwitchKit')
         cls.evidence=PLAN['value_layouts']['page_cursor']

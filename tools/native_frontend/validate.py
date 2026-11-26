@@ -110,6 +110,23 @@ def validate_abi(images,plan):
         pos=file_offset(data,spec['address'])
         if data[pos:pos+16].hex()!=spec['bytes']:raise ValueError('Objective-C account adapter prefix changed')
 
+    runtime=plan.get('runtime_contract')
+    if runtime:
+        image=Image(images['Twitch'][1])
+        entries={p['name']:p for p in plan['probes']}
+        entries['gate']=plan['gate']
+        for call in runtime['main_calls']:
+            spec=entries[call['entry']]
+            if spec['image']!='Twitch':raise ValueError('Runtime call target is not in the main executable')
+            image.probe(call['name'],call['address'],spec['address'])
+        worklet=runtime['worklet_hermes']
+        image.probe('worklet runtime allocates Hermes',worklet['address'],worklet['symbol'])
+        delegate=runtime['bundle_delegate']
+        methods=image.selected_classes({delegate['class']})[0]['methods']
+        bundle=[m for m in methods if m['selector']==delegate['selector']]
+        if len(bundle)!=1 or bundle[0]['encoding']!=delegate['encoding'] or int(bundle[0]['address'],16)!=entries['bundle_url']['address']:
+            raise ValueError('Runtime bundle delegate boundary changed')
+
     # These public enum tags and generic metadata arguments are inspected, not
     # inferred from names or guessed witness slots. Whole-image identity is pinned.
     feed=plan.get('feed_contract')

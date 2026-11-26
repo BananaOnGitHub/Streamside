@@ -53,7 +53,7 @@ typedef SW uintptr_t (*LabelsQueryInit)(uintptr_t,uintptr_t,const void * CTX);
 typedef SW Response (*Meta3)(uintptr_t,const void*,const void*,const void*);
 typedef SW Response (*PackedMeta)(uintptr_t,const void*const*);
 typedef SW void (*NilValue)(void* OUT,const void*);
-typedef SW uintptr_t (*ProfileInit)(uintptr_t,uintptr_t,uint8_t,uintptr_t,uint8_t,uintptr_t,uint8_t,const void* CTX);
+typedef SW uintptr_t (*ProfileInit)(uintptr_t,uintptr_t,uint8_t,uintptr_t,uint8_t,uintptr_t,uint8_t,uintptr_t,uintptr_t,uint8_t,const void* CTX);
 typedef SW uintptr_t (*FollowInput)(uint8_t,uintptr_t,uintptr_t);
 typedef SW uintptr_t (*NotifyInput)(uintptr_t,uintptr_t,uintptr_t,uintptr_t,uint8_t);
 typedef SW void (*EnumInit)(void* OUT,uintptr_t,uintptr_t,const void*,const void*);

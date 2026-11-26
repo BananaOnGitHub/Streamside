@@ -15,7 +15,7 @@ def compare(baseline,native,previous=None):
     for label,report,mode in observations:
         if report.get('schema')!=1 or report.get('mode')!=mode:failures.append(label+': wrong schema/mode')
         if report.get('donor_sha256')!=PLAN['donor_sha256']:failures.append(label+': wrong donor')
-        if report.get('armed_mask')!=15 or report.get('failures')!=0:failures.append(label+': incomplete instrumentation or recorded failure')
+        if report.get('armed_mask')!=(1<<len(PLAN['layout']))-1 or report.get('failures')!=0:failures.append(label+': incomplete instrumentation or recorded failure')
         if report.get('hardware') in [None,'unavailable'] or not report.get('memory_available'):failures.append(label+': device/memory observation unavailable')
         probes=report.get('probes',{})
         if set(probes)!={p['name'] for p in PLAN['probes']} or any(type(v)!=int or v<0 for v in probes.values()):failures.append(label+': incomplete/invalid probe observations')

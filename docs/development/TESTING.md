@@ -5,7 +5,7 @@
 Use Zig 0.14.0 for ARM64 compiler/header fixtures and Unicorn 2.1.4 for instruction-level tests. Install the tools outside the checkout. Set `ZIG` to the compiler path when it is outside PATH.
 
 - `make test-host` runs donor-free native and build-tool tests.
-- `make test-donor` runs inspection/admission and actual donor ABI contract checks with the local pinned Twitch 32.0 IPA. Set `SSN_DONOR` to override its default path.
+- `make test-donor` runs inspection/admission and actual donor ABI contract checks with the local pinned Twitch 32.2 IPA. Set `SSN_DONOR` to override its default path.
 - `make test` runs both sets.
 
 GitHub Linux CI runs the donor-free set. No donor is uploaded.

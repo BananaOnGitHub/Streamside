@@ -98,7 +98,7 @@ class Image(MetadataImage):
                 continue
             off, size = struct.unpack_from('<II', data, c.offset + 8)
             ver, starts, imports, symbols, count, fmt, symfmt = struct.unpack_from('<7I', data, off)
-            require(ver == 0 and fmt == 1 and symfmt == 0, 'Unsupported chained fixups')
+            require(ver == 0 and fmt in (1, 3) and symfmt == 0, 'Unsupported chained fixups')
             start = off + starts
             nseg = struct.unpack_from('<I', data, start)[0]
             for i in range(nseg):
@@ -107,8 +107,9 @@ class Image(MetadataImage):
                     require(struct.unpack_from('<H', data, start + rel + 6)[0] == 6,
                             'Unsupported chained pointer format')
             for i in range(count):
-                raw = struct.unpack_from('<I', data, off + imports + i * 4)[0]
-                at = off + symbols + (raw >> 9)
+                stride = 4 if fmt == 1 else 16
+                raw = struct.unpack_from('<I' if fmt == 1 else '<Q', data, off + imports + i * stride)[0]
+                at = off + symbols + (raw >> 9 if fmt == 1 else raw >> 32)
                 end = data.index(0, at)
                 self.imports.append(data[at:end].decode())
 

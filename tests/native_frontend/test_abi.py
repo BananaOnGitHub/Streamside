@@ -119,7 +119,7 @@ class SwiftCalls(unittest.TestCase):
         self.assertEqual(u.reg_read(UC_ARM64_REG_X0),0xabcdef01)
 
     def test_profile_query_exact_concrete_lowering(self):
-        self.call('call_profile_init',[0x5678],[11,22,33,44,55,66,77],context=0x5678)
+        self.call('call_profile_init',[0x5678],[11,22,33,44,55,66,77,88],context=0x5678,stack_arguments=[99,111])
     def test_profile_nullable_native_nil_initializer(self):
         self.call('call_profile_nil',[0x1234,0x5678],[0x5678],out=0x1234)
     def test_profile_dictionary_metadata_arguments(self):

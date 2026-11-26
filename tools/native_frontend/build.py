@@ -28,13 +28,15 @@ def sha(data):
 
 def donor(ipa, plan):
     if sha(ipa.read_bytes()) != plan['donor_sha256']:
-        raise ValueError('IPA is not the exact inspected Twitch 32.0 donor')
+        raise ValueError('IPA is not the exact inspected Twitch '+plan['twitch_version']+' donor')
     with zipfile.ZipFile(ipa) as z:
         if len(set(z.namelist())) != len(z.namelist()) or z.testzip():
             raise ValueError('Damaged or duplicate ZIP entries')
         info = plistlib.loads(z.read('Payload/Twitch.app/Info.plist'))
-        if (info['CFBundleIdentifier'], info['CFBundleShortVersionString'], info['CFBundleVersion']) != ('tv.twitch','32.0','263110145453907615'):
+        if (info['CFBundleIdentifier'], info['CFBundleShortVersionString'], info['CFBundleVersion']) != ('tv.twitch',plan['twitch_version'],plan['twitch_build']):
             raise ValueError('Donor identity mismatch')
+        if sha(z.read('Payload/Twitch.app/main.jsbundle'))!=plan['bundle_sha256']:
+            raise ValueError('Donor bundle identity mismatch')
         images = {}
         for name, expected in plan['images'].items():
             entry = 'Payload/Twitch.app/' + ('Twitch' if name == 'Twitch' else f'Frameworks/{name}.framework/{name}')
@@ -147,7 +149,7 @@ def main():
     if args.output.exists() and any(args.output.iterdir()): parser.error('Output must be empty; choose a new artifact directory')
     images=donor(args.donor,plan);args.output.mkdir(parents=True,exist_ok=True)
     manifest=dict(schema=1,proof_id=proof,source_revision=revision,packaging_revision=packaging_revision,donor_sha256=plan['donor_sha256'],
-                  frontend='swiftui',zig=None,inspection=dict(abi_entries=len(plan['abi']),probe_entries=len(plan['probes']),
+                  twitch_version=plan['twitch_version'],twitch_build=plan['twitch_build'],frontend='swiftui',zig=None,inspection=dict(abi_entries=len(plan['abi']),probe_entries=len(plan['probes']),
                   all_retained_donor_entries_verified=True,original_hbc_unchanged=True),
                   device_validation='not performed',artifacts={})
     if component_manifest: manifest['component_manifest_sha256']=sha((args.components/'components.json').read_bytes())

@@ -1,6 +1,6 @@
 # Streamside Native
 
-Streamside is developing a SwiftUI frontend for Twitch 32.0. This branch owns the native frontend, account and playback integration, local IPA assembly, and diagnostics.
+Streamside is developing a SwiftUI frontend for Twitch 32.2. This branch owns the native frontend, account and playback integration, local IPA assembly, and diagnostics.
 
 The current development build supports followed streams, profiles, muted previews, native IVS playback and chat. Device testing is ongoing.
 

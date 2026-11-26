@@ -179,7 +179,7 @@ void ssn_report(void) {
     ADD("\"native_frontend_events\":[");
     for(unsigned i=0;i<4;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&frontend_events[i]));
     ADD("],");
-    ADD("\"donor_sha256\":\"076d8cced98bfce0baeaf4cc6e71adf0eedd8110f4430db501a1e39225839129\",\"twitch_version\":\"32.0\",\"twitch_build\":\"263110145453907615\",");
+    ADD("\"donor_sha256\":\"%s\",\"twitch_version\":\"%s\",\"twitch_build\":\"%s\",",SSN_DONOR_SHA256,SSN_TWITCH_VERSION,SSN_TWITCH_BUILD);
     ADD("\"armed_mask\":%u,\"failures\":%u,\"baseline_positive_control\":%s,\"baseline_calibrated\":%s,",atomic_load(&armed_mask),atomic_load(&failures),positive?"true":"false",baseline_verified?"true":"false");
     ADD("\"launch_sequence\":%llu,\"first_active_ms\":%llu,\"peak_observed_footprint_bytes\":%llu,",(unsigned long long)launch_sequence,(unsigned long long)first_active_ms,(unsigned long long)peak_footprint);
     ADD("\"uptime_ms\":%llu,\"diagnostic_scaffold_ready_ms\":%llu,\"foregrounds\":%u,\"backgrounds\":%u,",(unsigned long long)((clock_ns()-started_ns)/1000000),(unsigned long long)visible_ms,atomic_load(&foregrounds),atomic_load(&backgrounds));

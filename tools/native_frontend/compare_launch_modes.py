@@ -18,7 +18,7 @@ def compare(control,one_shot):
         require(report.get('launch_selection_error')==0 and report.get('original_launch_pending') is False,'selection/deletion not confirmed')
         require(report.get('probe_contract')==CONTRACT,'missing or different instrumentation contract')
         require(report.get('donor_sha256')==PLAN['donor_sha256'],'wrong donor')
-        require(report.get('armed_mask')==15 and report.get('failures')==0,'incomplete probes or recorded failure')
+        require(report.get('armed_mask')==(1<<len(PLAN['layout']))-1 and report.get('failures')==0,'incomplete probes or recorded failure')
         probes=report.get('probes',{})
         require(set(probes)=={p['name'] for p in PLAN['probes']} and all(type(v)==int and v>=0 for v in probes.values()),'incomplete probe counts')
         require(report.get('baseline_positive_control') is True,'runtime positive control incomplete')

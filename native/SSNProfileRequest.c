@@ -160,6 +160,22 @@ static bool none_value(const void *payload,size_t width,void *out) {
     Response value=nullable(0,payload);if(value.state||!sized(value.value,width))return false;
     nil_value(out,payload);return true;
 }
+/* Apollo's Boolean-literal initializer uses the payload's single-payload
+ * enum store witness with tag 0 and two empty cases for .some(true).
+ * Validate the actual Bool and nullable widths before constructing that value. */
+static bool viewer_state_enabled(uint8_t *out) {
+    const void *boolean=dlsym(RTLD_DEFAULT,"$sSbN");
+    GenericMeta nullable=(void*)ssn_resolve("$s9ApolloAPI15GraphQLNullableOMa");
+    if(!sized(boolean,1)||!nullable)return false;
+    Response type=nullable(0,boolean);
+    if(type.state||!sized(type.value,1))return false;
+    const uintptr_t *w=vw(boolean);
+    StoreTag store=(StoreTag)w[7];GetTag get_tag=(GetTag)w[6];
+    if(!store||!get_tag)return false;
+    *out=1;
+    store(out,0,2,boolean);
+    return *out==1&&get_tag(out,2,boolean)==0;
+}
 static const void *enum_value_type(const char *name,const void **payload,const void **witness) {
     const void *(*conforms)(const void*,const void*)=dlsym(RTLD_DEFAULT,"swift_conformsToProtocol");
     PairMeta generic=(void*)ssn_resolve("$s9ApolloAPI11GraphQLEnumOMa");
@@ -176,12 +192,12 @@ id ssn_profile_request(id channel,unsigned operation,id setting) {
     id graph=m0(c("_TtC9TwitchKit9TKGraphQL"),"sharedInstance");if(!graph)return nil;
     struct Operation *op=&ops[operation];Words2 name=from_string(channel);uintptr_t query=0;
     if(operation==0) {
-        uint8_t flag=0;uintptr_t stories=0,codecs=0;const void *p=NULL,*w=NULL;
+        uint8_t flag=0,viewer=0;uintptr_t stories=0,codecs=0;Words2 country={0};const void *p=NULL,*w=NULL;
         GenericMeta array=dlsym(RTLD_DEFAULT,"$sSaMa");
         const void *s=enum_value_type("$s16TwitchGraphQLAPI22StoryFeatureCapabilityOMa",&p,&w),*v=enum_value_type("$s16TwitchGraphQLAPI10VideoCodecOMa",&p,&w);
         Response sa=s&&array?array(0,s):(Response){0},va=v&&array?array(0,v):(Response){0};
-        if(sa.state||va.state||!none_value(dlsym(RTLD_DEFAULT,"$sSbN"),1,&flag)||!none_value(sa.value,8,&stories)||!none_value(va.value,8,&codecs)) { destroy(&name,string_type);return nil; }
-        ProfileInit make=(void*)ssn_resolve("$s16TwitchGraphQLAPI29ProfileInfoFromChannelIDQueryC9channelID24includeIsParticipatingDJ17storyCapabilities0K18CollaborationCount15supportedCodecs0kG12SafetyStatusACSS_9ApolloAPI0B10QLNullableOySbGALySayAJ0B6QLEnumOyAA22StoryFeatureCapabilityOGGGAmLySayAOyAA10VideoCodecOGGGAMtcfC");if(make)query=make(name.a,name.b,flag,stories,flag,codecs,flag,op->q);
+        if(sa.state||va.state||!none_value(dlsym(RTLD_DEFAULT,"$sSbN"),1,&flag)||!none_value(sa.value,8,&stories)||!none_value(va.value,8,&codecs)||!none_value(string_type,16,&country)||!viewer_state_enabled(&viewer)) { destroy(&name,string_type);return nil; }
+        ProfileInit make=(void*)ssn_resolve("$s16TwitchGraphQLAPI29ProfileInfoFromChannelIDQueryC9channelID24includeIsParticipatingDJ17storyCapabilities0K18CollaborationCount15supportedCodecs0kG12SafetyStatus11countryCode0K11ViewerStateACSS_9ApolloAPI0B10QLNullableOySbGANySayAL0B6QLEnumOyAA22StoryFeatureCapabilityOGGGAoNySayAQyAA10VideoCodecOGGGAoNySSGAOtcfC");if(make)query=make(name.a,name.b,flag,stories,flag,codecs,flag,country.a,country.b,viewer,op->q);
     } else if(operation==1) {
         LabelsQueryInit make=(void*)ssn_resolve("$s16TwitchGraphQLAPI23UserFollowingStateQueryC6userIDACSS_tcfC");if(make)query=make(name.a,name.b,op->q);
     } else {

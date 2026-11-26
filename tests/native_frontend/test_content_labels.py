@@ -13,7 +13,7 @@ class ContentLabelsContract(unittest.TestCase):
         # The full GraphQL image exceeds the feed fixture's scratch address.
         # Map only the inspected functions/stubs, with separate scratch regions.
         from probes import file_offset
-        data=self.images[image][1];u=Uc(UC_ARCH_ARM64,UC_MODE_ARM);u.mem_map(0,0x900000)
+        data=self.images[image][1];u=Uc(UC_ARCH_ARM64,UC_MODE_ARM);u.mem_map(0,0x1000000)
         for spec in self.plan['abi'].values():
             if spec['image']==image:
                 at=spec['address'];pos=file_offset(data,at);u.mem_write(at,data[pos:pos+256])
@@ -26,7 +26,7 @@ class ContentLabelsContract(unittest.TestCase):
         u.reg_write(UC_ARM64_REG_X0,11);u.reg_write(UC_ARM64_REG_X1,22);u.reg_write(UC_ARM64_REG_X20,0x1000400)
         observed=[]
         def hook(vm,pc,size,unused):
-            if pc==0x816ec4:
+            if pc==0xa83f6c:
                 observed.append([vm.reg_read(r) for r in [UC_ARM64_REG_X0,UC_ARM64_REG_X1,UC_ARM64_REG_X2]])
                 vm.reg_write(UC_ARM64_REG_X0,allocated);vm.reg_write(UC_ARM64_REG_PC,vm.reg_read(UC_ARM64_REG_X30))
         u.hook_add(UC_HOOK_CODE,hook)
@@ -36,7 +36,7 @@ class ContentLabelsContract(unittest.TestCase):
         self.assertEqual(bytes(u.mem_read(allocated+16,16)),struct.pack('<QQ',11,22))
 
     def test_actual_label_fields_take_direct_value_and_native_keys(self):
-        for suffix,target,key in [('13localizedNameSSvg',0x47c0,b'localizedName'),('9isEnabledSbvg',0x5880,b'isEnabled')]:
+        for suffix,target,key in [('13localizedNameSSvg',0xf880,b'localizedName'),('9isEnabledSbvg',0x10f3c,b'isEnabled')]:
             with self.subTest(field=suffix):
                 u=self.machine('TwitchGraphQLAPI');u.reg_write(UC_ARM64_REG_X0,0x1000500);u.reg_write(UC_ARM64_REG_X20,0xdeadbeef)
                 observed=[]

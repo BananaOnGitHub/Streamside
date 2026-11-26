@@ -18,10 +18,29 @@ class AccountAdapterAdmission(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.plan=json.loads((ROOT/'native/twitch32.json').read_text())
-        cls.images=donor(Path(os.environ.get('SSN_DONOR',ROOT.parent/'donors/tv.twitch-32.0.ipa')),cls.plan)
+        cls.images=donor(Path(os.environ.get('SSN_DONOR',ROOT.parent/f'donors/tv.twitch-{cls.plan["twitch_version"]}.ipa')),cls.plan)
 
     def test_exact_native_and_objc_boundaries_admitted(self):
         validate_abi(self.images,self.plan)
+
+    def test_all_runtime_probe_images_assemble_in_both_modes(self):
+        from probes import patch
+        from macho import inject_load_dylib, loaded_dylibs
+        dependency='@rpath/StreamsideNativeProof.framework/StreamsideNativeProof'
+        for name in self.plan['layout']:
+            _,data=self.images[name]
+            for native in (False,True):
+                with self.subTest(image=name,native=native):
+                    instrumented=patch(data,self.plan,name,'a'*64,native)
+                    result,added=inject_load_dylib(instrumented,dependency)
+                    self.assertTrue(added)
+                    self.assertEqual(loaded_dylibs(result).count(dependency),1)
+
+    def test_relocated_runtime_contract_rejects_wrong_entry(self):
+        plan=copy.deepcopy(self.plan)
+        plan['runtime_contract']['main_calls'][0]['entry']='warmup'
+        with self.assertRaisesRegex(ValueError,'Changed call relationship'):
+            validate_abi(self.images,plan)
 
     def test_quality_selectors_reject_changed_signature_and_prefix(self):
         for name in ['playback_IVSPlayer_qualities', 'playback_IVSPlayer_setQuality:', 'playback_IVSPlayer_setQuality:adaptive:', 'playback_IVSQuality_name','playback_IVSQuality_width','playback_IVSQuality_height']:

@@ -307,7 +307,11 @@ static void reportPlayback(void) {
     url.queryItems=@[[NSURLQueryItem queryItemWithName:@"sig" value:signature],
                      [NSURLQueryItem queryItemWithName:@"token" value:token],
                      [NSURLQueryItem queryItemWithName:@"allow_source" value:@"true"],
-                     [NSURLQueryItem queryItemWithName:@"allow_audio_only" value:@"false"]];
+                     [NSURLQueryItem queryItemWithName:@"allow_audio_only" value:@"false"],
+                     // Match the inspected original player's media-delivery
+                     // capabilities, irrespective of the local IVS latency toggle.
+                     [NSURLQueryItem queryItemWithName:@"fast_bread" value:@"true"],
+                     [NSURLQueryItem queryItemWithName:@"player_backend" value:@"mediaplayer"]];
     NSURL *source=url.URL;[url release];
     if(!source) { [self fail:4];return; }
     _qualitySupported=qualityABI();

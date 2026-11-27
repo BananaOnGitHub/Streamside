@@ -130,7 +130,9 @@ static unsigned qualitySwitches;
     for(NSURLQueryItem *item in parts.queryItems) if(item.value) items[item.name]=item.value;
     sourceEncoding=[parts.scheme isEqual:@"https"]&&[parts.host isEqual:@"usher.ttvnw.net"]&&
         [parts.path isEqual:@"/api/channel/hls/synthetic_channel.m3u8"]&&
-        [items[@"allow_audio_only"] isEqual:@"false"]&&[items[@"token"] isEqual:@"synthetic &?+#/ grant"]&&[items[@"sig"] isEqual:@"synthetic+signature"];
+        parts.queryItems.count==6&&[items[@"allow_source"] isEqual:@"true"]&&[items[@"allow_audio_only"] isEqual:@"false"]&&
+        [items[@"fast_bread"] isEqual:@"true"]&&[items[@"player_backend"] isEqual:@"mediaplayer"]&&
+        [items[@"token"] isEqual:@"synthetic &?+#/ grant"]&&[items[@"sig"] isEqual:@"synthetic+signature"];
     self.state=1;
 }
 - (void)play { NSAssert(NSThread.isMainThread,@"IVS play must remain on main");self.state=3; }
@@ -270,7 +272,7 @@ static void waitUntil(BOOL (^condition)(void),NSTimeInterval deadline,void (^com
     _playback.paused=NO;
     waitPlaying(_playback,3,NSProcessInfo.processInfo.systemUptime+10,^(BOOL observed){
         [self record:@"background_resume" passed:observed&&self->_playback.phase==3&&requests==3&&[self->_results[@"background_resume"] boolValue]];
-        [self record:@"latency_policy" passed:latencyConfiguredBeforeLoad&&latencyConfigs[0]==1&&latencyConfigs[1]==2&&latencyConfigs[2]==0];
+        [self record:@"latency_policy" passed:sourceEncoding&&latencyConfiguredBeforeLoad&&latencyConfigs[0]==1&&latencyConfigs[1]==2&&latencyConfigs[2]==0];
         [self record:@"latency_sampling" passed:sampleValuesCorrect&&latencySamples[1]>0&&latencySamples[0]>0];
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"dev.streamside.player.lowLatency"];
         self->_playback.paused=YES;authorized=NO;

@@ -260,17 +260,35 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertTrue(pill.isHittable)
         pill.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5)).tap()
         assertDismissed(pill)
+        // Chat rows and the marker are display-only. XCUIElement.hittable
+        // computes a tap target and can time out even when the row is visible.
+        // Assert real viewport containment instead, including the bottom edge
+        // of the latest row rather than mere accessibility-tree existence.
+        let viewport = chat.frame
+        func atLiveEdge(_ message: XCUIElement) -> Bool {
+            guard message.exists else { return false }
+            let frame = message.frame
+            return !frame.isEmpty && viewport.contains(frame) && viewport.maxY - frame.maxY < 24
+        }
         let newest = app.staticTexts["Reader: Message 63"]
-        let caughtUp = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: newest)
-        XCTAssertEqual(XCTWaiter.wait(for: [caughtUp], timeout: 5), .completed)
+        let caughtUp = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            atLiveEdge(newest)
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [caughtUp], timeout: 5), .completed,
+                       "Catch-up must reveal the latest message at the transcript's live edge")
         let marker = app.descendants(matching: .any)["chat.new-messages"].firstMatch
-        XCTAssertTrue(marker.isHittable)
-        XCTAssertLessThan(marker.frame.minY, newest.frame.minY)
+        XCTAssertTrue(marker.exists)
+        XCTAssertFalse(marker.frame.isEmpty)
+        XCTAssertTrue(viewport.contains(marker.frame))
+        XCTAssertLessThan(marker.frame.maxY, newest.frame.minY)
 
         receive.tap()
-        let following = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"),
-                                                    object: app.staticTexts["Reader: Message 66"])
-        XCTAssertEqual(XCTWaiter.wait(for: [following], timeout: 5), .completed)
+        let subsequent = app.staticTexts["Reader: Message 66"]
+        let following = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            atLiveEdge(subsequent)
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [following], timeout: 5), .completed,
+                       "Incoming messages must keep the latest row at the live edge")
         XCTAssertFalse(pill.exists)
         toggle.tap()
         let expanded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in

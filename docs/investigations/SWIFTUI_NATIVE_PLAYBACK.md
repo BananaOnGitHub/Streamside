@@ -266,3 +266,17 @@ The Apple fixture must verify both policies applied before load, fallback prefer
 [Apple run 45896447879](https://github.com/BananaOnGitHub/Streamside/actions/runs/45896447879) passed for source `7f68b109896b1a929ee9cb34524a27e845dcb93b` with pinned Xcode 26.6 (17F113), iPhoneOS SDK 26.5. Both new playback receipts (`latency_policy`, `latency_sampling`) and all eight UI coordinate cases passed. The component archive SHA-256 is `c94ad363a99ce965195fab0f71e51ec105235a0e01c37ee170745ed6f8fa6b30`; Ubuntu verification passed.
 
 The locally assembled and hash-verified native IPA is `artifacts/native-frontend/latency-7f68b10/StreamsideNativeProof-Twitch32-native.ipa` (196,650,562 bytes; SHA-256 `c9a55349aece816dc9edb56b127506ea00ba05935de0480658015c9d97eec76f`). The matching component manifest SHA-256 is `178c91b16f1cce2b8b84ed10a572309367aa277d552b6b611137d636329e0b53`, and the proof ID is `014e4aa63d4b14a59160f8fc81e4b6dd4b15e859f3614d3017c7216a49c40501`. The exact 32.2 donor is unchanged. No donor or final IPA was uploaded. Feather signing and actual latency/rebuffer measurements remain device work.
+
+
+### First physical-device latency comparison (2026-11-27)
+
+The supplied report is from the exact trial candidate; locally retained as `device-validation/native-latency-ab.json` (SHA-256 `bdaf38b2a8dc792c0038307ca6ff71d09143b2386af105fc533c6997510ede81`). Both requested modes configured successfully, with one player created for each, two playing/decoded-frame observations and two adapter releases. No playback errors, post-playing buffering transitions or guarded RN/Hermes/worklet entries were observed, and all three runtime images were armed. The holder count remained 1.
+
+| Requested mode | Samples | Actual low-latency samples | Mean SDK-reported delay | Last delay | Maximum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Normal | 45 | 0 | 4.909 s | 4.937 s | 4.945 s |
+| Low latency | 19 | 0 | 5.606 s | 5.610 s | 5.644 s |
+
+The preference reached the configuration path, but IVS did not report effective low-latency mode in either session. There is no observed improvement, and the low-latency recovery-on-rebuffer policy was not exercised because both rebuffer counters are zero. The SDK buffer field also grew to 98.005 s and 42.005 s respectively, unusually close to the session lengths; it cannot be interpreted as trustworthy remaining buffer depth from this evidence alone.
+
+The current low-latency setting is retained. Further controlled testing should isolate playback transport and stream-side support before attempting buffer or rate changes: repeat with low latency requested and the optional playlist-processing feature disabled, using the same stream/network where possible. Compare active-mode samples and SDK-reported delay; the report does not by itself distinguish stream eligibility, playlist characteristics, remote configuration or SDK behavior. No transport or authorization changes are warranted on this evidence.

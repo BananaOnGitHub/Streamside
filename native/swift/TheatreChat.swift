@@ -11,12 +11,17 @@ struct TheatreChat: View {
     @State private var connectionID = UUID()
     @FocusState private var composerFocused: Bool
     @StateObject private var avatars: ChatAvatars
+    @StateObject private var art = ChatArtworkStore()
+    @State private var cheers = ChatCheerCatalogue()
+    let resolveCheers: @MainActor () async -> ChatCheerCatalogue
 
     init(channel: String?, images: ChannelImageCache, resolveAvatar: @escaping ChatAvatars.Resolver,
-         canSend: Bool, send: @escaping @MainActor (String) async -> ChatDelivery) {
+         canSend: Bool, send: @escaping @MainActor (String) async -> ChatDelivery,
+         resolveCheers: @escaping @MainActor () async -> ChatCheerCatalogue) {
         self.channel = channel
         self.canSend = canSend
         self.send = send
+        self.resolveCheers = resolveCheers
         _avatars = StateObject(wrappedValue: ChatAvatars(cache: images, resolve: resolveAvatar))
     }
 
@@ -24,13 +29,19 @@ struct TheatreChat: View {
         VStack(spacing: 0) {
             StreamChatTranscript(timeline: $timeline, statusText: statusText, listening: status == .listening,
                                  avatars: avatars.images, requestAvatars: avatars.updateVisible,
-                                 dismissKeyboard: { composerFocused = false })
+                                 dismissKeyboard: { composerFocused = false }, catalogue: cheers,
+                                 artwork: art.images, requestArtwork: art.update, artworkActive: channel != nil)
             ChatComposer(available: canSend, focus: $composerFocused, send: send)
                 .layoutPriority(1)
         }
-        .onAppear { avatars.setActive(channel != nil) }
-        .onChange(of: channel) { avatars.setActive($0 != nil) }
-        .onDisappear { avatars.setActive(false) }
+        .onAppear { avatars.setActive(channel != nil); art.setActive(channel != nil) }
+        .onChange(of: channel) { avatars.setActive($0 != nil); art.setActive($0 != nil) }
+        .onDisappear { avatars.setActive(false); art.setActive(false) }
+        .task(id: channel) {
+            guard channel != nil else { return }
+            let catalogue = await resolveCheers()
+            if !Task.isCancelled { cheers = catalogue }
+        }
         .task(id: channel) {
             let id = UUID()
             connectionID = id
@@ -64,6 +75,12 @@ struct StreamChatTranscript: View {
     let avatars: [UInt32: UIImage]
     let requestAvatars: ([UInt32]) -> Void
     let dismissKeyboard: () -> Void
+    var catalogue = ChatCheerCatalogue()
+    var artwork: [ChatArtworkRequest: ChatArtwork] = [:]
+    var requestArtwork: ([ChatArtworkRequest]) -> Void = { _ in }
+    var artworkActive = false
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var visibleRowIDs = Set<String>()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @GestureState private var legacyDragging = false
@@ -95,6 +112,10 @@ struct StreamChatTranscript: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .contentShape(Rectangle())
         .simultaneousGesture(TapGesture().onEnded { dismissKeyboard() })
+        .onChange(of: catalogue) { _ in updateArtwork() }
+        .onChange(of: colorScheme) { _ in updateArtwork() }
+        .onChange(of: timeline.messages) { _ in updateArtwork() }
+        .onChange(of: artworkActive) { _ in updateArtwork() }
     }
 
     @ViewBuilder private var trackedScroll: some View {
@@ -102,6 +123,8 @@ struct StreamChatTranscript: View {
             transcriptScroll(measureBottom: false)
                 .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.1) { visibleRows in
                     let visible = Set(visibleRows)
+                    visibleRowIDs = visible
+                    updateArtwork()
                     requestAvatars(timeline.messages.reversed().compactMap {
                         visible.contains($0.id) ? $0.userID : nil
                     })
@@ -126,6 +149,7 @@ struct StreamChatTranscript: View {
                 .onAppear {
                     scrollToBottom(reader)
                     requestRecentAvatars()
+                    updateArtwork()
                 }
                 .onChange(of: followTarget) { _ in
                     scrollToBottom(reader)
@@ -184,6 +208,22 @@ struct StreamChatTranscript: View {
         requestAvatars(timeline.messages.suffix(24).reversed().compactMap { $0.userID })
     }
 
+    private func isArtworkVisible(_ id: String) -> Bool {
+        if #available(iOS 18.0, *) { return visibleRowIDs.contains(id) }
+        return timeline.messages.suffix(24).contains { $0.id == id }
+    }
+
+    private func updateArtwork() {
+        guard artworkActive else { requestArtwork([]); return }
+        let rows: [TwitchChatMessage]
+        if #available(iOS 18.0, *) {
+            rows = timeline.messages.filter { visibleRowIDs.contains($0.id) }
+        } else { rows = Array(timeline.messages.suffix(24)) }
+        requestArtwork(rows.reversed().flatMap {
+            ChatRichText.parts($0, catalogue: catalogue, dark: colorScheme == .dark).compactMap(\.artwork)
+        })
+    }
+
     private var catchUpPill: some View {
         let unread = timeline.unreadCount
         return VStack {
@@ -240,10 +280,19 @@ struct StreamChatTranscript: View {
         let author = Text(verbatim: message.author).bold().foregroundColor(color)
         return HStack(alignment: .top, spacing: 6) {
             avatar(message.userID.flatMap { avatars[$0] })
-            Text("\(author): \(Text(verbatim: message.body))")
-                .font(.subheadline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
+            let parts = ChatRichText.parts(message, catalogue: catalogue, dark: colorScheme == .dark)
+            if parts.contains(where: { $0.artwork != nil }) {
+                ChatRichRow(author: message.author, authorColor: color, parts: parts, images: artwork,
+                            animate: artworkActive && isArtworkVisible(message.id))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(verbatim: message.author + ": " + message.body))
+            } else {
+                Text("\(author): \(Text(verbatim: message.body))")
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

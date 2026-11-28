@@ -134,6 +134,16 @@ id ssn_chat_send_result(id object) {
     }
     return self;
 }
+- (instancetype)initWithCheerChannelID:(NSString *)channelID global:(BOOL)global {
+    if((self=[super init])) {
+        [self prepareOperation:5]; // Catalogue reads contain no account or chat content.
+        NSCharacterSet *nonDigits=[[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet];
+        if(ssn_playback_authorized()&&(global||(channelID.length&&channelID.length<=32&&[channelID rangeOfCharacterFromSet:nonDigits].location==NSNotFound)))
+            _promise=ssn_chat_cheer_request(channelID,global);
+        if(!_promise)_phase=2;
+    }
+    return self;
+}
 - (instancetype)initWithChatChannelID:(NSString *)channelID message:(NSString *)message {
     if((self=[super init])) {
         [self prepareOperation:5]; // Chat writes are excluded from profile diagnostics.

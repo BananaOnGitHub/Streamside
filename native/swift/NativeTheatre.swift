@@ -39,6 +39,25 @@ private struct TheatreContent: View {
         }
         return nil
     }
+    @MainActor
+    private func resolveCheerCatalogue() async -> ChatCheerCatalogue {
+        var catalogue = ChatCheerCatalogue()
+        guard chatChannel != nil else { return catalogue }
+        let channelID = currentChannel.channelID
+        for global in [true, false] {
+            guard !Task.isCancelled, chatChannel != nil else { return ChatCheerCatalogue() }
+            if !global && channelID.isEmpty { continue }
+            let request = SSNProfileRequest(cheerChannelID: channelID, global: global)
+            defer { request.cancel() }
+            while !Task.isCancelled, chatChannel != nil {
+                request.poll()
+                if request.phase == 1 { catalogue.merge(request.result); SSNChatArtEvent(global ? 0 : 2); break }
+                if request.phase != 0 { SSNChatArtEvent(global ? 1 : 3); break }
+                try? await Task.sleep(nanoseconds: 100_000_000)
+            }
+        }
+        return catalogue
+    }
     private var chatSendAvailable: Bool {
         chatChannel != nil && !currentChannel.channelID.isEmpty
     }
@@ -128,7 +147,7 @@ private struct TheatreContent: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 TheatreChat(channel: chatChannel, images: services.images, resolveAvatar: resolveChatAvatar,
-                            canSend: chatSendAvailable, send: sendChatMessage)
+                            canSend: chatSendAvailable, send: sendChatMessage, resolveCheers: resolveCheerCatalogue)
             }
         }
         .background(Color(uiColor: .systemBackground))

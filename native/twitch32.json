@@ -822,6 +822,161 @@
       "image": "TwitchGraphQLAPI",
       "address": 7293752,
       "bytes": "ffc301d1fc6f01a9fa6702a9f85f03a9"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V0D5GroupV11templateURLSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5676104,
+      "bytes": "e20300aa80ae8cd2a00daef2802dccf2"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V0D5GroupV5nodesSayAA09CheermoteI8FragmentV4NodeVGvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5676140,
+      "bytes": "e20300aac0ed8dd280acacf2600ec0f2"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V0D5GroupVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5682592,
+      "bytes": "204300f000203c91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V11cheerGroupsSayAI0D5GroupVGvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5675412,
+      "bytes": "e20300aa600c8dd2a0acacf240eec8f2"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0VMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5682576,
+      "bytes": "204300f000803b91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV5cheerAG0D0VSgvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5674584,
+      "bytes": "e20300aa600c8dd2a0acacf2400ec0f2"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5682560,
+      "bytes": "204300f000e03a91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4userAE4UserVSgvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5673864,
+      "bytes": "e20300aaa06e8e52a04cae720180fcd2"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC4DataVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5682544,
+      "bytes": "204300f000403a91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryC9channelIDACSS_tcfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5673372,
+      "bytes": "f657bda9f44f01a9fd7b02a9fd830091"
+    },
+    "_$s16TwitchGraphQLAPI14CheerInfoQueryCMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 5681060,
+      "bytes": "fd7bbfa9fd030091404a00f000202191"
+    },
+    "_$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV4TierV4bitsSivg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1059940,
+      "bytes": "e20300aa402c8d52806eae720180fcd2"
+    },
+    "_$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV4TierVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1067784,
+      "bytes": "606300f000203e91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV5tiersSayAE4TierVGvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1054136,
+      "bytes": "e20300aa802e8dd2a04caef2600ec0f2"
+    },
+    "_$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV6prefixSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1054064,
+      "bytes": "e20300aa004e8ed2a0ccacf2200dcff2"
+    },
+    "_$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 1067720,
+      "bytes": "606300f000a03b91010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV05cheerF0AE0eF0Vvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6869372,
+      "bytes": "e20300aa600c8dd2a0acacf2406ec8f2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V5ColorV4bitsSivg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6871732,
+      "bytes": "e20300aa402c8d52806eae720180fcd2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V5ColorV5colorSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6871752,
+      "bytes": "e20300aa60ec8dd280edadf2400ec0f2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V5ColorVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6882552,
+      "bytes": "c03a00b000e00791010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V6colorsSayAI5ColorVGvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6870756,
+      "bytes": "e20300aa60ec8dd280edadf2406ecef2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0VMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6882536,
+      "bytes": "c03a00b000400791010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07displayF0AG07DisplayF0Vvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6870004,
+      "bytes": "e20300aa802c8dd2600eaef2802dccf2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V5GroupV11templateURLSSvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6874616,
+      "bytes": "e20300aa80ae8cd2a00daef2802dccf2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V5GroupV5nodesSayAA09CheermoteI8FragmentV4NodeVGvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6874652,
+      "bytes": "e20300aac0ed8dd280acacf2600ec0f2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V5GroupVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6882584,
+      "bytes": "c03a00b000200991010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V6groupsSayAG5GroupVGvg": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6870044,
+      "bytes": "e20300aae04c8ed2e0adaef2006ecef2"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0VMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6882520,
+      "bytes": "c03a00b000a00691010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataVMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6882504,
+      "bytes": "c03a00b000000691010080d2c0035fd6"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryCACycfC": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6869148,
+      "bytes": "e00314aa01028052e2008052b1db0f14"
+    },
+    "_$s16TwitchGraphQLAPI22GlobalCheerConfigQueryCMa": {
+      "image": "TwitchGraphQLAPI",
+      "address": 6880420,
+      "bytes": "fd7bbfa9fd030091c04100f000003991"
     }
   },
   "gate": {

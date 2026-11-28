@@ -1,9 +1,11 @@
 import SwiftUI
 import UIKit
+import ImageIO
 
 // Only the control's bounded diagnostic callback is stubbed. Production views,
 // hit regions, video wrapper, popovers, URL copy/share and visibility are reused.
 func SSNPlayerControlEvent(_ event: UInt32) {}
+func SSNChatArtEvent(_ event: UInt32) {}
 func ssn_adblock_set_enabled(_ enabled: Bool) {}
 
 private final class InputHungryVideo: UIView {
@@ -393,6 +395,35 @@ private struct ChatReadingFixture: View {
     private let channel = FollowedChannel(username: "fixture", displayName: "Fixture channel")
     private let clock = StreamClock()
 
+    nonisolated private static func fixtureCatalogue() -> ChatCheerCatalogue {
+        var catalogue = ChatCheerCatalogue()
+        catalogue.merge(["groups": [["prefix": "Themed", "template": "https://d3aqoihi2n8ty8.cloudfront.net/actions/PREFIX/BACKGROUND/ANIMATION/TIER/SCALE.EXTENSION", "tiers": [1, 100]]],
+                         "colors": [["bits": 100, "color": "#9C3EE8"]]])
+        return catalogue
+    }
+    // Owned local GIF/PNG fixtures, deliberately nonsquare to exercise
+    // the same decoder and variable-aspect inline view without a CDN.
+    private let richArt: [ChatArtworkRequest: ChatArtwork] = {
+        let key = ChatArtworkRequest.emote("fixture_art", dark: false)!
+        let darkKey = ChatArtworkRequest.emote("fixture_art", dark: true)!
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 48, height: 24))
+        let first = renderer.image { context in context.cgContext.setFillColor(UIColor.red.cgColor); context.cgContext.fill(CGRect(x: 0, y: 0, width: 48, height: 24)) }
+        let second = renderer.image { context in context.cgContext.setFillColor(UIColor.blue.cgColor); context.cgContext.fill(CGRect(x: 0, y: 0, width: 48, height: 24)) }
+        let bytes = NSMutableData()
+        guard let writer = CGImageDestinationCreateWithData(bytes as CFMutableData, "com.compuserve.gif" as CFString, 2, nil),
+              let firstCG = first.cgImage, let secondCG = second.cgImage else { return [:] }
+        let properties = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.15]] as CFDictionary
+        CGImageDestinationAddImage(writer, firstCG, properties)
+        CGImageDestinationAddImage(writer, secondCG, properties)
+        guard CGImageDestinationFinalize(writer), let art = ChatArtworkLoader.decode(bytes as Data),
+              art.image.images?.count == 2, art.first.size.width == 2 * art.first.size.height,
+              let png = first.pngData(), let still = ChatArtworkLoader.decode(png), still.image.images == nil else { return [:] }
+        let catalogue = ChatReadingFixture.fixtureCatalogue()
+        guard let cheer = catalogue.cheer("Themed100", dark: false)?.2,
+              let darkCheer = catalogue.cheer("Themed100", dark: true)?.2 else { return [:] }
+        return [key: art, darkKey: art, cheer: art, darkCheer: art]
+    }()
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 18) {
@@ -405,7 +436,7 @@ private struct ChatReadingFixture: View {
                         timeline.apply(Self.messages((latest + 1)...(latest + 3)))
                         latest += 3
                     }
-                }
+                }.accessibilityValue(richArt.isEmpty ? "Artwork fixture failed" : "Animated variable-aspect artwork ready")
             }.padding(8)
             Color.black.frame(height: 150).overlay {
                 PlayerControls(visible: controlsVisible, channel: channel, clock: clock, paused: false,
@@ -417,7 +448,8 @@ private struct ChatReadingFixture: View {
                 .accessibilityHidden(!controlsVisible)
             StreamChatTranscript(timeline: $timeline, statusText: "Waiting for messages…", listening: true,
                                  avatars: [1: UIImage(systemName: "person.crop.circle.fill")].compactMapValues { $0 },
-                                 requestAvatars: { _ in }, dismissKeyboard: { composerFocused = false })
+                                 requestAvatars: { _ in }, dismissKeyboard: { composerFocused = false },
+                                 catalogue: Self.fixtureCatalogue(), artwork: richArt, artworkActive: true)
             ChatComposer(available: true, focus: $composerFocused) { text in
                 guard text == "Hello chat" else { return .rejected }
                 deliveryPending = true
@@ -435,7 +467,11 @@ private struct ChatReadingFixture: View {
 
     nonisolated private static func messages(_ indices: ClosedRange<Int>) -> [TwitchChatEvent] {
         indices.map { index in
-            .message(.init(id: String(index), login: "reader", displayName: "Reader", color: 0x00AF99,
+            if index == 69 {
+                return .message(.init(id: "69", login: "reader", displayName: "Reader", color: 0x00AF99,
+                    body: "FixtureWave Themed100", emotes: [.init(id: "fixture_art", start: 0, end: 10)], bits: 100))
+            }
+            return .message(.init(id: String(index), login: "reader", displayName: "Reader", color: 0x00AF99,
                            body: "Message \(index)", userID: index.isMultiple(of: 2) ? 1 : nil))
         }
     }

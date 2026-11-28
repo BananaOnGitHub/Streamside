@@ -7,6 +7,8 @@ struct TwitchChatMessage: Identifiable, Equatable, Sendable {
     let color: UInt32?
     let body: String
     var userID: UInt32? = nil
+    var emotes: [ChatEmoteSpan] = []
+    var bits: Int = 0
 
     var author: String {
         if displayName.isEmpty { return login }
@@ -88,7 +90,9 @@ enum TwitchChatMessages {
             guard !text.isEmpty else { return nil }
             let userID = tags["user-id"].flatMap { UInt32($0) }.flatMap { $0 == 0 ? nil : $0 }
             return .message(TwitchChatMessage(id: id, login: login, displayName: displayName(tags["display-name"] ?? ""),
-                                              color: color(tags["color"]), body: String(text), userID: userID))
+                                              color: color(tags["color"]), body: String(text), userID: userID,
+                                              emotes: ChatRichText.spans(tags["emotes"], body: String(text)),
+                                              bits: tags["bits"].flatMap { Int($0) }.flatMap { (1...100_000_000).contains($0) ? $0 : nil } ?? 0))
         case "CLEARMSG":
             guard inRoom, let id = identifier(tags["target-msg-id"]) else { return nil }
             return .removeMessage(id)

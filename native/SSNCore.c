@@ -26,7 +26,7 @@ static _Atomic uint64_t playback_work[5][3];
 static _Atomic uint64_t latency_config[3], latency_rebuffers[2];
 /* Samples, active-low samples, valid/last/max/sum delay, valid/last/max/sum buffer. */
 static _Atomic uint64_t latency_samples[2][10];
-static _Atomic uint64_t frontend_events[4];
+static _Atomic uint64_t frontend_events[4],chat_art_events[7];
 static _Atomic uint64_t profile_events[5][SSN_PROFILE_STAGE_COUNT];
 static _Atomic unsigned adblock_flags;
 static _Atomic uint64_t adblock_metrics[11];
@@ -124,6 +124,7 @@ void ssn_profile_event(unsigned operation,unsigned stage) {
     if(ssn_native_mode() && operation<5 && stage<SSN_PROFILE_STAGE_COUNT)
         atomic_fetch_add(&profile_events[operation][stage],1);
 }
+void ssn_chat_art_event(unsigned event) { if(ssn_native_mode()&&event<7) atomic_fetch_add(&chat_art_events[event],1); }
 void ssn_frontend_event(unsigned event) { if(event<4) atomic_fetch_add(&frontend_events[event],1); }
 void ssn_account_data_cleared(void) { atomic_fetch_add(&account_data_clears,1); }
 void ssn_scaffold_ready(void) { if(!visible_ms) visible_ms=(clock_ns()-started_ns)/1000000; }
@@ -208,6 +209,9 @@ void ssn_report(void) {
             ADD("%s%llu",stage?",":"",(unsigned long long)atomic_load(&profile_events[op][stage]));
         ADD("]");
     }
+    ADD("],");
+    ADD("\"chat_art_events\":[");
+    for(unsigned i=0;i<7;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&chat_art_events[i]));
     ADD("],");
     ADD("\"native_frontend_events\":[");
     for(unsigned i=0;i<4;i++) ADD("%s%llu",i?",":"",(unsigned long long)atomic_load(&frontend_events[i]));

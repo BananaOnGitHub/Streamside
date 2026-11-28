@@ -10,6 +10,7 @@ FOUNDATION_EXPORT NSNotificationName const SSNNativeServiceDidChange;
 FOUNDATION_EXPORT void SSNSwiftUIReady(void);
 FOUNDATION_EXPORT void SSNNavigationEvent(unsigned event);
 FOUNDATION_EXPORT void SSNPlayerControlEvent(unsigned event);
+FOUNDATION_EXPORT void SSNChatArtEvent(unsigned event);
 FOUNDATION_EXPORT BOOL SSNNavigationPermitted(void);
 
 /* Owned Objective-C boundary. Snapshots are presentation-only copies: no token,

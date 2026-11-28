@@ -33,6 +33,10 @@ id ssn_profile_avatar_request(uint32_t user_id) {
     requests++;
     return [FakeProfile new];
 }
+id ssn_chat_cheer_request(id channel,bool global) {
+    NSCAssert(authorized&&(global||[channel isEqual:@"123"]),@"Authorized read-only cheer catalogue");
+    requests++;return [FakeProfile new];
+}
 id ssn_chat_send_request(id channel,id message) {
     NSCAssert(authorized&&[channel isEqual:@"123"]&&[message isEqual:@"Hello chat"],@"Authorized chat write targets the active room");
     requests++;
@@ -120,6 +124,17 @@ int main(void) { @autoreleasepool {
     pending=YES;r=[[SSNProfileRequest alloc] initWithAvatarUserID:123];
     previous=identity;identity=[NSObject new];before=cancels;[r poll];
     NSCAssert(r.phase==2&&cancels==before+1&&r.result.count==0,@"Account switch cancels pending avatar lookup");
+    [r release];[previous release];
+
+    pending=NO;value=@{@"groups":@[@{@"prefix":@"Fixture",@"template":@"https://example.invalid/PREFIX",@"tiers":@[@1,@100]}]};
+    before=requests;
+    r=[[SSNProfileRequest alloc] initWithCheerChannelID:@"123" global:NO];[r poll];
+    NSCAssert(r.phase==1&&requests==before+1&&[r.result isEqual:value],@"Channel catalogue returns bounded presentation metadata");[r release];
+    r=[[SSNProfileRequest alloc] initWithCheerChannelID:@"bad" global:NO];
+    NSCAssert(r.phase==2&&requests==before+1,@"Invalid channel never requests metadata");[r release];
+    pending=YES;r=[[SSNProfileRequest alloc] initWithCheerChannelID:@"" global:YES];
+    previous=identity;identity=[NSObject new];before=cancels;[r poll];
+    NSCAssert(r.phase==2&&cancels==before+1,@"Changing account cancels global catalogue request");
     [r release];[previous release];
 
     before=requests;

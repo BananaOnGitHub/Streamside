@@ -40,6 +40,7 @@ int main(int argc,char **argv) {
         ssn_playback_status(7,6);ssn_playback_status(0,0);
     }
     if(!strcmp(argv[2],"work")) { ssn_playback_work(0,200);ssn_playback_work(0,30);ssn_playback_work(4,UINT64_MAX);ssn_playback_work(99,1); }
+    if(!strcmp(argv[2],"chat-art")) { for(unsigned i=0;i<8;i++)ssn_chat_art_event(i); }
     if(!strcmp(argv[2],"latency")) {
         ssn_playback_latency_config(0);ssn_playback_latency_config(1);ssn_playback_latency_config(2);ssn_playback_latency_config(99);
         ssn_playback_latency_rebuffer(true);

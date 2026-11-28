@@ -184,9 +184,43 @@ import Foundation
         print("PASS: read-only chat parsing, display names, colors, moderation, bounded transcript, and unread catch-up")
     }
 
+    static func chatRichText() {
+        let input = "@id=rich;emotes=25:2-6,8-12/emotesv2_abc:14-17;bits=150 :reader!user@host PRIVMSG #fixture :😀 Kappa Kappa Wave Themed150"
+        guard case .message(let message)? = TwitchChatMessages.parse(input, channel: "fixture").first else { fatalError("Rich chat message") }
+        precondition(message.emotes.count == 3 && message.bits == 150)
+        var catalogue = ChatCheerCatalogue()
+        catalogue.merge(["groups": [["prefix": "Themed", "template":
+            "https://d3aqoihi2n8ty8.cloudfront.net/actions/PREFIX/BACKGROUND/ANIMATION/TIER/SCALE.EXTENSION",
+            "tiers": [1, 100, 500]]], "colors": [["bits": 100, "color": "#9C3EE8"]]])
+        let parts = ChatRichText.parts(message, catalogue: catalogue, dark: true)
+        let emotes = parts.compactMap { part -> String? in
+            if case .emote(let text, _) = part { return text }; return nil
+        }
+        precondition(emotes == ["Kappa", "Kappa", "Wave"])
+        guard case .cheer(let word, let bits, let rgb, let artwork)? = parts.last else { fatalError("Themed cheer") }
+        precondition(word == "Themed150" && bits == 150 && rgb == 0x9C3EE8)
+        precondition(artwork.animated?.absoluteString.hasSuffix("/themed/dark/animated/100/2.gif") == true)
+        precondition(artwork.still?.absoluteString.hasSuffix("/themed/dark/static/100/2.png") == true)
+        let ordinary = TwitchChatMessage(id: "plain", login: "reader", displayName: "", color: nil, body: "Themed150")
+        precondition(ChatRichText.parts(ordinary, catalogue: catalogue, dark: true) == [.text("Themed150")])
+        var mismatch = ordinary; mismatch.bits = 151
+        precondition(ChatRichText.parts(mismatch, catalogue: catalogue, dark: true) == [.text("Themed150")])
+        let repeated = TwitchChatMessage(id: "multi", login: "reader", displayName: "", color: nil, body: "Themed100 Themed50", bits: 150)
+        precondition(ChatRichText.parts(repeated, catalogue: catalogue, dark: false).compactMap(\.artwork).count == 2)
+        precondition(ChatRichText.spans("25:0-4/26:2-6", body: "KappaXX").isEmpty)
+        precondition(ChatRichText.spans("25:1-999/evil%2F:0-1", body: "Kappa").isEmpty)
+        let action = "@id=act;emotes=25:0-4 :reader!user@host PRIVMSG #fixture :\u{1}ACTION Kappa\u{1}"
+        guard case .message(let acted)? = TwitchChatMessages.parse(action, channel: "fixture").first else { fatalError("Action emote") }
+        precondition(acted.body == "Kappa" && acted.emotes.count == 1)
+        precondition(ChatArtworkRequest.emote("x/../../", dark: true) == nil)
+        precondition(!ChatArtworkRequest.allowed(URL(string: "https://static-cdn.jtvnw.net.evil.invalid/emote")!))
+        print("PASS: Twitch emote ranges, Unicode, verified Bits tokens, tier colors, and channel artwork templates")
+    }
+
     @MainActor static func main() async {
         localTestData()
         chatMessages()
+        chatRichText()
         let suite = "dev.streamside.quality-models-fixture"
         let defaults = UserDefaults(suiteName: suite)!; defaults.removePersistentDomain(forName: suite)
         defer { defaults.removePersistentDomain(forName: suite) }

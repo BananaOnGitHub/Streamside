@@ -84,6 +84,14 @@ class CoreEvidence(unittest.TestCase):
             self.assertEqual(report['failures'],0)
             self.assertTrue(all(value==0 for value in report['probes'].values()))
 
+    def test_chat_art_diagnostics_are_bounded_and_native_only(self):
+        for mode in [0,1]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as d:
+                _,report=self.run_core(mode,'chat-art',Path(d))
+                self.assertEqual(report['chat_art_events'],[mode]*7)
+                self.assertEqual(report['failures'],0)
+                self.assertTrue(all(v==0 for v in report['probes'].values()))
+
     def test_latency_telemetry_separates_modes_rejects_invalid_samples_and_is_native_only(self):
         for mode in [0,1]:
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as d:

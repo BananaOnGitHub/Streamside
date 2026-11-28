@@ -40,6 +40,7 @@ void ssn_playback_event(unsigned event);
 
 /* Native-only installation/request observations. Original mode leaves all zero. */
 void ssn_frontend_event(unsigned event);
+void ssn_chat_art_event(unsigned event);
 
 /* Bounded taps: video, close, pause, mute, share, settings, copy. No content. */
 void ssn_player_control_event(unsigned event);

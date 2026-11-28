@@ -17,7 +17,7 @@ class CoordinateGates(unittest.TestCase):
     markers = {
         'testChannelProfile': ['CHANNEL_PROFILE_UI'],
         'testProfilePreviews': ['PROFILE_PREVIEWS'],
-        'testChatCatchUp': ['CHAT_CATCH_UP'],
+        'testChatCatchUp': ['CHAT_CATCH_UP', 'CHAT_RICH_TEXT'],
         'testMarkedContentConsent': ['MARKED_CONTENT_UI', 'MARKED_PENDING_WATCH', 'LOCAL_TEST_EDITOR'],
         'testGlassControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION', 'PLAYER_CLIPBOARD'],
         'testPlainControls': ['PLAYER_MOTION_CHECKS', 'PLAYER_OPACITY_PIXELS', 'PLAYER_RESOLUTION', 'PLAYER_CLIPBOARD'],

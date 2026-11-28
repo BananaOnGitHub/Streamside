@@ -333,3 +333,176 @@ id ssn_chat_send_request(id channel,id message) {
     if(!kind(mapped,"TWLPromise")) { objc_release(mapped);return nil; }
     return mapped;
 }
+
+/* Native read-only cheer catalogue. Generated Swift getters return a DataDict
+ * word, a String pair, or a typed Array word; each carrier is validated against
+ * metadata. No SDK identity, auth or unrelated campaign fields are exported. */
+struct CheerTypes {
+    const void *query,*data,*promise,*witness,*group,*groups;
+};
+static struct CheerTypes cheer_channel,cheer_global;
+static const void *cheer_user,*cheer_user_optional,*cheer_value,*cheer_optional;
+static const void *cheer_node,*cheer_nodes,*cheer_tier,*cheer_tiers;
+static const void *cheer_config,*cheer_display,*cheer_color,*cheer_colors;
+static bool cheer_initialized,cheer_available;
+static const void *cheer_array(const void *element) {
+    GenericMeta array=dlsym(RTLD_DEFAULT,"$sSaMa");
+    if(!sized(element,8)||!array)return NULL;
+    Response result=array(0,element);
+    return !result.state&&sized(result.value,8)?result.value:NULL;
+}
+static const void *cheer_option(const void *element) {
+    GenericMeta optional=dlsym(RTLD_DEFAULT,"$sSqMa");
+    if(!sized(element,8)||!optional)return NULL;
+    Response result=optional(0,element);
+    return !result.state&&sized(result.value,8)?result.value:NULL;
+}
+static bool cheer_query_types(struct CheerTypes *types,const char *query,const char *data,const char *group) {
+    types->query=meta(query);types->data=meta(data);types->group=meta(group);
+    types->groups=cheer_array(types->group);
+    const void *(*conforms)(const void*,const void*)=dlsym(RTLD_DEFAULT,"swift_conformsToProtocol");
+    const void *protocol=ssn_resolve("$s9ApolloAPI12GraphQLQueryMp");
+    if(!sized(types->query,8)||!sized(types->data,8)||!types->groups||!conforms||!protocol)return false;
+    types->witness=conforms(types->query,protocol);
+    Response promise=promise_meta(0,types->data,error_type);
+    if(!types->witness||promise.state||!sized(promise.value,8))return false;
+    types->promise=promise.value;return true;
+}
+static bool cheer_initialize(void) {
+    if(cheer_initialized)return cheer_available;
+    cheer_initialized=true;
+    if(!cheer_query_types(&cheer_channel,"$s16TwitchGraphQLAPI14CheerInfoQueryCMa","$s16TwitchGraphQLAPI14CheerInfoQueryC4DataVMa","$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V0D5GroupVMa")||
+       !cheer_query_types(&cheer_global,"$s16TwitchGraphQLAPI22GlobalCheerConfigQueryCMa","$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataVMa","$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V5GroupVMa"))return false;
+    cheer_user=meta("$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserVMa");cheer_user_optional=cheer_option(cheer_user);
+    cheer_value=meta("$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0VMa");cheer_optional=cheer_option(cheer_value);
+    cheer_node=meta("$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeVMa");cheer_nodes=cheer_array(cheer_node);
+    cheer_tier=meta("$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV4TierVMa");cheer_tiers=cheer_array(cheer_tier);
+    cheer_config=meta("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0VMa");
+    cheer_display=meta("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0VMa");
+    cheer_color=meta("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V5ColorVMa");cheer_colors=cheer_array(cheer_color);
+    cheer_available=cheer_user_optional&&cheer_optional&&cheer_nodes&&cheer_tiers&&sized(cheer_config,8)&&sized(cheer_display,8)&&cheer_colors;
+    return cheer_available;
+}
+static bool cheer_present(uintptr_t *value,const void *payload) {
+    return ((GetTag)vw(payload)[6])(value,1,payload)==0;
+}
+static id cheer_string(PlaybackString getter,uintptr_t object,unsigned maximum) {
+    if(!getter)return nil;
+    Words2 value=getter(object);
+    id string=bridge(&value,string_type);destroy(&value,string_type);
+    if(!kind(string,"NSString")||!num(string,"length")||num(string,"length")>maximum) { objc_release(string);return nil; }
+    return string;
+}
+static id cheer_list(PlaybackField getter,uintptr_t object,const void *type,unsigned maximum) {
+    if(!getter)return nil;
+    uintptr_t array=getter(object);
+    id boxed=bridge(&array,type);destroy(&array,type);
+    if(!kind(boxed,"NSArray")||num(boxed,"count")>maximum){objc_release(boxed);return nil;}
+    return boxed;
+}
+static id cheer_number(uintptr_t value) {
+    if(!value||value>100000000)return nil;
+    return ((id(*)(id,SEL,unsigned long long))objc_msgSend)(c("NSNumber"),ss("numberWithUnsignedLongLong:"),(unsigned long long)value);
+}
+static id cheer_groups(uintptr_t owner,bool global) {
+    const struct CheerTypes *type=global?&cheer_global:&cheer_channel;
+    PlaybackField group_get=(void*)ssn_resolve(global?
+        "$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V6groupsSayAG5GroupVGvg":
+        "$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V11cheerGroupsSayAI0D5GroupVGvg");
+    PlaybackField node_get=(void*)ssn_resolve(global?
+        "$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V5GroupV5nodesSayAA09CheermoteI8FragmentV4NodeVGvg":
+        "$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V0D5GroupV5nodesSayAA09CheermoteI8FragmentV4NodeVGvg");
+    PlaybackString template_get=(void*)ssn_resolve(global?
+        "$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V5GroupV11templateURLSSvg":
+        "$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV0D0V0D5GroupV11templateURLSSvg");
+    PlaybackString prefix_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV6prefixSSvg");
+    PlaybackField tier_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV5tiersSayAE4TierVGvg");
+    PlaybackField bits_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22CheermoteGroupFragmentV4NodeV4TierV4bitsSivg");
+    if(!group_get||!node_get||!template_get||!prefix_get||!tier_get||!bits_get)return nil;
+    id groups=cheer_list(group_get,owner,type->groups,128);
+    if(!groups)return nil;
+    id result=m0(c("NSMutableArray"),"new");
+    for(uintptr_t i=0;i<num(groups,"count")&&num(result,"count")<256;i++) {
+        id box=at(groups,i);uintptr_t group=0;
+        if(!cast(&group,&box,objc_type,type->group,0))continue;
+        id template=cheer_string(template_get,group,2048),nodes=cheer_list(node_get,group,cheer_nodes,256);
+        destroy(&group,type->group);
+        for(uintptr_t j=0;template&&nodes&&j<num(nodes,"count")&&num(result,"count")<256;j++) {
+            id node_box=at(nodes,j);uintptr_t node=0;
+            if(!cast(&node,&node_box,objc_type,cheer_node,0))continue;
+            id prefix=cheer_string(prefix_get,node,64),tiers=cheer_list(tier_get,node,cheer_tiers,32);
+            destroy(&node,cheer_node);
+            id values=m0(c("NSMutableArray"),"new");
+            for(uintptr_t k=0;tiers&&k<num(tiers,"count");k++) {
+                id tier_box=at(tiers,k);uintptr_t tier=0;
+                if(!cast(&tier,&tier_box,objc_type,cheer_tier,0))continue;
+                id value=cheer_number(bits_get(tier));destroy(&tier,cheer_tier);
+                if(value)v1(values,"addObject:",value);
+            }
+            if(prefix&&num(values,"count")) {
+                id row=m0(c("NSMutableDictionary"),"new");put(row,"prefix",prefix);put(row,"template",template);put(row,"tiers",values);
+                v1(result,"addObject:",row);objc_release(row);
+            }
+            objc_release(values);objc_release(tiers);objc_release(prefix);
+        }
+        objc_release(template);objc_release(nodes);
+    }
+    objc_release(groups);return result;
+}
+static id SW map_channel_cheers(const void *value,void *context CTX) {
+    (void)context;
+    PlaybackField get_user=(void*)ssn_resolve("$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4userAE4UserVSgvg");
+    PlaybackField get_cheer=(void*)ssn_resolve("$s16TwitchGraphQLAPI14CheerInfoQueryC4DataV4UserV5cheerAG0D0VSgvg");
+    if(!get_user||!get_cheer)return failed();
+    uintptr_t user=get_user(*(const uintptr_t*)value);
+    if(!cheer_present(&user,cheer_user)){destroy(&user,cheer_user_optional);return failed();}
+    uintptr_t cheer=get_cheer(user);destroy(&user,cheer_user_optional);
+    if(!cheer_present(&cheer,cheer_value)){destroy(&cheer,cheer_optional);return failed();}
+    id groups=cheer_groups(cheer,false);destroy(&cheer,cheer_optional);
+    if(!groups)return failed();
+    id result=m0(c("NSMutableDictionary"),"new");put(result,"groups",groups);objc_release(groups);return result;
+}
+static id SW map_global_cheers(const void *value,void *context CTX) {
+    (void)context;
+    PlaybackField config_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV05cheerF0AE0eF0Vvg"),
+        display_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07displayF0AG07DisplayF0Vvg"),
+        colors_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V6colorsSayAI5ColorVGvg"),
+        bits_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V5ColorV4bitsSivg");
+    PlaybackString color_get=(void*)ssn_resolve("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryC4DataV0eF0V07DisplayF0V5ColorV5colorSSvg");
+    if(!config_get||!display_get||!colors_get||!bits_get||!color_get)return failed();
+    uintptr_t config=config_get(*(const uintptr_t*)value);
+    id groups=cheer_groups(config,true);
+    uintptr_t display=display_get(config);destroy(&config,cheer_config);
+    id colors=cheer_list(colors_get,display,cheer_colors,64);destroy(&display,cheer_display);
+    id result=m0(c("NSMutableDictionary"),"new"),palette=m0(c("NSMutableArray"),"new");
+    for(uintptr_t i=0;colors&&i<num(colors,"count");i++) {
+        id box=at(colors,i);uintptr_t item=0;
+        if(!cast(&item,&box,objc_type,cheer_color,0))continue;
+        id bits=cheer_number(bits_get(item)),color=cheer_string(color_get,item,16);destroy(&item,cheer_color);
+        if(bits&&color){id row=m0(c("NSMutableDictionary"),"new");put(row,"bits",bits);put(row,"color",color);v1(palette,"addObject:",row);objc_release(row);}
+        objc_release(color);
+    }
+    if(groups)put(result,"groups",groups);
+    put(result,"colors",palette);objc_release(groups);objc_release(colors);objc_release(palette);return result;
+}
+id ssn_chat_cheer_request(id channel,bool global) {
+    if(!ssn_playback_authorized()||!initialize()||!cheer_initialize())return nil;
+    id graph=m0(c("_TtC9TwitchKit9TKGraphQL"),"sharedInstance");if(!graph)return nil;
+    struct CheerTypes *types=global?&cheer_global:&cheer_channel;
+    uintptr_t query=0;
+    if(global) {
+        SW uintptr_t (*make)(const void * CTX)=(void*)ssn_resolve("$s16TwitchGraphQLAPI22GlobalCheerConfigQueryCACycfC");
+        if(make)query=make(types->query);
+    } else {
+        LabelsQueryInit make=(void*)ssn_resolve("$s16TwitchGraphQLAPI14CheerInfoQueryC9channelIDACSS_tcfC");
+        if(!make||!kind(channel,"NSString")||!num(channel,"length")||num(channel,"length")>32)return nil;
+        Words2 name=from_string(channel);query=make(name.a,name.b,types->query);
+    }
+    if(!query)return nil;
+    Words2 client=client_getter(graph);uintptr_t result=0;
+    fetch(&result,query,1,client.a,client.b,types->query,types->witness);
+    release_object(query);release_object(client.a);release_object(client.b);
+    id mapped=promise_objc(global?map_global_cheers:map_channel_cheers,NULL,error_avatar,NULL,types->promise,objc_type,objc_type,&result);
+    destroy(&result,types->promise);
+    if(!kind(mapped,"TWLPromise")){objc_release(mapped);return nil;}return mapped;
+}

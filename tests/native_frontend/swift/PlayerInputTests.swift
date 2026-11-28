@@ -319,6 +319,14 @@ final class PlayerInputTests: XCTestCase {
         XCTAssertEqual(send.frame.height, buttonSize.height, accuracy: 1)
         app.buttons["Confirm delivery"].tap()
         assertDismissed(send)
+        XCTAssertEqual(receive.value as? String, "Animated variable-aspect artwork ready")
+        receive.tap()
+        let rich = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Reader: FixtureWave Themed100")).firstMatch
+        let richVisible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            rich.exists && chat.frame.contains(rich.frame) && !rich.frame.isEmpty
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [richVisible], timeout: 5), .completed)
+        print("CHAT_RICH_TEXT PASS: decoded GIF and PNG, nonsquare inline artwork, accessible original message")
         print("CHAT_CATCH_UP PASS: read position, unread count, catch-up line, live follow, synchronized info layout, tap keyboard dismissal, and stable composer send")
     }
 
